@@ -1,0 +1,66 @@
+/* TIPHYS design tokens — navigator / From Intent to Outcome
+   Mythology explains the name only; no literal stars/columns/ships as primary UI. */
+
+:root,
+[data-theme="light"] {
+  /* Accent / navigation (teal-cyan route) */
+  --tiphys-accent: #0d9488;
+  --tiphys-accent-bright: #14b8a6;
+  --tiphys-accent-muted: color-mix(in srgb, var(--tiphys-accent) 18%, transparent);
+  --tiphys-accent-fg: #ffffff;
+
+  /* Surfaces */
+  --tiphys-bg: #f8fafc;
+  --tiphys-surface: #ffffff;
+  --tiphys-surface-elevated: #ffffff;
+  --tiphys-map-underlay: #e2e8f0;
+  --tiphys-border: #e2e8f0;
+  --tiphys-border-subtle: #f1f5f9;
+
+  /* Text */
+  --tiphys-text: #0f172a;
+  --tiphys-text-secondary: #64748b;
+  --tiphys-text-muted: #94a3b8;
+
+  /* Chat */
+  --tiphys-bubble-user: #f1f5f9;
+  --tiphys-bubble-agent: color-mix(in srgb, var(--tiphys-accent) 10%, var(--tiphys-surface));
+
+  /* Layout */
+  --tiphys-radius: 12px;
+  --tiphys-radius-soft: 14px;
+  --tiphys-radius-sm: 8px;
+  --tiphys-chat-width: 360px;
+  --tiphys-layer-width: 48px;
+  --tiphys-topbar-height: 48px;
+
+  /* Motion — subtle route progress */
+  --tiphys-route-duration: 420ms;
+  --tiphys-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Typography */
+  --tiphys-font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --tiphys-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+[data-theme="dark"] {
+  --tiphys-accent: #14b8a6;
+  --tiphys-accent-bright: #2dd4bf;
+  --tiphys-accent-muted: color-mix(in srgb, var(--tiphys-accent) 22%, transparent);
+  --tiphys-accent-fg: #042f2e;
+
+  --tiphys-bg: #0b1220;
+  --tiphys-surface: #111827;
+  --tiphys-surface-elevated: #1a2332;
+  --tiphys-map-underlay: #0b1220;
+  --tiphys-border: #1f2a3d;
+  --tiphys-border-subtle: #162032;
+
+  --tiphys-text: #f8fafc;
+  --tiphys-text-secondary: #94a3b8;
+  --tiphys-text-muted: #64748b;
+
+  --tiphys-bubble-user: #1a2332;
+  --tiphys-bubble-agent: color-mix(in srgb, var(--tiphys-accent) 14%, var(--tiphys-surface));
+}

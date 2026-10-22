@@ -1,0 +1,32 @@
+{
+  "name": "tiphys",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "engine": "node scripts/engine.mjs",
+    "engine:ping": "node -e \"fetch('http://127.0.0.1:8765/ping').then(r=>r.text()).then(console.log)\"",
+    "check:rust": "cargo check --manifest-path src-tauri/Cargo.toml",
+    "agent": "npm --prefix agent start",
+    "agent:tools": "node -e \"fetch('http://127.0.0.1:8787/tools').then(r=>r.text()).then(console.log)\""
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.11.6",
+    "@tauri-apps/plugin-opener": "^2.5.5",
+    "maplibre-gl": "^6.15.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^6.0.2",
+    "typescript": "~6.0.3",
+    "vite": "^8.0.16"
+  }
+}
