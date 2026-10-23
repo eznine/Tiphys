@@ -124,3 +124,4 @@
   - Verification: `npm run test:browser` 36/36; `npx tsc --noEmit`; `npm run build` (dist ~36 MB, app ~1.91 MB, catalog ~1.95 MB, CLI WASM 24.1 MB). No GEE creds; no Python changes.
 
 - 2026-10-24 05:12 Asia/Shanghai — Overnight supervisor committing+pushing batch11, then starting batch12 (network/service-area densify, agent plan clarity, perf/beauty).
+- 2026-10-24 05:13 Asia/Shanghai — Batch11 pushed as `b5c950c` (36/36). Launching batch12 tf-codex (network/service-area, raster buffer/filter, agent recipes).
