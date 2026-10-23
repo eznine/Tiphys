@@ -322,8 +322,9 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
         const required = tool?.parameters.required?.includes(name);
         const label = `${FIELDS[name] ?? zhParam(name)}${required ? " *" : ""}`;
         const layerKind = schema["x-layer-kind"] ?? ((schema["x-layer"] || name === "layer" || name.endsWith("_layer")) ? "vector" : undefined);
+        const kindName = layerKind === "any" ? "栅格或矢量" : KIND_ZH[layerKind ?? ""];
         const fieldParam = FIELD_PARAMS.has(name) && columns.length > 0;
-        const kindLayers = layerKind ? layers.filter(l => (l.kind ?? "vector") === layerKind) : [];
+        const kindLayers = layerKind ? layers.filter(l => layerKind === "any" ? l.kind === "raster" || l.kind === "vector" : (l.kind ?? "vector") === layerKind) : [];
         const options = layerKind ? kindLayers.map(l => ({ value: l.id, label: l.kind === "raster" ? `${l.name}（栅格 ${l.raster?.width}×${l.raster?.height}）` : l.kind === "table" ? `${l.name}（表格 ${l.feature_count} 行）` : `${l.name} (${l.feature_count})` }))
           : fieldParam ? columns.map(c => ({ value: c, label: c })) : schema.enum?.map(v => ({ value: v, label: v }));
         if (layerKind && schema["x-layer-multiple"]) {
@@ -333,12 +334,12 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
               value={selected} onChange={e => setValues(v => ({ ...v, [name]: Array.from(e.target.selectedOptions, option => option.value) }))}>
               {kindLayers.map(layer => <option key={layer.id} value={layer.id}>{layer.name}{layer.kind === "raster" ? `（${layer.raster?.width}×${layer.raster?.height}）` : ""}</option>)}
             </select>
-            {!kindLayers.length && <small className="tool-desc">尚无{ KIND_ZH[layerKind] }图层，请先导入或生成。</small>}
+            {!kindLayers.length && <small className="tool-desc">尚无{kindName}图层，请先导入或生成。</small>}
           </label>;
         }
         if (options) return <label key={name} className="tool-field"><span>{label}</span>
           <select title={schema.description} aria-label={label} required={required && options.length > 0} value={String(values[name] ?? schema.default ?? "")} onChange={e => setValues(v => ({ ...v, [name]: e.target.value }))}>
-            <option value="">— {layerKind ? (kindLayers.length ? `选择${KIND_ZH[layerKind]}图层` : `尚无${KIND_ZH[layerKind] ?? ""}图层，请先导入或生成`) : "选择"} —</option>
+            <option value="">— {layerKind ? (kindLayers.length ? `选择${kindName}图层` : `尚无${kindName}图层，请先导入或生成`) : "选择"} —</option>
             {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select></label>;
         if (schema.type === "boolean") return <label key={name} className="tool-field tool-check">

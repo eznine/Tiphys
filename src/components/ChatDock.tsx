@@ -56,6 +56,8 @@ const RECIPES = [
   { title: "对称差", detail: "保留两个面图层互不重叠的区域，打开表单", tool: "wasm_symmetrical_difference", Icon: Boxes },
   { title: "均值滤波", detail: "对 DEM 或影像做局部均值平滑，打开表单", tool: "wasm_mean_filter", Icon: SlidersHorizontal },
   { title: "变化矢量", detail: "双日期多波段影像 → 变化幅度与方向栅格", tool: "wasm_change_vector_analysis", Icon: RefreshCw },
+  { title: "邻近分析", detail: "输入图层 → 最近要素 ID 与距离", tool: "wasm_near", Icon: CircleDot },
+  { title: "线延伸分割", detail: "端点延伸或按长度拆分折线，打开表单", tool: "wasm_extend_vector_lines", Icon: Scissors },
   { title: "最小成本路径", detail: "连接源与目的地，保留真实路径结果", tool: "least_cost_path_pipeline", Icon: Route },
   { title: "按 AOI 裁剪", detail: "先在地图绘制 AOI，再插入提示词", prompt: "用当前 AOI 范围裁剪所选图层。", Icon: Scissors },
 ] as const;

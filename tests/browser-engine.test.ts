@@ -253,7 +253,9 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_gaussian_filter", "wasm_edge_preserving_mean_filter", "wasm_points_to_line",
     "wasm_minimum_bounding_box", "wasm_relative_topographic_position", "wasm_mean_filter",
     "wasm_laplacian_filter", "wasm_euclidean_direction", "wasm_update", "wasm_vector_lines_to_raster",
-    "wasm_simple_kriging", "wasm_wetness_index", "wasm_change_vector_analysis"]) {
+    "wasm_simple_kriging", "wasm_wetness_index", "wasm_change_vector_analysis",
+    "wasm_near", "wasm_extend_vector_lines", "wasm_split_vector_lines", "wasm_find_identical",
+    "wasm_integrate", "wasm_median_center", "wasm_lee_filter", "wasm_downslope_index"]) {
     assert.ok(names.includes(name), `${name} should be exposed in the ribbon`);
   }
   const dock = fs.readFileSync(new URL("../src/components/ChatDock.tsx", import.meta.url), "utf8");
@@ -263,7 +265,7 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_line_density", "wasm_concave_hull", "wasm_empirical_bayesian_kriging", "wasm_basins",
     "wasm_opening", "wasm_symmetrical_difference", "wasm_difference", "wasm_ruggedness_index",
     "wasm_strahler_stream_order", "wasm_cost_connectivity", "wasm_mean_filter",
-    "wasm_change_vector_analysis"]) {
+    "wasm_change_vector_analysis", "wasm_near", "wasm_extend_vector_lines"]) {
     assert.ok(recipeTools.includes(name), `${name} should be available as an agent recipe`);
     assert.ok(browserCatalog.some(tool => tool.name === name), `${name} recipe must resolve to a catalog tool`);
   }
@@ -558,6 +560,50 @@ test("filter, distance, vector, interpolation and RS ribbon forms expose honest 
   assert.ok(!("magnitude_output" in change) && !("direction_output" in change), "CVA outputs must stay internal");
 });
 
+test("vector QA, statistics, Lee filter and downslope forms expose honest contracts", async () => {
+  await ensureBrowserCatalog();
+  const props = (name: string) => browserCatalog.find(tool => tool.name === name)!.parameters.properties as any;
+
+  for (const name of ["wasm_near", "wasm_extend_vector_lines", "wasm_split_vector_lines",
+    "wasm_find_identical", "wasm_integrate", "wasm_median_center"]) {
+    const form = props(name);
+    assert.equal(form.input["x-layer-kind"], "vector", `${name} input must be vector`);
+    assert.ok(!("output" in form), `${name} output path must stay internal`);
+  }
+  assert.equal(props("wasm_near").near["x-layer-kind"], "vector");
+  assert.equal(props("wasm_near").max_distance.type, "number");
+  assert.equal(props("wasm_extend_vector_lines").distance.type, "number");
+  assert.deepEqual(props("wasm_extend_vector_lines").extend_direction.enum, ["both", "start", "end"]);
+  assert.equal(props("wasm_split_vector_lines").segment_length.type, "number");
+  const identical = props("wasm_find_identical");
+  assert.deepEqual(identical.mode.enum, ["report", "delete"]);
+  assert.equal(identical.mode.default, "report");
+  assert.equal(identical.compare_geometry.type, "boolean");
+  assert.equal(identical.compare_geometry.default, true, "duplicate comparison includes geometry by default");
+  assert.equal(identical.xy_tolerance.type, "number");
+  const integrate = props("wasm_integrate");
+  assert.equal(integrate.tolerance.type, "number");
+  assert.equal(integrate.snap_to_edges.default, true, "integrate snaps T-junctions by default");
+  assert.equal(props("wasm_median_center").weight_field.type, "string");
+
+  const lee = props("wasm_lee_filter");
+  assert.equal(lee.input["x-layer-kind"], "raster");
+  assert.equal(lee.filter_size_x.type, "integer");
+  assert.equal(lee.filter_size_y.type, "integer");
+  assert.ok(!("output" in lee), "Lee filter output path must stay internal");
+  const downslope = props("wasm_downslope_index");
+  assert.equal(downslope.input["x-layer-kind"], "raster");
+  assert.equal(downslope.vertical_drop.type, "number");
+  assert.deepEqual(downslope.output_type.enum, ["tangent", "degrees", "radians", "distance"]);
+  assert.ok(!("output" in downslope), "downslope output path must stay internal");
+
+  const backLink = props("wasm_cost_back_link");
+  assert.equal(backLink.source["x-layer"], true);
+  assert.equal(backLink.source["x-layer-kind"], "any", "back-link source must accept a raster or vector layer");
+  assert.equal(backLink.cost["x-layer-kind"], "raster");
+  assert.ok(!("output" in backLink) && !("out_distance" in backLink), "back-link outputs must stay internal");
+});
+
 test("Chinese GIS aliases rank conversion, interpolation and service-area tools", async () => {
   await ensureBrowserCatalog();
   const rasterToVector = searchBrowserTools(browserCatalog, "栅格转矢量", { limit: 6 }).map(tool => tool.name);
@@ -611,6 +657,15 @@ test("Chinese GIS aliases rank conversion, interpolation and service-area tools"
     ["简单克里金", "wasm_simple_kriging"], ["局部克里金", "wasm_local_kriging"],
     ["谷线", "wasm_extract_valleys"], ["直方图均衡", "wasm_histogram_equalization"],
     ["变化矢量", "wasm_change_vector_analysis"], ["下坡指数", "wasm_downslope_index"]]) {
+    assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
+  }
+  for (const [query, expected] of [["线延伸", "wasm_extend_vector_lines"], ["线分割", "wasm_split_vector_lines"],
+    ["查重", "wasm_find_identical"], ["整合", "wasm_integrate"], ["中位中心", "wasm_median_center"],
+    ["中心要素", "wasm_central_feature"], ["方向分布", "wasm_directional_distribution"],
+    ["Prewitt", "wasm_prewitt_filter"], ["保守平滑", "wasm_conservative_smoothing_filter"],
+    ["坡向圆方差", "wasm_circular_variance_of_aspect"], ["平均流路坡度", "wasm_average_flowpath_slope"],
+    ["成本回溯", "wasm_cost_back_link"], ["填挖方", "wasm_cut_fill"],
+    ["局部克里金", "wasm_local_kriging"], ["对比度均衡", "wasm_balance_contrast_enhancement"]]) {
     assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
   }
   const streamOrders = searchBrowserTools(browserCatalog, "河网分级", { limit: 4 }).map(tool => tool.name);
@@ -668,6 +723,109 @@ test("geometry densify, centroid and line density tools publish real result laye
   assert.equal(lineRasterLayer.kind, "raster", "line-to-raster must publish a raster layer");
   assert.ok(lineRasterLayer.raster?.width > 1 && lineRasterLayer.raster?.height > 1);
   assert.equal(lineRaster.attachments, undefined);
+});
+
+test("vector QA and median-center ribbon tools publish real layers", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const features = [
+    { type: "Feature", properties: { id: 1, value: 10 }, geometry: { type: "Point", coordinates: [500000, 4400000] } },
+    { type: "Feature", properties: { id: 2, value: 20 }, geometry: { type: "Point", coordinates: [500100, 4400000] } },
+    { type: "Feature", properties: { id: 3, value: 30 }, geometry: { type: "Point", coordinates: [500000, 4400100] } },
+    { type: "Feature", properties: { id: 1, value: 10 }, geometry: { type: "Point", coordinates: [500000, 4400000] } },
+  ];
+  const points = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features })]), "vector_qa_points.geojson")).layer;
+  const lines = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [
+    { type: "Feature", properties: { id: 1 }, geometry: { type: "LineString", coordinates: [[500000, 4400000], [500500, 4400000]] } },
+    { type: "Feature", properties: { id: 2 }, geometry: { type: "LineString", coordinates: [[500000, 4400200], [500500, 4400200]] } },
+  ] })]), "vector_qa_lines.geojson")).layer;
+  const ring = (x: number, y: number, width: number, height: number) => [[x, y], [x + width, y], [x + width, y + height], [x, y + height], [x, y]];
+  const polygons = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [
+    { type: "Feature", properties: { id: 1 }, geometry: { type: "Polygon", coordinates: [ring(500000, 4400000, 100, 100)] } },
+    { type: "Feature", properties: { id: 2 }, geometry: { type: "Polygon", coordinates: [ring(500100.02, 4400000, 100, 100)] } },
+  ] })]), "vector_qa_polygons.geojson")).layer;
+
+  const near = await finished("wasm_near", { input: points.id, near: points.id, max_distance: 1000, output_name: "vector_qa_near" });
+  const nearLayer = near.layer ?? near.layers?.[0]?.layer;
+  assert.equal(nearLayer.feature_count, points.feature_count);
+  const nearRecord: any = await readRecord(`layer:${nearLayer.id}`);
+  for (const feature of nearRecord.geojson.features) {
+    assert.equal(typeof feature.properties.NEAR_FID, "number");
+    assert.equal(typeof feature.properties.NEAR_DIST, "number");
+  }
+
+  const extended = await finished("wasm_extend_vector_lines", {
+    input: lines.id, distance: 100, extend_direction: "both", output_name: "vector_qa_extended",
+  });
+  const extendedLayer = extended.layer ?? extended.layers?.[0]?.layer;
+  const extendedRecord: any = await readRecord(`layer:${extendedLayer.id}`);
+  const lineRecord: any = await readRecord(`layer:${lines.id}`);
+  assert.ok(extendedRecord.geojson.features[0].geometry.coordinates[0][0] < lineRecord.geojson.features[0].geometry.coordinates[0][0]);
+  assert.ok(extendedRecord.geojson.features[0].geometry.coordinates.at(-1)[0] > lineRecord.geojson.features[0].geometry.coordinates.at(-1)[0]);
+
+  const split = await finished("wasm_split_vector_lines", { input: lines.id, segment_length: 200, output_name: "vector_qa_split" });
+  const splitLayer = split.layer ?? split.layers?.[0]?.layer;
+  assert.ok(splitLayer.feature_count >= 6, "line splitting must create bounded segments");
+  assert.ok(splitLayer.geometry_types.every((type: string) => type === "LineString" || type === "MultiLineString"));
+
+  const duplicates = await finished("wasm_find_identical", {
+    input: points.id, fields: "id", compare_geometry: true, mode: "delete", output_name: "vector_qa_unique",
+  });
+  const uniqueLayer = duplicates.layer ?? duplicates.layers?.[0]?.layer;
+  assert.equal(uniqueLayer.feature_count, 3, "delete mode must keep one of each identical pair");
+
+  const integrated = await finished("wasm_integrate", {
+    input: polygons.id, tolerance: 1, snap_to_edges: true, output_name: "vector_qa_integrated",
+  });
+  const integratedLayer = integrated.layer ?? integrated.layers?.[0]?.layer;
+  assert.equal(integratedLayer.feature_count, 2);
+  assert.ok(integratedLayer.geometry_types.every((type: string) => type === "Polygon" || type === "MultiPolygon"));
+
+  const median = await finished("wasm_median_center", {
+    input: points.id, weight_field: "value", output_name: "vector_qa_median_center",
+  });
+  const medianLayer = median.layer ?? median.layers?.[0]?.layer;
+  assert.equal(medianLayer.feature_count, 1);
+  assert.deepEqual(medianLayer.geometry_types, ["Point"]);
+});
+
+test("Lee, downslope and cost-back-link raster tools publish real result layers", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const ring = (x: number, y: number, width: number, height: number) => [[x, y], [x + width, y], [x + width, y + height], [x, y + height], [x, y]];
+  const cell = 100, cells: any[] = [];
+  for (let row = 0; row < 6; row++) for (let col = 0; col < 6; col++) {
+    const x = 500000 + col * cell, y = 4400000 + row * cell;
+    cells.push({ type: "Feature", properties: { elev: 100 + row * 4 + col * 2 + (row === 2 && col === 3 ? 18 : 0) },
+      geometry: { type: "Polygon", coordinates: [ring(x, y, cell, cell)] } });
+  }
+  const grid = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: cells })]), "raster_qa_grid.geojson")).layer;
+  const dem = (await finished("wasm_vector_polygons_to_raster", {
+    input: grid.id, field: "elev", cell_size: cell, output_name: "raster_qa_dem",
+  })).layer;
+
+  const lee = await finished("wasm_lee_filter", {
+    input: dem.id, filter_size_x: 3, filter_size_y: 3, sigma: 10, m_value: 2, output_name: "raster_qa_lee",
+  });
+  const leeLayer = lee.layer ?? lee.layers?.[0]?.layer;
+  assert.equal(leeLayer.kind, "raster", "Lee filter file output must publish as raster");
+  assert.equal(leeLayer.raster?.width, dem.raster?.width);
+  assert.equal(lee.attachments, undefined);
+
+  const downslope = await finished("wasm_downslope_index", {
+    input: dem.id, vertical_drop: 2, output_type: "tangent", output_name: "raster_qa_downslope",
+  });
+  const downslopeLayer = downslope.layer ?? downslope.layers?.[0]?.layer;
+  assert.equal(downslopeLayer.kind, "raster", "downslope index must publish a raster layer");
+  assert.equal(downslopeLayer.raster?.width, dem.raster?.width);
+  assert.equal(downslope.attachments, undefined);
+
+  const backLink = await finished("wasm_cost_back_link", {
+    source: dem.id, cost: dem.id, max_distance: 10000, output_name: "raster_qa_backlink",
+  });
+  assert.equal(backLink.layers?.length, 2, `cost back link must publish direction and distance rasters: ${JSON.stringify(backLink)}`);
+  const backLinkLayers = backLink.layers.map((item: any) => item.layer);
+  assert.ok(backLinkLayers.every((layer: any) => layer.kind === "raster"));
+  assert.ok(backLinkLayers.some((layer: any) => /output/.test(layer.name)));
+  assert.ok(backLinkLayers.some((layer: any) => /out_distance/.test(layer.name)));
 });
 
 test("morphology and vector cleanup ribbon tools publish displayed result layers", async () => {

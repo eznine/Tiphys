@@ -361,7 +361,11 @@ async function runNative(id: string, args: Record<string, any>, signal?: AbortSi
       for (const [index, value] of values.entries()) {
         const record = await resolve(value);
         const kind = record.info.kind ?? "vector";
-        if (kind !== p.data_kind) throw new Error(`参数 ${p.name} 需要${kindLabel(String(p.data_kind))}输入，但「${record.info.name}」是${kindLabel(kind)}图层。`);
+        const acceptsKind = id === "cost_back_link" && p.name === "source" ? kind === "raster" || kind === "vector" : kind === p.data_kind;
+        if (!acceptsKind) {
+          const expected = id === "cost_back_link" && p.name === "source" ? "栅格或矢量" : kindLabel(String(p.data_kind));
+          throw new Error(`参数 ${p.name} 需要${expected}输入，但「${record.info.name}」是${kindLabel(kind)}图层。`);
+        }
         if (kind === "vector") {
           if (vectorCrs && record.info.crs !== vectorCrs) throw new Error("高级工具的输入图层坐标系不同，请先重投影到同一坐标系。");
           vectorCrs = record.info.crs;

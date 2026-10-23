@@ -20,7 +20,7 @@ export function isOutputLikeParam(param: { name: string; io_role?: string; descr
 }
 
 /** Upstream manifests occasionally mark real inputs (or enum modes) as outputs. */
-const WASM_INPUT_OVERRIDES = new Set(["cost_pathway.destination", "network_service_area.output_mode"]);
+const WASM_INPUT_OVERRIDES = new Set(["cost_pathway.destination", "cost_back_link.source", "network_service_area.output_mode"]);
 
 /** Upstream occasionally marks numeric scalars as raster/vector inputs. */
 const WASM_SCALAR_INPUT_OVERRIDES = new Set([
@@ -122,6 +122,26 @@ const WASM_SCHEMA_OVERRIDES: Record<string, Record<string, CatalogSchema>> = {
   downslope_index: {
     output_type: { type: "string", enum: ["tangent", "degrees", "radians", "distance"], default: "tangent",
       description: "下坡指数输出形式。" },
+  },
+  find_identical: {
+    compare_geometry: { type: "boolean", default: true, description: "是否把几何形状也纳入相同性判断。" },
+    mode: { type: "string", enum: ["report", "delete"], default: "report",
+      description: "report 标记重复分组；delete 每组仅保留第一个要素。" },
+  },
+  integrate: {
+    snap_to_edges: { type: "boolean", default: true, description: "是否同时把邻近折点插入相邻线段以消除 T 形缝隙。" },
+  },
+  lee_filter: {
+    filter_size_x: { type: "integer", default: 11, description: "Lee 滤波窗口宽度（奇数像元）。" },
+    filter_size_y: { type: "integer", default: 11, description: "Lee 滤波窗口高度（奇数像元）。" },
+  },
+  conservative_smoothing_filter: {
+    filter_size_x: { type: "integer", default: 3, description: "保守平滑窗口宽度（奇数像元）。" },
+    filter_size_y: { type: "integer", default: 3, description: "保守平滑窗口高度（奇数像元）。" },
+  },
+  cost_back_link: {
+    source: { type: "string", "x-layer": true, "x-layer-kind": "any",
+      description: "源位置：可选择栅格（非零且非 NoData 为源）或点/多点矢量图层。" },
   },
   change_vector_analysis: {
     date1: { type: "array", "x-layer": true, "x-layer-kind": "raster", "x-layer-multiple": true,
