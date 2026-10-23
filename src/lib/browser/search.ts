@@ -5,8 +5,11 @@ const SEARCHABLE_PREFIXES = ["wasm_", "gee_"];
 
 /** Common user phrasing that differs from the upstream Chinese tool name. */
 const TOOL_ALIASES: Record<string, string[]> = {
+  aggregate_polygons: ["面聚合", "聚合面", "聚合多边形", "合并邻近面", "形态学闭运算"],
+  basins: ["集水区", "流域盆地", "流域划分", "D8 流域", "盆地划分"],
   boundary_clean: ["边界清理", "分类边界清理", "平滑分类栅格"],
   buffer_raster: ["栅格缓冲", "像元缓冲", "栅格距离缓冲"],
+  clump: ["斑块", "斑块聚类", "栅格聚类", "连通斑块", "斑块标识"],
   contours_from_raster: ["等值线", "等高线", "contour"],
   create_colour_composite: ["色彩合成", "彩色合成", "RGB 合成", "真彩色"],
   cost_distance: ["成本距离", "阻力距离", "累积成本"],
@@ -18,6 +21,8 @@ const TOOL_ALIASES: Record<string, string[]> = {
   euclidean_allocation: ["欧氏分配", "欧几里得分配", "最近源分配", "欧氏分配栅格"],
   euclidean_distance: ["欧氏距离", "直线距离"],
   extract_raster_values_at_points: ["点提取", "提取点值", "点采样", "栅格点值"],
+  empirical_bayesian_kriging: ["EBK", "EBK 克里金", "经验贝叶斯克里金", "经验贝叶斯克里金法", "克里金"],
+  expand_shrink: ["膨胀收缩", "扩展收缩", "膨胀", "收缩", "类别扩张", "类别收缩"],
   deviation_from_mean_elevation: ["地形 z 分数", "TPI", "局部高程偏差"],
   idw_interpolation: ["IDW", "IDW 插值", "反距离权重", "反距离插值"],
   line_density: ["线密度", "线要素密度", "道路密度", "河流密度", "line density"],
@@ -31,8 +36,11 @@ const TOOL_ALIASES: Record<string, string[]> = {
   raster_to_vector_points: ["栅格转矢量", "栅格矢量化", "栅格转点"],
   raster_to_vector_polygons: ["栅格转矢量", "栅格矢量化", "栅格转面"],
   feature_to_line: ["要素转线", "线要素化", "面边界转线", "平面化"],
+  feature_vertices_to_points: ["要素转点", "折点转点", "要素折点转点", "顶点转点", "要素顶点"],
   smooth_vectors: ["平滑矢量", "矢量平滑", "几何平滑"],
+  sieve: ["筛除", "筛除斑块", "斑块筛除", "去除小斑块", "最小斑块"],
   snap_points_to_network: ["点捕捉网络", "捕捉到网络", "吸附到网络"],
+  snap_pour_points: ["捕捉倒口", "捕捉倾泻点", "汇水点吸附", "倾泻点捕捉", "pour point"],
   sobel_filter: ["边缘检测", "边缘提取"],
   split_lines_at_intersections: ["线交点分割", "交点打断", "网络打断"],
   tin_interpolation: ["TIN", "TIN 插值", "三角网插值", "三角网"],

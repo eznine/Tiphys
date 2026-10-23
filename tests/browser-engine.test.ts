@@ -241,14 +241,17 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_majority_filter", "wasm_boundary_clean", "wasm_snap_points_to_network",
     "wasm_split_lines_at_intersections", "wasm_line_density", "wasm_euclidean_allocation",
     "wasm_cost_allocation", "wasm_median_filter", "wasm_centroid_vector",
-    "wasm_densify_features", "wasm_concave_hull", "wasm_feature_to_line"]) {
+    "wasm_densify_features", "wasm_concave_hull", "wasm_feature_to_line",
+    "wasm_expand_shrink", "wasm_clump", "wasm_sieve", "wasm_empirical_bayesian_kriging",
+    "wasm_basins", "wasm_snap_pour_points", "wasm_feature_vertices_to_points",
+    "wasm_aggregate_polygons"]) {
     assert.ok(names.includes(name), `${name} should be exposed in the ribbon`);
   }
   const dock = fs.readFileSync(new URL("../src/components/ChatDock.tsx", import.meta.url), "utf8");
   const recipeTools = [...dock.matchAll(/tool: "(wasm_[^"]+)"/g)].map(match => match[1]);
   for (const name of ["wasm_network_service_area", "wasm_buffer_raster", "wasm_contours_from_raster",
     "wasm_cost_distance", "wasm_raster_to_vector_polygons", "wasm_idw_interpolation",
-    "wasm_line_density", "wasm_concave_hull"]) {
+    "wasm_line_density", "wasm_concave_hull", "wasm_empirical_bayesian_kriging", "wasm_basins"]) {
     assert.ok(recipeTools.includes(name), `${name} should be available as an agent recipe`);
     assert.ok(browserCatalog.some(tool => tool.name === name), `${name} recipe must resolve to a catalog tool`);
   }
@@ -296,6 +299,44 @@ test("geometry, density and allocation ribbon forms expose executable contracts"
   assert.equal((browserCatalog.find(tool => tool.name === "wasm_median_filter")!.parameters.properties as any).input["x-layer-kind"], "raster");
 });
 
+test("morphology, EBK and hydro ribbon forms hide output paths and expose honest fields", async () => {
+  await ensureBrowserCatalog();
+  for (const name of ["wasm_expand_shrink", "wasm_clump", "wasm_sieve"]) {
+    const tool = browserCatalog.find(item => item.name === name)!;
+    assert.equal((tool.parameters.properties as any).input["x-layer-kind"], "raster", `${name} input must be raster`);
+    assert.ok(!("output" in tool.parameters.properties), `${name} output path must stay internal`);
+  }
+  const sieve = browserCatalog.find(tool => tool.name === "wasm_sieve")!;
+  assert.equal((sieve.parameters.properties as any).zero_background.type, "boolean");
+
+  const ebk = browserCatalog.find(tool => tool.name === "wasm_empirical_bayesian_kriging")!;
+  const ebkProps = ebk.parameters.properties as any;
+  assert.equal(ebkProps.input["x-layer-kind"], "vector");
+  assert.equal(ebkProps.cell_size.type, "number", "EBK cell_size must be numeric");
+  assert.equal(ebkProps.subset_size.type, "integer");
+  assert.equal(ebkProps.simulations.type, "integer");
+  assert.ok(!("output" in ebkProps) && !("error_output" in ebkProps), "EBK dual raster outputs must stay internal");
+
+  for (const name of ["wasm_basins", "wasm_snap_pour_points"]) {
+    const tool = browserCatalog.find(item => item.name === name)!;
+    assert.ok(!("output" in tool.parameters.properties), `${name} output path must stay internal`);
+  }
+  assert.equal((browserCatalog.find(tool => tool.name === "wasm_basins")!.parameters.properties as any).d8_pntr["x-layer-kind"], "raster");
+  const snap = browserCatalog.find(tool => tool.name === "wasm_snap_pour_points")!.parameters.properties as any;
+  assert.equal(snap.flow_accum["x-layer-kind"], "raster");
+  assert.equal(snap.pour_pts["x-layer-kind"], "vector");
+
+  for (const name of ["wasm_feature_vertices_to_points", "wasm_aggregate_polygons"]) {
+    const tool = browserCatalog.find(item => item.name === name)!;
+    assert.equal((tool.parameters.properties as any).input["x-layer-kind"], "vector", `${name} input must be vector`);
+    assert.ok(!("output" in tool.parameters.properties), `${name} output path must stay internal`);
+  }
+  for (const name of ["wasm_opening", "wasm_closing"]) {
+    const tool = browserCatalog.find(item => item.name === name)!;
+    assert.ok(!("output" in tool.parameters.properties), `${name} output path must stay internal`);
+  }
+});
+
 test("new raster ribbon forms expose executable multi-input contracts", async () => {
   await ensureBrowserCatalog();
   const pathway = browserCatalog.find(tool => tool.name === "wasm_cost_pathway")!;
@@ -332,6 +373,14 @@ test("Chinese GIS aliases rank conversion, interpolation and service-area tools"
   assert.equal(searchBrowserTools(browserCatalog, "中位数滤波", { limit: 3 })[0]?.name, "wasm_median_filter");
   assert.equal(searchBrowserTools(browserCatalog, "凹包", { limit: 3 })[0]?.name, "wasm_concave_hull");
   assert.equal(searchBrowserTools(browserCatalog, "要素转线", { limit: 3 })[0]?.name, "wasm_feature_to_line");
+  assert.equal(searchBrowserTools(browserCatalog, "EBK", { limit: 3 })[0]?.name, "wasm_empirical_bayesian_kriging");
+  assert.equal(searchBrowserTools(browserCatalog, "克里金", { limit: 3 })[0]?.name, "wasm_empirical_bayesian_kriging");
+  assert.equal(searchBrowserTools(browserCatalog, "膨胀收缩", { limit: 3 })[0]?.name, "wasm_expand_shrink");
+  assert.equal(searchBrowserTools(browserCatalog, "斑块", { limit: 3 })[0]?.name, "wasm_clump");
+  assert.equal(searchBrowserTools(browserCatalog, "筛除", { limit: 3 })[0]?.name, "wasm_sieve");
+  assert.equal(searchBrowserTools(browserCatalog, "集水区", { limit: 3 })[0]?.name, "wasm_basins");
+  assert.equal(searchBrowserTools(browserCatalog, "捕捉倒口", { limit: 3 })[0]?.name, "wasm_snap_pour_points");
+  assert.equal(searchBrowserTools(browserCatalog, "要素转点", { limit: 3 })[0]?.name, "wasm_feature_vertices_to_points");
 });
 
 test("geometry densify, centroid and line density tools publish real result layers", async () => {
@@ -376,6 +425,114 @@ test("geometry densify, centroid and line density tools publish real result laye
   assert.equal(densityLayer.kind, "raster", "line density must publish a raster layer");
   assert.ok(densityLayer.raster?.width > 1 && densityLayer.raster?.height > 1);
   assert.equal(density.attachments, undefined);
+});
+
+test("morphology and vector cleanup ribbon tools publish displayed result layers", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const cell = 100, features: any[] = [];
+  for (let row = 0; row < 6; row++) for (let col = 0; col < 6; col++) {
+    const x = 500000 + col * cell, y = 4400000 + row * cell;
+    features.push({ type: "Feature", properties: { klass: row >= 2 && row < 5 && col >= 2 && col < 5 ? 2 : 1 },
+      geometry: { type: "Polygon", coordinates: [[[x, y], [x + cell, y], [x + cell, y + cell], [x, y + cell], [x, y]]] } });
+  }
+  const polygons = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features })]), "morphology_polygons.geojson")).layer;
+  const classes = (await finished("wasm_vector_polygons_to_raster", {
+    input: polygons.id, field: "klass", cell_size: cell, output_name: "morphology_classes",
+  })).layer;
+
+  const expanded = await finished("wasm_expand_shrink", {
+    input: classes.id, classes: "2", cells: 1, mode: "expand", output_name: "morphology_expanded",
+  });
+  const expandedLayer = expanded.layer ?? expanded.layers?.[0]?.layer;
+  assert.equal(expandedLayer.kind, "raster", "expand/shrink must publish a raster layer");
+  assert.equal(expanded.attachments, undefined);
+
+  const clumped = await finished("wasm_clump", { input: classes.id, diag: false, output_name: "morphology_clumps" });
+  const clumpedLayer = clumped.layer ?? clumped.layers?.[0]?.layer;
+  assert.equal(clumpedLayer.kind, "raster", "clump must publish a raster layer");
+  assert.equal(clumpedLayer.raster?.width, classes.raster?.width);
+
+  const sieved = await finished("wasm_sieve", { input: classes.id, threshold: 2, zero_background: false, output_name: "morphology_sieved" });
+  const sievedLayer = sieved.layer ?? sieved.layers?.[0]?.layer;
+  assert.equal(sievedLayer.kind, "raster", "sieve must publish a raster layer");
+
+  for (const [tool, output] of [["wasm_opening", "morphology_opened"], ["wasm_closing", "morphology_closed"]]) {
+    const result = await finished(tool, { input: classes.id, filter_size_x: 3, filter_size_y: 3, output_name: output });
+    const layer = result.layer ?? result.layers?.[0]?.layer;
+    assert.equal(layer.kind, "raster", `${tool} generic file output must publish as raster`);
+    assert.equal(result.attachments, undefined);
+  }
+
+  const vertices = await finished("wasm_feature_vertices_to_points", {
+    input: polygons.id, point_location: "ALL", output_name: "morphology_vertices",
+  });
+  const verticesLayer = vertices.layer ?? vertices.layers?.[0]?.layer;
+  assert.ok(verticesLayer.feature_count > polygons.feature_count, "feature vertices must emit one point per vertex");
+  assert.ok(verticesLayer.geometry_types.every((type: string) => type === "Point"));
+
+  const aggregateSource = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [
+    { type: "Feature", properties: { id: 1 }, geometry: { type: "Polygon", coordinates: [[[500000, 4400000], [500100, 4400000], [500100, 4400100], [500000, 4400100], [500000, 4400000]]] } },
+    { type: "Feature", properties: { id: 2 }, geometry: { type: "Polygon", coordinates: [[[500140, 4400000], [500240, 4400000], [500240, 4400100], [500140, 4400100], [500140, 4400000]]] } },
+  ] })]), "aggregate_source.geojson")).layer;
+  const aggregated = await finished("wasm_aggregate_polygons", {
+    input: aggregateSource.id, aggregation_distance: 100, output_name: "aggregated_polygons",
+  });
+  const aggregatedLayer = aggregated.layer ?? aggregated.layers?.[0]?.layer;
+  assert.ok(aggregatedLayer.feature_count >= 1, "aggregate polygons must return a vector layer");
+  assert.ok(aggregatedLayer.geometry_types.every((type: string) => type === "Polygon" || type === "MultiPolygon"));
+});
+
+test("empirical Bayesian kriging publishes both prediction and error rasters", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const features: any[] = [];
+  for (let row = 0; row < 4; row++) for (let col = 0; col < 4; col++) {
+    const x = 500000 + col * 1000, y = 4400000 + row * 1000;
+    features.push({ type: "Feature", properties: { z: 100 + row * 3 + col * 2 },
+      geometry: { type: "Point", coordinates: [x, y] } });
+  }
+  const points = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features })]), "ebk_points.geojson")).layer;
+  const result = await finished("wasm_empirical_bayesian_kriging", {
+    input: points.id, field: "z", cell_size: 500, subset_size: 8, simulations: 2, output_name: "ebk_surface",
+  });
+  assert.equal(result.layers?.length, 2, "EBK must publish prediction and error outputs");
+  const layers = result.layers.map((item: any) => item.layer);
+  assert.ok(layers.every((layer: any) => layer.kind === "raster"));
+  assert.ok(layers.some((layer: any) => /prediction|output/i.test(layer.name)), "EBK must expose the prediction raster");
+  assert.ok(layers.some((layer: any) => /error/i.test(layer.name)), "EBK must expose the standard-error raster");
+  assert.equal(result.attachments, undefined);
+});
+
+test("basins and snapped pour points run from a real hydrology chain", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const cell = 100, features: any[] = [];
+  for (let row = 0; row < 10; row++) for (let col = 0; col < 10; col++) {
+    const x = 500000 + col * cell, y = 4400000 + row * cell;
+    features.push({ type: "Feature", properties: { elev: 1000 - row * 3 - col + (row === 4 && col === 4 ? -12 : 0) },
+      geometry: { type: "Polygon", coordinates: [[[x, y], [x + cell, y], [x + cell, y + cell], [x, y + cell], [x, y]]] } });
+  }
+  const source = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features })]), "basin_dem_source.geojson")).layer;
+  const dem = (await finished("wasm_vector_polygons_to_raster", { input: source.id, field: "elev", cell_size: cell, output_name: "basin_dem" })).layer;
+  const chain = await finished("hydrology_flow_pipeline", { dem: dem.id, extract_streams: false, output_name: "basin_chain" });
+  const pointer = chain.layers[1].layer;
+  const accumulation = chain.layers[2].layer;
+  assert.equal(pointer.kind, "raster");
+  assert.equal(accumulation.kind, "raster");
+
+  const basins = await finished("wasm_basins", { d8_pntr: pointer.id, output_name: "basins_result" });
+  const basinLayer = basins.layer ?? basins.layers?.[0]?.layer;
+  assert.equal(basinLayer.kind, "raster", "basins must publish a raster layer");
+  assert.equal(basinLayer.raster?.width, pointer.raster?.width);
+
+  const pour = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [{
+    type: "Feature", properties: { id: 1 }, geometry: { type: "Point", coordinates: [500450, 4400450] },
+  }] })]), "basin_pour.geojson")).layer;
+  const snapped = await finished("wasm_snap_pour_points", {
+    flow_accum: accumulation.id, pour_pts: pour.id, snap_dist: 300, output_name: "snapped_pour",
+  });
+  const snappedLayer = snapped.layer ?? snapped.layers?.[0]?.layer;
+  assert.ok(snappedLayer.feature_count >= 1, "snap pour points must return points");
+  assert.ok(snappedLayer.geometry_types.every((type: string) => type === "Point"));
+  assert.equal(snapped.attachments, undefined);
 });
 
 test("network service area and raster cleanup tools produce displayed result layers", async () => {

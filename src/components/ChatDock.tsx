@@ -6,7 +6,7 @@ import { ToolPanel } from "./ToolPanel";
 import { PipelineResultDetails, pipelineResult } from "./ToolResultDetails";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Settings2, FolderPlus, ArrowUp, Square, Layers, Network, Waves, Route, Scissors, Sparkles, History, Mountain, Shapes, CircleDot, Hexagon } from "lucide-react";
+import { Settings2, FolderPlus, ArrowUp, Square, Layers, Network, Waves, Route, Scissors, Sparkles, History, Mountain, Shapes, CircleDot, Hexagon, ChartScatter } from "lucide-react";
 
 type Props = {
   items: TimelineItem[];
@@ -42,10 +42,12 @@ const RECIPES = [
   { title: "栅格缓冲", detail: "围绕非零像元生成二值缓冲，打开表单", tool: "wasm_buffer_raster", Icon: CircleDot },
   { title: "栅格转矢量", detail: "把分类栅格转为面，打开表单", tool: "wasm_raster_to_vector_polygons", Icon: Shapes },
   { title: "IDW 插值", detail: "从点采样生成连续栅格，打开表单", tool: "wasm_idw_interpolation", Icon: Sparkles },
+  { title: "EBK 克里金", detail: "点场局部插值，同时输出预测与误差栅格", tool: "wasm_empirical_bayesian_kriging", Icon: ChartScatter },
   { title: "等值线提取", detail: "选择 DEM，打开等值线表单", tool: "wasm_contours_from_raster", Icon: Mountain },
   { title: "成本距离", detail: "源栅格 + 成本栅格，打开表单", tool: "wasm_cost_distance", Icon: Route },
   { title: "廊道连通", detail: "核心生境 + 阻力栅格，打开工具表单", tool: "linkage_mapper_corridor", Icon: Network },
   { title: "水文流程", detail: "填洼 → D8 流向 → 汇流 → 河网", tool: "hydrology_flow_pipeline", Icon: Waves },
+  { title: "集水区", detail: "从 D8 流向栅格划分流域盆地，打开表单", tool: "wasm_basins", Icon: Waves },
   { title: "最小成本路径", detail: "连接源与目的地，保留真实路径结果", tool: "least_cost_path_pipeline", Icon: Route },
   { title: "按 AOI 裁剪", detail: "先在地图绘制 AOI，再插入提示词", prompt: "用当前 AOI 范围裁剪所选图层。", Icon: Scissors },
 ] as const;

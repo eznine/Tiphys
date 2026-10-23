@@ -26,6 +26,7 @@ const WASM_INPUT_OVERRIDES = new Set(["cost_pathway.destination", "network_servi
 const WASM_SCALAR_INPUT_OVERRIDES = new Set([
   "idw_interpolation.cell_size",
   "tin_interpolation.cell_size",
+  "empirical_bayesian_kriging.cell_size",
 ]);
 
 export function isWasmInputParam(toolId: string, param: { name: string; io_role?: string; description?: string }): boolean {
@@ -55,6 +56,15 @@ const WASM_SCHEMA_OVERRIDES: Record<string, Record<string, CatalogSchema>> = {
   line_density: {
     area_units: { type: "string", enum: ["square_map_units", "square_meters", "square_kilometers", "square_miles", "square_feet"],
       default: "square_map_units", description: "密度值的面积单位；默认使用输入坐标系的地图单位平方。" },
+  },
+  sieve: {
+    zero_background: { type: "boolean", default: false,
+      description: "是否把值为 0 的像元视为背景并写入输出；分类栅格常保持关闭。" },
+  },
+  empirical_bayesian_kriging: {
+    cell_size: { type: "number", description: "输出像元大小，单位与输入点图层坐标系一致；留空时按约 150 格自动确定。" },
+    subset_size: { type: "integer", default: 40, description: "每个局部子集的目标点数，最少 4。" },
+    simulations: { type: "integer", default: 5, description: "每个子集模拟的半变异函数数量（最多 50）。" },
   },
   merge_vectors: {
     inputs: { type: "array", "x-layer": true, "x-layer-kind": "vector", "x-layer-multiple": true,

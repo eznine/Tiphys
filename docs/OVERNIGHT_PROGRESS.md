@@ -157,3 +157,15 @@
 - 2026-10-24 05:36 Asia/Shanghai — Overnight watch: batch14 tf-codex exited early (~156k tokens, clean tree, no patch) mid contract exploration for EBK/morphology. No code landed. Relaunching batch14 immediately (same scope).
 
 - 2026-10-24 05:42 Asia/Shanghai — Overnight watch: batch14 tf-codex alive and writing (relaunch after early exit; log growing). Direction OK (blue `#2563eb`, light default, logo-temp, catalog health <900, no teal). Box-only. No user ping.
+
+- 2026-10-24 05:58 Asia/Shanghai — Batch14 implemented and verified on the Linux box:
+  - Ribbon: added eight catalog-backed analysis actions — 膨胀收缩, 斑块聚类, 筛除斑块, EBK 克里金, 流域划分, 汇水点吸附, 要素转点, 面聚合. All open hydrated forms; the ribbon↔catalog test and recipe resolution test now require the new entries.
+  - Contracts: `opening` / `closing` upstream-label `output` as a generic file, so they now use raster publish overrides (alongside majority/median/percentile). `sieve.zero_background` is exposed as a checkbox; EBK `cell_size` stays numeric and `subset_size` / `simulations` are integers. EBK publishes both `output` and `error_output` as real raster layers. Fixed the browser validator rejecting every integer parameter by comparing `integer` schemas as numbers while still requiring integer values.
+  - Executions covered: expand/shrink, clump, sieve, opening, closing, feature vertices to points, aggregate polygons, EBK dual prediction/error rasters, basins from a D8 pointer raster, and snap pour points from a real fill → D8 → flow-accumulation chain.
+  - Agent: added restrained EBK 克里金 and 集水区 recipe cards that only open forms; Chinese aliases now rank EBK/克里金, 膨胀收缩, 斑块, 筛除, 集水区, 捕捉倒口 and 要素转点 to their intended tools. Recovery/compaction remains state-only.
+  - Perf/beauty: no risky perf refactor (no obvious remaining hot path); new groups stay in the blue-family, uncrowded ribbon layout. No teal or mythology.
+  - Verification: 45/45 browser tests passed (`npm run test:browser`), `npx tsc --noEmit` passed, `npm run build` passed. `dist/` remains ~36 MB with unchanged payload shape (app 1.92 MB, lazy catalog 1.95 MB, CLI WASM 24.1 MB), so no deploy-doc size change and no live deploy. GEE remains docs/demo only; no credentials read or created. No Python changes.
+
+- 2026-10-24 05:49 Asia/Shanghai — Batch14 is stable and fully verified, but this sandbox cannot write `.git` (`index.lock: Read-only file system`). Patch saved at `/tmp/tiphys-batch14-morphology-ebk-hydro.patch`; verification at `/tmp/tiphys-batch14-verification.txt`; commit message at `/tmp/tiphys-batch14-commit-message.txt`. Supervisor should commit+push with `P3/P4: morphology/EBK/hydro densify, agent recipes`. No deploy.
+
+- 2026-10-24 05:50 Asia/Shanghai — Overnight supervisor: batch14 exited (sandbox blocked commit). Re-verified `npm run test:browser` 45/45 + `npx tsc --noEmit`. Committing+pushing as `P3/P4: morphology/EBK/hydro densify, agent recipes`, then starting batch15.

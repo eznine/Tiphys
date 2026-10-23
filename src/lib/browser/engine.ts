@@ -288,7 +288,7 @@ function validate(name: string, args: Record<string, any>) {
     if (value == null && schema.properties[key].anyOf?.some((v: any) => v.type === "null")) continue;
     if (s.type === "number" || s.type === "integer") { if (typeof value !== "number" || !Number.isFinite(value) || s.type === "integer" && !Number.isInteger(value)) throw new Error(`参数 ${key} 必须为有效数字。`); }
     if (s.type === "array") { if (!Array.isArray(value)) throw new Error(`参数 ${key} 的类型应为数组。`); }
-    else if (s.type && typeof value !== s.type) throw new Error(`参数 ${key} 的类型应为 ${s.type}。`);
+    else if (s.type && s.type !== "integer" && typeof value !== s.type) throw new Error(`参数 ${key} 的类型应为 ${s.type}。`);
     if (s.enum && !s.enum.includes(value)) throw new Error(`参数 ${key} 不在允许值中。`);
     if (s.minimum !== undefined && value < s.minimum || s.maximum !== undefined && value > s.maximum) throw new Error(`参数 ${key} 超出允许范围。`);
   }
@@ -313,8 +313,10 @@ const SUPPORTED_EXT: Record<string, string[]> = {
 const ATTACHMENT_KINDS = new Set(["file", "text", "json"]);
 /** Upstream sometimes labels real raster results as generic files. */
 const WASM_OUTPUT_KIND_OVERRIDES: Record<string, Record<string, string>> = {
+  closing: { output: "raster" },
   majority_filter: { output: "raster" },
   median_filter: { output: "raster" },
+  opening: { output: "raster" },
   percentile_filter: { output: "raster" },
 };
 function outputKind(id: string, param: { name: string; data_kind: string }): string {
