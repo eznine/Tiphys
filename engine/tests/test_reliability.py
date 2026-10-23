@@ -49,7 +49,7 @@ class SpatialReliability(unittest.TestCase):
         jobs = JobRegistry()
         register_tools(mcp, self.store, jobs)
         tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
-        self.assertEqual(len(tools), 27)
+        self.assertEqual(len(tools), 34)
         self.assertIn("source_crs", tools["add_data"].inputSchema["properties"])
         self.assertIn("name", tools["rename_layer"].inputSchema["properties"])
         self.assertIn("layer_ids", tools["reorder_layers"].inputSchema["properties"])
@@ -58,6 +58,18 @@ class SpatialReliability(unittest.TestCase):
         self.assertTrue(tools["export_features"].annotations.destructiveHint)
         self.assertEqual(tools["select_by_location"].inputSchema["properties"]["predicate"]["enum"],
                          ["intersects", "within", "contains", "crosses", "touches", "overlaps"])
+        self.assertEqual(tools["spatial_join"].inputSchema["properties"]["predicate"]["enum"],
+                         ["intersects", "contains", "within", "nearest"])
+
+        # GEE and ArcGIS stubs return explicit structured limitations, not fake data.
+        _, auth = asyncio.run(mcp.call_tool("gee_auth_status", {}))
+        self.assertFalse(auth["connected"])
+        _, search = asyncio.run(mcp.call_tool("gee_search_collection", {"collection": "COPERNICUS/S2_SR_HARMONIZED"}))
+        self.assertEqual(search["items"], [])
+        _, formats = asyncio.run(mcp.call_tool("list_supported_formats", {}))
+        self.assertIn("GeoPackage", " ".join(formats["preferred"]))
+        _, arcgis = asyncio.run(mcp.call_tool("import_arcgis_project", {"path": "project.aprx"}))
+        self.assertFalse(arcgis["supported"])
         jobs.close()
 
     def test_overlay_dissolve_and_selection_tools(self):
@@ -89,6 +101,32 @@ class SpatialReliability(unittest.TestCase):
         self.assertEqual(merged["feature_count"], 1)
         grouped = dissolve_sync(self.store, poly_layer, by_field="zone")
         self.assertEqual(grouped["feature_count"], 2)
+
+    def test_spatial_join_transfers_attributes_and_nearest_distance(self):
+        from geo_ops import spatial_join_sync
+        points = self.store.add_gdf(gpd.GeoDataFrame(
+            {"name": ["one", "two"]},
+            geometry=[Point(116.4, 39.9), Point(116.5, 39.95)],
+            crs=4326,
+        ), "join_points")["id"]
+        zones = self.store.add_gdf(gpd.GeoDataFrame(
+            {"zone": ["a", "b"], "score": [1, 2]},
+            geometry=[Point(116.4, 39.9).buffer(0.01), Point(116.5, 39.95).buffer(0.01)],
+            crs=4326,
+        ), "join_zones")["id"]
+        joined = spatial_join_sync(self.store, points, zones, "intersects")
+        frame = self.store.get_gdf(joined["layer"]["id"])
+        self.assertEqual(joined["feature_count"], 2)
+        self.assertEqual(frame["JOIN_zone"].tolist(), ["a", "b"])
+        self.assertEqual(frame["JOIN_score"].tolist(), [1, 2])
+        target_only = spatial_join_sync(self.store, points, zones, "intersects", keep_fields=False)
+        target_frame = self.store.get_gdf(target_only["layer"]["id"])
+        self.assertFalse(any(str(column).startswith("JOIN_") for column in target_frame.columns))
+        nearest = spatial_join_sync(self.store, points, zones, "nearest")
+        nearest_frame = self.store.get_gdf(nearest["layer"]["id"])
+        self.assertEqual(len(nearest_frame), 2)
+        self.assertTrue(nearest_frame["NEAR_DIST"].notna().all())
+        self.assertEqual(nearest_frame["JOIN_zone"].tolist(), ["a", "b"])
 
     def test_reproject_export_and_geometry_tools(self):
         from geo_ops import reproject_sync, export_sync, calculate_geometry_sync

@@ -18,17 +18,18 @@ type PanelJob = {
   message: string; result?: Record<string, any>; error?: string;
 };
 const SKIP = new Set(["ping", "list_layers", "job_status", "job_cancel"]);
-const STUB_TOOLS = new Set(["gee_auth_status", "gee_search_collection", "gee_export_raster", "gee_job_status"]);
-const L1_ORDER = ["矢量", "栅格", "地形", "水文", "遥感", "转换", "投影", "激光雷达", "数据管理", "查询", "图层", "GEE", "其他工具"];
+const L1_ORDER = ["矢量", "栅格", "地形", "水文", "遥感", "转换", "投影", "激光雷达", "数据管理", "查询", "图层", "GEE", "扩展", "其他工具"];
 const ACTIVE = new Set(["submitting", "queued", "running", "cancelling"]);
 const LABELS: Record<string, string> = {
   add_data: "加载矢量数据", describe_layer: "查看图层属性", buffer: "缓冲区",
   clip: "裁剪", intersection: "相交", union_layers: "联合", erase: "擦除",
   dissolve: "融合", convex_hull: "凸包", simplify: "简化几何",
+  spatial_join: "空间连接",
   select_by_attributes: "按属性选择", select_by_location: "按位置选择",
   reproject: "重投影", export_features: "导出要素", calculate_geometry: "计算面积与长度", remove_layer: "移除图层",
   rename_layer: "重命名图层", reorder_layers: "调整图层顺序", field_statistics: "字段统计",
   zoom_to_layer: "缩放至图层", open_attribute_table: "打开属性表", set_layer_symbology: "设置单一符号", set_layer_labels: "设置标注",
+  list_supported_formats: "支持的格式", import_arcgis_project: "导入 ArcGIS 工程",
 };
 const DESCRIPTIONS: Record<string, string> = {
   add_data: "加载本地矢量文件，保留原始坐标系，并添加到地图。",
@@ -43,6 +44,7 @@ const DESCRIPTIONS: Record<string, string> = {
   simplify: "按指定距离容差简化几何，保留拓扑关系。",
   select_by_attributes: "按字段条件筛选要素，将匹配结果保存为新图层。",
   select_by_location: "按相交、包含等空间关系筛选要素，保存为新图层。",
+  spatial_join: "按相交、包含、位于或最近邻关系，把连接图层的属性追加到目标图层。",
   reproject: "将图层转换到目标坐标系，生成新的分析数据。",
   export_features: "将图层导出为 GeoJSON、GeoPackage 或含 WKT 几何的 CSV。",
   calculate_geometry: "在检查过误差的局部投影中计算面积与长度，单位为平方米与米。",
@@ -51,14 +53,17 @@ const DESCRIPTIONS: Record<string, string> = {
   set_layer_symbology: "设置图层的颜色、透明度、点大小和线宽。", set_layer_labels: "按字段显示地图标注，留空关闭标注。",
   rename_layer: "修改图层的显示名称，不改动分析数据。", reorder_layers: "设置工作区图层顺序，即地图绘制顺序（越靠后越在上层）。",
   field_statistics: "统计某属性字段的最小/最大/均值/中位数/标准差或最常见值；空值单独计数。",
+  list_supported_formats: "查看可直接读取的矢量、栅格和表格格式，以及 ArcGIS 工程与 GDB 的替代路径。",
+  import_arcgis_project: "当前版本不解析 MXD/APRX/File GDB；运行后会返回限制说明和可用的开放格式。",
 };
 const FIELDS: Record<string, string> = {
-  layer: "输入图层", mask_layer: "掩膜图层", other_layer: "叠加图层", filter_layer: "筛选图层",
+  layer: "输入图层", mask_layer: "掩膜图层", other_layer: "叠加图层", filter_layer: "筛选图层", join_layer: "连接图层",
   path: "文件路径", name: "图层名称", source_crs: "源坐标系（源数据未定义时必填）",
   distance: "距离", units: "单位", dissolve: "融合缓冲区", output_name: "输出图层名称",
   by_field: "融合字段（留空则全部融合）", tolerance: "容差", field: "字段", op: "比较方式",
   value: "比较值", predicate: "空间关系", target_crs: "目标坐标系", fmt: "格式", overwrite: "覆盖已有文件",
   color: "颜色（#RRGGBB）", opacity: "不透明度（0–1）", point_size: "点半径（像素）", line_width: "线宽（像素）", size: "文字大小（像素）",
+  keep_fields: "保留连接字段", format_group: "格式类别",
 };
 const STATUS: Record<string, string> = {
   submitting: "提交中", queued: "排队中", running: "运行中", cancelling: "正在取消",
@@ -233,7 +238,6 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
                   </button>
                   {openL2 && <div className="toolbox-tool-list">{sub.tools.map(item => <button key={item.name} type="button" className="toolbox-tool" disabled={busy}
                     onClick={() => { setToolName(item.name); setValues(selectedLayer ? { layer: selectedLayer.id } : {}); setConfirmed(false); }}>
-                    {STUB_TOOLS.has(item.name) && <span className="toolbox-stub-tag">即将接入</span>}
                     <span className="toolbox-tool-name">{toolTitle(item)}</span>
                     <span className="toolbox-tool-desc">{toolDesc(item)}</span>
                   </button>)}</div>}
@@ -247,7 +251,7 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
     </> : <>
     <nav className="toolbox-breadcrumb" aria-label="工具位置"><button type="button" onClick={() => setToolName("")}>‹ 工具箱</button><span>/ {zhToolL1(tool)} · {zhToolL2(tool)}</span></nav>
     <div className="toolbox-heading"><h2>{toolTitle(tool)}</h2></div>
-    {STUB_TOOLS.has(tool.name) && <p className="toolbox-stub" role="status">即将接入：Google Earth Engine 尚未连接，此表单仅用于预览参数。</p>}
+    {tool.name.startsWith("gee_") && <p className="toolbox-stub" role="status">Google Earth Engine 尚未连接。认证与检索会返回结构化状态；导出会创建本地任务但不会下载真实影像。设置 TIPHYS_GEE_DEMO=1 可验证演示任务流程。</p>}
     {tool.name.startsWith("wasm_") && <p className="tool-desc">在浏览器本机计算。矢量、栅格和表格图层都可作为输入；栅格结果按波段自动拉伸成图，表格与文件结果在下方下载。距离、面积等参数使用输入数据的坐标系单位。</p>}
     <p className="tool-desc">{toolDesc(tool)}</p>
     <h3 className="toolbox-section-label">参数</h3>
@@ -277,7 +281,7 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
     {tool?.annotations?.destructiveHint && <label className="tool-field tool-check">
       <input type="checkbox" checked={confirmed} disabled={busy} onChange={e => setConfirmed(e.target.checked)} />
       <span>{tool.name === "remove_layer" ? "确认移除此图层及其工作副本" : "确认写入上述路径；勾选覆盖时将替换已有文件"}</span></label>}
-    <button type="submit" className="primary-btn" disabled={!tool || busy || STUB_TOOLS.has(tool.name) || (!!tool.annotations?.destructiveHint && !confirmed)}>{STUB_TOOLS.has(tool.name) ? "即将接入" : "运行"}</button>
+    <button type="submit" className="primary-btn" disabled={!tool || busy || (!!tool.annotations?.destructiveHint && !confirmed)}>运行</button>
     </>}
     {job?.result?.download_url && <a className="primary-btn" href={job.result.download_url} download={job.result.path}>下载 {job.result.path}</a>}
     {Array.isArray(job?.result?.attachments) && job.result.attachments.map((file: { name: string; url: string }, index: number) =>

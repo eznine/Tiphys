@@ -873,12 +873,79 @@
       "additionalProperties": false
     }
   },
+  {
+    "name": "spatial_join",
+    "label": "空间连接",
+    "category": "叠加分析",
+    "subcategory": "空间连接",
+    "description": "按空间关系把连接图层的属性追加到目标图层。支持相交、包含、位于和最近邻；可保留或仅计数连接字段。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "layer": {
+          "type": "string",
+          "x-layer": true,
+          "x-layer-kind": "vector",
+          "description": "接收属性的目标图层"
+        },
+        "join_layer": {
+          "type": "string",
+          "x-layer": true,
+          "x-layer-kind": "vector",
+          "description": "提供属性的连接图层"
+        },
+        "predicate": {
+          "type": "string",
+          "enum": ["intersects", "contains", "within", "nearest"],
+          "default": "intersects",
+          "description": "空间关系：相交、包含、位于或最近邻"
+        },
+        "keep_fields": {
+          "type": "boolean",
+          "default": true,
+          "description": "保留连接图层的全部属性；关闭时仅生成目标属性"
+        },
+        "output_name": {
+          "type": "string",
+          "description": "结果图层名称"
+        }
+      },
+      "required": ["layer", "join_layer"],
+      "additionalProperties": false
+    },
+    "annotations": {}
+  },
+  {
+    "name": "list_supported_formats",
+    "label": "支持的格式",
+    "category": "数据管理",
+    "subcategory": "ArcGIS 兼容",
+    "description": "列出 TIPHYS 可直接读取或导入的开放格式，并说明 ArcGIS 工程和文件地理数据库的限制。",
+    "parameters": { "type": "object", "properties": {}, "required": [], "additionalProperties": false },
+    "annotations": { "readOnlyHint": true }
+  },
+  {
+    "name": "import_arcgis_project",
+    "label": "导入 ArcGIS 工程",
+    "category": "数据管理",
+    "subcategory": "ArcGIS 兼容",
+    "description": "检查 MXD/APRX/GDB 导入限制。当前版本不解析 ArcGIS 专有工程，建议先导出为 GeoPackage、GeoJSON、Shapefile ZIP、KML 或 GeoTIFF。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": { "type": "string", "description": "MXD、APRX 或 .gdb 路径（仅用于诊断，不会上传）" }
+      },
+      "required": ["path"],
+      "additionalProperties": false
+    },
+    "annotations": { "readOnlyHint": true }
+  },
 {
   "name": "gee_auth_status",
   "label": "GEE 认证状态",
   "category": "GEE",
   "subcategory": "认证与状态",
-  "description": "GEE 占位功能 / 即将接入：检查 Google Earth Engine 授权状态。弹窗与表单已开放，目前不会连接 GEE。",
+  "description": "检查 Google Earth Engine 授权状态。当前版本返回结构化未连接说明；演示模式仅用于验证表单流程。",
   "parameters": {
     "type": "object",
     "properties": {},
@@ -894,7 +961,7 @@
   "label": "搜索 GEE 影像集合",
   "category": "GEE",
   "subcategory": "数据检索",
-  "description": "GEE 占位功能 / 即将接入：按集合、日期和范围检索影像。参数表单已开放，执行接口尚未连接。",
+  "description": "按集合、日期和范围检索 GEE 影像。未连接时返回空列表和连接提示，不代表集合不存在。",
   "parameters": {
     "type": "object",
     "properties": {
@@ -935,7 +1002,7 @@
   "label": "导出 GEE 栅格",
   "category": "GEE",
   "subcategory": "导出",
-  "description": "GEE 占位功能 / 即将接入：将影像波段导出为本地栅格。参数表单已开放，任务执行尚未接入。",
+  "description": "将 GEE 影像波段导出为本地栅格。未连接时不下载真实影像；设置 TIPHYS_GEE_DEMO=1 可返回演示任务结果。",
   "parameters": {
     "type": "object",
     "properties": {
@@ -981,7 +1048,7 @@
   "label": "GEE 任务状态",
   "category": "GEE",
   "subcategory": "任务",
-  "description": "GEE 占位功能 / 即将接入：查询 Earth Engine 导出任务状态。参数表单已开放，任务系统尚未连接。",
+  "description": "查询 GEE 导出任务状态。未连接或任务不存在时返回结构化状态说明。",
   "parameters": {
     "type": "object",
     "properties": {

@@ -37,8 +37,9 @@ export function CommandRibbon(props: Props) {
       {tab === "analysis" && <>
         <div className="ribbon-group"><div>{command("工具箱", Wrench, () => props.onTool(), false, true)}</div><small>地理处理</small></div>
         <div className="ribbon-group"><div>{command("缓冲区", CircleDot, () => props.onTool("buffer"))}{command("裁剪", Scissors, () => props.onTool("clip"))}{command("相交", Combine, () => props.onTool("intersection"))}{command("联合", Layers, () => props.onTool("union_layers"))}{command("擦除", Eraser, () => props.onTool("erase"))}{command("融合", Combine, () => props.onTool("dissolve"))}</div><small>矢量叠加</small></div>
+        <div className="ribbon-group"><div>{command("空间连接", Combine, () => props.onTool("spatial_join"), !props.hasLayer)}{command("按位置选择", Focus, () => props.onTool("select_by_location"), !props.hasLayer)}</div><small>空间关联</small></div>
         <div className="ribbon-group"><div>{command("凸包", Hexagon, () => props.onTool("convex_hull"))}{command("简化", SlidersHorizontal, () => props.onTool("simplify"))}{command("面积长度", Ruler, () => props.onTool("calculate_geometry"))}</div><small>几何处理</small></div>
-        <div className="ribbon-group"><div>{command("按属性选择", ListFilter, () => props.onTool("select_by_attributes"))}{command("按位置选择", Focus, () => props.onTool("select_by_location"))}{command("字段统计", Download, () => props.onTool("field_statistics"))}</div><small>查询与统计</small></div>
+        <div className="ribbon-group"><div>{command("按属性选择", ListFilter, () => props.onTool("select_by_attributes"))}{command("字段统计", Download, () => props.onTool("field_statistics"))}</div><small>查询与统计</small></div>
         <div className="ribbon-group"><div>{command("坡度", Mountain, () => props.onTool("wasm_slope"))}{command("山体阴影", SunMoon, () => props.onTool("wasm_hillshade"))}{command("流域", Waves, () => props.onTool("wasm_watershed"))}{command("河网提取", Waves, () => props.onTool("wasm_extract_streams"))}</div><small>地形 / 水文</small></div>
       </>}
       {tab === "rs" && <>
@@ -48,7 +49,7 @@ export function CommandRibbon(props: Props) {
         <div className="ribbon-group"><div>{command("SAR 水体", Waves, () => props.onTool("wasm_extract_water_sar"))}{command("地表温度", SunMoon, () => props.onTool("wasm_land_surface_temperature_single_channel"))}</div><small>SAR / 热红外</small></div>
       </>}
       {tab === "gee" && <>
-        <div className="ribbon-group"><div>{command("GEE 工具箱", Cloud, () => props.onTool(), false, true)}</div><small>即将接入</small></div>
+        <div className="ribbon-group"><div>{command("GEE 工具箱", Cloud, () => props.onTool(), false, true)}</div><small>连接与导出</small></div>
         <div className="ribbon-group"><div>{command("认证状态", KeyRound, () => props.onTool("gee_auth_status"))}{command("搜索影像", Search, () => props.onTool("gee_search_collection"))}</div><small>连接与检索</small></div>
         <div className="ribbon-group"><div>{command("导出栅格", Download, () => props.onTool("gee_export_raster"))}{command("任务状态", ListChecks, () => props.onTool("gee_job_status"))}</div><small>导出与任务</small></div>
       </>}

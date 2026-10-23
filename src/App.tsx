@@ -5,11 +5,11 @@ import { ChatDock } from "./components/ChatDock";
 import { MapCanvas } from "./components/MapCanvas";
 import { LayerRail } from "./components/LayerRail";
 import { pingEngine, PingResult } from "./lib/engine";
-import { Map as MapIcon, Layers, Crosshair } from "lucide-react";
+import { Map as MapIcon, Layers, Crosshair, X } from "lucide-react";
 import { SettingsDialog, type ThemeMode } from "./components/SettingsDialog";
 import { CommandRibbon } from "./components/CommandRibbon";
 import { useAgent } from "./lib/agent";
-import { defaultLayerStyle, type DataLayer, type LayerStyle } from "./lib/dataLayers";
+import { defaultLayerStyle, type DataLayer, type LayerSelection, type LayerStyle } from "./lib/dataLayers";
 import { engineRequest } from "./lib/service";
 import { AttributeTable } from "./components/AttributeTable";
 import { LayerProperties } from "./components/LayerProperties";
@@ -46,6 +46,7 @@ export default function App() {
   const [styles, setStyles] = useState(loadLayerStyles);
   const [focus, setFocus] = useState<number[] | null>(null);
   const [tableId, setTableId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<LayerSelection | null>(null);
   const [properties, setProperties] = useState<{ id: string; tab: "style" | "labels" | "info" } | null>(null);
   const [importing, setImporting] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
@@ -57,6 +58,7 @@ export default function App() {
   const tableLayer = layers.find(l => l.id === tableId);
   const propertyLayer = layers.find(l => l.id === properties?.id);
   const activeLayer = layers.find(l => l.id === selectedId) ?? layers[0];
+  const selectionLayer = layers.find(l => l.id === selection?.layerId);
   const toggleTheme = () => setThemeMode(theme === "dark" ? "light" : "dark");
   const openDock = (tab: "chat" | "tools", tool?: string) => setDockRequest({ id: Date.now(), tab, tool });
   const zoomAll = () => {
@@ -65,6 +67,9 @@ export default function App() {
     else setFocus([-160, -60, 160, 75]);
   };
   useEffect(() => { localStorage.setItem("tiphys-layer-styles", JSON.stringify(styles)); }, [styles]);
+  useEffect(() => {
+    if (selection && !layers.some(layer => layer.id === selection.layerId)) setSelection(null);
+  }, [layers, selection]);
   useEffect(() => { if (agent.state.focus) setFocus([...agent.state.focus]); }, [agent.state.focus]);
   useEffect(() => {
     let changed = false;
@@ -82,6 +87,18 @@ export default function App() {
     if (changed) localStorage.setItem("tiphys-applied-view-commands", JSON.stringify([...appliedViews.current].slice(-1000)));
   }, [agent.state.viewCommands]);
   const zoomLayer = useCallback((layer: DataLayer) => { if (layer.bounds) setFocus([...layer.bounds]); }, []);
+  const clearSelection = useCallback(() => setSelection(null), []);
+  const handleMapSelection = useCallback((next: LayerSelection | null, additive: boolean) => {
+    if (!next) { if (!additive) setSelection(null); return; }
+    setSelectedId(next.layerId);
+    setTableId(current => current ? next.layerId : current);
+    setSelection(current => {
+      if (!additive || current?.layerId !== next.layerId) return next.featureIds.length ? next : null;
+      const ids = new Set(current.featureIds);
+      for (const id of next.featureIds) { if (ids.has(id)) ids.delete(id); else ids.add(id); }
+      return ids.size ? { layerId: next.layerId, featureIds: [...ids].sort((a, b) => a - b) } : null;
+    });
+  }, []);
   const importFiles = async (files: FileList) => {
     setImporting(true); setImportNotice("");
     let loaded = 0;
@@ -124,6 +141,14 @@ export default function App() {
     localStorage.setItem("tiphys-theme", themeMode);
   }, [theme, themeMode]);
   useEffect(() => {
+    const escape = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (event.key === "Escape" && !target?.closest("input, textarea, select, [contenteditable='true']")) clearSelection();
+    };
+    window.addEventListener("keydown", escape);
+    return () => window.removeEventListener("keydown", escape);
+  }, [clearSelection]);
+  useEffect(() => {
     const media = matchMedia("(prefers-color-scheme: dark)");
     const update = () => setSystemDark(media.matches);
     media.addEventListener("change", update);
@@ -165,11 +190,15 @@ export default function App() {
           selectedId={activeLayer?.id} onSelect={setSelectedId}
           onZoom={zoomLayer} onTable={id => { setTableId(id); setLogsOpen(false); }} onProperties={(id, tab) => setProperties({ id, tab })}
           onRename={handleRename} onReorder={handleReorder} />
-        <input ref={fileRef} hidden type="file" multiple accept=".geojson,.json,.gpkg,.zip,.fgb,.kml,.tif,.tiff,.csv" onChange={e => { if (e.target.files?.length) void importFiles(e.target.files); }} />
+        <input ref={fileRef} hidden type="file" multiple accept=".geojson,.json,.gpkg,.zip,.fgb,.kml,.kmz,.gpx,.gml,.geoparquet,.topojson,.tif,.tiff,.csv" onChange={e => { if (e.target.files?.length) void importFiles(e.target.files); }} />
         <main className="map-pane" aria-label="地图">
           <div className="map-document-bar"><span className="map-document-tab"><MapIcon size={15} /> 地图</span><span>{activeLayer ? activeLayer.name : "地理空间工作区"}</span></div>
           <div className="map-viewport">
-          <MapCanvas theme={theme} dataLayers={layers} focusBounds={focus} onStatus={setMapStatus} />
+          <MapCanvas theme={theme} dataLayers={layers} focusBounds={focus} onStatus={setMapStatus} selection={selection} onSelect={handleMapSelection} />
+          {selection?.featureIds.length ? <div className="selection-hud" role="status">
+            <span><strong>{selection.featureIds.length}</strong> 个要素已选{selectionLayer ? ` · ${selectionLayer.name}` : ""}</span>
+            <button type="button" aria-label="清除要素选择" title="清除选择（Esc）" onClick={clearSelection}><X size={13} />清除</button>
+          </div> : null}
           {importNotice && <div className="import-notice" role="status"><span>{importNotice}</span>
             {importNotice.includes("CRS") && <label>源坐标系 <input aria-label="导入源坐标系" placeholder="如 EPSG:4547，然后重新添加" value={sourceCrs} onChange={e => setSourceCrs(e.target.value)} /></label>}
             <button type="button" className="icon-btn" aria-label="关闭导入提示" onClick={() => setImportNotice("")}>×</button></div>}
@@ -177,7 +206,18 @@ export default function App() {
             onTab={tab => setProperties({ id: propertyLayer.id, tab })} onClose={() => setProperties(null)}
             onStyle={style => setStyles(current => ({ ...current, [propertyLayer.id]: style }))} />}
           </div>
-          {logsOpen ? <LogPanel onClose={() => setLogsOpen(false)} /> : tableLayer && <AttributeTable key={tableLayer.id} layer={tableLayer} onClose={() => setTableId(null)} onZoom={bounds => setFocus([...bounds])} />}
+          {logsOpen ? <LogPanel onClose={() => setLogsOpen(false)} /> : tableLayer && <AttributeTable key={tableLayer.id} layer={tableLayer}
+            selectedIds={selection?.layerId === tableLayer.id ? selection.featureIds : []}
+            onSelectionChange={(featureIds, additive) => {
+              setSelectedId(tableLayer.id);
+              setSelection(current => {
+                if (!additive || current?.layerId !== tableLayer.id) return featureIds.length ? { layerId: tableLayer.id, featureIds } : null;
+                const ids = new Set(current.featureIds);
+                for (const id of featureIds) { if (ids.has(id)) ids.delete(id); else ids.add(id); }
+                return ids.size ? { layerId: tableLayer.id, featureIds: [...ids].sort((a, b) => a - b) } : null;
+              });
+            }}
+            onClearSelection={clearSelection} onClose={() => setTableId(null)} onZoom={bounds => setFocus([...bounds])} />}
         </main>
         <ChatDock
           items={agent.state.items}

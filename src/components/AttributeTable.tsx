@@ -1,25 +1,29 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { DataLayer } from "../lib/dataLayers";
 import { engineRequest } from "../lib/service";
 
 type Row = { id: number; attributes: Record<string, unknown>; bounds: number[] | null };
 type Page = { fields: { name: string; type: string }[]; rows: Row[]; total: number };
 
-export function AttributeTable({ layer, onClose, onZoom }: { layer: DataLayer; onClose: () => void; onZoom: (bounds: number[]) => void }) {
+export function AttributeTable({ layer, selectedIds, onSelectionChange, onClearSelection, onClose, onZoom }: {
+  layer: DataLayer; selectedIds: number[]; onSelectionChange: (ids: number[], additive: boolean) => void;
+  onClearSelection: () => void; onClose: () => void; onZoom: (bounds: number[]) => void;
+}) {
   const [page, setPage] = useState<Page | null>(null);
   const [offset, setOffset] = useState(0);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("");
   const [descending, setDescending] = useState(false);
-  const [selected, setSelected] = useState<Row | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [statsField, setStatsField] = useState("");
   const [stats, setStats] = useState<Record<string, any> | null>(null);
   const [statsError, setStatsError] = useState("");
+  const rowRefs = useRef(new Map<number, HTMLTableRowElement>());
+  const selectionKey = selectedIds.join(",");
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true); setError(""); setSelected(null);
+    setLoading(true); setError("");
     const timer = setTimeout(() => {
       const params = new URLSearchParams({ offset: String(offset), limit: "100", search, descending: String(descending) });
       if (sort) params.set("sort", sort);
@@ -30,6 +34,16 @@ export function AttributeTable({ layer, onClose, onZoom }: { layer: DataLayer; o
     }, 180);
     return () => { clearTimeout(timer); controller.abort(); };
   }, [layer.id, offset, search, sort, descending]);
+  useEffect(() => {
+    if (!selectedIds.length || search || sort) return;
+    const first = selectedIds[0];
+    if (first < offset || first >= offset + 100) setOffset(Math.floor(first / 100) * 100);
+  }, [selectionKey, search, sort, offset, selectedIds]);
+  useEffect(() => {
+    if (!selectedIds.length || !page) return;
+    const row = page.rows.find(item => selectedIds.includes(item.id));
+    rowRefs.current.get(row?.id ?? -1)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [page, selectionKey, selectedIds]);
   const format = (value: unknown) => value === null ? "<空值>" : typeof value === "object" ? JSON.stringify(value) : String(value);
   const loadStats = async (field: string) => {
     setStatsField(field); setStats(null); setStatsError("");
@@ -42,17 +56,20 @@ export function AttributeTable({ layer, onClose, onZoom }: { layer: DataLayer; o
   };
   const STAT_LABELS: [string, string][] = [["count", "非空计数"], ["null_count", "空值数"], ["unique_count", "唯一值数"], ["min", "最小值"], ["max", "最大值"], ["mean", "均值"], ["median", "中位数"], ["std", "标准差"]];
   const number = (value: unknown) => typeof value === "number" ? (Math.abs(value) >= 1e6 || (Math.abs(value) < 1e-4 && value !== 0) ? value.toExponential(4) : String(Math.round(value * 1e6) / 1e6)) : String(value ?? "—");
+  const selectedSet = new Set(selectedIds);
+  const selectedRow = page?.rows.find(row => selectedSet.has(row.id));
   return <section className="attribute-table" aria-label={`${layer.name} 属性表`}>
     <header className="attribute-header"><strong>{layer.name} · 属性表</strong>
       <button type="button" className="icon-btn" onClick={onClose} aria-label="关闭属性表">×</button></header>
     <div className="attribute-toolbar">
       <input type="search" aria-label="搜索属性" placeholder="搜索属性…" value={search} onChange={e => { setSearch(e.target.value); setOffset(0); }} />
-      <button type="button" className="icon-btn" disabled={!selected?.bounds} onClick={() => selected?.bounds && onZoom(selected.bounds)}>缩放至所选记录</button>
+      <button type="button" className="icon-btn" disabled={!selectedRow?.bounds} onClick={() => selectedRow?.bounds && onZoom(selectedRow.bounds)}>缩放至所选记录</button>
+      {selectedIds.length > 0 && <button type="button" className="icon-btn" onClick={onClearSelection}>清除选择</button>}
       <select aria-label="字段统计选择" value={statsField} onChange={e => void loadStats(e.target.value)}>
         <option value="">字段统计…</option>
         {page?.fields.map(field => <option key={field.name} value={field.name}>{field.name}</option>)}
       </select>
-      <span>{loading ? "读取中…" : `${page?.total ?? 0} 条记录`}</span>
+      <span>{loading ? "读取中…" : `${page?.total ?? 0} 条记录${selectedIds.length ? ` · 已选 ${selectedIds.length}` : ""}`}</span>
     </div>
     {statsError && <p role="alert" className="chat-notice">{statsError}</p>}
     {statsField && stats && <div className="field-stats" aria-label={`${statsField} 统计`}>
@@ -67,7 +84,8 @@ export function AttributeTable({ layer, onClose, onZoom }: { layer: DataLayer; o
       <table><thead><tr><th>记录</th>{page?.fields.map(field => <th key={field.name} aria-sort={sort === field.name ? descending ? "descending" : "ascending" : "none"}>
         <button type="button" title={`${field.name} · ${field.type}`} onClick={() => { setSort(field.name); setDescending(sort === field.name ? !descending : false); setOffset(0); }}>{field.name} {sort === field.name ? descending ? "↓" : "↑" : ""}</button>
       </th>)}</tr></thead>
-      <tbody>{page?.rows.map(row => <tr key={row.id} data-selected={selected?.id === row.id} onClick={() => setSelected(row)} onDoubleClick={() => row.bounds && onZoom(row.bounds)}>
+      <tbody>{page?.rows.map(row => <tr key={row.id} ref={element => { if (element) rowRefs.current.set(row.id, element); else rowRefs.current.delete(row.id); }}
+        data-selected={selectedSet.has(row.id)} onClick={event => onSelectionChange([row.id], event.shiftKey || event.metaKey || event.ctrlKey)} onDoubleClick={() => row.bounds && onZoom(row.bounds)}>
         <td>{row.id + 1}</td>{page.fields.map(field => <td key={field.name} title={format(row.attributes[field.name])}>{format(row.attributes[field.name])}</td>)}
       </tr>)}</tbody></table>
       {!loading && !page?.rows.length && <p className="chat-notice">没有匹配的记录。</p>}

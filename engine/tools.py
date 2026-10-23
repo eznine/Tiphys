@@ -1,6 +1,7 @@
 """One tool implementation, two entries: MCP (Agent, natural language) and
 manual ToolPanel via POST /tools/run. Contracts follow RustGIS
 analysis tool shapes; implementations are GeoPandas in engine/geo_ops.py."""
+import os
 from typing import Any, Literal, Annotated
 from pydantic import Field
 from mcp.server.fastmcp import FastMCP
@@ -10,12 +11,14 @@ from jobs import JobRegistry
 from layers import LayerStore
 
 TOOL_GROUPS = {
-    "数据管理": ("add_data", "describe_layer", "rename_layer", "reorder_layers", "reproject", "export_features", "remove_layer"),
+    "数据管理": ("add_data", "describe_layer", "rename_layer", "reorder_layers", "reproject", "export_features", "remove_layer",
+               "list_supported_formats", "import_arcgis_project"),
     "邻近分析": ("buffer",),
-    "叠加分析": ("clip", "intersection", "union_layers", "erase"),
+    "叠加分析": ("clip", "intersection", "union_layers", "erase", "spatial_join"),
     "几何处理": ("dissolve", "convex_hull", "simplify", "calculate_geometry"),
     "查询与选择": ("select_by_attributes", "select_by_location", "field_statistics"),
     "地图与显示": ("zoom_to_layer", "open_attribute_table", "set_layer_symbology", "set_layer_labels"),
+    "GEE": ("gee_auth_status", "gee_search_collection", "gee_export_raster", "gee_job_status"),
 }
 
 def register_tools(mcp: FastMCP, store: LayerStore, jobs: JobRegistry) -> None:
@@ -210,6 +213,29 @@ def register_tools(mcp: FastMCP, store: LayerStore, jobs: JobRegistry) -> None:
         return geo_ops.start_select_location_job(store, jobs, layer, filter_layer, predicate, output_name=output_name)
 
     @mcp.tool()
+    def spatial_join(
+        layer: str,
+        join_layer: str,
+        predicate: Literal["intersects", "contains", "within", "nearest"] = "intersects",
+        keep_fields: bool = True,
+        output_name: str | None = None,
+    ) -> dict[str, Any]:
+        """Join attributes from another layer by a spatial predicate. Job-based.
+
+        One join feature is kept per target feature. Join attributes use the
+        JOIN_ prefix; nearest adds NEAR_DIST in the target CRS units.
+
+        Args:
+            layer: Target layer receiving attributes.
+            join_layer: Layer providing attributes.
+            predicate: intersects, contains, within, or nearest.
+            keep_fields: Keep all join attributes (default true).
+            output_name: Optional output layer name.
+        """
+        return geo_ops.start_spatial_join_job(store, jobs, layer, join_layer, predicate,
+                                              keep_fields=keep_fields, output_name=output_name)
+
+    @mcp.tool()
     def field_statistics(layer: str, field: str) -> dict[str, Any]:
         """Compute summary statistics for one attribute field of a layer.
 
@@ -317,6 +343,129 @@ def register_tools(mcp: FastMCP, store: LayerStore, jobs: JobRegistry) -> None:
         if field and field not in store.describe(store.resolve(layer))["columns"]:
             raise ValueError("Unknown label field; inspect describe_layer first")
         return view_result(layer, "labels", style={"labelField": field, "labelSize": size, "labelColor": color})
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    def list_supported_formats() -> dict[str, Any]:
+        """List open formats TIPHYS can read, plus ArcGIS import limitations."""
+        return {
+            "ok": True,
+            "runtime": "python-geopandas",
+            "vector": ["GeoJSON (.geojson/.json)", "GeoPackage (.gpkg)", "Shapefile (.shp/.zip)", "FlatGeobuf (.fgb)",
+                       "KML/KMZ (.kml/.kmz)", "GPX (.gpx)", "GML (.gml)", "GeoParquet (.geoparquet)", "TopoJSON (.topojson)"],
+            "raster": ["GeoTIFF (.tif/.tiff)"],
+            "table": ["CSV (.csv，作为只读表格导入)"],
+            "arcgis": {
+                "mxd": "不支持直接解析；请从 ArcGIS 导出要素为 GeoPackage、Shapefile ZIP 或 GeoJSON。",
+                "aprx": "不支持直接解析；请从 ArcGIS Pro 导出地图内容为开放格式。",
+                "file_gdb": "未安装 FileGDB 驱动时不能读取；请导出为 GeoPackage 或 Shapefile ZIP。",
+            },
+            "preferred": ["GeoPackage", "GeoJSON", "FlatGeobuf", "Shapefile ZIP", "GeoTIFF"],
+        }
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    def import_arcgis_project(path: str) -> dict[str, Any]:
+        """Explain MXD/APRX/File GDB limits and return open-format alternatives."""
+        ext = path.rsplit(".", 1)[-1].lower() if "." in path else ""
+        return {
+            "ok": False,
+            "supported": False,
+            "path": path,
+            "format": {"gdb": "ESRI File Geodatabase", "mxd": "ArcMap document", "aprx": "ArcGIS Pro project"}.get(ext, "unknown"),
+            "message": "当前版本不解析 ArcGIS 专有工程或文件地理数据库，未读取该文件。",
+            "alternatives": ["GeoPackage (.gpkg)", "GeoJSON (.geojson)", "Shapefile ZIP (.zip)", "KML/KMZ", "GeoTIFF"],
+            "hint": "在 ArcGIS 中使用“导出要素/转换地理数据库”，或运行“支持的格式”查看完整列表。",
+        }
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    def gee_auth_status() -> dict[str, Any]:
+        """Return structured Google Earth Engine connection status."""
+        demo = os.environ.get("TIPHYS_GEE_DEMO") == "1"
+        return {
+            "ok": False,
+            "connected": False,
+            "demo": demo,
+            "status": "not_connected",
+            "message": "Google Earth Engine 尚未连接。当前运行时没有 GEE 凭据或网络会话。",
+            "hint": "配置 GEE 服务账号后可接入真实集合；现在可先使用本地 GeoTIFF 或 GeoLibre WASM 遥感工具。",
+            "auth_methods": ["服务账号（桌面版配置）", "用户 OAuth（后续接入）"],
+        }
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    def gee_search_collection(
+        collection: str = "COPERNICUS/S2_SR_HARMONIZED",
+        start_date: str | None = None,
+        end_date: str | None = None,
+        max_cloud: int = 20,
+        bbox: str | None = None,
+    ) -> dict[str, Any]:
+        """Search a GEE collection; disconnected runtimes return an empty honest result."""
+        return {
+            "ok": False,
+            "connected": False,
+            "status": "not_connected",
+            "collection": collection,
+            "items": [],
+            "start_date": start_date,
+            "end_date": end_date,
+            "max_cloud": max_cloud,
+            "bbox": bbox,
+            "message": "GEE 未连接，未检索影像集合。返回空列表，不代表该集合不存在。",
+            "hint": "配置 GEE 服务账号后重试。",
+        }
+
+    @mcp.tool(annotations=ToolAnnotations(destructiveHint=True, readOnlyHint=False))
+    def gee_export_raster(
+        collection: str = "COPERNICUS/S2_SR_HARMONIZED",
+        band: str = "B4",
+        start_date: str | None = None,
+        end_date: str | None = None,
+        scale: float = 30,
+        path: str | None = None,
+    ) -> dict[str, Any]:
+        """Create a GEE export job; real export requires configured credentials."""
+        def worker(job, report):
+            report(0.2, "检查 GEE 连接")
+            demo = os.environ.get("TIPHYS_GEE_DEMO") == "1"
+            output = path or f"{collection.rsplit('/', 1)[-1]}_{band}.tif"
+            if not demo:
+                raise RuntimeError("GEE 导出任务未执行：未连接 Earth Engine，因此没有下载或写入栅格文件。")
+            report(0.8, "生成演示任务结果")
+            return {
+                "ok": True,
+                "demo": True,
+                "connected": False,
+                "status": "completed",
+                "collection": collection,
+                "band": band,
+                "start_date": start_date,
+                "end_date": end_date,
+                "scale": scale,
+                "path": output,
+                "message": "演示任务已完成。这是本地模拟结果，没有下载真实 GEE 影像。",
+            }
+        return jobs.start("gee_export_raster", f"GEE export {collection} {band}", worker)
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    def gee_job_status(job_id: str) -> dict[str, Any]:
+        """Return a GEE-style status view for an export job."""
+        try:
+            status = jobs.status(job_id)
+        except KeyError:
+            return {
+                "ok": False,
+                "connected": False,
+                "status": "not_connected",
+                "job_id": job_id,
+                "job_status": "unknown",
+                "message": "找不到该 GEE 任务。当前引擎没有已连接的 GEE 任务记录。",
+            }
+        result = status.get("result") or {}
+        return {
+            "ok": status.get("status") == "completed" and result.get("ok") is not False,
+            "connected": False,
+            "demo": bool(result.get("demo")),
+            "job": status,
+        }
 
     @mcp.tool()
     def job_status(job_id: str) -> dict[str, Any]:

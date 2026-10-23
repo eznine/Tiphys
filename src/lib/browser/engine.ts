@@ -6,6 +6,7 @@ import { rasterRenderer, type RasterRenderer } from "./raster-display";
 import { deleteRecord, readRecord, records, writeRecord } from "./storage";
 import { fileInfo, originalGeojson, wasmManifests, wasmTool } from "./wasm";
 import { browserToolCatalog } from "./catalog-schema";
+import { pluginToolNames, runPluginTool } from "../plugins/registry";
 
 type LayerRecord = {
   info: Omit<DataLayer, "url">;
@@ -67,6 +68,20 @@ async function resolve(value: unknown): Promise<LayerRecord> {
 }
 function fields(record: LayerRecord) { return [...new Set((record.geojson?.features ?? []).flatMap(f => Object.keys(f.properties ?? {})))]; }
 function kindLabel(kind: string) { return { vector: "矢量", raster: "栅格", table: "表格" }[kind] ?? kind; }
+function geeDemoMode() {
+  const meta = (import.meta.env ?? {}) as Record<string, string | undefined>;
+  const processEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env;
+  return meta.TIPHYS_GEE_DEMO === "1" || meta.VITE_TIPHYS_GEE_DEMO === "1" || processEnv?.TIPHYS_GEE_DEMO === "1";
+}
+function geeUnavailable(message = "Google Earth Engine 尚未连接。当前运行时没有 GEE 凭据或网络会话，未读取、上传或导出任何影像。") {
+  return {
+    ok: false,
+    connected: false,
+    status: "not_connected",
+    message,
+    hint: "在桌面版配置 GEE 凭据后可接入真实集合；现在可先使用本地 GeoTIFF 或 GeoLibre WASM 遥感工具。",
+  };
+}
 function csvCell(value: unknown) {
   if (value == null) return "";
   const text = String(value);
@@ -266,8 +281,148 @@ async function runNative(id: string, args: Record<string, any>, signal?: AbortSi
     attachments: published.attachments.length ? published.attachments : undefined,
     engine: "GeoLibre WASM · 浏览器计算" };
 }
+async function spatialJoin(record: LayerRecord, other: LayerRecord, args: Record<string, any>, signal?: AbortSignal) {
+  const predicate = String(args.predicate ?? "intersects");
+  if (!["intersects", "contains", "within", "nearest"].includes(predicate)) throw new Error("空间连接仅支持 intersects、contains、within 或 nearest。");
+  const epsg = Number(record.info.crs?.split(":")[1]);
+  if (!Number.isInteger(epsg)) throw new Error("空间连接要求输入图层具有 EPSG 坐标系。");
+  const keepFields = args.keep_fields !== false;
+  const outputName = String(args.output_name || `${record.info.name}_${predicate}`);
+  let bytes: Uint8Array;
+  if (predicate === "nearest") {
+    const near = await wasmTool("generate_near_table", { [`input.${record.extension}`]: record.bytes, "near_features.fgb": await project(other, epsg, signal) },
+      { input: `/work/input.${record.extension}`, near_features: "/work/near_features.fgb", closest_count: 1, output: "/work/near_table.fgb" }, signal);
+    const tableBytes = near.files["near_table.fgb"];
+    if (!tableBytes?.length) throw new Error("最近邻空间连接没有生成结果。");
+    const table: FeatureCollection = await originalGeojson(tableBytes, "fgb", signal) as FeatureCollection;
+    const matches = new Map<number, Record<string, any>>();
+    for (const row of table.features) if (row.properties) matches.set(Number(row.properties.IN_FID), row.properties);
+    const source: FeatureCollection = await originalGeojson(record.bytes, record.extension, signal) as FeatureCollection;
+    const joinFeatures = other.geojson!.features;
+    const joined = {
+      ...source,
+      crs: { type: "name", properties: { name: `urn:ogc:def:crs:EPSG::${epsg}` } },
+      features: source.features.map((feature, index) => {
+        const properties = { ...(feature.properties ?? {}) };
+        const match = matches.get(index);
+        const nearestId = Number(match?.NEAR_FID);
+        const joinProperties = Number.isInteger(nearestId) && nearestId >= 0 ? joinFeatures[nearestId]?.properties : undefined;
+        if (keepFields && joinProperties) for (const [key, value] of Object.entries(joinProperties)) properties[`JOIN_${key}`] = value;
+        if (match?.NEAR_DIST !== undefined) properties.NEAR_DIST = match.NEAR_DIST;
+        return { ...feature, properties };
+      }),
+    } as FeatureCollection & { crs: { type: string; properties: { name: string } } };
+    bytes = encoder.encode(JSON.stringify(joined));
+    return { ...(await adopt(bytes, "geojson", outputName, signal)), predicate, join_layer_id: other.info.id, feature_count: joined.features.length };
+  }
+  const joined = await wasmTool("spatial_join", {
+    [`target.${record.extension}`]: record.bytes,
+    "join.fgb": await project(other, epsg, signal),
+  }, {
+    target: `/work/target.${record.extension}`, join: "/work/join.fgb", predicate, strategy: "first", prefix: "JOIN_", output: "/work/joined.fgb",
+  }, signal);
+  bytes = joined.files["joined.fgb"];
+  if (!bytes?.length) throw new Error("空间连接没有生成结果。");
+  if (!keepFields) {
+    const collection: FeatureCollection = await originalGeojson(bytes, "fgb", signal) as FeatureCollection;
+    for (const feature of collection.features) {
+      if (!feature.properties) continue;
+      for (const key of Object.keys(feature.properties)) if (key.startsWith("JOIN_")) delete feature.properties[key];
+    }
+    bytes = encoder.encode(JSON.stringify(collection));
+    const output = await adopt(bytes, "geojson", outputName, signal);
+    return { ...output, predicate, join_layer_id: other.info.id };
+  }
+  return { ...(await adopt(bytes, "fgb", outputName, signal)), predicate, join_layer_id: other.info.id };
+}
 async function execute(name: string, args: Record<string, any>, signal?: AbortSignal): Promise<Record<string, any>> {
   if (name.startsWith("wasm_")) return runNative(name.slice(5), args, signal);
+  if (pluginToolNames.has(name)) return runPluginTool(name, args);
+  if (name === "list_supported_formats") return {
+    ok: true,
+    runtime: "browser-wasm",
+    vector: ["GeoJSON (.geojson/.json)", "GeoPackage (.gpkg)", "Shapefile (.zip，需含 .shp/.shx/.dbf)", "FlatGeobuf (.fgb)", "KML/KMZ (.kml/.kmz)", "GPX (.gpx)", "GML (.gml)", "GeoParquet (.geoparquet)", "TopoJSON (.topojson)"],
+    raster: ["GeoTIFF (.tif/.tiff)"],
+    table: ["CSV (.csv，作为只读表格导入)"],
+    arcgis: {
+      mxd: "不支持直接解析；请在 ArcGIS 中导出要素为 GeoPackage、Shapefile ZIP 或 GeoJSON。",
+      aprx: "不支持直接解析；APRX 工程内容请先导出为开放格式。",
+      file_gdb: "浏览器端不支持 ESRI File Geodatabase；请导出为 GeoPackage 或 Shapefile ZIP。",
+    },
+    preferred: ["GeoPackage", "GeoJSON", "FlatGeobuf", "Shapefile ZIP", "GeoTIFF"],
+  };
+  if (name === "import_arcgis_project") {
+    const path = String(args.path ?? "");
+    const ext = path.split(".").pop()?.toLowerCase() ?? "";
+    return { ok: false, supported: false, path, format: ext === "gdb" ? "ESRI File Geodatabase" : ext === "mxd" ? "ArcMap document" : ext === "aprx" ? "ArcGIS Pro project" : "unknown",
+      message: "当前版本不解析 ArcGIS 专有工程或文件地理数据库，未读取该文件。",
+      alternatives: ["GeoPackage (.gpkg)", "GeoJSON (.geojson)", "Shapefile ZIP (.zip)", "KML/KMZ", "GeoTIFF"],
+      hint: "在 ArcGIS 中使用“导出要素/转换地理数据库”，或运行“支持的格式”查看完整列表。" };
+  }
+  if (name === "gee_auth_status") {
+    const demo = geeDemoMode();
+    return {
+      ...geeUnavailable(demo ? "GEE 未连接；演示环境可用 TIPHYS_GEE_DEMO=1 生成模拟导出任务，但不会下载真实影像。" : undefined),
+      demo,
+      auth_methods: ["服务账号（桌面版配置）", "用户 OAuth（后续接入）"],
+    };
+  }
+  if (name === "gee_search_collection") {
+    const collection = String(args.collection ?? "COPERNICUS/S2_SR_HARMONIZED");
+    return {
+      ...geeUnavailable(),
+      collection,
+      items: [],
+      start_date: args.start_date ?? null,
+      end_date: args.end_date ?? null,
+      max_cloud: args.max_cloud ?? null,
+      bbox: args.bbox ?? null,
+      message: "GEE 未连接，未检索影像集合。返回空列表，不代表该集合不存在。",
+    };
+  }
+  if (name === "gee_export_raster") {
+    const demo = geeDemoMode();
+    const collection = String(args.collection ?? "COPERNICUS/S2_SR_HARMONIZED");
+    const band = String(args.band ?? "B4");
+    const output = String(args.path || `${collection.split("/").pop() ?? "gee"}_${band}.tif`);
+    if (!demo) {
+      return {
+        ...geeUnavailable("GEE 导出任务未执行：未连接 Earth Engine，因此没有下载或写入栅格文件。"),
+        collection,
+        band,
+        requested_path: output,
+      };
+    }
+    return {
+      ok: true,
+      demo: true,
+      connected: false,
+      status: "completed",
+      collection,
+      band,
+      path: output,
+      message: "演示任务已完成。这是本地模拟结果，没有下载真实 GEE 影像。",
+      hint: "设置 TIPHYS_GEE_DEMO=1 仅用于验证任务流程；连接真实 GEE 后才会生成 GeoTIFF。",
+    };
+  }
+  if (name === "gee_job_status") {
+    const jobId = String(args.job_id ?? "");
+    try {
+      const job = await readBrowserJob(jobId);
+      return {
+        ok: job.status === "completed" && job.result?.ok !== false,
+        connected: geeDemoMode(),
+        demo: Boolean(job.result?.demo),
+        job: { job_id: job.job_id, status: job.status, progress: job.progress, message: job.message, result: job.result, error: job.error },
+      };
+    } catch {
+      return {
+        ...geeUnavailable("找不到该 GEE 任务。当前浏览器没有已连接的 GEE 任务记录。"),
+        job_id: jobId,
+        job_status: "unknown",
+      };
+    }
+  }
   if (name === "add_data") {
     const path = String(args.path).replace(/\\/g, "/");
     if (!/^samples\/[\w.-]+\.geojson$/.test(path)) throw new Error("浏览器无法读取电脑路径。请点击添加数据选择文件，或使用 samples/beijing_points.geojson。");
@@ -278,6 +433,11 @@ async function execute(name: string, args: Record<string, any>, signal?: AbortSi
   const record = await resolve(args.layer);
   if ((record.info.kind ?? "vector") !== "vector") throw new Error(`该工具适用于矢量图层，「${record.info.name}」是${kindLabel(record.info.kind ?? "vector")}。`);
   const outputName = args.output_name || `${record.info.name}_${name}`;
+  if (name === "spatial_join") {
+    const other = await resolve(args.join_layer);
+    if ((other.info.kind ?? "vector") !== "vector") throw new Error("连接图层必须是矢量图层。");
+    return spatialJoin(record, other, args, signal);
+  }
   if (name === "select_by_attributes") {
     if (!fields(record).includes(args.field)) throw new Error("找不到指定字段。");
     const values = record.geojson!.features.map(f => f.properties?.[args.field]).filter(v => v != null);
@@ -409,6 +569,8 @@ export async function runBrowserTool(name: string, args: Record<string, any> = {
   if (name === "job_status") return readBrowserJob(args.job_id);
   if (name === "job_cancel") return cancelBrowserJob(args.job_id);
   if (name === "describe_layer") return describe(await resolve(args.layer));
+  if (["list_supported_formats", "import_arcgis_project", "gee_auth_status", "gee_search_collection", "gee_job_status"].includes(name))
+    return execute(name, args);
   if (name === "remove_layer") {
     const record = await resolve(args.layer); await deleteRecord(`layer:${record.info.id}`);
     const url = urls.get(record.info.id); if (url) URL.revokeObjectURL(url); urls.delete(record.info.id);
@@ -470,12 +632,14 @@ export async function runBrowserTool(name: string, args: Record<string, any> = {
     return { ok: true, view };
   }
   const id = `job_${crypto.randomUUID()}`, controller = new AbortController(); controllers.set(id, controller);
-  const job: Job = { job_id: id, label: name, status: "queued", progress: 0, message: "等待浏览器计算", owner }; running.set(id, job);
+  const geeJob = name.startsWith("gee_");
+  const job: Job = { job_id: id, label: geeJob ? "GEE 栅格导出" : name, status: "queued", progress: 0, message: geeJob ? "等待检查 GEE 连接" : "等待浏览器计算", owner }; running.set(id, job);
   await writeRecord(`job:${id}`, job);
   const work = async () => {
     try {
-      controller.signal.throwIfAborted(); job.status = "running"; job.message = "GeoLibre WASM 在本机浏览器计算中"; await writeRecord(`job:${id}`, job);
-      job.result = await execute(name, args, controller.signal); job.status = "completed"; job.progress = 1; job.message = "计算和结果读回校验完成";
+      controller.signal.throwIfAborted(); job.status = "running"; job.message = geeJob ? "检查 GEE 连接与任务参数" : "GeoLibre WASM 在本机浏览器计算中"; await writeRecord(`job:${id}`, job);
+      job.result = await execute(name, args, controller.signal); job.status = "completed"; job.progress = 1;
+      job.message = typeof job.result.message === "string" ? job.result.message : "计算和结果读回校验完成";
     } catch (error) { job.status = controller.signal.aborted ? "cancelled" : "failed"; job.error = controller.signal.aborted ? undefined : String(error); job.message = job.error ?? "已取消，未生成结果"; }
     finally { controllers.delete(id); await writeRecord(`job:${id}`, job); recordLog("job", name, job, job.status === "failed" ? "error" : "info"); }
   };

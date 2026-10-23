@@ -1,6 +1,7 @@
 /** Shared catalog contracts for the Python-MCP and bundled GeoLibre WASM tools. */
 import commonCatalog from "./catalog.json";
 import manifests from "./wasm-catalog.json";
+import { pluginToolSchemas } from "../plugins/registry";
 
 export type CatalogSchema = {
   type?: string; enum?: string[]; default?: unknown; anyOf?: CatalogSchema[]; items?: CatalogSchema;
@@ -10,7 +11,7 @@ export type CatalogTool = {
   name: string; description?: string; label?: string;
   category?: string; subcategory?: string;
   parameters: { type?: string; title?: string; properties?: Record<string, CatalogSchema>; required?: string[]; additionalProperties?: boolean };
-  annotations?: { destructiveHint?: boolean };
+  annotations?: { destructiveHint?: boolean; readOnlyHint?: boolean };
 };
 
 type WasmManifest = (typeof manifests)[number];
@@ -55,9 +56,9 @@ export function mergeCatalogTools(...sources: CatalogTool[][]): CatalogTool[] {
 }
 
 /** Web runtime catalog: shell/common tools plus every bundled WASM tool. */
-export const browserToolCatalog = mergeCatalogTools(commonToolSchemas, wasmToolSchemas);
+export const browserToolCatalog = mergeCatalogTools(commonToolSchemas, wasmToolSchemas, pluginToolSchemas);
 
 /** Desktop catalog: Python MCP tools plus every WASM schema and shell-only stubs. */
 export function desktopToolCatalog(pythonTools: CatalogTool[]): CatalogTool[] {
-  return mergeCatalogTools(pythonTools, wasmToolSchemas, commonToolSchemas);
+  return mergeCatalogTools(pythonTools, wasmToolSchemas, commonToolSchemas, pluginToolSchemas);
 }

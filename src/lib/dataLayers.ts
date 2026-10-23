@@ -25,6 +25,10 @@ export type DataLayer = {
   raster?: { width: number; height: number; bands: number };
 };
 
+export type LayerSelection = { layerId: string; featureIds: number[] };
+
+export const SELECTION_COLOR = "#2563eb";
+
 export const PALETTE = ["#ff7a45", "#36cfc9", "#9254de", "#f7ba1e", "#4096ff", "#ef5da8", "#52c41a", "#c9a678"];
 
 export function defaultLayerStyle(id: string): LayerStyle {
@@ -67,30 +71,30 @@ export function syncDataLayers(map: Map, layers: DataLayer[]) {
       return;
     }
     const color = layerColor(style);
-    if (!map.getSource(sid)) map.addSource(sid, { type: "geojson", data: l.url });
+    if (!map.getSource(sid)) map.addSource(sid, { type: "geojson", data: l.url, generateId: true });
     // Geometry filters adapted from GeoLibre map-controller.ts (MIT, Qiusheng Wu).
     // Always provide all three representations: mixed datasets must not lose features.
       if (!map.getLayer(`${sid}-fill`))
         map.addLayer({ id: `${sid}-fill`, type: "fill", source: sid,
           filter: ["match", ["geometry-type"], ["Polygon", "MultiPolygon"], true, false],
-          paint: { "fill-color": color, "fill-opacity": style.opacity * .55 } });
+          paint: { "fill-color": selectedColor(color), "fill-opacity": selectedOpacity(style.opacity * .55) } });
       if (!map.getLayer(`${sid}-line`))
         map.addLayer({ id: `${sid}-line`, type: "line", source: sid,
           filter: ["match", ["geometry-type"], ["LineString", "MultiLineString", "Polygon", "MultiPolygon"], true, false],
-          paint: { "line-color": color, "line-width": style.lineWidth, "line-opacity": style.opacity } });
+          paint: { "line-color": selectedColor(color), "line-width": selectedWidth(style.lineWidth, false), "line-opacity": style.opacity } });
     if (!map.getLayer(`${sid}-pt`)) {
       map.addLayer({
         id: `${sid}-pt`,
         type: "circle",
         source: sid,
         filter: ["match", ["geometry-type"], ["Point", "MultiPoint"], true, false],
-        paint: { "circle-radius": style.pointSize, "circle-color": color, "circle-opacity": style.opacity, "circle-stroke-color": "#fff", "circle-stroke-width": 1.5, "circle-stroke-opacity": style.opacity },
+        paint: { "circle-radius": selectedWidth(style.pointSize, true), "circle-color": selectedColor(color), "circle-opacity": style.opacity, "circle-stroke-color": selectedColor("#ffffff"), "circle-stroke-width": selectedWidth(1.5, true), "circle-stroke-opacity": style.opacity },
       });
     }
     for (const [suffix, paint] of Object.entries({
-      "-fill": { "fill-color": color, "fill-opacity": style.opacity * .55 },
-      "-line": { "line-color": color, "line-width": style.lineWidth, "line-opacity": style.opacity },
-      "-pt": { "circle-radius": style.pointSize, "circle-color": color, "circle-opacity": style.opacity, "circle-stroke-opacity": style.opacity },
+      "-fill": { "fill-color": selectedColor(color), "fill-opacity": selectedOpacity(style.opacity * .55) },
+      "-line": { "line-color": selectedColor(color), "line-width": selectedWidth(style.lineWidth, false), "line-opacity": style.opacity },
+      "-pt": { "circle-radius": selectedWidth(style.pointSize, true), "circle-color": selectedColor(color), "circle-opacity": style.opacity, "circle-stroke-color": selectedColor("#ffffff"), "circle-stroke-width": selectedWidth(1.5, true), "circle-stroke-opacity": style.opacity },
     })) {
       for (const [name, value] of Object.entries(paint)) map.setPaintProperty(sid + suffix, name as Parameters<Map["setPaintProperty"]>[1], value);
       map.setLayoutProperty(sid + suffix, "visibility", vis);
@@ -108,4 +112,16 @@ export function syncDataLayers(map: Map, layers: DataLayer[]) {
       map.setPaintProperty(labelId, "text-color", style.labelColor);
     } else if (map.getLayer(labelId)) map.removeLayer(labelId);
   });
+}
+
+function selectedColor(base: string | ExpressionSpecification): ExpressionSpecification {
+  return ["case", ["boolean", ["feature-state", "selected"], false], SELECTION_COLOR, base] as ExpressionSpecification;
+}
+
+function selectedOpacity(base: number): ExpressionSpecification {
+  return ["case", ["boolean", ["feature-state", "selected"], false], Math.min(1, base + .22), base] as ExpressionSpecification;
+}
+
+function selectedWidth(base: number, point: boolean): ExpressionSpecification {
+  return ["case", ["boolean", ["feature-state", "selected"], false], base + (point ? 3 : 2), base] as ExpressionSpecification;
 }

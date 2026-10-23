@@ -13,7 +13,7 @@ import {
   rasterStyle,
   TERRAIN_DEM,
 } from "../lib/basemaps";
-import { DataLayer, syncDataLayers } from "../lib/dataLayers";
+import { DataLayer, LayerSelection, syncDataLayers } from "../lib/dataLayers";
 import { engineHeaders } from "../lib/service";
 
 type Props = {
@@ -21,6 +21,8 @@ type Props = {
   dataLayers?: DataLayer[];
   focusBounds?: number[] | null;
   onStatus?: (status: { lng: number; lat: number; zoom: number }) => void;
+  selection?: LayerSelection | null;
+  onSelect?: (selection: LayerSelection | null, additive: boolean) => void;
 };
 
 const TERRAIN_SRC = "tiphys-terrain-dem";
@@ -53,7 +55,7 @@ function setBuildingsVisible(map: Map, on: boolean) {
   map.setLayoutProperty("building-3d", "visibility", on ? "visible" : "none");
 }
 
-export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus }: Props) {
+export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus, selection = null, onSelect }: Props) {
   const dataLayersRef = useRef(dataLayers);
   dataLayersRef.current = dataLayers;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -61,6 +63,11 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   const introDone = useRef(false);
   const statusRef = useRef(onStatus);
   statusRef.current = onStatus;
+  const selectionRef = useRef(selection);
+  selectionRef.current = selection;
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
+  const appliedSelection = useRef<LayerSelection | null>(null);
 
   const [basemapId, setBasemapId] = useState<BasemapId>("liberty");
   const [mode3d, setMode3d] = useState(true);
@@ -134,6 +141,15 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 100 }), "bottom-left");
     map.on("mousemove", e => statusRef.current?.({ lng: e.lngLat.wrap().lng, lat: e.lngLat.lat, zoom: map.getZoom() }));
     map.on("moveend", () => { const center = map.getCenter().wrap(); statusRef.current?.({ lng: center.lng, lat: center.lat, zoom: map.getZoom() }); });
+    map.on("click", event => {
+      const hit = map.queryRenderedFeatures(event.point)
+        .find(feature => String((feature as { source?: string }).source ?? "").startsWith("tiphys-lyr_") && feature.id != null);
+      if (!hit) { onSelectRef.current?.(null, event.originalEvent.shiftKey || event.originalEvent.metaKey || event.originalEvent.ctrlKey); return; }
+      const id = Number(hit.id);
+      if (!Number.isFinite(id)) return;
+      const layerId = String((hit as { source: string }).source).slice("tiphys-".length);
+      onSelectRef.current?.({ layerId, featureIds: [id] }, event.originalEvent.shiftKey || event.originalEvent.metaKey || event.originalEvent.ctrlKey);
+    });
 
     map.on("style.load", () => {
       applyStyleExtras(map);
@@ -216,6 +232,26 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
     if (map.isStyleLoaded()) syncDataLayers(map, dataLayers);
     else map.once("idle", () => syncDataLayers(map, dataLayersRef.current));
   }, [dataLayers]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const apply = () => {
+      const previous = appliedSelection.current;
+      if (previous) {
+        try { for (const id of previous.featureIds) map.removeFeatureState({ source: `tiphys-${previous.layerId}`, id }); }
+        catch { /* Source may have been replaced by a basemap style reload. */ }
+      }
+      if (!selection?.featureIds.length) { appliedSelection.current = null; return; }
+      const source = `tiphys-${selection.layerId}`;
+      if (!map.getSource(source)) syncDataLayers(map, dataLayersRef.current);
+      if (!map.getSource(source)) { appliedSelection.current = null; return; }
+      for (const id of selection.featureIds) map.setFeatureState({ source, id }, { selected: true });
+      appliedSelection.current = { ...selection, featureIds: [...selection.featureIds] };
+    };
+    if (map.isStyleLoaded()) apply();
+    else map.once("idle", apply);
+  }, [selection, dataLayers]);
 
   useEffect(() => {
     const map = mapRef.current;

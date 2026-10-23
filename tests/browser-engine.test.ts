@@ -68,6 +68,28 @@ test("polygon union and measured geometry run with real WASM contracts", async (
   assert.ok(union.layer.geometry_types.every((t: string) => ["Polygon", "MultiPolygon"].includes(t)));
 });
 
+test("spatial_join transfers polygon attributes to points and supports nearest joins", async () => {
+  const points = await sample("join-targets");
+  const polygon = { type: "FeatureCollection", features: [{ type: "Feature", properties: { zone: "core", score: 7 },
+    geometry: { type: "Polygon", coordinates: [[[116.2, 39.8], [116.6, 39.8], [116.6, 40.1], [116.2, 40.1], [116.2, 39.8]]] } }] };
+  const zones = (await importBrowserFile(new Blob([JSON.stringify(polygon)]), "join-zones.geojson")).layer;
+  const joined = await finished("spatial_join", { layer: points.id, join_layer: zones.id, predicate: "intersects", keep_fields: true, output_name: "joined_points" });
+  assert.equal(joined.layer.feature_count, 5);
+  const joinedRecord: any = await readRecord(`layer:${joined.layer.id}`);
+  assert.equal(joinedRecord.geojson.features[0].properties.JOIN_zone, "core");
+  assert.equal(joinedRecord.geojson.features[0].properties.JOIN_score, 7);
+  const targetOnly = await finished("spatial_join", { layer: points.id, join_layer: zones.id, predicate: "intersects", keep_fields: false, output_name: "target_only" });
+  const targetRecord: any = await readRecord(`layer:${targetOnly.layer.id}`);
+  assert.ok(!Object.keys(targetRecord.geojson.features[0].properties).some((key: string) => key.startsWith("JOIN_")));
+
+  const nearestSource = { type: "FeatureCollection", features: [{ type: "Feature", properties: { station: "A" }, geometry: { type: "Point", coordinates: [116.4, 39.9] } }] };
+  const nearestLayer = (await importBrowserFile(new Blob([JSON.stringify(nearestSource)]), "nearest-stations.geojson")).layer;
+  const nearest = await finished("spatial_join", { layer: points.id, join_layer: nearestLayer.id, predicate: "nearest", keep_fields: true, output_name: "nearest_join" });
+  const nearestRecord: any = await readRecord(`layer:${nearest.layer.id}`);
+  assert.equal(nearestRecord.geojson.features[0].properties.JOIN_station, "A");
+  assert.equal(typeof nearestRecord.geojson.features[0].properties.NEAR_DIST, "number");
+});
+
 test("Shapefile zip and FlatGeobuf import from actual converted files", async () => {
   const source = new Blob([fs.readFileSync(new URL("../samples/beijing_points.geojson", import.meta.url))]);
   const owner = (await importBrowserFile(source, "zip-source.geojson")).layer;
@@ -193,6 +215,43 @@ test("rename_layer updates the display name in place and reorder_layers sets the
   assert.ok(!(await browserLayers()).some(l => l.id === second.id));
 });
 
+test("GEE slice, ArcGIS adapters and plugin stubs return honest structured results", async () => {
+  const auth = await runBrowserTool("gee_auth_status", {});
+  assert.equal(auth.connected, false);
+  assert.equal(auth.status, "not_connected");
+  const search = await runBrowserTool("gee_search_collection", { collection: "COPERNICUS/S2_SR_HARMONIZED" });
+  assert.deepEqual(search.items, []);
+  assert.ok(search.hint);
+  const exported = await finished("gee_export_raster", { collection: "COPERNICUS/S2_SR_HARMONIZED", band: "B4", path: "demo.tif" });
+  assert.equal(exported.connected, false);
+  assert.equal(exported.path ?? exported.requested_path, "demo.tif");
+  const geeStatus = await runBrowserTool("gee_job_status", { job_id: "missing" });
+  assert.equal(geeStatus.job_status, "unknown");
+  process.env.TIPHYS_GEE_DEMO = "1";
+  try {
+    const demo = await finished("gee_export_raster", { collection: "COPERNICUS/S2_SR_HARMONIZED", band: "B4", path: "demo.tif" });
+    assert.equal(demo.demo, true);
+    assert.equal(demo.path, "demo.tif");
+    assert.match(demo.message, /演示/);
+  } finally {
+    delete process.env.TIPHYS_GEE_DEMO;
+  }
+
+  const formats = await runBrowserTool("list_supported_formats", {});
+  assert.ok(formats.vector.some((item: string) => item.includes("GeoPackage")));
+  const arcgis = await runBrowserTool("import_arcgis_project", { path: "project.aprx" });
+  assert.equal(arcgis.supported, false);
+  assert.ok(arcgis.alternatives.length > 0);
+
+  const input = await sample("plugin");
+  const corridor = await finished("linkage_mapper_corridor", { layer: input.id });
+  assert.equal(corridor.available, false);
+  assert.equal(corridor.plugin, "linkage-mapper");
+  const whitebox = await finished("whitebox_extra", {});
+  assert.equal(whitebox.available, false);
+  assert.ok(browserCatalog.some(t => t.name === "linkage_mapper_corridor"));
+});
+
 test("field_statistics reports numeric moments or top values with null counts", async () => {
   const input = (await sample("stats-src"));
   const numeric = await finished("field_statistics", { layer: input.id, field: "id" });
@@ -205,10 +264,10 @@ test("field_statistics reports numeric moments or top values with null counts", 
 
 
 test("catalog union, dedupe, L1 folders and every WASM L2 translation", () => {
-  assert.equal(browserCatalog.length, 989, "31 shell/common tools + 958 WASM schemas");
+  assert.equal(browserCatalog.length, 994, "34 shell/common tools + 958 WASM schemas + 2 plugin stubs");
   assert.equal(new Set(browserCatalog.map(t => t.name)).size, browserCatalog.length);
   const desktop = desktopToolCatalog([{ name: "buffer", category: "邻近分析", parameters: { properties: {} } }]);
-  assert.equal(desktop.length, 989, "desktop Python + WASM + shell-only stubs");
+  assert.equal(desktop.length, 994, "desktop Python + WASM + shell-only stubs");
   assert.equal(new Set(desktop.map(t => t.name)).size, desktop.length);
   assert.ok(desktop.some(t => t.name === "gee_search_collection"));
   const l1 = new Set(browserCatalog.map(zhToolL1));

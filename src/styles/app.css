@@ -74,7 +74,9 @@
 .attribute-scroll th { position: sticky; top: 0; background: var(--tiphys-surface-elevated); z-index: 1; }
 .attribute-scroll td, .attribute-scroll th { padding: 5px 10px; text-align: left; border-bottom: 1px solid var(--tiphys-border); border-right: 1px solid var(--tiphys-border-subtle); max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
 .attribute-scroll th button { border: 0; background: transparent; color: var(--tiphys-text); font: inherit; font-weight: 600; cursor: pointer; padding: 0; }
-.attribute-scroll tr:hover td, .attribute-scroll tr[data-selected="true"] td { background: var(--tiphys-accent-muted); }
+.attribute-scroll tr:hover td { background: var(--tiphys-accent-muted); }
+.attribute-scroll tr[data-selected="true"] td { background: color-mix(in srgb, var(--tiphys-accent) 16%, var(--tiphys-surface)); }
+.attribute-scroll tr[data-selected="true"] td:first-child { box-shadow: inset 2px 0 0 var(--tiphys-accent); color: var(--tiphys-accent); font-weight: 600; }
 .attribute-footer { display: flex; align-items: center; justify-content: space-between; padding: 5px 10px; color: var(--tiphys-text-muted); }
 .attribute-footer > div { display: flex; align-items: center; gap: 9px; }
 .attribute-footer .icon-btn { font-size: 11px; height: 26px; }
@@ -93,6 +95,10 @@
 .layer-info dd { margin: 0; overflow-wrap: anywhere; }
 .import-notice { position: absolute; z-index: 18; top: 12px; left: 12px; right: 12px; background: var(--tiphys-surface-elevated); color: var(--tiphys-text); border: 1px solid var(--tiphys-border); border-radius: 8px; padding: 10px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 12px; box-shadow: 0 4px 16px color-mix(in srgb, var(--tiphys-text) 8%, transparent); }
 .import-notice > span { flex: 1; }
+.selection-hud { position: absolute; z-index: 16; left: 12px; top: 12px; display: flex; align-items: center; gap: 10px; padding: 6px 8px 6px 10px; border: 1px solid color-mix(in srgb, var(--tiphys-accent) 30%, var(--tiphys-border)); border-radius: 7px; background: var(--tiphys-surface-elevated); color: var(--tiphys-text-secondary); box-shadow: 0 3px 12px color-mix(in srgb, var(--tiphys-text) 10%, transparent); font-size: 11px; }
+.selection-hud strong { color: var(--tiphys-accent); font-size: 12px; }
+.selection-hud button { display: inline-flex; align-items: center; gap: 3px; padding: 3px 6px; border: 1px solid var(--tiphys-border); border-radius: 5px; background: transparent; color: var(--tiphys-text-secondary); font: inherit; cursor: pointer; }
+.selection-hud button:hover { border-color: var(--tiphys-accent); color: var(--tiphys-accent); background: var(--tiphys-accent-muted); }
 .log-panel { height: 340px; max-height: 55%; min-height: 220px; display: flex; flex-direction: column; border-top: 1px solid var(--tiphys-border); background: var(--tiphys-surface); font-size: 11px; }
 .log-header-actions { display: flex; gap: 5px; }
 .log-header-actions .icon-btn { width: auto; padding: 0 8px; font-size: 11px; }

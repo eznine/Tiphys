@@ -488,6 +488,101 @@ def start_select_location_job(store: LayerStore, jobs: JobRegistry, layer: str, 
                                                                        output_name=output_name, report=report, commit=commit))
 
 
+SPATIAL_JOIN_PREDICATES = ("intersects", "contains", "within", "nearest")
+
+
+def spatial_join_sync(
+    store: LayerStore,
+    layer: str,
+    join_layer: str,
+    predicate: str = "intersects",
+    keep_fields: bool = True,
+    output_name: str | None = None,
+    report: Callable[[float, str], None] | None = None,
+    commit: Callable[[Callable[[], dict[str, Any]]], dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Join attributes from another layer by an explicit spatial predicate.
+
+    One matching join feature is kept per target feature so the output has the
+    same row count as the target. Join fields are prefixed with JOIN_ and
+    nearest joins add NEAR_DIST in the target CRS units.
+    """
+    def r(p: float, m: str = "") -> None:
+        if report:
+            report(p, m)
+
+    if predicate not in SPATIAL_JOIN_PREDICATES:
+        raise ValueError(f"unsupported predicate: {predicate} (use one of {', '.join(SPATIAL_JOIN_PREDICATES)})")
+    r(0.1, "resolve layers")
+    lid, target, L = _layer_frame(store, layer)
+    join_lid, join_frame, _ = _layer_frame(store, join_layer)
+    if target.empty:
+        raise ValueError("target layer has no features to receive join attributes")
+    r(0.3, "align CRS")
+    aligned = join_frame.to_crs(target.crs)
+    target_reset = target.reset_index(drop=True).copy()
+    target_reset["__tiphys_target_id"] = range(len(target_reset))
+    geometry_name = target.geometry.name
+
+    if keep_fields:
+        right = aligned.copy()
+        rename: dict[str, str] = {}
+        for column in right.columns:
+            if column == geometry_name:
+                continue
+            candidate = f"JOIN_{column}"
+            suffix = 2
+            while candidate in target_reset.columns or candidate in rename.values():
+                candidate = f"JOIN_{suffix}_{column}"
+                suffix += 1
+            rename[column] = candidate
+        right = right.rename(columns=rename)
+    else:
+        right = aligned[[geometry_name]].copy()
+
+    r(0.5, f"{predicate} join")
+    time.sleep(0.3 * DEMO_DELAY)
+    if predicate == "nearest":
+        matched = gpd.sjoin_nearest(target_reset, right, how="left", distance_col="__tiphys_near_dist")
+    else:
+        matched = gpd.sjoin(target_reset, right, how="left", predicate=predicate)
+    # sjoin can duplicate the target for multi-match predicates; retain the
+    # deterministically first matching join feature as the browser engine does.
+    if "index_right" in matched.columns:
+        matched = matched.sort_values(["__tiphys_target_id", "index_right"], na_position="last")
+    matched = matched.drop_duplicates("__tiphys_target_id", keep="first").sort_values("__tiphys_target_id")
+    matched = matched.drop(columns=[column for column in ("index_right", "__tiphys_target_id") if column in matched.columns])
+    if "__tiphys_near_dist" in matched.columns:
+        matched = matched.rename(columns={"__tiphys_near_dist": "NEAR_DIST"})
+    result = gpd.GeoDataFrame(matched, geometry=geometry_name, crs=target.crs)
+    out_name = output_name or f"{L.name}_{predicate}"
+    r(0.9, "register")
+
+    def register() -> dict[str, Any]:
+        return {
+            "ok": True,
+            "layer": store.add_gdf(result, name=out_name),
+            "predicate": predicate,
+            "join_layer_id": join_lid,
+            "source_layer_id": lid,
+            "feature_count": int(len(result)),
+        }
+
+    return commit(register) if commit else register()
+
+
+def start_spatial_join_job(
+    store: LayerStore, jobs: JobRegistry, layer: str, join_layer: str,
+    predicate: str = "intersects", keep_fields: bool = True,
+    output_name: str | None = None,
+) -> dict[str, Any]:
+    return _start_tool_job(jobs, "spatial_join", f"{predicate} join {layer} × {join_layer}",
+                           lambda report, commit: spatial_join_sync(store, layer, join_layer, predicate,
+                                                                   keep_fields=keep_fields,
+                                                                   output_name=output_name,
+                                                                   report=report, commit=commit))
+
+
 def reproject_sync(
     store: LayerStore,
     layer: str,
