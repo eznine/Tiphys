@@ -51,6 +51,8 @@
 2. **GEE 竖切（M3）**：`gee_auth_status / gee_search_collection / gee_export_raster / gee_job_status`，复用 GeoAgentPro 的导出/队列/进度语义，走现有 job 模式。
 3. **更多 GIS 工具**：clip / intersect / union / erase / dissolve / select_* / reproject / export_*、栅格 raster_clip / zonal_stats / ndvi / slope —— 优先从 RustGIS（接口）、GeoLibre（前端样式/图例/格式）、QGIS Processing（分类与参数习惯）、WhiteboxTools（栅格/地形）复用。
 
+**交付约定（2026-10-23 起）**：每次产出可运行的桌面版本后，把便携版解压目录（`src-tauri/target/release/bundle/portable/TIPHYS-<版本>-x64`）整体复制为 **`C:\Users\alex\Desktop\TIPHYS\`**，用户从桌面双击 `tiphys.exe` 直接运行；NSIS 安装器与 zip 留在 `bundle/` 下作为存档。
+
 ## 5. 复用规则
 
 **谁最好用谁。** 现成开源实现更好 → 直接复制，保留原许可证声明并登记到 `THIRD_PARTY_NOTICES.md`；只有确定能明显做得更好时才自己写。通用 GIS 能力（缓冲、裁剪、格式读写、渲染）用成熟库与 GeoLibre(MIT) / RustGIS(Apache-2.0)；TIPHYS 特色（Agent 调度、GIS 上下文、GEE 长任务、对话×地图交互）自研。**禁止复制 Claude Code / Claude Agent SDK 代码（专有许可）**。
