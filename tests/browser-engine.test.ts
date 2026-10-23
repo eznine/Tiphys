@@ -246,7 +246,9 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_basins", "wasm_snap_pour_points", "wasm_feature_vertices_to_points",
     "wasm_aggregate_polygons", "wasm_opening", "wasm_closing", "wasm_percentile_filter",
     "wasm_nibble", "wasm_multipart_to_singlepart", "wasm_eliminate_polygon_part",
-    "wasm_aggregate_points", "wasm_symmetrical_difference"]) {
+    "wasm_aggregate_points", "wasm_symmetrical_difference", "wasm_difference", "wasm_identity",
+    "wasm_buffer_vector", "wasm_minimum_bounding_circle", "wasm_bilateral_filter",
+    "wasm_ordinary_kriging", "wasm_trend_surface", "wasm_ruggedness_index"]) {
     assert.ok(names.includes(name), `${name} should be exposed in the ribbon`);
   }
   const dock = fs.readFileSync(new URL("../src/components/ChatDock.tsx", import.meta.url), "utf8");
@@ -254,7 +256,7 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
   for (const name of ["wasm_network_service_area", "wasm_buffer_raster", "wasm_contours_from_raster",
     "wasm_cost_distance", "wasm_raster_to_vector_polygons", "wasm_idw_interpolation",
     "wasm_line_density", "wasm_concave_hull", "wasm_empirical_bayesian_kriging", "wasm_basins",
-    "wasm_opening", "wasm_symmetrical_difference"]) {
+    "wasm_opening", "wasm_symmetrical_difference", "wasm_difference", "wasm_ruggedness_index"]) {
     assert.ok(recipeTools.includes(name), `${name} should be available as an agent recipe`);
     assert.ok(browserCatalog.some(tool => tool.name === name), `${name} recipe must resolve to a catalog tool`);
   }
@@ -398,6 +400,49 @@ test("new raster ribbon forms expose executable multi-input contracts", async ()
   assert.equal((merge.parameters.properties as any).inputs["x-layer-multiple"], true);
 });
 
+test("overlay, geometry, filter and terrain ribbon forms expose honest contracts", async () => {
+  await ensureBrowserCatalog();
+  for (const name of ["wasm_difference", "wasm_identity"]) {
+    const props = browserCatalog.find(tool => tool.name === name)!.parameters.properties as any;
+    assert.equal(props.input["x-layer-kind"], "vector", `${name} input must be vector`);
+    assert.equal(props.overlay["x-layer-kind"], "vector", `${name} overlay must be vector`);
+    assert.equal(props.snap_tolerance.type, "number", `${name} snap tolerance must be numeric`);
+    assert.ok(!("output" in props), `${name} output path must stay internal`);
+  }
+  const buffer = browserCatalog.find(tool => tool.name === "wasm_buffer_vector")!.parameters.properties as any;
+  assert.equal(buffer.input["x-layer-kind"], "vector");
+  assert.equal(buffer.distance.type, "number");
+  assert.deepEqual(buffer.cap_style.enum, ["round", "flat", "square"]);
+  assert.deepEqual(buffer.join_style.enum, ["round", "bevel", "mitre"]);
+  assert.equal(buffer.dissolve.type, "boolean");
+  assert.ok(!("output" in buffer), "advanced buffer output path must stay internal");
+
+  const circle = browserCatalog.find(tool => tool.name === "wasm_minimum_bounding_circle")!;
+  assert.equal((circle.parameters.properties as any).input["x-layer-kind"], "vector");
+  assert.equal((circle.parameters.properties as any).individual_feature_hulls.type, "boolean");
+  assert.ok(!("output" in circle.parameters.properties), "minimum bounding circle output path must stay internal");
+
+  const bilateral = browserCatalog.find(tool => tool.name === "wasm_bilateral_filter")!.parameters.properties as any;
+  assert.equal(bilateral.input["x-layer-kind"], "raster");
+  assert.equal(bilateral.sigma_dist.type, "number");
+  assert.equal(bilateral.sigma_int.type, "number", "sigma_int is an intensity scalar, not a raster");
+  assert.equal(bilateral.treat_as_rgb.type, "boolean", "treat_as_rgb is a boolean, not a raster");
+  assert.ok(!("output" in bilateral), "bilateral filter output path must stay internal");
+
+  const trend = browserCatalog.find(tool => tool.name === "wasm_trend_surface")!.parameters.properties as any;
+  assert.equal(trend.input["x-layer-kind"], "raster");
+  assert.equal(trend.polynomial_order.type, "number");
+  assert.ok(!("output" in trend), "trend surface output path must stay internal");
+  const ruggedness = browserCatalog.find(tool => tool.name === "wasm_ruggedness_index")!.parameters.properties as any;
+  assert.equal(ruggedness.input["x-layer-kind"], "raster");
+  assert.ok(!("output" in ruggedness), "ruggedness output path must stay internal");
+  for (const name of ["wasm_gaussian_filter", "wasm_mean_filter", "wasm_laplacian_filter",
+    "wasm_edge_preserving_mean_filter", "wasm_wetness_index"]) {
+    const tool = browserCatalog.find(item => item.name === name)!;
+    assert.ok(!("output" in tool.parameters.properties), `${name} file output must stay internal`);
+  }
+});
+
 test("Chinese GIS aliases rank conversion, interpolation and service-area tools", async () => {
   await ensureBrowserCatalog();
   const rasterToVector = searchBrowserTools(browserCatalog, "栅格转矢量", { limit: 6 }).map(tool => tool.name);
@@ -426,6 +471,15 @@ test("Chinese GIS aliases rank conversion, interpolation and service-area tools"
     ["消除碎面", "wasm_eliminate_polygon_part"], ["点聚合", "wasm_aggregate_points"],
     ["普通克里金", "wasm_ordinary_kriging"], ["百分位滤波", "wasm_percentile_filter"],
     ["邻域填充", "wasm_nibble"]]) {
+    assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
+  }
+  for (const [query, expected] of [["差集", "wasm_difference"], ["同一性", "wasm_identity"],
+    ["双边滤波", "wasm_bilateral_filter"], ["保边均值", "wasm_edge_preserving_mean_filter"],
+    ["高斯滤波", "wasm_gaussian_filter"], ["趋势面", "wasm_trend_surface"],
+    ["欧氏方向", "wasm_euclidean_direction"], ["成本连通", "wasm_cost_connectivity"],
+    ["点转线", "wasm_points_to_line"], ["最小外包", "wasm_minimum_bounding_box"],
+    ["崎岖度", "wasm_ruggedness_index"], ["地形位置", "wasm_relative_topographic_position"],
+    ["湿润指数", "wasm_wetness_index"]]) {
     assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
   }
 });
@@ -604,6 +658,83 @@ test("ordinary kriging runs from an honest numeric cell-size form", async () => 
   assert.equal(layer.kind, "raster", "ordinary kriging must publish a raster layer");
   assert.ok(layer.raster?.width > 1 && layer.raster?.height > 1);
   assert.equal(result.attachments, undefined);
+});
+
+test("overlay, advanced geometry, bilateral filter and terrain tools publish real layers", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const ring = (x: number, y: number, width: number, height: number) => [[x, y], [x + width, y], [x + width, y + height], [x, y + height], [x, y]];
+  const overlayA = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [
+    { type: "Feature", properties: { id: "a" }, geometry: { type: "Polygon", coordinates: [ring(500000, 4400000, 300, 200)] } },
+  ] })]), "difference_a.geojson")).layer;
+  const overlayB = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [
+    { type: "Feature", properties: { zone: "b" }, geometry: { type: "Polygon", coordinates: [ring(500100, 4400050, 100, 100)] } },
+  ] })]), "difference_b.geojson")).layer;
+
+  const difference = await finished("wasm_difference", {
+    input: overlayA.id, overlay: overlayB.id, snap_tolerance: 0.000001, output_name: "difference_result",
+  });
+  const differenceLayer = difference.layer ?? difference.layers?.[0]?.layer;
+  assert.ok(differenceLayer.feature_count >= 1, "difference must publish a polygon result");
+  assert.ok(differenceLayer.geometry_types.every((type: string) => type === "Polygon" || type === "MultiPolygon"));
+  assert.equal(difference.attachments, undefined);
+
+  const identity = await finished("wasm_identity", {
+    input: overlayA.id, overlay: overlayB.id, snap_tolerance: 0.000001, output_name: "identity_result",
+  });
+  const identityLayer = identity.layer ?? identity.layers?.[0]?.layer;
+  assert.ok(identityLayer.feature_count >= 1, "identity must preserve polygon coverage");
+  assert.ok(identityLayer.geometry_types.every((type: string) => type === "Polygon" || type === "MultiPolygon"));
+
+  const line = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [
+    { type: "Feature", properties: { id: 1 }, geometry: { type: "LineString", coordinates: [[500000, 4400000], [500200, 4400000], [500200, 4400200]] } },
+  ] })]), "advanced_buffer_line.geojson")).layer;
+  const buffered = await finished("wasm_buffer_vector", {
+    input: line.id, distance: 50, quadrant_segments: 4, cap_style: "flat", join_style: "mitre",
+    mitre_limit: 5, dissolve: false, output_name: "advanced_buffer_result",
+  });
+  const bufferedLayer = buffered.layer ?? buffered.layers?.[0]?.layer;
+  assert.ok(bufferedLayer.feature_count >= 1, "advanced buffer must publish a polygon result");
+  assert.ok(bufferedLayer.geometry_types.every((type: string) => type === "Polygon" || type === "MultiPolygon"));
+
+  const circles = await finished("wasm_minimum_bounding_circle", {
+    input: line.id, individual_feature_hulls: true, output_name: "minimum_circle_result",
+  });
+  const circleLayer = circles.layer ?? circles.layers?.[0]?.layer;
+  assert.ok(circleLayer.feature_count >= 1, "minimum bounding circle must publish a polygon result");
+  assert.ok(circleLayer.geometry_types.every((type: string) => type === "Polygon" || type === "MultiPolygon"));
+
+  const cell = 100, cells: any[] = [];
+  for (let row = 0; row < 6; row++) for (let col = 0; col < 6; col++) {
+    const x = 500000 + col * cell, y = 4400000 + row * cell;
+    cells.push({ type: "Feature", properties: { elev: 100 + row * 4 + col * 2 + (row === 2 && col === 3 ? 18 : 0) },
+      geometry: { type: "Polygon", coordinates: [ring(x, y, cell, cell)] } });
+  }
+  const grid = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: cells })]), "terrain_filter_grid.geojson")).layer;
+  const dem = (await finished("wasm_vector_polygons_to_raster", {
+    input: grid.id, field: "elev", cell_size: cell, output_name: "terrain_filter_dem",
+  })).layer;
+
+  const bilateral = await finished("wasm_bilateral_filter", {
+    input: dem.id, sigma_dist: 1, sigma_int: 2, treat_as_rgb: false, assume_three_band_rgb: false,
+    output_name: "bilateral_result",
+  });
+  const bilateralLayer = bilateral.layer ?? bilateral.layers?.[0]?.layer;
+  assert.equal(bilateralLayer.kind, "raster", "bilateral filter file output must publish as raster");
+  assert.equal(bilateralLayer.raster?.width, dem.raster?.width);
+  assert.equal(bilateral.attachments, undefined);
+
+  const trend = await finished("wasm_trend_surface", {
+    input: dem.id, polynomial_order: 1, output_name: "trend_surface_result",
+  });
+  const trendLayer = trend.layer ?? trend.layers?.[0]?.layer;
+  assert.equal(trendLayer.kind, "raster", "trend surface must publish a raster layer");
+  assert.equal(trendLayer.raster?.width, dem.raster?.width);
+
+  const ruggedness = await finished("wasm_ruggedness_index", { input: dem.id, output_name: "ruggedness_result" });
+  const ruggednessLayer = ruggedness.layer ?? ruggedness.layers?.[0]?.layer;
+  assert.equal(ruggednessLayer.kind, "raster", "ruggedness file output must publish as raster");
+  assert.equal(ruggednessLayer.raster?.width, dem.raster?.width);
+  assert.equal(ruggedness.attachments, undefined);
 });
 
 test("empirical Bayesian kriging publishes both prediction and error rasters", async () => {

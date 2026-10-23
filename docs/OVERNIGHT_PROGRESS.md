@@ -183,3 +183,13 @@
 - 2026-10-24 05:58 Asia/Shanghai — Batch15 is stable and fully verified, but this sandbox cannot write `.git` (`index.lock: Read-only file system`). Patch saved at `/tmp/tiphys-batch15-overlay-filter.patch`; verification at `/tmp/tiphys-batch15-verification.txt`; commit message at `/tmp/tiphys-batch15-commit-message.txt`. Supervisor should apply, commit and push with `P3/P4: overlay/filter densify, agent recipes`. No deploy.
 
 - 2026-10-24 ~06:03 Asia/Shanghai — Overnight supervisor interrupted after batch15. Committed+pushed batch15 as `fa49115`. No tf-codex alive; re-dispatching for batch16+. No user ping.
+
+- 2026-10-24 06:03 Asia/Shanghai — Overnight supervisor resumed at 37c415f (batch15 tip fa49115). Tree clean vs origin/main. No tf-codex. Launching batch16 (overlay/interp/terrain densify, agent recipes).
+
+- 2026-10-24 06:09 Asia/Shanghai — Batch16 implemented and verified on the Linux box:
+  - Ribbon: added eight catalog-backed analysis actions — 差集, 同一性, 最小外包圆, 高级缓冲, 双边滤波, 普通克里金, 趋势面, 崎岖度. All resolve to hydrated WASM forms; the existing overlay, geometry, raster-cleanup, interpolation and terrain groups were extended instead of adding a new tab.
+  - Contracts: bilateral `sigma_int` is numeric and `treat_as_rgb` is boolean (both were upstream raster inputs); bilateral, edge-preserving mean, Gaussian, mean, Laplacian, ruggedness and wetness generic-file outputs now publish raster layers. Ordinary kriging remains exposed with its numeric `cell_size` and field picker; simple/local kriging receive the same numeric cell-size correction for future ribbon use.
+  - Executions covered: polygon difference and identity, mitre/flat advanced buffering, minimum bounding circles, bilateral filtering, trend-surface fitting and Riley ruggedness, each publishing a displayed layer without attachments.
+  - Agent: added restrained 矢量差集 and 地形崎岖度 recipe cards that only open forms. Chinese aliases now rank 差集, 同一性, 双边滤波, 保边均值, 高斯滤波, 普通克里金, 趋势面, 欧氏方向, 成本连通, 点转线, 最小外包, 崎岖度, 地形位置 and 湿润指数 to their intended tools. Recovery/compaction remains state-only.
+  - Perf/beauty: no risky perf refactor (no obvious remaining hot path); controls and recipe cards reuse the existing blue-family styling. No teal or mythology.
+  - Verification: 50/50 browser tests passed (`npm run test:browser`), `npx tsc --noEmit` passed, `npm run build` passed. `dist/` remains ~36 MB with unchanged payload shape (app 1.92 MB, lazy catalog 1.95 MB, CLI WASM 24.11 MB), so no deploy-doc size change and no live deploy. GEE remains docs/demo only; no credentials read or created. No Python changes.

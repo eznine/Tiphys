@@ -49,6 +49,8 @@ const RECIPES = [
   { title: "水文流程", detail: "填洼 → D8 流向 → 汇流 → 河网", tool: "hydrology_flow_pipeline", Icon: Waves },
   { title: "集水区", detail: "从 D8 流向栅格划分流域盆地，打开表单", tool: "wasm_basins", Icon: Waves },
   { title: "开运算", detail: "去除小对象并平滑分类栅格，打开表单", tool: "wasm_opening", Icon: Expand },
+  { title: "矢量差集", detail: "从输入面中扣除叠加面范围，打开表单", tool: "wasm_difference", Icon: Scissors },
+  { title: "地形崎岖度", detail: "从 DEM 计算 Riley 地形粗糙度指数，打开表单", tool: "wasm_ruggedness_index", Icon: Mountain },
   { title: "对称差", detail: "保留两个面图层互不重叠的区域，打开表单", tool: "wasm_symmetrical_difference", Icon: Boxes },
   { title: "最小成本路径", detail: "连接源与目的地，保留真实路径结果", tool: "least_cost_path_pipeline", Icon: Route },
   { title: "按 AOI 裁剪", detail: "先在地图绘制 AOI，再插入提示词", prompt: "用当前 AOI 范围裁剪所选图层。", Icon: Scissors },

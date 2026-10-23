@@ -314,11 +314,18 @@ const SUPPORTED_EXT: Record<string, string[]> = {
 const ATTACHMENT_KINDS = new Set(["file", "text", "json"]);
 /** Upstream sometimes labels real raster results as generic files. */
 const WASM_OUTPUT_KIND_OVERRIDES: Record<string, Record<string, string>> = {
+  bilateral_filter: { output: "raster" },
   closing: { output: "raster" },
+  edge_preserving_mean_filter: { output: "raster" },
+  gaussian_filter: { output: "raster" },
+  laplacian_filter: { output: "raster" },
   majority_filter: { output: "raster" },
+  mean_filter: { output: "raster" },
   median_filter: { output: "raster" },
   opening: { output: "raster" },
   percentile_filter: { output: "raster" },
+  ruggedness_index: { output: "raster" },
+  wetness_index: { output: "raster" },
 };
 function outputKind(id: string, param: { name: string; data_kind: string }): string {
   return WASM_OUTPUT_KIND_OVERRIDES[id]?.[param.name] ?? param.data_kind;
