@@ -140,3 +140,5 @@
 - 2026-10-24 ~05:12 Asia/Shanghai — Overnight supervisor interrupted; batch12 tf-codex still alive. Re-dispatching supervisor; no user ping.
 
 - 2026-10-24 05:17 Asia/Shanghai — Overnight supervisor: batch12 exited (sandbox blocked commit). Re-verified `npm run test:browser` 38/38 + `npx tsc --noEmit`. Committing+pushing as `P3/P4: network/service-area, raster buffer/filter, agent recipes`, then starting batch13 (geometry/density/allocation densify, agent recipes, thin beauty).
+
+- 2026-10-24 05:18 Asia/Shanghai — Batch12 pushed as `37b05d5` (38/38). Launching batch13 tf-codex (geometry densify, line density/allocation, agent recipes).
