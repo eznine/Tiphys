@@ -6,7 +6,7 @@ type Tab = "style" | "labels" | "info";
 export function LayerProperties({ layer, tab, onTab, onStyle, onClose }: {
   layer: DataLayer; tab: Tab; onTab: (tab: Tab) => void; onStyle: (style: LayerStyle) => void; onClose: () => void;
 }) {
-  const style = layer.style ?? defaultLayerStyle(layer.id);
+  const style = layer.style ?? defaultLayerStyle(layer.id, layer.name);
   const [description, setDescription] = useState<{ columns: string[]; [key: string]: any } | null>(null);
   const [error, setError] = useState("");
   const [classifying, setClassifying] = useState(false);
@@ -51,7 +51,7 @@ export function LayerProperties({ layer, tab, onTab, onStyle, onClose }: {
           <span>{item.value === null ? "<空值>" : String(item.value)}</span></label>)}
           {(uniqueCount ?? style.categories.length) > 20 && <p>显示前 20 个值，其余使用“其他值颜色”。</p>}
         </div>}
-        <button type="button" className="icon-btn" onClick={() => { onStyle(defaultLayerStyle(layer.id)); setUniqueCount(null); }}>恢复默认样式</button>
+        <button type="button" className="icon-btn" onClick={() => { onStyle(defaultLayerStyle(layer.id, layer.name)); setUniqueCount(null); }}>恢复默认样式</button>
       </>}
       {tab === "labels" && <>
         <label className="tool-field"><span>标注字段</span><select aria-label="标注字段" value={style.labelField ?? ""} onChange={e => change({ labelField: e.target.value || undefined })}>

@@ -15,6 +15,8 @@ import { AttributeTable } from "./components/AttributeTable";
 import { LayerProperties } from "./components/LayerProperties";
 import { LogPanel } from "./components/LogPanel";
 import { browserRuntime } from "./lib/runtime";
+import { warmWasmToolRunner } from "./lib/browser/wasm-tool-runner";
+import { scheduleIdle } from "./lib/idle";
 import "./styles/app.css";
 
 function loadTheme(): ThemeMode {
@@ -55,7 +57,7 @@ export default function App() {
   const [sourceCrs, setSourceCrs] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const appliedViews = useRef(loadAppliedViews());
-  const layers = useMemo(() => agent.state.layers.map(l => ({ ...l, style: { ...defaultLayerStyle(l.id), ...styles[l.id] } })), [agent.state.layers, styles]);
+  const layers = useMemo(() => agent.state.layers.map(l => ({ ...l, style: { ...defaultLayerStyle(l.id, l.name), ...styles[l.id] } })), [agent.state.layers, styles]);
   const tableLayer = layers.find(l => l.id === tableId);
   const propertyLayer = layers.find(l => l.id === properties?.id);
   const activeLayer = layers.find(l => l.id === selectedId) ?? layers[0];
@@ -179,6 +181,30 @@ export default function App() {
     return () => { controller.abort(); window.clearInterval(timer); };
   }, []);
 
+  useEffect(() => {
+    let done = false;
+    let cancelIdle = () => {};
+    const warm = () => {
+      if (done) return;
+      done = true;
+      cancelIdle();
+      window.removeEventListener("pointerdown", warm);
+      window.removeEventListener("keydown", warm);
+      void warmWasmToolRunner();
+    };
+    window.addEventListener("pointerdown", warm, { once: true, passive: true });
+    window.addEventListener("keydown", warm, { once: true });
+    // Also warm during an idle window so a user who pauses before interacting
+    // does not pay the compile cost on their first tool run.
+    cancelIdle = scheduleIdle(warm, { timeout: 3500, fallbackDelay: 1800 });
+    return () => {
+      done = true;
+      cancelIdle();
+      window.removeEventListener("pointerdown", warm);
+      window.removeEventListener("keydown", warm);
+    };
+  }, []);
+
   const engineLabel = useMemo(() => {
     if (ping.state === "ok") return browserRuntime ? "Browser-WASM" : `Python · ${ping.latencyMs}ms`;
     if (ping.state === "error") return "未连接";
@@ -256,6 +282,7 @@ export default function App() {
           provider={agent.state.provider}
           layers={layers}
           selectedLayer={activeLayer} request={dockRequest} onAdd={() => void addData()} onSettings={() => setSettingsOpen(true)}
+          onOpenTool={tool => openDock("tools", tool)}
           onSend={text => agent.send(text, { aoi, selectedLayerId: activeLayer?.id ?? null, selectedLayerName: activeLayer?.name ?? null })}
           onApprove={agent.approve}
           onCancelJob={agent.cancelJob}

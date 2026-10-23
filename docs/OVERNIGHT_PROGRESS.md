@@ -62,3 +62,15 @@
   - Browser Agent chat now receives the AOI bbox, selected layer and names; the system prompt and compaction handoff preserve `aoi_bbox`. The prompt lists the corridor, hydrology, LCP and AOI workflows by name without claiming results. Extension tools are searchable for 走廊/水文/最小成本, while existing safety constraints are unchanged.
   - Ribbon adds 廊道连通 / 水文流程 / 最小成本路径 under 分析 · 扩展工作流. ToolPanel continues to render shell tools during hydration and only evaluates the below-900 warning after `catalogHydrated`.
   - Verification: `npm run test:browser` 24/24; `npx tsc --noEmit`; `npm run build`; `git diff --check`. No Python/engine files were changed for this batch.
+
+- 2026-10-24 ~03:32 Asia/Shanghai — Overnight supervisor interrupted after batch06 (`afe67cc` on main, clean tree). No tf-codex alive; re-dispatching supervisor for batch07+. No user ping.
+
+- 2026-10-24 03:32 Asia/Shanghai — Overnight supervisor resumed. Tree at afe67cc (dirty only OVERNIGHT_PROGRESS). No GEE creds on box. Launching batch07 (WASM warm path, agent recipes/job UX, ribbon polish, deploy notes, GEE docs/demo).
+
+- 2026-10-24 03:40 Asia/Shanghai — Batch07 implemented on the Linux box:
+  - Perf: added `warmWasmToolRunner()`; it precompiles `geolibre-cli.wasm` in a worker after first gesture/idle, parks at most one worker in the existing idle pool, and remains fully terminable by `releaseIdleWasmToolWorkers()`. MapLibre keeps its explicit worker URL, while navigation/scale controls, terrain source and the empty-map intro now wait for idle/RAF. Toolshell hydration explicitly yields one frame before catalog conversion.
+  - Agent UX: job cards show live percent, tool-specific stage labels and a disabled “取消中” state; browser jobs now publish coarse running progress. Four restrained recipe cards open corridor/hydrology/LCP forms or insert an AOI prompt without auto-running. Compaction handoffs now preserve AOI bbox, selected layer, layer kind/count/CRS and the recent tool names.
+  - Ribbon/symbology: added 填洼, D8 流向, 汇流累积, 栅格计算器 and 重分类; split terrain/hydrology into cleaner groups. Removed teal palette entries and gave AOI/廊道/最小成本/水文 helper names a deterministic blue-family palette.
+  - GEE: browser demo export now emits clearly labelled staged progress (`demo_steps`) while keeping `connected: false`; docs add box presence checks and the exact service-account verification runbook. No credentials were created or read.
+  - Docs: added `docs/DEPLOY_TIPHYS_XYZ.md`; updated runtime, parity and GEE notes to the verified 997 merged / 993 visible catalog counts and current hybrid routes.
+  - Verification: `npm run test:browser` 26/26; `npx tsc --noEmit`; production build and engine tests run before ship.

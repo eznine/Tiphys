@@ -1,7 +1,7 @@
 // Reused from opengeos/GeoLibre @ ffe2665a3b9f32d99fe9bace47fc6fdac4e4e8ae; MIT, Copyright 2026 Qiusheng Wu.
 // Original notice: docs/licenses/GeoLibre-MIT.txt.
 /// <reference lib="webworker" />
-import { runTool } from "geolibre-wasm/tools";
+import { initTools, runTool } from "geolibre-wasm/tools";
 import initLibrary, { vector_info, vector_to_geojson } from "geolibre-wasm";
 import type { ToolResult } from "geolibre-wasm/tools";
 
@@ -25,6 +25,8 @@ export interface WasmToolRequest {
   input: Record<string, Uint8Array>;
 }
 
+export type WasmWorkerRequest = WasmToolRequest | { type: "warmup" };
+
 /**
  * What this worker posts back: an immediate `ack` on receipt, then one terminal
  * message when the tool finishes.
@@ -36,11 +38,24 @@ export interface WasmToolRequest {
  */
 export type WasmToolResponse =
   | { ok: "ack" }
+  | { ok: "warm" }
   | { ok: true; result: ToolResult }
   | { ok: false; error: string };
 
-worker.addEventListener("message", async (event: MessageEvent<WasmToolRequest>) => {
-  const { tool, args, input } = event.data;
+worker.addEventListener("message", async (event: MessageEvent<WasmWorkerRequest>) => {
+  if ("type" in event.data && event.data.type === "warmup") {
+    try {
+      await initTools();
+      worker.postMessage({ ok: "warm" } satisfies WasmToolResponse);
+    } catch (error) {
+      worker.postMessage({
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      } satisfies WasmToolResponse);
+    }
+    return;
+  }
+  const { tool, args, input } = event.data as WasmToolRequest;
   // Before the run, so it lands even though the WASI call that follows blocks
   // this worker's thread until the tool is done.
   worker.postMessage({ ok: "ack" } satisfies WasmToolResponse);

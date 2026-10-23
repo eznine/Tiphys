@@ -31,6 +31,7 @@ export type { WasmToolRequest, WasmToolResponse };
 // overlap. Taking an idle worker when there is one and spawning otherwise keeps
 // that parallelism and still pays the compile once per worker.
 const idleWorkers: Worker[] = [];
+let warming: { worker: Worker; promise: Promise<void>; stop: () => void } | undefined;
 
 // How many idle workers to keep warm. Each holds its compiled module (tens of
 // MB) for the rest of the session, and real usage is one tool at a time, so
@@ -45,11 +46,66 @@ const MAX_IDLE_WORKERS = 1;
  * by one case is not handed to the next.
  */
 export function releaseIdleWasmToolWorkers(): void {
+  warming?.stop();
+  warming = undefined;
   for (const worker of idleWorkers.splice(0)) worker.terminate();
 }
 
 function spawnWorker(): Worker {
   return new Worker(new URL("./wasm-tool.worker.ts", import.meta.url), { type: "module" });
+}
+
+/**
+ * Compile the CLI WASM in an idle worker so the first real run does not pay
+ * network + compile latency. Call after a user gesture or from an idle
+ * callback; the returned promise never rejects.
+ *
+ * If a healthy worker is already parked, there is nothing to do. The warm
+ * worker joins the normal idle pool and is terminated by
+ * releaseIdleWasmToolWorkers() like any other parked worker.
+ */
+export function warmWasmToolRunner(): Promise<void> {
+  if (typeof Worker === "undefined" || idleWorkers.length > 0) return Promise.resolve();
+  if (warming) return warming.promise;
+
+  const worker = spawnWorker();
+  let settle: () => void = () => {};
+  const promise = new Promise<void>(resolve => { settle = resolve; });
+  let settled = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const cleanup = () => {
+    if (timer !== undefined) clearTimeout(timer);
+    worker.removeEventListener("message", onMessage);
+    worker.removeEventListener("error", onError);
+    worker.removeEventListener("messageerror", onError);
+  };
+  const finish = (park: boolean) => {
+    if (settled) return;
+    settled = true;
+    cleanup();
+    if (park) releaseWorker(worker);
+    else worker.terminate();
+    if (warming?.worker === worker) warming = undefined;
+    settle();
+  };
+  const onMessage = (event: MessageEvent<WasmToolResponse>) => {
+    finish(event.data.ok === "warm");
+  };
+  const onError = () => finish(false);
+
+  worker.addEventListener("message", onMessage);
+  worker.addEventListener("error", onError);
+  worker.addEventListener("messageerror", onError);
+  // A failed warm-up is best effort: the real run will compile normally.
+  timer = setTimeout(() => finish(false), 30_000);
+  try {
+    worker.postMessage({ type: "warmup" });
+  } catch {
+    finish(false);
+    return promise;
+  }
+  warming = { worker, promise, stop: () => finish(false) };
+  return promise;
 }
 
 /** A worker to run on, and whether it came from the pool rather than being new. */
@@ -129,8 +185,9 @@ function runToolOnWorker(request: WasmToolRequest, signal?: AbortSignal): Promis
       disarmAck();
       cleanup();
       releaseWorker(worker);
-      if (event.data.ok) resolve(event.data.result);
-      else reject(new Error(event.data.error || `${request.tool} failed.`));
+      if (event.data.ok === true) resolve(event.data.result);
+      else if (event.data.ok === false) reject(new Error(event.data.error || `${request.tool} failed.`));
+      else reject(new Error(`The ${request.tool} worker returned an unexpected warm-up response.`));
     };
     const onError = (event: ErrorEvent) => {
       disarmAck();

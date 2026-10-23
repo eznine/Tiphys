@@ -16,6 +16,7 @@ import {
 import { DataLayer, LayerSelection, syncDataLayers } from "../lib/dataLayers";
 import { engineHeaders } from "../lib/service";
 import { downloadMapPng, mapExportFilename } from "../lib/map-export";
+import { scheduleIdle } from "../lib/idle";
 
 type Props = {
   theme: "light" | "dark";
@@ -144,8 +145,8 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
         /* ignore */
       }
     }
-    ensureTerrainSource(map);
     if (terrainRef.current) {
+      ensureTerrainSource(map);
       map.setTerrain({ source: TERRAIN_SRC, exaggeration: 1.3 });
     } else {
       map.setTerrain(null);
@@ -181,11 +182,9 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
       transformRequest: (url) => ({ url, headers: engineHeaders(url) }),
     });
 
-    map.addControl(
-      new maplibregl.NavigationControl({ visualizePitch: true, showCompass: true }),
-      "top-right",
-    );
-    map.addControl(new maplibregl.ScaleControl({ maxWidth: 100 }), "bottom-left");
+    let cancelControls = () => {};
+    let cancelTerrain = () => {};
+    let introTimer: number | undefined;
     map.on("mousemove", e => statusRef.current?.({ lng: e.lngLat.wrap().lng, lat: e.lngLat.lat, zoom: map.getZoom() }));
     map.on("moveend", () => { const center = map.getCenter().wrap(); statusRef.current?.({ lng: center.lng, lat: center.lat, zoom: map.getZoom() }); });
     map.on("click", event => {
@@ -206,22 +205,39 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
 
     map.once("load", () => {
       applyStyleExtras(map);
-      if (!introDone.current && dataLayersRef.current.length === 0) {
+      // The terrain tile source is metadata-only, so it can wait for idle. AOI
+      // and data layers were already rendered by style.load above.
+      cancelTerrain = scheduleIdle(() => {
+        if (mapRef.current === map) ensureTerrainSource(map);
+      }, { timeout: 1400, fallbackDelay: 350 });
+      requestAnimationFrame(() => {
+        if (mapRef.current !== map || introDone.current || dataLayersRef.current.length !== 0) return;
         introDone.current = true;
         // Globe projection: avoid easeTo with bearing (unsupported). Zoom then rotate.
         map.easeTo({ zoom: 2.05, pitch: 0, duration: 1600 });
-        window.setTimeout(() => {
-          if (!mapRef.current) return;
+        introTimer = window.setTimeout(() => {
+          if (mapRef.current !== map) return;
           map.rotateTo(map.getBearing() + 35, { duration: 2200 });
         }, 1700);
-      }
+      });
     });
 
     mapRef.current = map;
+    cancelControls = scheduleIdle(() => {
+      if (mapRef.current !== map) return;
+      map.addControl(
+        new maplibregl.NavigationControl({ visualizePitch: true, showCompass: true }),
+        "top-right",
+      );
+      map.addControl(new maplibregl.ScaleControl({ maxWidth: 100 }), "bottom-left");
+    }, { timeout: 900, fallbackDelay: 120 });
     const observer = new ResizeObserver(() => map.resize());
     observer.observe(containerRef.current);
     (window as unknown as { __tiphysMap?: Map }).__tiphysMap = map;
     return () => {
+      cancelControls();
+      cancelTerrain();
+      if (introTimer !== undefined) window.clearTimeout(introTimer);
       observer.disconnect();
       map.remove();
       mapRef.current = null;

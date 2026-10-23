@@ -6,7 +6,7 @@ import { agentHealth, agentRequest, bootstrap, readEvents } from "./service";
 export type TimelineItem =
   | { kind: "msg"; id: string; role: "user" | "agent"; text: string }
   | { kind: "tool"; id: string; name: string; status: "running" | "done" | "error" | "rejected"; input?: unknown; summary?: string }
-  | { kind: "job"; id: string; label: string; status: string; progress: number; message: string }
+  | { kind: "job"; id: string; toolName?: string; label: string; status: string; progress: number; message: string }
   | { kind: "approval"; id: string; toolName: string; input: unknown; state: "pending" | "approved" | "rejected" | "expired" }
   | { kind: "notice"; id: string; text: string };
 
@@ -107,7 +107,7 @@ export function reduce(s: AgentState, e: Ev): AgentState {
     case "job":
       return {
         ...s,
-        items: upsert(s.items, { kind: "job", id: e.jobId, label: e.label ?? e.jobId, status: e.status, progress: e.progress ?? 0, message: e.message ?? "" }),
+        items: upsert(s.items, { kind: "job", id: e.jobId, toolName: e.toolName, label: e.label ?? e.jobId, status: e.status, progress: e.progress ?? 0, message: e.message ?? "" }),
       };
     case "layer-added": {
       const l = e.layer as DataLayer;

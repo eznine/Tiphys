@@ -4,7 +4,7 @@ import type { DataLayer } from "../lib/dataLayers";
 import { ToolPanel } from "./ToolPanel";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Settings2, FolderPlus, ArrowUp, Square, Layers } from "lucide-react";
+import { Settings2, FolderPlus, ArrowUp, Square, Layers, Network, Waves, Route, Scissors, Sparkles } from "lucide-react";
 
 type Props = {
   items: TimelineItem[];
@@ -19,13 +19,27 @@ type Props = {
   onToolResult: (result: Record<string, any>) => void;
   selectedLayer?: DataLayer;
   request?: { id: number; tool?: string; tab: "chat" | "tools" };
+  onOpenTool: (tool: string) => void;
   onAdd: () => void; onSettings: () => void;
 };
 
 const SUGGESTIONS = ["加载样例点，做 500 米缓冲", "查看当前图层信息"];
 const JOB_STATUS: Record<string, string> = { running: "运行中", queued: "排队中", completed: "已完成", failed: "失败", cancelled: "已取消", interrupted: "已中断", cancelling: "正在取消", unreachable: "连接中断" };
+const JOB_STEPS: Record<string, string> = {
+  linkage_mapper_corridor: "廊道连通",
+  hydrology_flow_pipeline: "水文流程",
+  least_cost_path_pipeline: "最小成本路径",
+  clip_layers_to_aoi: "AOI 裁剪",
+  gee_export_raster: "GEE 导出",
+};
+const RECIPES = [
+  { title: "廊道连通", detail: "核心生境 + 阻力栅格，打开工具表单", tool: "linkage_mapper_corridor", Icon: Network },
+  { title: "水文流程", detail: "填洼 → D8 流向 → 汇流 → 河网", tool: "hydrology_flow_pipeline", Icon: Waves },
+  { title: "最小成本路径", detail: "连接源与目的地，保留真实路径结果", tool: "least_cost_path_pipeline", Icon: Route },
+  { title: "按 AOI 裁剪", detail: "先在地图绘制 AOI，再插入提示词", prompt: "用当前 AOI 范围裁剪所选图层。", Icon: Scissors },
+] as const;
 
-export function ChatDock({ items, busy, connected, provider, layers, onSend, onApprove, onCancelJob, onCancelTurn, onToolResult, selectedLayer, request, onAdd, onSettings }: Props) {
+export function ChatDock({ items, busy, connected, provider, layers, onSend, onApprove, onCancelJob, onCancelTurn, onToolResult, selectedLayer, request, onOpenTool, onAdd, onSettings }: Props) {
   const [draft, setDraft] = useState("");
   const [tab, setTab] = useState<"chat" | "tools">("chat");
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -42,6 +56,11 @@ export function ChatDock({ items, busy, connected, provider, layers, onSend, onA
     const text = draft.trim();
     if (!text || busy || !connected) return;
     if (await onSend(text)) setDraft("");
+  }
+
+  function insertPrompt(prompt: string) {
+    setDraft(prompt);
+    requestAnimationFrame(() => inputRef.current?.focus());
   }
 
   return (
@@ -66,7 +85,18 @@ export function ChatDock({ items, busy, connected, provider, layers, onSend, onA
       {tab === "chat" && (
         <>
       <div className="chat-messages">
-        {!items.length && <div className="agent-welcome"><h2>从一个空间问题开始</h2><p>{layers.length ? "图层已就绪。描述目标，我会选择工具、执行分析并显示结果。" : "添加本地数据，或让我加载样例，然后描述分析目标。"}</p><p className="tool-desc">也可以打开工具箱逐项运行；右键图层可查看属性与符号。</p></div>}
+        {!items.length && <div className="agent-welcome"><h2>从一个空间问题开始</h2><p>{layers.length ? "图层已就绪。描述目标，我会选择工具、执行分析并显示结果。" : "添加本地数据，或让我加载样例，然后描述分析目标。"}</p><p className="tool-desc">也可以打开工具箱逐项运行；右键图层可查看属性与符号。</p>
+          <section className="workflow-recipes" aria-label="推荐工作流">
+            <div className="workflow-heading"><span><Sparkles size={13} />推荐工作流</span><small>只打开表单或插入提示词，不自动执行</small></div>
+            <div className="workflow-grid">
+              {RECIPES.map(recipe => <button key={recipe.title} type="button" className="workflow-card" disabled={busy}
+                onClick={() => "tool" in recipe ? onOpenTool(recipe.tool) : insertPrompt(recipe.prompt)}>
+                <recipe.Icon size={16} strokeWidth={1.7} />
+                <strong>{recipe.title}</strong><small>{recipe.detail}</small>
+              </button>)}
+            </div>
+          </section>
+        </div>}
         {items.map((it) => {
           if (it.kind === "msg")
             return (
@@ -84,21 +114,30 @@ export function ChatDock({ items, busy, connected, provider, layers, onSend, onA
             );
           if (it.kind === "job") {
             const active = it.status === "running" || it.status === "queued";
+            const cancelling = it.status === "cancelling";
             const percent = Math.max(0, Math.min(100, Math.round((Number.isFinite(it.progress) ? it.progress : 0) * 100)));
+            const step = it.status === "queued" ? "等待计算槽位"
+              : it.status === "running" ? JOB_STEPS[it.toolName ?? ""] ?? "本机计算"
+              : it.status === "cancelling" ? "正在取消"
+              : it.status === "completed" ? "完成"
+              : it.status === "failed" ? "失败"
+              : it.status === "interrupted" ? "已中断"
+              : "已取消";
             return (
               <div key={it.id} className="job-card" data-status={it.status} aria-live="polite">
                 <div className="job-head">
                   <span className="job-title"><strong>{it.label}</strong><span className="job-state" data-status={it.status}>{JOB_STATUS[it.status] ?? it.status}</span></span>
                   <span className="job-percent">{percent}%</span>
                 </div>
-                <div className="route-progress job-route" role="progressbar" aria-label={`${it.label} 进度`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+                <div className="route-progress job-route" role="progressbar" aria-label={`${it.label} 进度`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-valuetext={`${step}，${percent}%`}>
                   <span style={{ ["--progress" as string]: `${percent}%` }} />
                 </div>
+                <div className="job-step"><span>{step}</span><span>{it.message}</span></div>
                 <div className="job-foot">
-                  <span className="job-message">{it.status === "cancelling" ? "正在取消任务…" : it.message}</span>
-                  {active && (
-                    <button type="button" className="job-cancel" aria-label={`取消 ${it.label}`} onClick={() => onCancelJob(it.id)}>
-                      <Square size={10} />取消
+                  <span className="job-message">{cancelling ? "正在取消任务…" : active ? "长任务可随时取消；已完成的结果会保留。" : ""}</span>
+                  {(active || cancelling) && (
+                    <button type="button" className="job-cancel" aria-label={`取消 ${it.label}`} disabled={cancelling} onClick={() => onCancelJob(it.id)}>
+                      <Square size={10} />{cancelling ? "取消中" : "取消"}
                     </button>
                   )}
                 </div>

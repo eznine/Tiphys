@@ -31,6 +31,32 @@ function preview(text: string, max = 240): string {
   return compact.length > max ? `${compact.slice(0, max)}…` : compact;
 }
 
+function textContent(content: ModelMessage["content"]): string {
+  if (typeof content === "string") return content;
+  return content.map(part => part.type === "text" ? part.text : "").join(" ");
+}
+
+function recentToolNames(messages: ModelMessage[]): string[] {
+  const names: string[] = [];
+  for (const message of messages) {
+    if (message.role === "tool" && Array.isArray(message.content)) {
+      for (const part of message.content) if (part.type === "tool-result") names.push(part.toolName);
+    } else if (message.role === "assistant" && Array.isArray(message.content)) {
+      for (const part of message.content as Array<{ type: string; toolName?: string }>) {
+        if (part.type === "tool-call" && part.toolName) names.push(part.toolName);
+      }
+    }
+  }
+  const seen = new Set<string>();
+  const recent: string[] = [];
+  for (let index = names.length - 1; index >= 0 && recent.length < 10; index--) {
+    if (seen.has(names[index])) continue;
+    seen.add(names[index]);
+    recent.push(names[index]);
+  }
+  return recent.reverse();
+}
+
 /** Read a trimmed tool result or a compacted-message archive for this session. */
 export async function readBrowserContextRecord(sessionId: string, id: string, offset = 0, length = 4000) {
   if (!/^[a-f0-9]{32}$/.test(id)) throw new Error("记录 ID 无效。");
@@ -105,18 +131,30 @@ function buildHandoff(old: ModelMessage[], archiveId: string, workspace: Browser
         if (text) toolLines.push(`- ${part.toolName}: ${preview(text, Math.min(maxChars, 360))}`);
       }
     } else if (message.role === "assistant") {
-      const text = typeof message.content === "string"
-        ? message.content
-        : message.content.map(part => part.type === "text" ? part.text : "").join(" ");
+      const text = textContent(message.content);
       if (text.trim()) decisions.push(`- ${preview(text, 280)}`);
     }
   }
   const layers = workspace.layers.map(layer => ({
-    id: layer.id, name: layer.name, crs: layer.crs, n: layer.feature_count, geometry: layer.geometry_types, bbox: layer.bounds,
+    id: layer.id, name: layer.name, kind: layer.kind, crs: layer.crs, n: layer.feature_count, geometry: layer.geometry_types, bbox: layer.bounds,
   }));
+  const aoi = workspace.aoi_bbox ?? workspace.aoi ?? null;
+  const toolNames = recentToolNames(old);
+  const layerLines = layers.slice(0, 40).map(layer => {
+    const geometry = Array.isArray(layer.geometry) && layer.geometry.length ? ` · ${layer.geometry.join("/")}` : "";
+    return `- ${String(layer.name ?? layer.id)} (${String(layer.id)}): ${String(layer.kind ?? "vector")}, ${String(layer.n ?? "?")} features${layer.crs ? `, ${String(layer.crs)}` : ""}${geometry}`;
+  });
+  if (layers.length > layerLines.length) layerLines.push(`- …另有 ${layers.length - layerLines.length} 个图层，完整元数据见下方 JSON。`);
   return [
     "# Browser Agent handoff",
     "Continue from the latest user message. Do not repeat completed analysis.",
+    "## GIS context (authoritative current workspace)",
+    `- AOI bbox (WGS84): ${aoi ? aoi.join(",") : "not set"}`,
+    `- Selected layer: ${workspace.selectedLayerId ? `${workspace.selectedLayerName ?? workspace.selectedLayerId} (${workspace.selectedLayerId})` : "none"}`,
+    `- Layers (${layers.length}):`,
+    ...(layerLines.length ? layerLines : ["- None."]),
+    "## Recent tool names",
+    ...(toolNames.length ? [`- ${toolNames.join(", ")}`] : ["- None recorded."]),
     "## Recent decisions",
     ...(decisions.slice(-8).length ? decisions.slice(-8) : ["- None recorded."]),
     "## Earlier tool results (summarized)",
@@ -125,13 +163,14 @@ function buildHandoff(old: ModelMessage[], archiveId: string, workspace: Browser
     "## GIS workspace state (preserved verbatim)",
     JSON.stringify({
       layers,
-      aoi_bbox: workspace.aoi_bbox ?? workspace.aoi ?? null,
+      aoi_bbox: aoi,
       selected_layer: workspace.selectedLayerId ? { id: workspace.selectedLayerId, name: workspace.selectedLayerName ?? null } : null,
       output_paths: workspace.outputs ?? [],
       pending_job_ids: workspace.pendingJobs ?? [],
     }),
     "## Next steps",
-    "- Check the current layer list below and continue with the latest request.",
+    "- Treat the GIS context above as current state; inspect a layer with describe_layer if its schema is uncertain.",
+    "- Continue the latest request without re-running tool calls that already produced retained layers.",
   ].join("\n");
 }
 

@@ -883,3 +883,21 @@ textarea {
 .job-message { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .job-cancel { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; padding: 3px 7px; border: 1px solid var(--tiphys-border); border-radius: 5px; background: var(--tiphys-surface); color: var(--tiphys-text-secondary); font: inherit; font-size: 10px; cursor: pointer; }
 .job-cancel:hover { color: #c93b40; border-color: color-mix(in srgb, #e5484d 40%, var(--tiphys-border)); }
+.job-cancel:disabled { cursor: default; opacity: .55; }
+.job-step { display: flex; align-items: center; gap: 7px; min-width: 0; color: var(--tiphys-text-secondary); font-size: 10px; }
+.job-step > span:first-child { flex-shrink: 0; padding: 1px 6px; border: 1px solid color-mix(in srgb, var(--tiphys-accent) 22%, var(--tiphys-border)); border-radius: 999px; color: var(--tiphys-accent); background: var(--tiphys-accent-muted); font-weight: 600; }
+.job-step > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Workflow recipes: prompt/tool shortcuts, never automatic execution. */
+.workflow-recipes { margin-top: 17px; padding-top: 13px; border-top: 1px solid var(--tiphys-border); }
+.workflow-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; color: var(--tiphys-text-secondary); }
+.workflow-heading > span { display: inline-flex; align-items: center; gap: 5px; color: var(--tiphys-text); font-size: 12px; font-weight: 600; letter-spacing: .01em; }
+.workflow-heading small { color: var(--tiphys-text-muted); font-size: 9px; line-height: 1.35; text-align: right; }
+.workflow-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.workflow-card { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 2px 7px; align-items: start; padding: 9px; border: 1px solid var(--tiphys-border); border-radius: 8px; background: color-mix(in srgb, var(--tiphys-bg) 58%, var(--tiphys-surface)); color: var(--tiphys-text-secondary); text-align: left; font: inherit; cursor: pointer; }
+.workflow-card svg { grid-row: span 2; margin-top: 1px; color: var(--tiphys-accent); }
+.workflow-card strong { overflow: hidden; color: var(--tiphys-text); font-size: 11px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.workflow-card small { color: var(--tiphys-text-muted); font-size: 9px; line-height: 1.4; }
+.workflow-card:hover:not(:disabled) { border-color: color-mix(in srgb, var(--tiphys-accent) 42%, var(--tiphys-border)); background: color-mix(in srgb, var(--tiphys-accent-muted) 48%, var(--tiphys-surface)); }
+.workflow-card:disabled { cursor: not-allowed; opacity: .55; }
+.toolbox-loading { border: 1px dashed var(--tiphys-border); border-radius: 7px; background: var(--tiphys-bg); padding: 14px; }

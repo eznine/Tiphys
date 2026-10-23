@@ -29,13 +29,21 @@ export type LayerSelection = { layerId: string; featureIds: number[] };
 
 export const SELECTION_COLOR = "#2563eb";
 
-/** Cool, accent-compatible defaults; layer IDs still produce stable variation. */
-export const PALETTE = ["#2563eb", "#0284c7", "#0891b2", "#4f46e5", "#0d9488", "#3b82f6", "#0369a1", "#6366f1"];
+/** Cool defaults stay in the blue/indigo accent family; IDs produce stable variation. */
+export const PALETTE = ["#2563eb", "#0284c7", "#0369a1", "#4f46e5", "#3b82f6", "#1d4ed8", "#0ea5e9", "#6366f1"];
+const BLUE_HELPER_PALETTE = ["#2563eb", "#1d4ed8", "#0284c7", "#3b82f6", "#0369a1", "#4f46e5"];
 
-export function defaultLayerStyle(id: string): LayerStyle {
+/** Helper outputs get a predictable blue treatment so AOI/corridor/LCP do not drift teal. */
+function paletteFor(name = ""): string[] {
+  if (/(^|[\s_-])(AOI|LCP)([\s_-]|$)|走廊|廊道|corridor|least.?cost|最小成本|水文/i.test(name)) return BLUE_HELPER_PALETTE;
+  return PALETTE;
+}
+
+export function defaultLayerStyle(id: string, name = ""): LayerStyle {
   const hash = [...id].reduce((value, char) => (value * 31 + char.charCodeAt(0)) >>> 0, 0);
   const accent = typeof document === "undefined" ? "" : getComputedStyle(document.documentElement).getPropertyValue("--tiphys-accent").trim();
-  const palette = accent && /^#[0-9a-f]{6}$/i.test(accent) ? [accent, ...PALETTE.filter(color => color !== accent)] : PALETTE;
+  const fallback = paletteFor(name);
+  const palette = accent && /^#[0-9a-f]{6}$/i.test(accent) ? [accent, ...fallback.filter(color => color !== accent)] : fallback;
   return { color: palette[hash % palette.length], opacity: .65, pointSize: 5, lineWidth: 1.6, labelSize: 13, labelColor: "#172033" };
 }
 
@@ -59,7 +67,7 @@ export function syncDataLayers(map: Map, layers: DataLayer[]) {
   }
   layers.forEach((l) => {
     const sid = `tiphys-${l.id}`;
-    const style = l.style ?? defaultLayerStyle(l.id);
+    const style = l.style ?? defaultLayerStyle(l.id, l.name);
     const vis = l.visible === false ? "none" : "visible";
     if ((l.kind ?? "vector") === "table") return;
     if (l.kind === "raster") {

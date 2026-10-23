@@ -136,8 +136,8 @@ async function callTool(s: Session, name: string, input: Record<string, any>, id
       for (;;) {
         signal.throwIfAborted();
         const job = await readBrowserJob(jobId);
-        const marker = `${job.status}:${job.message}`;
-        if (marker !== last) { last = marker; await emit(s, { type: "job", toolCallId: id, ...job, jobId }); }
+        const marker = `${job.status}:${job.progress}:${job.step ?? ""}:${job.message}`;
+        if (marker !== last) { last = marker; await emit(s, { type: "job", toolCallId: id, toolName: name, ...job, jobId }); }
         if (!["queued", "running", "cancelling"].includes(job.status)) {
           if (job.status !== "completed") throw new Error(job.error || job.message);
           result = { ...job.result, job_id: jobId, status: "completed" }; break;

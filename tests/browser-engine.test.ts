@@ -15,6 +15,8 @@ import { compactBrowserMessages, estimateBrowserTokens, readBrowserContextRecord
 import { buildBrowserSystemPrompt } from "../src/lib/browser/prompt.ts";
 import { mapExportFilename, mapPngDataUrl } from "../src/lib/map-export.ts";
 import { geeExecutionAllowed } from "../src/lib/gee.ts";
+import { defaultLayerStyle, PALETTE } from "../src/lib/dataLayers.ts";
+import { releaseIdleWasmToolWorkers, warmWasmToolRunner } from "../src/lib/browser/wasm-tool-runner.ts";
 import type { ModelMessage } from "ai";
 
 before(async () => {
@@ -416,7 +418,15 @@ test("GEE slice, ArcGIS adapters and explanatory plugin return honest structured
   const search = await runBrowserTool("gee_search_collection", { collection: "COPERNICUS/S2_SR_HARMONIZED" });
   assert.deepEqual(search.items, []);
   assert.ok(search.hint);
-  const exported = await finished("gee_export_raster", { collection: "COPERNICUS/S2_SR_HARMONIZED", band: "B4", path: "demo.tif" });
+  const exportJob = await runBrowserTool("gee_export_raster", { collection: "COPERNICUS/S2_SR_HARMONIZED", band: "B4", path: "demo.tif" });
+  let exportStatus = await readBrowserJob(exportJob.job_id);
+  for (let attempt = 0; attempt < 100 && ["queued", "running", "cancelling"].includes(exportStatus.status); attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 10));
+    exportStatus = await readBrowserJob(exportJob.job_id);
+  }
+  assert.equal(exportStatus.status, "failed");
+  assert.match(exportStatus.message, /未连接|未执行/);
+  const exported = exportStatus.result!;
   assert.equal(exported.connected, false);
   assert.equal(exported.path ?? exported.requested_path, "demo.tif");
   const geeStatus = await runBrowserTool("gee_job_status", { job_id: "missing" });
@@ -535,6 +545,49 @@ test("catalog shell is immediately usable and async hydration reaches the honest
   assert.equal(state.hydrated, true);
 });
 
+test("WASM warm path parks a healthy worker and release still terminates it", async () => {
+  const originalWorker = globalThis.Worker;
+  class FakeWorker {
+    static instances: FakeWorker[] = [];
+    terminated = false;
+    private listeners = new Map<string, Set<(event: any) => void>>();
+    constructor() { FakeWorker.instances.push(this); }
+    addEventListener(type: string, listener: (event: any) => void) {
+      const set = this.listeners.get(type) ?? new Set();
+      set.add(listener); this.listeners.set(type, set);
+    }
+    removeEventListener(type: string, listener: (event: any) => void) { this.listeners.get(type)?.delete(listener); }
+    postMessage(message: { type?: string }) {
+      if (message.type === "warmup") setTimeout(() => {
+        for (const listener of this.listeners.get("message") ?? []) listener({ data: { ok: "warm" } });
+      }, 0);
+    }
+    terminate() { this.terminated = true; }
+  }
+  (globalThis as typeof globalThis & { Worker: typeof Worker }).Worker = FakeWorker as unknown as typeof Worker;
+  try {
+    await warmWasmToolRunner();
+    assert.equal(FakeWorker.instances.length, 1);
+    assert.equal(FakeWorker.instances[0].terminated, false);
+    // A second request reuses the parked worker instead of spawning another.
+    await warmWasmToolRunner();
+    assert.equal(FakeWorker.instances.length, 1);
+    releaseIdleWasmToolWorkers();
+    assert.equal(FakeWorker.instances[0].terminated, true);
+  } finally {
+    releaseIdleWasmToolWorkers();
+    (globalThis as typeof globalThis & { Worker: typeof Worker }).Worker = originalWorker;
+  }
+});
+
+test("default symbology stays in the blue family for helper outputs", () => {
+  assert.ok(!PALETTE.includes("#0d9488"));
+  assert.ok(!PALETTE.includes("#0891b2"));
+  for (const name of ["AOI", "生态廊道", "最小成本路径", "水文分析_D8流向"]) {
+    assert.match(defaultLayerStyle("lyr_test", name).color, /^#(2563eb|1d4ed8|0284c7|3b82f6|0369a1|4f46e5)$/);
+  }
+});
+
 test("browser context trims old tool output, then compacts with GIS state and a retrievable archive", async () => {
   const huge = "旧工具输出 ".repeat(7000);
   const messages: ModelMessage[] = [
@@ -554,12 +607,13 @@ test("browser context trims old tool output, then compacts with GIS state and a 
   assert.equal(spill.kind, "tool-output");
   assert.match(spill.text, /旧工具输出/);
 
-  const workspace = { layers: [{ id: "lyr_1", name: "道路", crs: "EPSG:4326", feature_count: 12, geometry_types: ["LineString"], bounds: [1, 2, 3, 4] }],
-    aoi_bbox: [116.1, 39.1, 116.4, 39.4] };
+  const workspace = { layers: [{ id: "lyr_1", name: "道路", kind: "vector", crs: "EPSG:4326", feature_count: 12, geometry_types: ["LineString"], bounds: [1, 2, 3, 4] }],
+    aoi_bbox: [116.1, 39.1, 116.4, 39.4], selectedLayerId: "lyr_1", selectedLayerName: "道路", outputs: ["/work/path.fgb"], pendingJobs: ["job_demo"] };
   const longSession: ModelMessage[] = Array.from({ length: 10 }, (_, index) => ({
     role: index % 2 ? "assistant" : "user",
     content: `第 ${index} 轮决策：保留道路图层，检查网络连通性，准备加权叠加。`.repeat(60),
   }));
+  longSession.splice(3, 0, { role: "tool", content: [{ type: "tool-result", toolCallId: "call-path", toolName: "least_cost_path_pipeline", output: { type: "text", value: "最小成本路径完成，保留路径图层。" } }] } as ModelMessage);
   const compacted = await compactBrowserMessages(longSession, "system", 12000, workspace, "compact-test", 200);
   assert.equal(compacted.compacted, true);
   assert.ok(compacted.after < estimateBrowserTokens(longSession, "system"));
@@ -567,6 +621,10 @@ test("browser context trims old tool output, then compacts with GIS state and a 
   assert.match(handoff, /GIS workspace state/);
   assert.match(handoff, /道路/);
   assert.match(handoff, /"aoi_bbox":\[116\.1,39\.1,116\.4,39\.4\]/);
+  assert.match(handoff, /AOI bbox \(WGS84\): 116\.1,39\.1,116\.4,39\.4/);
+  assert.match(handoff, /Selected layer: 道路 \(lyr_1\)/);
+  assert.match(handoff, /least_cost_path_pipeline/);
+  assert.match(handoff, /"selected_layer":\{"id":"lyr_1","name":"道路"\}/);
   const archiveId = /read_browser_output with id=([a-f0-9]{32})/.exec(handoff)?.[1];
   assert.ok(archiveId);
   const archive = await readBrowserContextRecord("compact-test", archiveId, 0, 120);

@@ -17,7 +17,7 @@ type LayerRecord = {
   /** PNG preview bytes for raster layers, rendered once at adoption. */
   preview?: Uint8Array;
 };
-type Job = { job_id: string; label: string; status: string; progress: number; message: string; result?: Record<string, any>; error?: string; owner: string };
+type Job = { job_id: string; label: string; status: string; progress: number; message: string; step?: string; result?: Record<string, any>; error?: string; owner: string };
 export type BrowserLog = { id: string; ts: number; source: string; kind: string; level: string; summary: string; detail: unknown };
 const owner = crypto.randomUUID();
 const urls = new Map<string, string>();
@@ -523,7 +523,7 @@ async function execute(name: string, args: Record<string, any>, signal?: AbortSi
         hasToken: auth.hasToken,
         hasServiceAccount: auth.hasServiceAccount,
         hint: auth.hint,
-        job: { job_id: job.job_id, status: job.status, progress: job.progress, message: job.message, result: job.result, error: job.error },
+        job: { job_id: job.job_id, status: job.status, progress: job.progress, step: job.step, message: job.message, result: job.result, error: job.error },
       };
     } catch {
       return {
@@ -737,14 +737,36 @@ export async function runBrowserTool(name: string, args: Record<string, any> = {
   }
   const id = `job_${crypto.randomUUID()}`, controller = new AbortController(); controllers.set(id, controller);
   const geeJob = name.startsWith("gee_");
-  const job: Job = { job_id: id, label: geeJob ? "GEE 栅格导出" : name, status: "queued", progress: 0, message: geeJob ? "等待检查 GEE 连接" : "等待浏览器计算", owner }; running.set(id, job);
+  const job: Job = { job_id: id, label: geeJob ? "GEE 栅格导出" : name, status: "queued", progress: 0, step: "排队", message: geeJob ? "等待检查 GEE 连接" : "等待浏览器计算", owner }; running.set(id, job);
   await writeRecord(`job:${id}`, job);
   const work = async () => {
     try {
-      controller.signal.throwIfAborted(); job.status = "running"; job.message = geeJob ? "检查 GEE 连接与任务参数" : "GeoLibre WASM 在本机浏览器计算中"; await writeRecord(`job:${id}`, job);
-      job.result = await execute(name, args, controller.signal); job.status = "completed"; job.progress = 1;
+      controller.signal.throwIfAborted();
+      job.status = "running"; job.progress = Math.max(job.progress, 0.08); job.step = geeJob ? "GEE" : "WASM"; job.message = geeJob ? "检查 GEE 连接与任务参数" : "GeoLibre WASM 在本机浏览器计算中"; await writeRecord(`job:${id}`, job);
+      if (geeJob && geeAuthStatus().demo) {
+        const stages = [
+          [0.18, "校验演示参数", "演示：读取集合、波段与日期参数"],
+          [0.42, "准备演示任务", "演示：模拟导出队列，不访问 Earth Engine"],
+          [0.72, "生成演示结果", "演示：写入本地任务记录，不生成 GeoTIFF"],
+        ] as const;
+        for (const [progress, step, message] of stages) {
+          controller.signal.throwIfAborted();
+          job.progress = progress; job.step = step; job.message = message; await writeRecord(`job:${id}`, job);
+          await new Promise<void>(resolve => setTimeout(resolve, 450));
+        }
+        controller.signal.throwIfAborted();
+        const demoResult = await execute(name, args, controller.signal);
+        job.result = {
+          ...demoResult,
+          demo_steps: stages.map(([progress, step, message]) => ({ progress, step, message, status: "demo_completed" })),
+        };
+      } else {
+        job.result = await execute(name, args, controller.signal);
+      }
+      if (geeJob && job.result?.ok === false) throw new Error(String(job.result.message || "GEE 任务未执行。"));
+      job.status = "completed"; job.progress = 1; job.step = "完成";
       job.message = typeof job.result.message === "string" ? job.result.message : "计算和结果读回校验完成";
-    } catch (error) { job.status = controller.signal.aborted ? "cancelled" : "failed"; job.error = controller.signal.aborted ? undefined : String(error); job.message = job.error ?? "已取消，未生成结果"; }
+    } catch (error) { job.status = controller.signal.aborted ? "cancelled" : "failed"; job.step = controller.signal.aborted ? "已取消" : "失败"; job.error = controller.signal.aborted ? undefined : String(error); job.message = job.error ?? "已取消，未生成结果"; }
     finally { controllers.delete(id); await writeRecord(`job:${id}`, job); recordLog("job", name, job, job.status === "failed" ? "error" : "info"); }
   };
   const lockManager = typeof navigator === "undefined" ? undefined : navigator.locks;

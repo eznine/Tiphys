@@ -124,6 +124,11 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
       setCatalog(shellTools);
       setCatalogHydrated(Boolean(shell.catalog?.hydrated));
       if (!shell.catalog?.hydrated) {
+        // Let the shell render before the catalog conversion starts. Hydration
+        // itself yields between chunks, but this avoids starting it in the same
+        // microtask as the first render.
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+        if (signal?.aborted) return;
         const full = await (await engineRequest("/tools/catalog", { signal })).json();
         const tools: CatalogTool[] = full.tools.filter((t: CatalogTool) => !SKIP.has(t.name));
         if (signal?.aborted) return;
@@ -236,7 +241,7 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
   };
   return <form className="tool-panel" onSubmit={event => void run(event)}>
     {loadError && <><p className="chat-notice">工具目录加载失败：{loadError}</p><button type="button" className="icon-btn" onClick={() => void load()}>重试</button></>}
-    {!catalog && !loadError && <p className="chat-notice">正在加载工具…</p>}
+    {!catalog && !loadError && <p className="chat-notice toolbox-loading" role="status" aria-busy="true">正在加载工具…</p>}
     {!tool ? <>
       <div className="toolbox-heading"><h2>地理处理</h2><span>已加载 {catalog?.length ?? 0} 个工具{catalogHydrated ? "" : " · 正在补全 WASM"}</span></div>
       {catalogHydrated && catalog && catalog.length < 900 && <p className="toolbox-health" role="alert">工具目录不完整：仅加载 {catalog.length} 个工具（预期不少于 900 个）。请检查引擎与 WASM 目录。</p>}
