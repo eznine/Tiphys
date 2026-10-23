@@ -302,6 +302,8 @@ const RAW_INPUT_PARAMETERS: Record<string, Set<string>> = {
   // Upstream marks cell_size as raster input; it is a numeric scalar.
   idw_interpolation: new Set(["cell_size"]),
   tin_interpolation: new Set(["cell_size"]),
+  // Upstream marks the service-area output mode as a vector output path.
+  network_service_area: new Set(["output_mode"]),
 };
 /** Formats the WASI build can actually read/write; example paths sometimes name others (e.g. shp). */
 const SUPPORTED_EXT: Record<string, string[]> = {
@@ -309,6 +311,14 @@ const SUPPORTED_EXT: Record<string, string[]> = {
   raster: ["tif", "tiff"],
 };
 const ATTACHMENT_KINDS = new Set(["file", "text", "json"]);
+/** Upstream sometimes labels real raster results as generic files. */
+const WASM_OUTPUT_KIND_OVERRIDES: Record<string, Record<string, string>> = {
+  majority_filter: { output: "raster" },
+  percentile_filter: { output: "raster" },
+};
+function outputKind(id: string, param: { name: string; data_kind: string }): string {
+  return WASM_OUTPUT_KIND_OVERRIDES[id]?.[param.name] ?? param.data_kind;
+}
 async function runNative(id: string, args: Record<string, any>, signal?: AbortSignal) {
   const manifest = (await loadWasmManifests()).find(t => t.id === id);
   if (!manifest) throw new Error("未知 WASM 工具。");
@@ -318,9 +328,10 @@ async function runNative(id: string, args: Record<string, any>, signal?: AbortSi
   const outputExt = (p: { name: string; data_kind: string }) => {
     const example = (manifest.examples?.[0]?.args as Record<string, unknown> | undefined)?.[p.name];
     const fromExample = typeof example === "string" && example.includes(".") ? example.split(".").pop()! : "";
-    const allowed = SUPPORTED_EXT[p.data_kind];
-    if (allowed && !allowed.includes(fromExample)) return OUTPUT_EXT[p.data_kind] ?? "bin";
-    return fromExample || (OUTPUT_EXT[p.data_kind] ?? "bin");
+    const kind = outputKind(id, p);
+    const allowed = SUPPORTED_EXT[kind];
+    if (allowed && !allowed.includes(fromExample)) return OUTPUT_EXT[kind] ?? "bin";
+    return fromExample || (OUTPUT_EXT[kind] ?? "bin");
   };
   const input: Record<string, Uint8Array> = {}, parameters: Record<string, any> = {};
   let vectorCrs: string | undefined;
@@ -364,14 +375,15 @@ async function runNative(id: string, args: Record<string, any>, signal?: AbortSi
     const base = String(args.output_name || "") || firstName || manifest.display_name;
     const name = outputs.length > 1 ? `${base}_${p.name}` : base;
     firstName = firstName || base;
+    const kind = outputKind(id, p);
     // Vector outputs may be written in the tool's example format (e.g. shp);
     // adopt with the actual extension so the read-back conversion is correct.
-    if (p.data_kind === "vector") published.layers.push(await adopt(bytes, file.split(".").pop() || "fgb", name, signal));
-    else if (p.data_kind === "raster") published.layers.push(await adoptRaster(bytes, name, rasterRenderer(), signal));
-    else if (p.data_kind === "table") published.layers.push(await adoptTable(bytes, name, signal));
-    else if (ATTACHMENT_KINDS.has(p.data_kind)) {
-      const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: p.data_kind === "json" ? "application/json" : "application/octet-stream" }));
-      published.attachments.push({ name: file.split("/").pop() ?? p.name, kind: p.data_kind, bytes: bytes.length, url });
+    if (kind === "vector") published.layers.push(await adopt(bytes, file.split(".").pop() || "fgb", name, signal));
+    else if (kind === "raster") published.layers.push(await adoptRaster(bytes, name, rasterRenderer(), signal));
+    else if (kind === "table") published.layers.push(await adoptTable(bytes, name, signal));
+    else if (ATTACHMENT_KINDS.has(kind)) {
+      const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: kind === "json" ? "application/json" : "application/octet-stream" }));
+      published.attachments.push({ name: file.split("/").pop() ?? p.name, kind, bytes: bytes.length, url });
     }
   }
   if (!published.layers.length && !published.attachments.length) throw new Error("工具运行结束但没有生成结果文件，请检查参数和输入数据。");

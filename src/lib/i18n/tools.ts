@@ -152,6 +152,11 @@ export const PARAM_ZH: Record<string, string> = {
   buffer_size: "缓冲距离", grid_cell_units: "按像元单位计算", assign: "像元赋值方式",
   zero_background: "背景设为 0", filter_size_x: "窗口宽度", filter_size_y: "窗口高度",
   max_triangle_edge_length: "最大三角网边长", inputs: "输入图层",
+  origins: "起点图层", max_cost: "最大成本", ring_costs: "环阈值", output_mode: "输出模式",
+  near_features: "邻近图层", search_radius: "搜索半径", closest_count: "近邻数量",
+  location: "输出邻近坐标", neighbors: "邻域连通性", network: "网络线图层",
+  max_snap_distance: "最大捕捉距离", keep_unsnapped: "保留未捕捉点",
+  mode_field: "出行模式字段", one_way_field: "单行字段", blocked_field: "禁行字段",
 };
 
 /** Chinese label for a parameter, falling back to the raw name. */

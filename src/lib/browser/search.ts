@@ -5,6 +5,7 @@ const SEARCHABLE_PREFIXES = ["wasm_", "gee_"];
 
 /** Common user phrasing that differs from the upstream Chinese tool name. */
 const TOOL_ALIASES: Record<string, string[]> = {
+  boundary_clean: ["边界清理", "分类边界清理", "平滑分类栅格"],
   buffer_raster: ["栅格缓冲", "像元缓冲", "栅格距离缓冲"],
   contours_from_raster: ["等值线", "等高线", "contour"],
   create_colour_composite: ["色彩合成", "彩色合成", "RGB 合成", "真彩色"],
@@ -14,14 +15,18 @@ const TOOL_ALIASES: Record<string, string[]> = {
   extract_raster_values_at_points: ["点提取", "提取点值", "点采样", "栅格点值"],
   deviation_from_mean_elevation: ["地形 z 分数", "TPI", "局部高程偏差"],
   idw_interpolation: ["IDW", "IDW 插值", "反距离权重", "反距离插值"],
+  majority_filter: ["多数滤波", "众数滤波", "分类清理", "类别平滑"],
   merge_vectors: ["合并矢量", "矢量合并", "合并图层"],
   mosaic: ["栅格镶嵌", "影像镶嵌", "拼接"],
   network_service_area: ["服务区", "服务区分析", "可达范围", "网络可达范围"],
+  generate_near_table: ["邻近表", "生成邻近表", "最近邻表", "近邻表", "near table"],
   raster_to_vector_lines: ["栅格转矢量", "栅格矢量化", "栅格转线"],
   raster_to_vector_points: ["栅格转矢量", "栅格矢量化", "栅格转点"],
   raster_to_vector_polygons: ["栅格转矢量", "栅格矢量化", "栅格转面"],
   smooth_vectors: ["平滑矢量", "矢量平滑", "几何平滑"],
+  snap_points_to_network: ["点捕捉网络", "捕捉到网络", "吸附到网络"],
   sobel_filter: ["边缘检测", "边缘提取"],
+  split_lines_at_intersections: ["线交点分割", "交点打断", "网络打断"],
   tin_interpolation: ["TIN", "TIN 插值", "三角网插值", "三角网"],
   vector_points_to_raster: ["点转栅格", "矢量点转栅格", "点栅格化"],
   vector_polygons_to_raster: ["面转栅格", "矢量面转栅格", "面栅格化"],

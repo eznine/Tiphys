@@ -19,8 +19,8 @@ export function isOutputLikeParam(param: { name: string; io_role?: string; descr
   return param.io_role === "output" || (param.io_role === "input" && /_output$/.test(param.name) && /output .*path/i.test(param.description ?? ""));
 }
 
-/** Upstream manifests occasionally mark real inputs as outputs. */
-const WASM_INPUT_OVERRIDES = new Set(["cost_pathway.destination"]);
+/** Upstream manifests occasionally mark real inputs (or enum modes) as outputs. */
+const WASM_INPUT_OVERRIDES = new Set(["cost_pathway.destination", "network_service_area.output_mode"]);
 
 /** Upstream occasionally marks numeric scalars as raster/vector inputs. */
 const WASM_SCALAR_INPUT_OVERRIDES = new Set([
@@ -39,6 +39,12 @@ export function isWasmOutputParam(toolId: string, param: { name: string; io_role
 
 /** Upstream stack tools describe ordered layers as scalar inputs; the UI needs explicit arrays. */
 const WASM_SCHEMA_OVERRIDES: Record<string, Record<string, CatalogSchema>> = {
+  network_service_area: {
+    max_cost: { type: "string", default: "1000", description: "最大可达网络成本；单位与网络图层坐标系或成本字段一致。" },
+    ring_costs: { type: "string", description: "可选的多环阈值，用逗号分隔，例如 5,10,15；留空时只输出最大成本范围。" },
+    output_mode: { type: "string", enum: ["nodes", "edges", "polygons"], default: "nodes",
+      description: "输出模式：nodes 节点、edges 可达边、polygons 每个起点的服务区面。" },
+  },
   idw_interpolation: {
     cell_size: { type: "number", default: 1, description: "输出像元大小；未提供基准栅格时使用。单位与输入点图层坐标系一致。" },
   },

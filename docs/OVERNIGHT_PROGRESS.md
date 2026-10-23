@@ -125,3 +125,18 @@
 
 - 2026-10-24 05:12 Asia/Shanghai — Overnight supervisor committing+pushing batch11, then starting batch12 (network/service-area densify, agent plan clarity, perf/beauty).
 - 2026-10-24 05:13 Asia/Shanghai — Batch11 pushed as `b5c950c` (36/36). Launching batch12 tf-codex (network/service-area, raster buffer/filter, agent recipes).
+
+- 2026-10-24 05:09 Asia/Shanghai — Overnight watch: batch12 tf-codex alive and writing (network/service-area densify). Direction OK (blue `#2563eb`, light default, logo-temp, catalog health <900, ribbon 数据/地图/分析/遥感/GEE/视图/Agent, no teal). Box-only. No user ping.
+
+- 2026-10-24 05:14 Asia/Shanghai — Batch12 implemented and verified on the Linux box:
+  - Ribbon: added six catalog-backed analysis actions — 服务区, 邻近表, 多数滤波, 边界清理, 点捕捉网络, 线交点分割. Existing 栅格缓冲, 点转栅格 and 面转栅格 actions remain; every action opens a hydrated form and the ribbon↔catalog test now requires all nine network/raster entries.
+  - Contracts: `network_service_area.output_mode` is upstream-marked as a vector output path, but is actually the `nodes|edges|polygons` enum. It is now an executable enum form field via schema + raw-input overrides; `ring_costs` accepts comma-separated rings and `max_cost` defaults to 1000. `majority_filter` / `percentile_filter` publish real rasters even though upstream labels `output` as a generic file. Real service-area (including multi-ring) and raster majority/buffer executions are covered.
+  - Agent: added restrained 网络服务区 and 栅格缓冲 recipe cards that only open forms; Chinese aliases rank 服务区, 邻近表, 栅格缓冲 and 多数滤波 to their intended tools.
+  - Perf/beauty: skipped a risky perf refactor (no obvious remaining hot path); capped long pipeline step lists with an internal blue-family scroll area, and tightened recipe/empty-state treatment without teal or mythology.
+  - Verification: 38/38 browser tests passed (`node --test-reporter=spec tests/browser-engine.test.ts`), `npm run test:browser` passed, `npx tsc --noEmit` passed, `npm run build` passed. `dist/` is ~36 MB with unchanged payload shape (app 1.91 MB, lazy catalog 1.95 MB, CLI WASM 24.1 MB), so no deploy-doc size edit and no live deploy. GEE remains docs/demo only; no credentials read or created. No Python changes.
+
+- 2026-10-24 05:15 Asia/Shanghai — Batch12 is stable and fully verified, but this sandbox cannot write `.git` (`index.lock: Read-only file system`). Patch saved at `/tmp/tiphys-batch12-network-raster-agent.patch` with `/tmp/tiphys-batch12-verification.txt`; supervisor should commit+push with `P3/P4: network/service-area, raster buffer/filter, agent recipes`.
+
+- 2026-10-24 ~05:12 Asia/Shanghai — Overnight supervisor interrupted; batch12 tf-codex still alive. Re-dispatching supervisor; no user ping.
+
+- 2026-10-24 05:17 Asia/Shanghai — Overnight supervisor: batch12 exited (sandbox blocked commit). Re-verified `npm run test:browser` 38/38 + `npx tsc --noEmit`. Committing+pushing as `P3/P4: network/service-area, raster buffer/filter, agent recipes`, then starting batch13 (geometry/density/allocation densify, agent recipes, thin beauty).

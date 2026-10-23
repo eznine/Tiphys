@@ -228,7 +228,7 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
   await ensureBrowserCatalog();
   const source = fs.readFileSync(new URL("../src/components/CommandRibbon.tsx", import.meta.url), "utf8");
   const names = [...source.matchAll(/props\.onTool\("(wasm_[^"]+)"\)/g)].map(match => match[1]);
-  assert.ok(names.length >= 54, `expected a dense ribbon, got ${names.length} WASM actions`);
+  assert.ok(names.length >= 60, `expected a dense ribbon, got ${names.length} WASM actions`);
   for (const name of names) assert.ok(browserCatalog.some(tool => tool.name === name), `${name} must resolve to a catalog tool`);
   for (const name of ["wasm_panchromatic_sharpening", "wasm_resample", "wasm_segment_slic_superpixels",
     "wasm_spectral_angle_mapper", "wasm_viewshed", "wasm_visibility_index", "wasm_sky_view_factor",
@@ -237,14 +237,37 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_sobel_filter", "wasm_mosaic", "wasm_raster_to_vector_polygons", "wasm_raster_to_vector_lines",
     "wasm_raster_to_vector_points", "wasm_vector_points_to_raster", "wasm_vector_polygons_to_raster",
     "wasm_idw_interpolation", "wasm_tin_interpolation", "wasm_buffer_raster", "wasm_merge_vectors",
-    "wasm_smooth_vectors"]) {
+    "wasm_smooth_vectors", "wasm_network_service_area", "wasm_generate_near_table",
+    "wasm_majority_filter", "wasm_boundary_clean", "wasm_snap_points_to_network",
+    "wasm_split_lines_at_intersections"]) {
     assert.ok(names.includes(name), `${name} should be exposed in the ribbon`);
   }
   const dock = fs.readFileSync(new URL("../src/components/ChatDock.tsx", import.meta.url), "utf8");
   const recipeTools = [...dock.matchAll(/tool: "(wasm_[^"]+)"/g)].map(match => match[1]);
-  for (const name of ["wasm_contours_from_raster", "wasm_cost_distance", "wasm_raster_to_vector_polygons", "wasm_idw_interpolation"]) {
+  for (const name of ["wasm_network_service_area", "wasm_buffer_raster", "wasm_contours_from_raster",
+    "wasm_cost_distance", "wasm_raster_to_vector_polygons", "wasm_idw_interpolation"]) {
     assert.ok(recipeTools.includes(name), `${name} should be available as an agent recipe`);
     assert.ok(browserCatalog.some(tool => tool.name === name), `${name} recipe must resolve to a catalog tool`);
+  }
+});
+
+test("network and raster ribbon forms expose honest, executable contracts", async () => {
+  await ensureBrowserCatalog();
+  const service = browserCatalog.find(tool => tool.name === "wasm_network_service_area")!;
+  const serviceProps = service.parameters.properties as any;
+  assert.equal(serviceProps.output_mode.type, "string", "service-area mode is an enum, not an output path");
+  assert.deepEqual(serviceProps.output_mode.enum, ["nodes", "edges", "polygons"]);
+  assert.equal(serviceProps.output_mode.default, "nodes");
+  assert.equal(serviceProps.ring_costs.type, "string", "multi-ring thresholds accept comma-separated values");
+  assert.equal(serviceProps.max_cost.type, "string");
+  assert.ok(!("output" in serviceProps), "service-area output path must stay internal");
+  const near = browserCatalog.find(tool => tool.name === "wasm_generate_near_table")!;
+  assert.equal((near.parameters.properties as any).input["x-layer-kind"], "vector");
+  assert.equal((near.parameters.properties as any).near_features["x-layer-kind"], "vector");
+  assert.ok(!("output" in near.parameters.properties), "near-table output path must stay internal");
+  for (const name of ["wasm_majority_filter", "wasm_boundary_clean"]) {
+    const tool = browserCatalog.find(item => item.name === name)!;
+    assert.ok(!("output" in tool.parameters.properties), `${name} output path must stay internal`);
   }
 });
 
@@ -276,6 +299,49 @@ test("Chinese GIS aliases rank conversion, interpolation and service-area tools"
     assert.ok(rasterToVector.includes(name), `${name} should rank for 栅格转矢量`);
   assert.equal(searchBrowserTools(browserCatalog, "IDW", { limit: 3 })[0]?.name, "wasm_idw_interpolation");
   assert.equal(searchBrowserTools(browserCatalog, "服务区", { limit: 3 })[0]?.name, "wasm_network_service_area");
+  assert.equal(searchBrowserTools(browserCatalog, "邻近表", { limit: 3 })[0]?.name, "wasm_generate_near_table");
+  assert.equal(searchBrowserTools(browserCatalog, "栅格缓冲", { limit: 3 })[0]?.name, "wasm_buffer_raster");
+  assert.equal(searchBrowserTools(browserCatalog, "多数滤波", { limit: 3 })[0]?.name, "wasm_majority_filter");
+});
+
+test("network service area and raster cleanup tools produce displayed result layers", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const network = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [
+    { type: "Feature", properties: { id: 1 }, geometry: { type: "LineString", coordinates: [[500000, 4400000], [5001000, 4400000]] } },
+    { type: "Feature", properties: { id: 2 }, geometry: { type: "LineString", coordinates: [[5000500, 4400000], [5000500, 4401000]] } },
+  ] })]), "service_network.geojson")).layer;
+  const origins = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [
+    { type: "Feature", properties: { id: 1 }, geometry: { type: "Point", coordinates: [5000500, 4400000] } },
+  ] })]), "service_origins.geojson")).layer;
+  const service = await finished("wasm_network_service_area", {
+    input: network.id, origins: origins.id, max_cost: "800", ring_costs: "400,800", output_mode: "nodes", output_name: "service_nodes",
+  });
+  const serviceLayers = Array.isArray(service.layers) ? service.layers.map((item: any) => item.layer).filter(Boolean) : (service.layer ? [service.layer] : []);
+  assert.ok(serviceLayers.length > 0, "service area must publish a real result layer");
+  assert.ok(serviceLayers.some((layer: any) => layer.feature_count > 0), "service area must contain reachable network features");
+
+  const features = [] as any[];
+  for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++) {
+    const x = 500000 + col * 100, y = 4400000 + row * 100;
+    features.push({ type: "Feature", properties: { klass: (row + col) % 2 + 1 },
+      geometry: { type: "Polygon", coordinates: [[[x, y], [x + 100, y], [x + 100, y + 100], [x, y + 100], [x, y]]] } });
+  }
+  const classes = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features })]), "classes.geojson")).layer;
+  const raster = (await finished("wasm_vector_polygons_to_raster", {
+    input: classes.id, field: "klass", cell_size: 100, output_name: "classes_raster",
+  })).layer;
+  const filtered = await finished("wasm_majority_filter", {
+    input: raster.id, filter_size_x: 3, filter_size_y: 3, output_name: "majority_clean",
+  });
+  const filteredLayer = filtered.layer ?? filtered.layers?.[0]?.layer;
+  assert.equal(filteredLayer?.kind, "raster", "majority filter result must be a raster layer, not a generic attachment");
+  assert.equal(filtered.attachments, undefined);
+  const buffered = await finished("wasm_buffer_raster", {
+    input: filteredLayer.id, buffer_size: 1, grid_cell_units: true, output_name: "class_buffer",
+  });
+  const bufferedLayer = buffered.layer ?? buffered.layers?.[0]?.layer;
+  assert.equal(bufferedLayer?.kind, "raster", "raster buffer must publish a raster layer");
+  assert.ok(bufferedLayer.raster?.width >= filteredLayer.raster.width);
 });
 
 test("vector points rasterize into a displayed raster layer and feed raster tools", async () => {
