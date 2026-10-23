@@ -20,7 +20,7 @@ type PanelJob = {
   message: string; result?: Record<string, any>; error?: string;
 };
 const SKIP = new Set(["ping", "list_layers", "job_status", "job_cancel"]);
-const FIELD_PARAMS = new Set(["field", "by_field", "field_name"]);
+const FIELD_PARAMS = new Set(["field", "by_field", "field_name", "weight_field"]);
 const L1_ORDER = ["矢量", "栅格", "地形", "水文", "遥感", "转换", "投影", "激光雷达", "数据管理", "查询", "图层", "GEE", "扩展", "其他工具"];
 const ACTIVE = new Set(["submitting", "queued", "running", "cancelling"]);
 const LABELS: Record<string, string> = {
@@ -298,7 +298,7 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
         })}
         {catalog && groups.length === 0 && <div className="toolbox-empty" role="status">
           <strong>{search.trim() ? `没有匹配“${search.trim()}”的工具` : "没有可显示的工具"}</strong>
-          <span>可搜索工具名、中文类别或用途，例如“缓冲”“网络分析”“加权叠加”。</span>
+          <span>可搜索工具名、中文类别或用途，例如“线密度”“凹包”“加权叠加”。</span>
           <button type="button" className="icon-btn" onClick={() => setSearch("")}>清除搜索</button>
         </div>}
       </div>

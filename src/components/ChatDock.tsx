@@ -6,7 +6,7 @@ import { ToolPanel } from "./ToolPanel";
 import { PipelineResultDetails, pipelineResult } from "./ToolResultDetails";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Settings2, FolderPlus, ArrowUp, Square, Layers, Network, Waves, Route, Scissors, Sparkles, History, Mountain, Shapes, CircleDot } from "lucide-react";
+import { Settings2, FolderPlus, ArrowUp, Square, Layers, Network, Waves, Route, Scissors, Sparkles, History, Mountain, Shapes, CircleDot, Hexagon } from "lucide-react";
 
 type Props = {
   items: TimelineItem[];
@@ -36,6 +36,8 @@ const JOB_STEPS: Record<string, string> = {
   gee_export_raster: "GEE 导出",
 };
 const RECIPES = [
+  { title: "线密度", detail: "线要素 → 搜索半径密度栅格", tool: "wasm_line_density", Icon: Route },
+  { title: "凹包", detail: "生成贴合点群边界的凹包面", tool: "wasm_concave_hull", Icon: Hexagon },
   { title: "网络服务区", detail: "线网络 + 起点，打开服务区表单", tool: "wasm_network_service_area", Icon: Network },
   { title: "栅格缓冲", detail: "围绕非零像元生成二值缓冲，打开表单", tool: "wasm_buffer_raster", Icon: CircleDot },
   { title: "栅格转矢量", detail: "把分类栅格转为面，打开表单", tool: "wasm_raster_to_vector_polygons", Icon: Shapes },

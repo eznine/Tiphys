@@ -52,6 +52,10 @@ const WASM_SCHEMA_OVERRIDES: Record<string, Record<string, CatalogSchema>> = {
     cell_size: { type: "number", default: 1, description: "输出像元大小；未提供基准栅格时使用。单位与输入点图层坐标系一致。" },
     max_triangle_edge_length: { type: "number", description: "可选的最大三角网边长，单位与输入点图层坐标系一致。" },
   },
+  line_density: {
+    area_units: { type: "string", enum: ["square_map_units", "square_meters", "square_kilometers", "square_miles", "square_feet"],
+      default: "square_map_units", description: "密度值的面积单位；默认使用输入坐标系的地图单位平方。" },
+  },
   merge_vectors: {
     inputs: { type: "array", "x-layer": true, "x-layer-kind": "vector", "x-layer-multiple": true,
       description: "按顺序选择两个或更多同几何类型的矢量图层。" },

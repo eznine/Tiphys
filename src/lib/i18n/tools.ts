@@ -154,6 +154,8 @@ export const PARAM_ZH: Record<string, string> = {
   max_triangle_edge_length: "最大三角网边长", inputs: "输入图层",
   origins: "起点图层", max_cost: "最大成本", ring_costs: "环阈值", output_mode: "输出模式",
   near_features: "邻近图层", search_radius: "搜索半径", closest_count: "近邻数量",
+  weight_field: "权重字段（可选）", area_units: "面积单位", spacing: "最大间距",
+  concavity: "凹度", max_edge_length: "最大边长", sig_digits: "有效位数",
   location: "输出邻近坐标", neighbors: "邻域连通性", network: "网络线图层",
   max_snap_distance: "最大捕捉距离", keep_unsnapped: "保留未捕捉点",
   mode_field: "出行模式字段", one_way_field: "单行字段", blocked_field: "禁行字段",

@@ -239,13 +239,16 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_idw_interpolation", "wasm_tin_interpolation", "wasm_buffer_raster", "wasm_merge_vectors",
     "wasm_smooth_vectors", "wasm_network_service_area", "wasm_generate_near_table",
     "wasm_majority_filter", "wasm_boundary_clean", "wasm_snap_points_to_network",
-    "wasm_split_lines_at_intersections"]) {
+    "wasm_split_lines_at_intersections", "wasm_line_density", "wasm_euclidean_allocation",
+    "wasm_cost_allocation", "wasm_median_filter", "wasm_centroid_vector",
+    "wasm_densify_features", "wasm_concave_hull", "wasm_feature_to_line"]) {
     assert.ok(names.includes(name), `${name} should be exposed in the ribbon`);
   }
   const dock = fs.readFileSync(new URL("../src/components/ChatDock.tsx", import.meta.url), "utf8");
   const recipeTools = [...dock.matchAll(/tool: "(wasm_[^"]+)"/g)].map(match => match[1]);
   for (const name of ["wasm_network_service_area", "wasm_buffer_raster", "wasm_contours_from_raster",
-    "wasm_cost_distance", "wasm_raster_to_vector_polygons", "wasm_idw_interpolation"]) {
+    "wasm_cost_distance", "wasm_raster_to_vector_polygons", "wasm_idw_interpolation",
+    "wasm_line_density", "wasm_concave_hull"]) {
     assert.ok(recipeTools.includes(name), `${name} should be available as an agent recipe`);
     assert.ok(browserCatalog.some(tool => tool.name === name), `${name} recipe must resolve to a catalog tool`);
   }
@@ -265,10 +268,32 @@ test("network and raster ribbon forms expose honest, executable contracts", asyn
   assert.equal((near.parameters.properties as any).input["x-layer-kind"], "vector");
   assert.equal((near.parameters.properties as any).near_features["x-layer-kind"], "vector");
   assert.ok(!("output" in near.parameters.properties), "near-table output path must stay internal");
-  for (const name of ["wasm_majority_filter", "wasm_boundary_clean"]) {
+  for (const name of ["wasm_majority_filter", "wasm_median_filter", "wasm_percentile_filter", "wasm_boundary_clean"]) {
     const tool = browserCatalog.find(item => item.name === name)!;
     assert.ok(!("output" in tool.parameters.properties), `${name} output path must stay internal`);
   }
+});
+
+test("geometry, density and allocation ribbon forms expose executable contracts", async () => {
+  await ensureBrowserCatalog();
+  const lineDensity = browserCatalog.find(tool => tool.name === "wasm_line_density")!;
+  assert.equal((lineDensity.parameters.properties as any).input["x-layer-kind"], "vector");
+  assert.deepEqual((lineDensity.parameters.properties as any).area_units.enum,
+    ["square_map_units", "square_meters", "square_kilometers", "square_miles", "square_feet"]);
+  assert.ok(!("output" in lineDensity.parameters.properties), "line-density output path must stay internal");
+  for (const name of ["wasm_centroid_vector", "wasm_densify_features", "wasm_concave_hull", "wasm_feature_to_line"]) {
+    const tool = browserCatalog.find(item => item.name === name)!;
+    assert.equal((tool.parameters.properties as any).input["x-layer-kind"], "vector", `${name} input must be a vector layer`);
+    assert.ok(!("output" in tool.parameters.properties), `${name} output path must stay internal`);
+  }
+  for (const name of ["wasm_euclidean_allocation", "wasm_cost_allocation"]) {
+    const tool = browserCatalog.find(item => item.name === name)!;
+    assert.ok(!("output" in tool.parameters.properties), `${name} output path must stay internal`);
+  }
+  const costAllocation = browserCatalog.find(tool => tool.name === "wasm_cost_allocation")!;
+  assert.equal((costAllocation.parameters.properties as any).source["x-layer-kind"], "raster");
+  assert.equal((costAllocation.parameters.properties as any).backlink["x-layer-kind"], "raster");
+  assert.equal((browserCatalog.find(tool => tool.name === "wasm_median_filter")!.parameters.properties as any).input["x-layer-kind"], "raster");
 });
 
 test("new raster ribbon forms expose executable multi-input contracts", async () => {
@@ -302,6 +327,55 @@ test("Chinese GIS aliases rank conversion, interpolation and service-area tools"
   assert.equal(searchBrowserTools(browserCatalog, "邻近表", { limit: 3 })[0]?.name, "wasm_generate_near_table");
   assert.equal(searchBrowserTools(browserCatalog, "栅格缓冲", { limit: 3 })[0]?.name, "wasm_buffer_raster");
   assert.equal(searchBrowserTools(browserCatalog, "多数滤波", { limit: 3 })[0]?.name, "wasm_majority_filter");
+  assert.equal(searchBrowserTools(browserCatalog, "线密度", { limit: 3 })[0]?.name, "wasm_line_density");
+  assert.equal(searchBrowserTools(browserCatalog, "欧氏分配", { limit: 3 })[0]?.name, "wasm_euclidean_allocation");
+  assert.equal(searchBrowserTools(browserCatalog, "中位数滤波", { limit: 3 })[0]?.name, "wasm_median_filter");
+  assert.equal(searchBrowserTools(browserCatalog, "凹包", { limit: 3 })[0]?.name, "wasm_concave_hull");
+  assert.equal(searchBrowserTools(browserCatalog, "要素转线", { limit: 3 })[0]?.name, "wasm_feature_to_line");
+});
+
+test("geometry densify, centroid and line density tools publish real result layers", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const lines = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [
+    { type: "Feature", properties: { id: 1 }, geometry: { type: "LineString", coordinates: [[500000, 4400000], [500500, 4400000]] } },
+    { type: "Feature", properties: { id: 2 }, geometry: { type: "LineString", coordinates: [[500000, 4400200], [500500, 4400200]] } },
+  ] })]), "geometry_lines.geojson")).layer;
+  const polygons = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [
+    { type: "Feature", properties: { id: 1 }, geometry: { type: "Polygon", coordinates: [[[500000, 4400000], [500100, 4400000], [500100, 4400100], [500000, 4400100], [500000, 4400000]]] } },
+    { type: "Feature", properties: { id: 2 }, geometry: { type: "Polygon", coordinates: [[[500050, 4400050], [500150, 4400050], [500150, 4400150], [500050, 4400150], [500050, 4400050]]] } },
+  ] })]), "geometry_polygons.geojson")).layer;
+
+  const centroids = await finished("wasm_centroid_vector", { input: polygons.id, output_name: "geometry_centroids" });
+  const centroidLayer = centroids.layer ?? centroids.layers?.[0]?.layer;
+  assert.notEqual(centroidLayer.kind, "raster");
+  assert.equal(centroidLayer.feature_count, 2);
+  assert.deepEqual(centroidLayer.geometry_types, ["Point"]);
+
+  const densified = await finished("wasm_densify_features", { input: lines.id, spacing: 50, output_name: "geometry_densified" });
+  const densifiedLayer = densified.layer ?? densified.layers?.[0]?.layer;
+  const densifiedRecord: any = await readRecord(`layer:${densifiedLayer.id}`);
+  const lineRecord: any = await readRecord(`layer:${lines.id}`);
+  assert.ok(densifiedRecord.geojson.features[0].geometry.coordinates.length > lineRecord.geojson.features[0].geometry.coordinates.length,
+    "densify must add vertices between the original endpoints");
+
+  const pointSample = await sample("geometry_concave");
+  const hull = await finished("wasm_concave_hull", { input: pointSample.id, concavity: 2, output_name: "geometry_concave" });
+  const hullLayer = hull.layer ?? hull.layers?.[0]?.layer;
+  assert.equal(hullLayer.feature_count, 1);
+  assert.ok(hullLayer.geometry_types.every((type: string) => type === "Polygon" || type === "MultiPolygon"));
+
+  const planar = await finished("wasm_feature_to_line", { input: polygons.id, output_name: "geometry_planar" });
+  const planarLayer = planar.layer ?? planar.layers?.[0]?.layer;
+  assert.ok(planarLayer.feature_count > polygons.feature_count, "feature-to-line must split polygon boundaries");
+  assert.ok(planarLayer.geometry_types.every((type: string) => type === "LineString" || type === "MultiLineString"));
+
+  const density = await finished("wasm_line_density", {
+    input: lines.id, search_radius: 500, cell_size: 100, output_name: "geometry_density",
+  });
+  const densityLayer = density.layer ?? density.layers?.[0]?.layer;
+  assert.equal(densityLayer.kind, "raster", "line density must publish a raster layer");
+  assert.ok(densityLayer.raster?.width > 1 && densityLayer.raster?.height > 1);
+  assert.equal(density.attachments, undefined);
 });
 
 test("network service area and raster cleanup tools produce displayed result layers", async () => {
@@ -342,6 +416,46 @@ test("network service area and raster cleanup tools produce displayed result lay
   const bufferedLayer = buffered.layer ?? buffered.layers?.[0]?.layer;
   assert.equal(bufferedLayer?.kind, "raster", "raster buffer must publish a raster layer");
   assert.ok(bufferedLayer.raster?.width >= filteredLayer.raster.width);
+
+  const median = await finished("wasm_median_filter", {
+    input: filteredLayer.id, filter_size_x: 3, filter_size_y: 3, output_name: "median_clean",
+  });
+  const medianLayer = median.layer ?? median.layers?.[0]?.layer;
+  assert.equal(medianLayer?.kind, "raster", "median filter result must be a raster layer, not a generic attachment");
+  assert.equal(median.attachments, undefined);
+  const percentile = await finished("wasm_percentile_filter", {
+    input: filteredLayer.id, filter_size_x: 3, filter_size_y: 3, output_name: "percentile_clean",
+  });
+  const percentileLayer = percentile.layer ?? percentile.layers?.[0]?.layer;
+  assert.equal(percentileLayer?.kind, "raster", "percentile filter result must be a raster layer, not a generic attachment");
+  assert.equal(percentile.attachments, undefined);
+});
+
+test("euclidean and cost allocation tools publish raster surfaces from real inputs", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const cells = [] as any[];
+  for (let row = 0; row < 5; row++) for (let col = 0; col < 5; col++) {
+    const x = 500000 + col * 100, y = 4400000 + row * 100;
+    cells.push({ type: "Feature", properties: { source: row === 2 && col === 2 ? 1 : 0, friction: 1 },
+      geometry: { type: "Polygon", coordinates: [[[x, y], [x + 100, y], [x + 100, y + 100], [x, y + 100], [x, y]]] } });
+  }
+  const grid = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: cells })]), "allocation_grid.geojson")).layer;
+  const source = (await finished("wasm_vector_polygons_to_raster", { input: grid.id, field: "source", cell_size: 100, output_name: "allocation_source" })).layer;
+  const friction = (await finished("wasm_vector_polygons_to_raster", { input: grid.id, field: "friction", cell_size: 100, output_name: "allocation_friction" })).layer;
+
+  const euclidean = await finished("wasm_euclidean_allocation", { input: source.id, output_name: "euclidean_regions" });
+  const euclideanLayer = euclidean.layer ?? euclidean.layers?.[0]?.layer;
+  assert.equal(euclideanLayer.kind, "raster");
+  assert.equal(euclideanLayer.raster?.width, source.raster?.width);
+
+  const distance = await finished("wasm_cost_distance", { source: source.id, cost: friction.id, output_name: "cost_surface" });
+  assert.equal(distance.layers?.length, 2, "cost distance must publish both the cost and backlink rasters");
+  const backlink = distance.layers?.find((item: any) => item.layer?.name?.includes("backlink"))?.layer;
+  assert.ok(backlink, "cost distance must expose its backlink raster");
+  const allocation = await finished("wasm_cost_allocation", { source: source.id, backlink: backlink.id, output_name: "cost_regions" });
+  const allocationLayer = allocation.layer ?? allocation.layers?.[0]?.layer;
+  assert.equal(allocationLayer.kind, "raster");
+  assert.equal(allocationLayer.raster?.width, source.raster?.width);
 });
 
 test("vector points rasterize into a displayed raster layer and feed raster tools", async () => {

@@ -314,6 +314,7 @@ const ATTACHMENT_KINDS = new Set(["file", "text", "json"]);
 /** Upstream sometimes labels real raster results as generic files. */
 const WASM_OUTPUT_KIND_OVERRIDES: Record<string, Record<string, string>> = {
   majority_filter: { output: "raster" },
+  median_filter: { output: "raster" },
   percentile_filter: { output: "raster" },
 };
 function outputKind(id: string, param: { name: string; data_kind: string }): string {

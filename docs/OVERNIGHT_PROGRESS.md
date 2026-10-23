@@ -142,3 +142,12 @@
 - 2026-10-24 05:17 Asia/Shanghai — Overnight supervisor: batch12 exited (sandbox blocked commit). Re-verified `npm run test:browser` 38/38 + `npx tsc --noEmit`. Committing+pushing as `P3/P4: network/service-area, raster buffer/filter, agent recipes`, then starting batch13 (geometry/density/allocation densify, agent recipes, thin beauty).
 
 - 2026-10-24 05:18 Asia/Shanghai — Batch12 pushed as `37b05d5` (38/38). Launching batch13 tf-codex (geometry densify, line density/allocation, agent recipes).
+
+- 2026-10-24 05:24 Asia/Shanghai — Batch13 implemented and verified on the Linux box:
+  - Ribbon: added eight catalog-backed analysis actions — 线密度, 欧氏分配, 成本分配, 中值滤波, 质心, 要素加密, 凹包, 要素转线. All open hydrated forms; the ribbon↔catalog test now requires the new entries and verifies the recipes resolve.
+  - Contracts: `median_filter.output` is upstream-labelled as a generic file, so it now uses the raster output-kind override alongside majority/percentile. `line_density.area_units` is an executable enum and `weight_field` uses the input layer's field picker. Real executions cover line density (raster), centroid, densify (vertex count grows), concave hull, feature-to-line, median and percentile filters, euclidean allocation and cost allocation (cost distance → backlink → allocation).
+  - Agent: added restrained 线密度 and 凹包 recipe cards that only open forms; Chinese aliases rank 线密度, 欧氏分配, 中位数滤波, 凹包 and 要素转线 to their intended tools. Recovery/compaction behavior is unchanged and state-only.
+  - Perf/beauty: skipped a risky perf refactor (no obvious remaining hot path); tightened the blue-family recipe panel and toolbox empty-state detail without teal or mythology.
+  - Verification: 41/41 browser tests passed (`npm run test:browser`), `npx tsc --noEmit` passed, `npm run build` passed. `dist/` remains ~36 MB with unchanged payload shape (app 1.91 MB, lazy catalog 1.95 MB, CLI WASM 24.1 MB), so no deploy-doc size edit and no live deploy. GEE remains docs/demo only; no credentials read or created. No Python changes.
+
+- 2026-10-24 05:29 Asia/Shanghai — Overnight supervisor: batch13 exited (sandbox blocked commit; key-rotated mid-run). Re-verified `npm run test:browser` 41/41 + `npx tsc --noEmit`. Committing+pushing as `P3/P4: geometry densify, line density/allocation, agent recipes`, then starting batch14.

@@ -928,7 +928,7 @@ textarea {
 .job-step > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Workflow recipes: prompt/tool shortcuts, never automatic execution. */
-.workflow-recipes { margin-top: 17px; padding: 12px 11px; border: 1px solid color-mix(in srgb, var(--tiphys-accent) 16%, var(--tiphys-border)); border-radius: 10px; background: color-mix(in srgb, var(--tiphys-accent-muted) 20%, transparent); }
+.workflow-recipes { margin-top: 17px; padding: 12px 11px; border: 1px solid color-mix(in srgb, var(--tiphys-accent) 16%, var(--tiphys-border)); border-radius: 10px; background: color-mix(in srgb, var(--tiphys-accent-muted) 20%, transparent); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--tiphys-surface) 72%, transparent); }
 .workflow-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; color: var(--tiphys-text-secondary); }
 .workflow-heading > span { display: inline-flex; align-items: center; gap: 5px; color: var(--tiphys-text); font-size: 12px; font-weight: 600; letter-spacing: .01em; }
 .workflow-heading small { color: var(--tiphys-text-muted); font-size: 9px; line-height: 1.35; text-align: right; }
@@ -961,7 +961,7 @@ textarea {
 .attribute-actions { margin-left: auto; }
 
 /* Empty states: quieter type, tighter rhythm, blue-only details. */
-.toolbox-empty { gap: 4px; margin-top: 6px; padding: 14px 15px; border-color: color-mix(in srgb, var(--tiphys-accent) 23%, var(--tiphys-border)); font-size: 11.5px; line-height: 1.55; }
+.toolbox-empty { gap: 4px; margin-top: 6px; padding: 14px 15px; border-color: color-mix(in srgb, var(--tiphys-accent) 23%, var(--tiphys-border)); border-left: 2px solid color-mix(in srgb, var(--tiphys-accent) 58%, var(--tiphys-border)); font-size: 11.5px; line-height: 1.55; }
 .toolbox-empty strong { font-size: 12.5px; font-weight: 550; }
 .toolbox-empty .icon-btn { margin-top: 4px; }
 .map-empty-state { width: min(296px, calc(100% - 40px)); gap: 7px; padding: 16px 18px; font-size: 11.5px; line-height: 1.55; }
