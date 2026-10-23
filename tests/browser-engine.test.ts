@@ -8,6 +8,8 @@ import initLibrary from "geolibre-wasm";
 import { browserCatalog, browserEngineRequest, browserLayers, cancelBrowserJob, importBrowserFile, readBrowserJob, runBrowserTool } from "../src/lib/browser/engine.ts";
 import { readRecord, writeRecord } from "../src/lib/browser/storage.ts";
 import { metricCrs } from "../src/lib/browser/geometry.ts";
+import { desktopToolCatalog } from "../src/lib/browser/catalog-schema.ts";
+import { zhToolL1, zhToolL2 } from "../src/lib/i18n/tools.ts";
 
 before(async () => {
   await initTools(fs.readFileSync(new URL("../node_modules/geolibre-wasm/geolibre-cli.wasm", import.meta.url)));
@@ -199,4 +201,22 @@ test("field_statistics reports numeric moments or top values with null counts", 
   const text = await finished("field_statistics", { layer: input.id, field: "name" });
   assert.ok(Array.isArray(text.top_values) && text.top_values.length > 0);
   await assert.rejects(finished("field_statistics", { layer: input.id, field: "missing_field" }), /找不到/);
+});
+
+
+test("catalog union, dedupe, L1 folders and every WASM L2 translation", () => {
+  assert.equal(browserCatalog.length, 989, "31 shell/common tools + 958 WASM schemas");
+  assert.equal(new Set(browserCatalog.map(t => t.name)).size, browserCatalog.length);
+  const desktop = desktopToolCatalog([{ name: "buffer", category: "邻近分析", parameters: { properties: {} } }]);
+  assert.equal(desktop.length, 989, "desktop Python + WASM + shell-only stubs");
+  assert.equal(new Set(desktop.map(t => t.name)).size, desktop.length);
+  assert.ok(desktop.some(t => t.name === "gee_search_collection"));
+  const l1 = new Set(browserCatalog.map(zhToolL1));
+  for (const folder of ["矢量", "栅格", "地形", "水文", "遥感", "转换", "投影", "数据管理", "查询", "图层", "GEE"]) {
+    assert.ok(l1.has(folder), `${folder} should be an L1 folder`);
+  }
+  const wasm = browserCatalog.filter(t => t.name.startsWith("wasm_"));
+  for (const raw of new Set(wasm.map(t => t.subcategory!).filter(Boolean))) {
+    assert.notEqual(zhToolL2({ category: "Raster", subcategory: raw }), raw, `${raw} needs a Chinese L2 label`);
+  }
 });

@@ -14,7 +14,14 @@
 .toolbox-group-header svg { color: var(--tiphys-accent); }
 .toolbox-chevron { width: 12px; font-size: 18px; color: var(--tiphys-text-muted); }
 .toolbox-count { margin-left: auto; }
+.toolbox-health { margin: 4px 0 8px; padding: 7px 9px; border: 1px solid color-mix(in srgb, #d97706 35%, var(--tiphys-border)); border-radius: var(--tiphys-radius-sm); background: color-mix(in srgb, #f59e0b 10%, transparent); color: #b45309; font-size: 11px; line-height: 1.55; }
+.toolbox-subgroups { display: grid; gap: 1px; padding: 0 0 7px 14px; }
+.toolbox-subgroup { border-top: 1px solid var(--tiphys-border-subtle); }
+.toolbox-subgroup-header { display: flex; align-items: center; gap: 7px; width: 100%; padding: 8px 6px; border: 0; background: transparent; color: var(--tiphys-text-secondary); text-align: left; cursor: pointer; font-size: 12px; font-weight: 500; }
+.toolbox-subgroup-header:hover { color: var(--tiphys-accent); background: var(--tiphys-accent-muted); }
 .toolbox-tool-list { display: grid; gap: 3px; padding: 0 0 8px 24px; }
+.toolbox-stub-tag { justify-self: start; padding: 1px 5px; border-radius: 999px; background: var(--tiphys-accent-muted); color: var(--tiphys-accent); font-size: 9px; font-weight: 600; }
+.toolbox-stub { margin: 4px 0 8px; padding: 8px 10px; border: 1px dashed color-mix(in srgb, var(--tiphys-accent) 45%, var(--tiphys-border)); border-radius: var(--tiphys-radius-sm); background: var(--tiphys-accent-muted); color: var(--tiphys-text-secondary); font-size: 11px; line-height: 1.6; }
 .toolbox-tool { display: grid; gap: 3px; text-align: left; padding: 9px 10px; border: 1px solid transparent; border-radius: var(--tiphys-radius-sm); background: transparent; color: var(--tiphys-text); cursor: pointer; }
 .toolbox-tool:hover { background: var(--tiphys-accent-muted); border-color: var(--tiphys-border); }
 .toolbox-tool-name { font-size: 13px; font-weight: 500; }
@@ -159,16 +166,12 @@ textarea {
   min-width: 0;
 }
 
-.topbar-mark {
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
-  background: linear-gradient(
-    135deg,
-    var(--tiphys-accent) 0%,
-    var(--tiphys-accent-bright) 100%
-  );
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--tiphys-accent) 30%, transparent);
+.topbar-logo {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: 8px;
 }
 
 .topbar-title {
@@ -743,6 +746,8 @@ textarea {
 .chat-dock-header { padding: 0; border-bottom: 1px solid var(--tiphys-border); }
 .agent-pane-title { height: 34px; display: flex; align-items: center; justify-content: space-between; padding: 0 9px 0 13px; background: var(--tiphys-bg); border-bottom: 1px solid var(--tiphys-border); }
 .agent-pane-title > span { display: flex; align-items: center; gap: 7px; color: var(--tiphys-accent); font-size: 13px; }
+.chat-brand { min-width: 0; }
+.chat-dock-logo { width: 22px; height: 22px; flex-shrink: 0; object-fit: contain; border-radius: 6px; }
 .dock-tabs { padding: 5px 10px 0; }
 .chat-dock-header > p { padding: 5px 13px 8px; margin: 0; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .agent-welcome { margin: auto 0; padding: 30px 12px; }

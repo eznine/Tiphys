@@ -22,9 +22,34 @@ export const CATEGORY_ZH: Record<string, string> = {
   Conversion: "转换",
   Projection: "投影",
   LiDAR: "激光雷达",
+  GEE: "GEE",
 };
 
+const PYTHON_L1: Record<string, string> = {
+  "数据管理": "数据管理",
+  "查询与选择": "查询",
+  "地图与显示": "图层",
+  "邻近分析": "矢量",
+  "叠加分析": "矢量",
+  "几何处理": "矢量",
+  "GEE": "GEE",
+  "其他工具": "其他工具",
+};
+
+const PYTHON_L2: Record<string, string> = {
+  "数据管理": "数据与图层",
+  "查询与选择": "选择与统计",
+  "地图与显示": "显示与属性",
+  "邻近分析": "邻近分析",
+  "叠加分析": "叠加分析",
+  "几何处理": "几何处理",
+  "GEE": "接入准备",
+  "其他工具": "其他",
+};
+
+/** All 48 subcategories currently shipped by the bundled WASM catalog. */
 const SUBCATEGORY_ZH: Record<string, string> = {
+  // Shared / legacy taxonomy labels
   "Analysis": "分析", "Conversion": "转换", "Data Management": "数据管理",
   "Extraction": "提取", "Features": "要素", "General": "常规",
   "Geometry Processing": "几何处理", "Interpolation": "插值", "Overlay": "叠加",
@@ -38,12 +63,61 @@ const SUBCATEGORY_ZH: Record<string, string> = {
   "Stream Network Analysis": "河网分析", "Point Cloud": "点云",
   "Coordinate Systems": "坐标系", "Metadata": "元数据", "Sampling": "采样",
   "Machine Learning": "机器学习", "Segmentation": "分割", "Object-based": "面向对象",
+
+  // Raster (9)
+  "Overlay Math": "叠加运算", "Local Neighborhood": "邻域分析",
+  "Reclassify & Mask": "重分类与掩膜", "Distance & Cost": "距离与成本",
+  "Zonal": "分区统计", "Multidimensional": "多维分析", "Spatial Statistics": "空间统计",
+
+  // Terrain (7)
+  "Derivatives": "地形导数", "Visibility": "可见性分析",
+  "Roughness & Texture": "粗糙度与纹理", "Landform Indices": "地貌指数",
+  "Multiscale Signatures": "多尺度特征", "Workflow Products": "流程化产品",
+
+  // Remote Sensing (10)
+  "Filters": "影像滤波", "SAR": "SAR 雷达", "Enhancement & Contrast": "增强与对比度",
+  "Radiometric Correction": "辐射校正", "OBIA": "面向对象影像分析",
+  "Edge & Feature Detection": "边缘与特征检测", "Spectral Analytics": "光谱分析",
+  "Thermal & Emissivity": "热红外与发射率",
+
+  // Vector (12)
+  "Attribute Analysis": "属性分析", "3D Features": "三维要素",
+  "Cartography & Generalization": "制图与综合", "Overlay Analysis": "叠加分析",
+  "Network Analysis": "网络分析", "Space-Time Analysis": "时空分析",
+  "Shape Metrics": "形状指标", "Sampling & Gridding": "采样与格网",
+  "Linear Referencing": "线性参考", "Online Data": "在线数据",
+
+  // Conversion (4)
+  "Vector & Table I/O": "矢量与表格读写", "Raster/Vector Conversion": "栅格矢量转换",
+  "Geometry & Topology": "几何与拓扑", "Tiles & Web Formats": "瓦片与 Web 格式",
+
+  // Hydrology (7)
+  "Streams - Network Extraction": "河网提取", "Flow Routing": "汇流路径",
+  "Watersheds & Basins": "流域与盆地", "Depressions & Storage": "洼地与蓄水",
+  "Hydrologic Indices": "水文指数", "Streams - Longitudinal Analysis": "河流纵向分析",
+  "Streams - Ordering Metrics": "河流分级指标",
+
+  // Projection (1)
+  "Georeferencing": "地理配准",
 };
 
-/** Group label for a catalog tool, e.g. "栅格 · 地形分析". */
+/** Stable toolbox L1 order; native categories follow the ArcGIS/QGIS grouping. */
+export function zhToolL1(tool: { category?: string }): string {
+  const category = tool.category?.trim();
+  if (!category) return "其他工具";
+  return CATEGORY_ZH[category] ?? PYTHON_L1[category] ?? category;
+}
+
+/** L2 group inside an L1 toolbox folder. */
+export function zhToolL2(tool: { category?: string; subcategory?: string }): string {
+  if (tool.subcategory) return SUBCATEGORY_ZH[tool.subcategory] ?? tool.subcategory;
+  return PYTHON_L2[tool.category ?? ""] ?? "常规";
+}
+
+/** Group label for a catalog tool, e.g. "栅格 · 地形导数". */
 export function zhCategory(tool: { category?: string; subcategory?: string }): string {
-  const category = CATEGORY_ZH[tool.category ?? ""] ?? tool.category ?? "其他工具";
-  const sub = tool.subcategory ? SUBCATEGORY_ZH[tool.subcategory] ?? tool.subcategory : "";
+  const category = zhToolL1(tool);
+  const sub = zhToolL2(tool);
   return sub && sub !== category ? `${category} · ${sub}` : category;
 }
 

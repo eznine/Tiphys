@@ -3,9 +3,9 @@
 
 :root,
 [data-theme="light"] {
-  /* Accent / navigation (teal-cyan route) */
-  --tiphys-accent: #0d9488;
-  --tiphys-accent-bright: #14b8a6;
+  /* Accent / navigation (blue route) */
+  --tiphys-accent: #2563eb;
+  --tiphys-accent-bright: #3b82f6;
   --tiphys-accent-muted: color-mix(in srgb, var(--tiphys-accent) 18%, transparent);
   --tiphys-accent-fg: #ffffff;
 
@@ -45,10 +45,10 @@
 }
 
 [data-theme="dark"] {
-  --tiphys-accent: #14b8a6;
-  --tiphys-accent-bright: #2dd4bf;
+  --tiphys-accent: #3b82f6;
+  --tiphys-accent-bright: #60a5fa;
   --tiphys-accent-muted: color-mix(in srgb, var(--tiphys-accent) 22%, transparent);
-  --tiphys-accent-fg: #042f2e;
+  --tiphys-accent-fg: #ffffff;
 
   --tiphys-bg: #0b1220;
   --tiphys-surface: #111827;

@@ -4,7 +4,7 @@ import type { DataLayer } from "../lib/dataLayers";
 import { ToolPanel } from "./ToolPanel";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Sparkles, Settings2, FolderPlus, ArrowUp, Square, Layers } from "lucide-react";
+import { Settings2, FolderPlus, ArrowUp, Square, Layers } from "lucide-react";
 
 type Props = {
   items: TimelineItem[];
@@ -46,7 +46,7 @@ export function ChatDock({ items, busy, connected, provider, layers, onSend, onA
   return (
     <aside className="chat-dock" aria-label="Agent chat">
       <div className="chat-dock-header">
-        <div className="agent-pane-title"><span><Sparkles size={17} /><strong>TIPHYS 对话</strong></span><button type="button" className="plain-icon" aria-label="Agent 设置" title="模型与 API 设置" onClick={onSettings}><Settings2 size={16} /></button></div>
+        <div className="agent-pane-title"><span className="chat-brand"><img className="chat-dock-logo" src="/logo-temp.png" alt="" aria-hidden="true" /><strong>TIPHYS 对话</strong></span><button type="button" className="plain-icon" aria-label="Agent 设置" title="模型与 API 设置" onClick={onSettings}><Settings2 size={16} /></button></div>
         <div className="dock-tabs" role="tablist">
           <button type="button" role="tab" aria-selected={tab === "chat"} className={tab === "chat" ? "active" : ""} onClick={() => setTab("chat")}>
             对话

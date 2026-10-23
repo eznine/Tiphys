@@ -1,9 +1,17 @@
 import { useState } from "react";
-import { FolderPlus, Scan, Focus, Table2, Shapes, Tags, Combine, Scissors, ListFilter, CircleDot, Wrench, MessageSquareText,
-  Logs, Settings2, SunMoon, Layers, PanelBottom, type LucideIcon } from "lucide-react";
+import {
+  FolderPlus, Scan, Focus, Table2, Shapes, Tags, Combine, Scissors, ListFilter,
+  CircleDot, Wrench, MessageSquareText, Logs, Settings2, SunMoon, Layers,
+  PanelBottom, FolderInput, FileOutput, RefreshCw, Eraser, Hexagon, Ruler,
+  Download, Satellite, SlidersHorizontal, Cloud, KeyRound, Search, ListChecks,
+  Mountain, Waves, Sparkles, type LucideIcon,
+} from "lucide-react";
 
 type Props = { hasLayer: boolean; onAdd: () => void; onZoomAll: () => void; onZoomLayer: () => void; onTable: () => void;
   onStyle: () => void; onLabels: () => void; onTool: (name?: string) => void; onChat: () => void; onLogs: () => void; onSettings: () => void; onTheme: () => void };
+
+const TABS = [["data", "数据"], ["map", "地图"], ["analysis", "分析"], ["rs", "遥感"], ["gee", "GEE"], ["view", "视图"]] as const;
+
 export function CommandRibbon(props: Props) {
   const [tab, setTab] = useState("map");
   const command = (label: string, Icon: LucideIcon, action: () => void, disabled = false, large = false) =>
@@ -11,20 +19,38 @@ export function CommandRibbon(props: Props) {
   return <section className="command-ribbon" aria-label="工作区命令">
     <div className="ribbon-tabs" role="tablist" aria-label="命令类别">
       <button type="button" className="ribbon-agent-tab" onClick={props.onChat}><MessageSquareText size={14} /> Agent</button>
-      {[["map", "地图"], ["analysis", "分析"], ["view", "视图"]].map(([id, text]) => <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>{text}</button>)}
+      {TABS.map(([id, text]) => <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>{text}</button>)}
       <span>以对话驱动分析，保留熟悉的 GIS 操作</span>
     </div>
     <div className="ribbon-tools">
+      {tab === "data" && <>
+        <div className="ribbon-group"><div>{command("添加数据", FolderPlus, props.onAdd, false, true)}</div><small>导入</small></div>
+        <div className="ribbon-group"><div>{command("路径加载", FolderInput, () => props.onTool("add_data"))}{command("导出要素", FileOutput, () => props.onTool("export_features"), !props.hasLayer)}{command("重投影", RefreshCw, () => props.onTool("reproject"), !props.hasLayer)}</div><small>数据交换</small></div>
+        <div className="ribbon-group"><div>{command("查看属性", Table2, () => props.onTool("describe_layer"), !props.hasLayer, true)}<div className="ribbon-stack">{command("重命名", Shapes, () => props.onTool("rename_layer"), !props.hasLayer)}{command("调整顺序", Layers, () => props.onTool("reorder_layers"), !props.hasLayer)}</div></div><small>数据管理</small></div>
+      </>}
       {tab === "map" && <>
         <div className="ribbon-group"><div>{command("添加数据", FolderPlus, props.onAdd, false, true)}</div><small>数据</small></div>
         <div className="ribbon-group"><div>{command("全图范围", Scan, props.onZoomAll)}{command("缩放至图层", Focus, props.onZoomLayer, !props.hasLayer)}</div><small>导航</small></div>
         <div className="ribbon-group"><div>{command("属性表", Table2, props.onTable, !props.hasLayer, true)}<div className="ribbon-stack">{command("符号化", Shapes, props.onStyle, !props.hasLayer)}{command("标注", Tags, props.onLabels, !props.hasLayer)}</div></div><small>图层</small></div>
-        <div className="ribbon-group"><div>{command("缓冲区", CircleDot, () => props.onTool("buffer"))}{command("裁剪", Scissors, () => props.onTool("clip"))}{command("按属性选择", ListFilter, () => props.onTool("select_by_attributes"))}</div><small>常用分析</small></div>
+        <div className="ribbon-group"><div>{command("缓冲区", CircleDot, () => props.onTool("buffer"), !props.hasLayer)}{command("裁剪", Scissors, () => props.onTool("clip"), !props.hasLayer)}{command("按属性选择", ListFilter, () => props.onTool("select_by_attributes"), !props.hasLayer)}</div><small>常用操作</small></div>
       </>}
       {tab === "analysis" && <>
         <div className="ribbon-group"><div>{command("工具箱", Wrench, () => props.onTool(), false, true)}</div><small>地理处理</small></div>
-        <div className="ribbon-group"><div>{command("缓冲区", CircleDot, () => props.onTool("buffer"))}{command("裁剪", Scissors, () => props.onTool("clip"))}{command("相交", Combine, () => props.onTool("intersection"))}{command("融合", Layers, () => props.onTool("dissolve"))}</div><small>矢量分析</small></div>
-        <div className="ribbon-group"><div>{command("按属性选择", ListFilter, () => props.onTool("select_by_attributes"))}{command("按位置选择", Focus, () => props.onTool("select_by_location"))}</div><small>查询与选择</small></div>
+        <div className="ribbon-group"><div>{command("缓冲区", CircleDot, () => props.onTool("buffer"))}{command("裁剪", Scissors, () => props.onTool("clip"))}{command("相交", Combine, () => props.onTool("intersection"))}{command("联合", Layers, () => props.onTool("union_layers"))}{command("擦除", Eraser, () => props.onTool("erase"))}{command("融合", Combine, () => props.onTool("dissolve"))}</div><small>矢量叠加</small></div>
+        <div className="ribbon-group"><div>{command("凸包", Hexagon, () => props.onTool("convex_hull"))}{command("简化", SlidersHorizontal, () => props.onTool("simplify"))}{command("面积长度", Ruler, () => props.onTool("calculate_geometry"))}</div><small>几何处理</small></div>
+        <div className="ribbon-group"><div>{command("按属性选择", ListFilter, () => props.onTool("select_by_attributes"))}{command("按位置选择", Focus, () => props.onTool("select_by_location"))}{command("字段统计", Download, () => props.onTool("field_statistics"))}</div><small>查询与统计</small></div>
+        <div className="ribbon-group"><div>{command("坡度", Mountain, () => props.onTool("wasm_slope"))}{command("山体阴影", SunMoon, () => props.onTool("wasm_hillshade"))}{command("流域", Waves, () => props.onTool("wasm_watershed"))}{command("河网提取", Waves, () => props.onTool("wasm_extract_streams"))}</div><small>地形 / 水文</small></div>
+      </>}
+      {tab === "rs" && <>
+        <div className="ribbon-group"><div>{command("遥感工具箱", Wrench, () => props.onTool(), false, true)}</div><small>全部工具</small></div>
+        <div className="ribbon-group"><div>{command("归一化指数", Sparkles, () => props.onTool("wasm_normalized_difference_index"))}{command("变化检测", RefreshCw, () => props.onTool("wasm_image_difference_change_detection"))}{command("光谱分析", SlidersHorizontal, () => props.onTool("wasm_extract_spectra_from_image"))}</div><small>光谱分析</small></div>
+        <div className="ribbon-group"><div>{command("影像滤波", Satellite, () => props.onTool("wasm_adaptive_filter"))}{command("影像分割", Satellite, () => props.onTool("wasm_image_segmentation"))}{command("地物分类", ListChecks, () => props.onTool("wasm_knn_classification"))}</div><small>增强与分类</small></div>
+        <div className="ribbon-group"><div>{command("SAR 水体", Waves, () => props.onTool("wasm_extract_water_sar"))}{command("地表温度", SunMoon, () => props.onTool("wasm_land_surface_temperature_single_channel"))}</div><small>SAR / 热红外</small></div>
+      </>}
+      {tab === "gee" && <>
+        <div className="ribbon-group"><div>{command("GEE 工具箱", Cloud, () => props.onTool(), false, true)}</div><small>即将接入</small></div>
+        <div className="ribbon-group"><div>{command("认证状态", KeyRound, () => props.onTool("gee_auth_status"))}{command("搜索影像", Search, () => props.onTool("gee_search_collection"))}</div><small>连接与检索</small></div>
+        <div className="ribbon-group"><div>{command("导出栅格", Download, () => props.onTool("gee_export_raster"))}{command("任务状态", ListChecks, () => props.onTool("gee_job_status"))}</div><small>导出与任务</small></div>
       </>}
       {tab === "view" && <>
         <div className="ribbon-group"><div>{command("Agent 对话", MessageSquareText, props.onChat, false, true)}{command("属性表", PanelBottom, props.onTable, !props.hasLayer, true)}</div><small>窗格</small></div>

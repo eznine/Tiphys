@@ -5,7 +5,7 @@ import { assertGeojson, boundsOf, metricCrs } from "./geometry";
 import { rasterRenderer, type RasterRenderer } from "./raster-display";
 import { deleteRecord, readRecord, records, writeRecord } from "./storage";
 import { fileInfo, originalGeojson, wasmManifests, wasmTool } from "./wasm";
-import commonCatalog from "./catalog.json";
+import { browserToolCatalog } from "./catalog-schema";
 
 type LayerRecord = {
   info: Omit<DataLayer, "url">;
@@ -182,23 +182,7 @@ function metricDistance(raw: unknown, units = "meters") {
   if (!Number.isFinite(value) || value <= 0 || value > 5_000_000) throw new Error("距离必须为正数且不超过 5000 千米，并使用有效单位。");
   return value;
 }
-function schemaForNative(manifest: typeof wasmManifests[number]) {
-  const properties: Record<string, any> = {};
-  for (const p of manifest.params) {
-    if (p.io_role === "output") continue;
-    const schema = p.schema as Record<string, any>;
-    properties[p.name] = p.io_role === "input" ? { type: "string", "x-layer": true, "x-layer-kind": p.data_kind, description: p.description }
-      : { type: schema.kind === "bool" ? "boolean" : schema.kind === "scalar" ? schema.scalar === "integer" ? "integer" : "number" : "string",
-          description: p.description, ...(schema.options ? { enum: schema.options.map((o: any) => String(o.value)) } : {}) };
-    // Upstream example paths and required scalar examples are not defaults.
-    if (!p.io_role && !p.required && Object.prototype.hasOwnProperty.call(manifest.defaults ?? {}, p.name)) properties[p.name].default = (manifest.defaults as Record<string, unknown>)[p.name];
-  }
-  properties.output_name = { type: "string", description: "结果图层名称" };
-  return { name: `wasm_${manifest.id}`, label: manifest.display_name, description: manifest.summary,
-    category: (manifest as any).taxonomy?.category ?? manifest.category, subcategory: (manifest as any).taxonomy?.subcategory,
-    parameters: { type: "object", properties, required: manifest.params.filter(p => p.required && p.io_role !== "output").map(p => p.name), additionalProperties: false } };
-}
-export const browserCatalog = [...commonCatalog, ...wasmManifests.map(schemaForNative)];
+export const browserCatalog = browserToolCatalog;
 function validate(name: string, args: Record<string, any>) {
   const t = browserCatalog.find(t => t.name === name);
   if (!t) throw new Error(`当前浏览器引擎不支持工具：${name}`);
@@ -495,14 +479,15 @@ export async function runBrowserTool(name: string, args: Record<string, any> = {
     } catch (error) { job.status = controller.signal.aborted ? "cancelled" : "failed"; job.error = controller.signal.aborted ? undefined : String(error); job.message = job.error ?? "已取消，未生成结果"; }
     finally { controllers.delete(id); await writeRecord(`job:${id}`, job); recordLog("job", name, job, job.status === "failed" ? "error" : "info"); }
   };
-  void (async () => { try { if (navigator.locks) await navigator.locks.request(`tiphys-job:${id}`, () => navigator.locks.request("tiphys-gis-cpu", { signal: controller.signal }, work)); else await work(); } catch { job.status = "cancelled"; job.message = "已取消排队"; controllers.delete(id); await writeRecord(`job:${id}`, job); } })();
+  const lockManager = typeof navigator === "undefined" ? undefined : navigator.locks;
+  void (async () => { try { if (lockManager) await lockManager.request(`tiphys-job:${id}`, () => lockManager.request("tiphys-gis-cpu", { signal: controller.signal }, work)); else await work(); } catch { job.status = "cancelled"; job.message = "已取消排队"; controllers.delete(id); await writeRecord(`job:${id}`, job); } })();
   return { job_id: id, status: "queued" };
 }
 export async function readBrowserJob(id: string): Promise<Job> {
   const job = running.get(id) ?? await readRecord<Job>(`job:${id}`);
   if (!job) throw new Error(`找不到任务：${id}`);
   if (["running", "queued", "cancelling"].includes(job.status) && job.owner !== owner) {
-    const locks = await navigator.locks?.query();
+    const locks = typeof navigator === "undefined" ? undefined : await navigator.locks?.query();
     if (!locks?.held?.some(l => l.name === `tiphys-job:${id}`)) { job.status = "interrupted"; job.message = "页面已关闭或刷新，原计算未继续运行。"; await writeRecord(`job:${id}`, job); }
   }
   return job;

@@ -140,7 +140,7 @@ export default function App() {
   }, []);
 
   const engineLabel = useMemo(() => {
-    if (ping.state === "ok") return browserRuntime ? "浏览器 WASM" : `${ping.latencyMs}ms`;
+    if (ping.state === "ok") return browserRuntime ? "Browser-WASM" : `Python · ${ping.latencyMs}ms`;
     if (ping.state === "error") return "未连接";
     return "…";
   }, [ping]);
@@ -193,7 +193,7 @@ export default function App() {
           onToolResult={agent.mergeToolResult}
         />
       </div>
-      <footer className="workspace-status"><span><span className="status-dot" data-state={engineState} />{engineState === "ok" ? browserRuntime ? "浏览器计算 · 数据保存在本机" : "本地引擎已就绪" : "正在加载空间引擎"}</span><span><Layers size={13} />{layers.length} 个图层</span><span className="status-coordinates"><Crosshair size={13} />{mapStatus.lng.toFixed(5)}°，{mapStatus.lat.toFixed(5)}°</span><span>级别 {mapStatus.zoom.toFixed(1)}</span><span>坐标 WGS 84</span></footer>
+      <footer className="workspace-status"><span><span className="status-dot" data-state={engineState} />{engineState === "ok" ? browserRuntime ? "Browser-WASM · 数据保存在本机" : "Python 本地引擎已就绪" : "正在加载空间引擎"}</span><span><Layers size={13} />{layers.length} 个图层</span><span className="status-coordinates"><Crosshair size={13} />{mapStatus.lng.toFixed(5)}°，{mapStatus.lat.toFixed(5)}°</span><span>级别 {mapStatus.zoom.toFixed(1)}</span><span>坐标 WGS 84</span></footer>
       {settingsOpen && <SettingsDialog theme={themeMode} onTheme={setThemeMode} density={density} onDensity={setDensity} onClose={() => setSettingsOpen(false)} onSaved={() => void agent.refreshProvider()} onLogs={() => setLogsOpen(true)} />}
     </div>
   );

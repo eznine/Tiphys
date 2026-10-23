@@ -872,5 +872,131 @@
       ],
       "additionalProperties": false
     }
+  },
+{
+  "name": "gee_auth_status",
+  "label": "GEE 认证状态",
+  "category": "GEE",
+  "subcategory": "认证与状态",
+  "description": "GEE 占位功能 / 即将接入：检查 Google Earth Engine 授权状态。弹窗与表单已开放，目前不会连接 GEE。",
+  "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+  },
+  "annotations": {
+    "readOnlyHint": true
   }
+},
+{
+  "name": "gee_search_collection",
+  "label": "搜索 GEE 影像集合",
+  "category": "GEE",
+  "subcategory": "数据检索",
+  "description": "GEE 占位功能 / 即将接入：按集合、日期和范围检索影像。参数表单已开放，执行接口尚未连接。",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "collection": {
+        "type": "string",
+        "default": "COPERNICUS/S2_SR_HARMONIZED",
+        "description": "Earth Engine 影像集合 ID"
+      },
+      "start_date": {
+        "type": "string",
+        "description": "开始日期，例如 2026-01-01"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "结束日期，例如 2026-03-31"
+      },
+      "max_cloud": {
+        "type": "integer",
+        "default": 20,
+        "description": "最大云量百分比"
+      },
+      "bbox": {
+        "type": "string",
+        "description": "可选范围，格式 minLon,minLat,maxLon,maxLat"
+      }
+    },
+    "required": [
+      "collection"
+    ],
+    "additionalProperties": false
+  },
+  "annotations": {
+    "readOnlyHint": true
+  }
+},
+{
+  "name": "gee_export_raster",
+  "label": "导出 GEE 栅格",
+  "category": "GEE",
+  "subcategory": "导出",
+  "description": "GEE 占位功能 / 即将接入：将影像波段导出为本地栅格。参数表单已开放，任务执行尚未接入。",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "collection": {
+        "type": "string",
+        "default": "COPERNICUS/S2_SR_HARMONIZED",
+        "description": "Earth Engine 影像集合 ID"
+      },
+      "band": {
+        "type": "string",
+        "default": "B4",
+        "description": "要导出的波段名"
+      },
+      "start_date": {
+        "type": "string",
+        "description": "开始日期"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "结束日期"
+      },
+      "scale": {
+        "type": "number",
+        "default": 30,
+        "description": "导出像元大小（米）"
+      },
+      "path": {
+        "type": "string",
+        "description": "本地输出文件名"
+      }
+    },
+    "required": [
+      "collection"
+    ],
+    "additionalProperties": false
+  },
+  "annotations": {
+    "destructiveHint": true
+  }
+},
+{
+  "name": "gee_job_status",
+  "label": "GEE 任务状态",
+  "category": "GEE",
+  "subcategory": "任务",
+  "description": "GEE 占位功能 / 即将接入：查询 Earth Engine 导出任务状态。参数表单已开放，任务系统尚未连接。",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "job_id": {
+        "type": "string",
+        "description": "GEE 任务 ID"
+      }
+    },
+    "required": [
+      "job_id"
+    ],
+    "additionalProperties": false
+  },
+  "annotations": {
+    "readOnlyHint": true
+  }
+}
 ]

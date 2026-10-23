@@ -1,8 +1,11 @@
 /** Credentials stay in memory and are sent in headers, including map and SSE requests. */
 import { browserRuntime } from "./runtime";
+import type { CatalogTool } from "./browser/catalog-schema";
 export const AGENT_URL = import.meta.env?.VITE_AGENT_URL?.replace(/\/$/, "") || "http://127.0.0.1:8972";
 let token = "";
 let engineUrl = import.meta.env?.VITE_ENGINE_URL?.replace(/\/$/, "") || "http://127.0.0.1:8971";
+/** Jobs submitted to the in-WebView WASM worker must keep polling there. */
+const browserJobIds = new Set<string>();
 
 export function engineHeaders(url: string) {
   return token && url.startsWith(`${engineUrl}/`) ? { Authorization: `Bearer ${token}` } : undefined;
@@ -13,8 +16,7 @@ export function currentEngineUrl(): string {
   return engineUrl;
 }
 
-export async function engineRequest(path: string, init: RequestInit = {}) {
-  if (browserRuntime) return (await import("./browser/engine")).browserEngineRequest(path, init);
+async function pythonEngineRequest(path: string, init: RequestInit = {}) {
   if (!token) await bootstrap(init.signal ?? undefined);
   const url = `${engineUrl}${path}`;
   const headers = new Headers(init.headers);
@@ -25,6 +27,45 @@ export async function engineRequest(path: string, init: RequestInit = {}) {
     throw new Error(typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail ?? body.error ?? `HTTP ${response.status}`));
   }
   return response;
+}
+
+function requestedToolName(init: RequestInit): string | undefined {
+  if (typeof init.body !== "string") return undefined;
+  try {
+    const body = JSON.parse(init.body);
+    return typeof body?.name === "string" ? body.name : undefined;
+  } catch { return undefined; }
+}
+
+function browserJobId(pathname: string): string | undefined {
+  const match = /^\/jobs\/([^/]+)(?:\/cancel)?$/.exec(pathname);
+  return match && browserJobIds.has(decodeURIComponent(match[1])) ? decodeURIComponent(match[1]) : undefined;
+}
+
+async function rememberBrowserJob(response: Response) {
+  if (!response.ok) return response;
+  const data = await response.clone().json().catch(() => undefined);
+  if (typeof data?.job_id === "string") browserJobIds.add(data.job_id);
+  return response;
+}
+
+export async function engineRequest(path: string, init: RequestInit = {}) {
+  const pathname = new URL(path, "https://engine.invalid").pathname;
+  // Bundled WASM tools can still run in the desktop WebView's worker. Everything
+  // else keeps using the local Python MCP engine there.
+  if (pathname === "/tools/run" && requestedToolName(init)?.startsWith("wasm_"))
+    return rememberBrowserJob(await (await import("./browser/engine")).browserEngineRequest(path, init));
+  if (browserRuntime) return (await import("./browser/engine")).browserEngineRequest(path, init);
+  if (browserJobId(pathname)) return (await import("./browser/engine")).browserEngineRequest(path, init);
+  if (pathname === "/tools/catalog") {
+    const response = await pythonEngineRequest(path, init);
+    const data = await response.json();
+    const { desktopToolCatalog, wasmToolSchemas } = await import("./browser/catalog-schema");
+    const pythonTools: CatalogTool[] = Array.isArray(data.tools) ? data.tools : [];
+    const tools = desktopToolCatalog(pythonTools);
+    return Response.json({ ...data, tools, catalog: { python: pythonTools.length, wasm: wasmToolSchemas.length, total: tools.length } });
+  }
+  return pythonEngineRequest(path, init);
 }
 
 export async function bootstrap(signal?: AbortSignal) {

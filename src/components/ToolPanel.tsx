@@ -1,7 +1,7 @@
 /** Forms use the engine's MCP catalog and validated tool entry point. */
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DataLayer } from "../lib/dataLayers";
-import { zhCategory, zhParam, zhTool } from "../lib/i18n/tools";
+import { zhParam, zhTool, zhToolL1, zhToolL2 } from "../lib/i18n/tools";
 import { engineRequest } from "../lib/service";
 
 type Schema = { type?: string; enum?: string[]; default?: unknown; anyOf?: Schema[]; description?: string; "x-layer"?: boolean; "x-layer-kind"?: string };
@@ -18,6 +18,8 @@ type PanelJob = {
   message: string; result?: Record<string, any>; error?: string;
 };
 const SKIP = new Set(["ping", "list_layers", "job_status", "job_cancel"]);
+const STUB_TOOLS = new Set(["gee_auth_status", "gee_search_collection", "gee_export_raster", "gee_job_status"]);
+const L1_ORDER = ["矢量", "栅格", "地形", "水文", "遥感", "转换", "投影", "激光雷达", "数据管理", "查询", "图层", "GEE", "其他工具"];
 const ACTIVE = new Set(["submitting", "queued", "running", "cancelling"]);
 const LABELS: Record<string, string> = {
   add_data: "加载矢量数据", describe_layer: "查看图层属性", buffer: "缓冲区",
@@ -89,7 +91,8 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
   const [confirmed, setConfirmed] = useState(false);
   const [columns, setColumns] = useState<string[]>([]);
   const [search, setSearch] = useState("");
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [expandedL1, setExpandedL1] = useState<Record<string, boolean>>({});
+  const [expandedL2, setExpandedL2] = useState<Record<string, boolean>>({});
   const busy = !!job && ACTIVE.has(job.status);
   const appliedRequest = useRef<number | undefined>(undefined);
   useEffect(() => {
@@ -115,16 +118,25 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
   }, [load]);
   const tool = catalog?.find(t => t.name === toolName);
   const groups = useMemo(() => {
-    const grouped = new Map<string, CatalogTool[]>();
+    const grouped = new Map<string, Map<string, CatalogTool[]>>();
     const query = search.trim().toLocaleLowerCase();
     for (const item of catalog ?? []) {
-      const category = item.category ? zhCategory(item) : "其他工具";
-      const keywords = `${toolTitle(item)} ${item.name} ${category} ${toolDesc(item)}`;
+      const l1 = zhToolL1(item);
+      const l2 = zhToolL2(item);
+      const keywords = `${toolTitle(item)} ${item.name} ${l1} ${l2} ${toolDesc(item)}`;
       if (query && !keywords.toLocaleLowerCase().includes(query)) continue;
-      if (!grouped.has(category)) grouped.set(category, []);
-      grouped.get(category)!.push(item);
+      if (!grouped.has(l1)) grouped.set(l1, new Map());
+      const subcategories = grouped.get(l1)!;
+      if (!subcategories.has(l2)) subcategories.set(l2, []);
+      subcategories.get(l2)!.push(item);
     }
-    return [...grouped];
+    const rank = (name: string) => { const i = L1_ORDER.indexOf(name); return i < 0 ? L1_ORDER.length : i; };
+    return [...grouped].map(([name, subcategories]) => ({
+      name,
+      count: [...subcategories.values()].reduce((sum, tools) => sum + tools.length, 0),
+      subcategories: [...subcategories].map(([name, tools]) => ({ name, tools }))
+        .sort((a, b) => a.name.localeCompare(b.name, "zh-CN")),
+    })).sort((a, b) => rank(a.name) - rank(b.name));
   }, [catalog, search]);
   const props = useMemo(() => Object.entries(tool?.parameters.properties ?? {}).map(([name, s]) =>
     [name, s.anyOf?.find(part => part.type !== "null") ?? s] as const), [tool]);
@@ -195,31 +207,47 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
     {loadError && <><p className="chat-notice">工具目录加载失败：{loadError}</p><button type="button" className="icon-btn" onClick={() => void load()}>重试</button></>}
     {!catalog && !loadError && <p className="chat-notice">正在加载工具…</p>}
     {!tool ? <>
-      <div className="toolbox-heading"><h2>地理处理</h2><span>{catalog?.length ?? 0} 个工具</span></div>
+      <div className="toolbox-heading"><h2>地理处理</h2><span>已加载 {catalog?.length ?? 0} 个工具</span></div>
+      {catalog && catalog.length < 900 && <p className="toolbox-health" role="alert">工具目录不完整：仅加载 {catalog.length} 个工具（预期不少于 900 个）。请检查引擎与 WASM 目录。</p>}
       <label className="tool-field toolbox-search"><span className="sr-only">搜索工具</span>
-        <input type="search" aria-label="搜索工具" value={search} onChange={e => setSearch(e.target.value)} placeholder="搜索工具，如 缓冲、裁剪…" /></label>
+        <input type="search" aria-label="搜索工具" value={search} onChange={e => setSearch(e.target.value)} placeholder="搜索工具、类别或子类，如 缓冲、SAR…" /></label>
       <div className="toolbox-groups" aria-label="工具箱">
-        {groups.map(([category, tools]) => {
-          const open = !!search.trim() || !!expanded[category];
-          return <section key={category} className="toolbox-group">
-            <button type="button" className="toolbox-group-header" aria-expanded={open}
-              onClick={() => setExpanded(cur => ({ ...cur, [category]: !open }))}>
-              <span className="toolbox-chevron" aria-hidden="true">{open ? "⌄" : "›"}</span>
+        {groups.map(group => {
+          const openL1 = !!search.trim() || !!expandedL1[group.name];
+          return <section key={group.name} className="toolbox-group">
+            <button type="button" className="toolbox-group-header" aria-expanded={openL1}
+              onClick={() => setExpandedL1(cur => ({ ...cur, [group.name]: !openL1 }))}>
+              <span className="toolbox-chevron" aria-hidden="true">{openL1 ? "⌄" : "›"}</span>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M3 7V5a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Z" /></svg>
-              <span>{category}</span><span className="toolbox-count">{tools.length}</span>
+              <span>{group.name}</span><span className="toolbox-count">{group.count}</span>
             </button>
-            {open && <div className="toolbox-tool-list">{tools.map(item => <button key={item.name} type="button" className="toolbox-tool" disabled={busy}
-              onClick={() => { setToolName(item.name); setValues(selectedLayer ? { layer: selectedLayer.id } : {}); setConfirmed(false); }}>
-              <span className="toolbox-tool-name">{toolTitle(item)}</span>
-              <span className="toolbox-tool-desc">{toolDesc(item)}</span>
-            </button>)}</div>}
+            {openL1 && <div className="toolbox-subgroups">
+              {group.subcategories.map(sub => {
+                const key = `${group.name}\u0000${sub.name}`;
+                const openL2 = !!search.trim() || !!expandedL2[key];
+                return <section key={sub.name} className="toolbox-subgroup">
+                  <button type="button" className="toolbox-subgroup-header" aria-expanded={openL2}
+                    onClick={() => setExpandedL2(cur => ({ ...cur, [key]: !openL2 }))}>
+                    <span className="toolbox-chevron" aria-hidden="true">{openL2 ? "⌄" : "›"}</span>
+                    <span>{sub.name}</span><span className="toolbox-count">{sub.tools.length}</span>
+                  </button>
+                  {openL2 && <div className="toolbox-tool-list">{sub.tools.map(item => <button key={item.name} type="button" className="toolbox-tool" disabled={busy}
+                    onClick={() => { setToolName(item.name); setValues(selectedLayer ? { layer: selectedLayer.id } : {}); setConfirmed(false); }}>
+                    {STUB_TOOLS.has(item.name) && <span className="toolbox-stub-tag">即将接入</span>}
+                    <span className="toolbox-tool-name">{toolTitle(item)}</span>
+                    <span className="toolbox-tool-desc">{toolDesc(item)}</span>
+                  </button>)}</div>}
+                </section>;
+              })}
+            </div>}
           </section>;
         })}
         {catalog && groups.length === 0 && <p className="chat-notice">没有匹配的工具，试试其他关键词。</p>}
       </div>
     </> : <>
-    <nav className="toolbox-breadcrumb" aria-label="工具位置"><button type="button" onClick={() => setToolName("")}>‹ 工具箱</button><span>/ {tool.category ? zhCategory(tool) : "其他工具"}</span></nav>
+    <nav className="toolbox-breadcrumb" aria-label="工具位置"><button type="button" onClick={() => setToolName("")}>‹ 工具箱</button><span>/ {zhToolL1(tool)} · {zhToolL2(tool)}</span></nav>
     <div className="toolbox-heading"><h2>{toolTitle(tool)}</h2></div>
+    {STUB_TOOLS.has(tool.name) && <p className="toolbox-stub" role="status">即将接入：Google Earth Engine 尚未连接，此表单仅用于预览参数。</p>}
     {tool.name.startsWith("wasm_") && <p className="tool-desc">在浏览器本机计算。矢量、栅格和表格图层都可作为输入；栅格结果按波段自动拉伸成图，表格与文件结果在下方下载。距离、面积等参数使用输入数据的坐标系单位。</p>}
     <p className="tool-desc">{toolDesc(tool)}</p>
     <h3 className="toolbox-section-label">参数</h3>
@@ -249,7 +277,7 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
     {tool?.annotations?.destructiveHint && <label className="tool-field tool-check">
       <input type="checkbox" checked={confirmed} disabled={busy} onChange={e => setConfirmed(e.target.checked)} />
       <span>{tool.name === "remove_layer" ? "确认移除此图层及其工作副本" : "确认写入上述路径；勾选覆盖时将替换已有文件"}</span></label>}
-    <button type="submit" className="primary-btn" disabled={!tool || busy || (!!tool.annotations?.destructiveHint && !confirmed)}>运行</button>
+    <button type="submit" className="primary-btn" disabled={!tool || busy || STUB_TOOLS.has(tool.name) || (!!tool.annotations?.destructiveHint && !confirmed)}>{STUB_TOOLS.has(tool.name) ? "即将接入" : "运行"}</button>
     </>}
     {job?.result?.download_url && <a className="primary-btn" href={job.result.download_url} download={job.result.path}>下载 {job.result.path}</a>}
     {Array.isArray(job?.result?.attachments) && job.result.attachments.map((file: { name: string; url: string }, index: number) =>
