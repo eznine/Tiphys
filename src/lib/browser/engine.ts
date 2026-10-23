@@ -302,6 +302,7 @@ const RAW_INPUT_PARAMETERS: Record<string, Set<string>> = {
   // Upstream marks cell_size as raster input; it is a numeric scalar.
   idw_interpolation: new Set(["cell_size"]),
   tin_interpolation: new Set(["cell_size"]),
+  ordinary_kriging: new Set(["cell_size"]),
   // Upstream marks the service-area output mode as a vector output path.
   network_service_area: new Set(["output_mode"]),
 };

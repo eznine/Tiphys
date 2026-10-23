@@ -244,14 +244,17 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_densify_features", "wasm_concave_hull", "wasm_feature_to_line",
     "wasm_expand_shrink", "wasm_clump", "wasm_sieve", "wasm_empirical_bayesian_kriging",
     "wasm_basins", "wasm_snap_pour_points", "wasm_feature_vertices_to_points",
-    "wasm_aggregate_polygons"]) {
+    "wasm_aggregate_polygons", "wasm_opening", "wasm_closing", "wasm_percentile_filter",
+    "wasm_nibble", "wasm_multipart_to_singlepart", "wasm_eliminate_polygon_part",
+    "wasm_aggregate_points", "wasm_symmetrical_difference"]) {
     assert.ok(names.includes(name), `${name} should be exposed in the ribbon`);
   }
   const dock = fs.readFileSync(new URL("../src/components/ChatDock.tsx", import.meta.url), "utf8");
   const recipeTools = [...dock.matchAll(/tool: "(wasm_[^"]+)"/g)].map(match => match[1]);
   for (const name of ["wasm_network_service_area", "wasm_buffer_raster", "wasm_contours_from_raster",
     "wasm_cost_distance", "wasm_raster_to_vector_polygons", "wasm_idw_interpolation",
-    "wasm_line_density", "wasm_concave_hull", "wasm_empirical_bayesian_kriging", "wasm_basins"]) {
+    "wasm_line_density", "wasm_concave_hull", "wasm_empirical_bayesian_kriging", "wasm_basins",
+    "wasm_opening", "wasm_symmetrical_difference"]) {
     assert.ok(recipeTools.includes(name), `${name} should be available as an agent recipe`);
     assert.ok(browserCatalog.some(tool => tool.name === name), `${name} recipe must resolve to a catalog tool`);
   }
@@ -337,6 +340,43 @@ test("morphology, EBK and hydro ribbon forms hide output paths and expose honest
   }
 });
 
+test("filter, cleanup and overlay ribbon forms expose honest executable contracts", async () => {
+  await ensureBrowserCatalog();
+  for (const name of ["wasm_opening", "wasm_closing", "wasm_percentile_filter", "wasm_nibble"]) {
+    const tool = browserCatalog.find(item => item.name === name)!;
+    assert.equal((tool.parameters.properties as any).input["x-layer-kind"], "raster", `${name} input must be raster`);
+    assert.ok(!("output" in tool.parameters.properties), `${name} output path must stay internal`);
+  }
+  for (const name of ["wasm_opening", "wasm_closing", "wasm_percentile_filter"]) {
+    const props = browserCatalog.find(item => item.name === name)!.parameters.properties as any;
+    assert.equal(props.filter_size_x.type, "integer", `${name} window width must be an integer`);
+    assert.equal(props.filter_size_y.type, "integer", `${name} window height must be an integer`);
+  }
+  const nibble = browserCatalog.find(item => item.name === "wasm_nibble")!.parameters.properties as any;
+  assert.equal(nibble.mask["x-layer-kind"], "raster");
+  assert.equal(nibble.use_nodata.type, "boolean");
+  assert.equal(nibble.nibble_nodata.type, "boolean");
+
+  for (const name of ["wasm_multipart_to_singlepart", "wasm_eliminate_polygon_part", "wasm_aggregate_points", "wasm_symmetrical_difference"]) {
+    const tool = browserCatalog.find(item => item.name === name)!;
+    assert.equal((tool.parameters.properties as any).input["x-layer-kind"], "vector", `${name} input must be vector`);
+    assert.ok(!("output" in tool.parameters.properties), `${name} output path must stay internal`);
+  }
+  const eliminate = browserCatalog.find(item => item.name === "wasm_eliminate_polygon_part")!.parameters.properties as any;
+  assert.deepEqual(eliminate.condition.enum, ["AREA", "PERCENT"]);
+  assert.deepEqual(eliminate.part_option.enum, ["CONTAINED_ONLY", "ANY"]);
+  const points = browserCatalog.find(item => item.name === "wasm_aggregate_points")!.parameters.properties as any;
+  assert.deepEqual(points.method.enum, ["convex_hull", "buffer"]);
+  assert.equal(points.method.default, "convex_hull");
+  assert.equal(points.min_points.type, "integer");
+  assert.equal((browserCatalog.find(item => item.name === "wasm_symmetrical_difference")!.parameters.properties as any).overlay["x-layer-kind"], "vector");
+
+  const ordinary = browserCatalog.find(item => item.name === "wasm_ordinary_kriging")!.parameters.properties as any;
+  assert.equal(ordinary.cell_size.type, "number", "ordinary kriging cell size must be numeric");
+  assert.equal(ordinary.value_field.type, "string", "ordinary kriging value field must be a field picker");
+  assert.ok(!("output" in ordinary), "ordinary kriging output path must stay internal");
+});
+
 test("new raster ribbon forms expose executable multi-input contracts", async () => {
   await ensureBrowserCatalog();
   const pathway = browserCatalog.find(tool => tool.name === "wasm_cost_pathway")!;
@@ -381,6 +421,13 @@ test("Chinese GIS aliases rank conversion, interpolation and service-area tools"
   assert.equal(searchBrowserTools(browserCatalog, "集水区", { limit: 3 })[0]?.name, "wasm_basins");
   assert.equal(searchBrowserTools(browserCatalog, "捕捉倒口", { limit: 3 })[0]?.name, "wasm_snap_pour_points");
   assert.equal(searchBrowserTools(browserCatalog, "要素转点", { limit: 3 })[0]?.name, "wasm_feature_vertices_to_points");
+  for (const [query, expected] of [["开运算", "wasm_opening"], ["闭运算", "wasm_closing"],
+    ["对称差", "wasm_symmetrical_difference"], ["多部件", "wasm_multipart_to_singlepart"],
+    ["消除碎面", "wasm_eliminate_polygon_part"], ["点聚合", "wasm_aggregate_points"],
+    ["普通克里金", "wasm_ordinary_kriging"], ["百分位滤波", "wasm_percentile_filter"],
+    ["邻域填充", "wasm_nibble"]]) {
+    assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
+  }
 });
 
 test("geometry densify, centroid and line density tools publish real result layers", async () => {
@@ -480,6 +527,83 @@ test("morphology and vector cleanup ribbon tools publish displayed result layers
   const aggregatedLayer = aggregated.layer ?? aggregated.layers?.[0]?.layer;
   assert.ok(aggregatedLayer.feature_count >= 1, "aggregate polygons must return a vector layer");
   assert.ok(aggregatedLayer.geometry_types.every((type: string) => type === "Polygon" || type === "MultiPolygon"));
+});
+
+test("nibble, overlay, multipart cleanup and point aggregation publish displayed layers", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const cell = 100, rasterFeatures: any[] = [];
+  for (let row = 0; row < 5; row++) for (let col = 0; col < 5; col++) {
+    const x = 500000 + col * cell, y = 4400000 + row * cell;
+    rasterFeatures.push({ type: "Feature", properties: { value: (row + col) % 2 + 1, mask: row === 2 && col === 2 ? 0 : 1 },
+      geometry: { type: "Polygon", coordinates: [[[x, y], [x + cell, y], [x + cell, y + cell], [x, y + cell], [x, y]]] } });
+  }
+  const grid = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: rasterFeatures })]), "nibble_grid.geojson")).layer;
+  const classes = (await finished("wasm_vector_polygons_to_raster", { input: grid.id, field: "value", cell_size: cell, output_name: "nibble_classes" })).layer;
+  const mask = (await finished("wasm_vector_polygons_to_raster", { input: grid.id, field: "mask", cell_size: cell, output_name: "nibble_mask" })).layer;
+  const nibbled = await finished("wasm_nibble", { input: classes.id, mask: mask.id, use_nodata: false, nibble_nodata: true, output_name: "nibble_filled" });
+  const nibbledLayer = nibbled.layer ?? nibbled.layers?.[0]?.layer;
+  assert.equal(nibbledLayer.kind, "raster", "nibble must publish a raster layer");
+  assert.equal(nibbledLayer.raster?.width, classes.raster?.width);
+  assert.equal(nibbled.attachments, undefined);
+
+  const ring = (x: number, y: number, size: number) => [[x, y], [x + size, y], [x + size, y + size], [x, y + size], [x, y]];
+  const overlayA = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [
+    { type: "Feature", properties: { id: "a" }, geometry: { type: "Polygon", coordinates: [ring(500000, 4400000, 200)] } },
+  ] })]), "symmetrical_a.geojson")).layer;
+  const overlayB = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [
+    { type: "Feature", properties: { id: "b" }, geometry: { type: "Polygon", coordinates: [ring(500100, 4400000, 200)] } },
+  ] })]), "symmetrical_b.geojson")).layer;
+  const exclusive = await finished("wasm_symmetrical_difference", {
+    input: overlayA.id, overlay: overlayB.id, snap_tolerance: 0.000001, output_name: "exclusive_overlay",
+  });
+  const exclusiveLayer = exclusive.layer ?? exclusive.layers?.[0]?.layer;
+  assert.ok(exclusiveLayer.feature_count >= 1, "symmetrical difference must return a vector layer");
+  assert.ok(exclusiveLayer.geometry_types.every((type: string) => type === "Polygon" || type === "MultiPolygon"));
+
+  const multipart = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [{
+    type: "Feature", properties: { id: 1 }, geometry: { type: "MultiPolygon", coordinates: [
+      [ring(500000, 4400000, 100)], [ring(500500, 4400000, 10)],
+    ] },
+  }] })]), "multipart_parts.geojson")).layer;
+  const singlepart = await finished("wasm_multipart_to_singlepart", { input: multipart.id, exclude_holes: false, output_name: "single_parts" });
+  const singlepartLayer = singlepart.layer ?? singlepart.layers?.[0]?.layer;
+  assert.ok(singlepartLayer.feature_count > multipart.feature_count, "multipart conversion must split a feature into singleparts");
+  assert.ok(singlepartLayer.geometry_types.every((type: string) => type === "Polygon" || type === "MultiPolygon"));
+  const eliminated = await finished("wasm_eliminate_polygon_part", {
+    input: multipart.id, condition: "AREA", min_area: 500, part_option: "ANY", output_name: "large_parts_only",
+  });
+  const eliminatedLayer = eliminated.layer ?? eliminated.layers?.[0]?.layer;
+  assert.ok(eliminatedLayer.feature_count >= 1, "eliminate polygon part must return a vector layer");
+  assert.ok(eliminatedLayer.geometry_types.every((type: string) => type === "Polygon" || type === "MultiPolygon"));
+
+  const pointFeatures = [
+    [500000, 4400000, 1], [500100, 4400000, 2], [500000, 4400100, 3],
+    [500500, 4400000, 4], [500600, 4400000, 5], [500500, 4400100, 6],
+  ].map(([x, y, value]) => ({ type: "Feature", properties: { value }, geometry: { type: "Point", coordinates: [x, y] } }));
+  const points = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: pointFeatures })]), "aggregate_points.geojson")).layer;
+  const aggregates = await finished("wasm_aggregate_points", {
+    input: points.id, aggregation_distance: 200, min_points: 2, method: "convex_hull", sum_fields: "value", output_name: "point_clusters",
+  });
+  const aggregateLayer = aggregates.layer ?? aggregates.layers?.[0]?.layer;
+  assert.ok(aggregateLayer.feature_count >= 1, "aggregate points must return cluster polygons");
+  assert.ok(aggregateLayer.geometry_types.every((type: string) => type === "Polygon" || type === "MultiPolygon"));
+});
+
+test("ordinary kriging runs from an honest numeric cell-size form", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const features: any[] = [];
+  for (let row = 0; row < 4; row++) for (let col = 0; col < 4; col++) {
+    features.push({ type: "Feature", properties: { z: 100 + row * 4 + col * 2 },
+      geometry: { type: "Point", coordinates: [500000 + col * 500, 4400000 + row * 500] } });
+  }
+  const points = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features })]), "ordinary_kriging_points.geojson")).layer;
+  const result = await finished("wasm_ordinary_kriging", {
+    points: points.id, value_field: "z", cell_size: 500, output_name: "ordinary_kriging_surface",
+  });
+  const layer = result.layer ?? result.layers?.[0]?.layer;
+  assert.equal(layer.kind, "raster", "ordinary kriging must publish a raster layer");
+  assert.ok(layer.raster?.width > 1 && layer.raster?.height > 1);
+  assert.equal(result.attachments, undefined);
 });
 
 test("empirical Bayesian kriging publishes both prediction and error rasters", async () => {

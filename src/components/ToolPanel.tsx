@@ -20,7 +20,7 @@ type PanelJob = {
   message: string; result?: Record<string, any>; error?: string;
 };
 const SKIP = new Set(["ping", "list_layers", "job_status", "job_cancel"]);
-const FIELD_PARAMS = new Set(["field", "by_field", "field_name", "weight_field"]);
+const FIELD_PARAMS = new Set(["field", "by_field", "field_name", "weight_field", "value_field"]);
 const L1_ORDER = ["矢量", "栅格", "地形", "水文", "遥感", "转换", "投影", "激光雷达", "数据管理", "查询", "图层", "GEE", "扩展", "其他工具"];
 const ACTIVE = new Set(["submitting", "queued", "running", "cancelling"]);
 const LABELS: Record<string, string> = {
@@ -63,7 +63,7 @@ const FIELDS: Record<string, string> = {
   layer: "输入图层", mask_layer: "掩膜图层", other_layer: "叠加图层", filter_layer: "筛选图层", join_layer: "连接图层",
   path: "文件路径", name: "图层名称", source_crs: "源坐标系（源数据未定义时必填）",
   distance: "距离", units: "单位", dissolve: "融合缓冲区", output_name: "输出图层名称",
-  by_field: "融合字段（留空则全部融合）", tolerance: "容差", field: "字段", op: "比较方式",
+  by_field: "融合字段（留空则全部融合）", tolerance: "容差", field: "字段", value_field: "数值字段", op: "比较方式",
   value: "比较值", predicate: "空间关系", target_crs: "目标坐标系", fmt: "格式", overwrite: "覆盖已有文件",
   color: "颜色（#RRGGBB）", opacity: "不透明度（0–1）", point_size: "点半径（像素）", line_width: "线宽（像素）", size: "文字大小（像素）",
   keep_fields: "保留连接字段", format_group: "格式类别", resistance: "阻力栅格",

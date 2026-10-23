@@ -27,6 +27,7 @@ const WASM_SCALAR_INPUT_OVERRIDES = new Set([
   "idw_interpolation.cell_size",
   "tin_interpolation.cell_size",
   "empirical_bayesian_kriging.cell_size",
+  "ordinary_kriging.cell_size",
 ]);
 
 export function isWasmInputParam(toolId: string, param: { name: string; io_role?: string; description?: string }): boolean {
@@ -65,6 +66,36 @@ const WASM_SCHEMA_OVERRIDES: Record<string, Record<string, CatalogSchema>> = {
     cell_size: { type: "number", description: "输出像元大小，单位与输入点图层坐标系一致；留空时按约 150 格自动确定。" },
     subset_size: { type: "integer", default: 40, description: "每个局部子集的目标点数，最少 4。" },
     simulations: { type: "integer", default: 5, description: "每个子集模拟的半变异函数数量（最多 50）。" },
+  },
+  ordinary_kriging: {
+    cell_size: { type: "number", default: 1, description: "输出像元大小，单位与输入点图层坐标系一致；也可选择基准栅格。" },
+    value_field: { type: "string", description: "用于插值的数值字段。" },
+  },
+  opening: {
+    filter_size_x: { type: "integer", default: 11, description: "结构元素宽度（奇数像元）。" },
+    filter_size_y: { type: "integer", default: 11, description: "结构元素高度（奇数像元）。" },
+  },
+  closing: {
+    filter_size_x: { type: "integer", default: 11, description: "结构元素宽度（奇数像元）。" },
+    filter_size_y: { type: "integer", default: 11, description: "结构元素高度（奇数像元）。" },
+  },
+  percentile_filter: {
+    filter_size_x: { type: "integer", default: 11, description: "移动窗口宽度（奇数像元）。" },
+    filter_size_y: { type: "integer", default: 11, description: "移动窗口高度（奇数像元）。" },
+    sig_digits: { type: "integer", default: 2, description: "分位排名量化使用的有效数字位数。" },
+  },
+  nibble: {
+    use_nodata: { type: "boolean", default: false, description: "是否把输入 NoData 也视为一个类别值。" },
+    nibble_nodata: { type: "boolean", default: true, description: "是否同时填充掩膜之外的无数据区域。" },
+  },
+  eliminate_polygon_part: {
+    condition: { type: "string", enum: ["AREA", "PERCENT"], default: "AREA", description: "碎面/孔洞阈值方式。" },
+    part_option: { type: "string", enum: ["CONTAINED_ONLY", "ANY"], default: "CONTAINED_ONLY",
+      description: "CONTAINED_ONLY 仅移除孔洞；ANY 还会移除除最大面外的小外环部件。" },
+  },
+  aggregate_points: {
+    min_points: { type: "integer", default: 2, description: "输出簇所需的最少点数；设为 1 可保留单点。" },
+    method: { type: "string", enum: ["convex_hull", "buffer"], default: "convex_hull", description: "簇面生成方式。" },
   },
   merge_vectors: {
     inputs: { type: "array", "x-layer": true, "x-layer-kind": "vector", "x-layer-multiple": true,

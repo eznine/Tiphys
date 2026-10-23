@@ -171,3 +171,13 @@
 - 2026-10-24 05:50 Asia/Shanghai — Overnight supervisor: batch14 exited (sandbox blocked commit). Re-verified `npm run test:browser` 45/45 + `npx tsc --noEmit`. Committing+pushing as `P3/P4: morphology/EBK/hydro densify, agent recipes`, then starting batch15.
 
 - 2026-10-24 05:51 Asia/Shanghai — Batch14 pushed as `e5877d1` (45/45). Launching batch15 tf-codex (morphology opening/closing, vector overlay extras, filters, agent recipes).
+
+- 2026-10-24 05:56 Asia/Shanghai — Batch15 implemented and verified on the Linux box:
+  - Ribbon: added eight catalog-backed analysis actions — 开运算, 闭运算, 百分位滤波, 邻域填充, 多部件转单部件, 消除碎面, 点聚合, 对称差. All open hydrated forms; 栅格清理/形态学 groups were rebalanced instead of left as dead or duplicate buttons.
+  - Contracts: `nibble.use_nodata` / `nibble_nodata` are now booleans, morphology/percentile window sizes and `aggregate_points.min_points` are integers, and `ordinary_kriging.cell_size` is a numeric scalar with `value_field` wired to the field picker. Opening/closing/percentile output paths stay internal and publish raster layers. No output-kind override was needed for the newly exposed vector tools.
+  - Executions covered: nibble from a real input+mask raster pair, symmetrical difference from two distinct polygon layers, multipart-to-singlepart splitting, eliminate-polygon-part with `ANY`, point aggregation with summed fields, and ordinary kriging from a numeric cell size. Opening, closing and percentile remain covered by their existing real raster executions.
+  - Agent: added restrained 开运算 and 对称差 recipe cards that only open forms. Chinese aliases now rank 开运算, 闭运算, 对称差, 多部件, 消除碎面, 点聚合, 普通克里金, 百分位滤波 and 邻域填充 to their intended tools. Recovery/compaction remains state-only.
+  - Perf/beauty: no risky perf refactor (no obvious remaining hot path); existing recipe/empty/job states already use restrained blue-family styling, so no CSS churn was added. No teal or mythology.
+  - Verification: 48/48 browser tests passed (`npm run test:browser`), `npx tsc --noEmit` passed, `npm run build` passed. `dist/` remains ~36 MB with unchanged payload shape (app 1.92 MB, lazy catalog 1.95 MB, CLI WASM 24.11 MB), so no deploy-doc size change and no live deploy. GEE remains docs/demo only; no credentials read or created. No Python changes.
+
+- 2026-10-24 05:58 Asia/Shanghai — Batch15 is stable and fully verified, but this sandbox cannot write `.git` (`index.lock: Read-only file system`). Patch saved at `/tmp/tiphys-batch15-overlay-filter.patch`; verification at `/tmp/tiphys-batch15-verification.txt`; commit message at `/tmp/tiphys-batch15-commit-message.txt`. Supervisor should apply, commit and push with `P3/P4: overlay/filter densify, agent recipes`. No deploy.
