@@ -834,3 +834,42 @@ textarea {
 .approval-card { border-color: #f5a623; }
 .approval-actions { display: flex; gap: 8px; }
 .chat-notice { font-size: 12px; color: var(--tiphys-text-muted); text-align: center; padding: 2px 8px; }
+
+/* Restrained empty states */
+.toolbox-empty { display: grid; justify-items: start; gap: 6px; margin-top: 8px; padding: 16px; border: 1px dashed var(--tiphys-border); border-radius: var(--tiphys-radius-sm); background: var(--tiphys-bg); color: var(--tiphys-text-secondary); font-size: 12px; line-height: 1.6; }
+.toolbox-empty strong { color: var(--tiphys-text); font-size: 13px; font-weight: 500; }
+.toolbox-empty .icon-btn { margin-top: 3px; height: 28px; font-size: 11px; }
+.map-empty-state { position: absolute; z-index: 5; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(320px, calc(100% - 40px)); display: grid; justify-items: center; gap: 8px; padding: 18px 20px; border: 1px solid color-mix(in srgb, var(--tiphys-border) 85%, transparent); border-radius: var(--tiphys-radius); background: color-mix(in srgb, var(--tiphys-surface) 94%, transparent); color: var(--tiphys-text-secondary); text-align: center; box-shadow: 0 8px 30px color-mix(in srgb, var(--tiphys-text) 10%, transparent); backdrop-filter: blur(8px); font-size: 12px; line-height: 1.6; }
+.map-empty-state strong { color: var(--tiphys-text); font-size: 14px; font-weight: 500; }
+.map-empty-state .primary-btn { height: 32px; margin-top: 3px; padding: 0 14px; font-size: 12px; }
+.map-empty-icon { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid color-mix(in srgb, var(--tiphys-accent) 25%, var(--tiphys-border)); border-radius: 10px; color: var(--tiphys-accent); background: var(--tiphys-accent-muted); }
+
+/* Selection and AOI share one quiet bottom-right stack. */
+.map-status-stack { position: absolute; z-index: 16; right: 12px; bottom: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.selection-hud { position: static; }
+.aoi-hud { display: flex; align-items: center; gap: 7px; max-width: min(430px, calc(100vw - 36px)); padding: 6px 7px 6px 9px; border: 1px solid color-mix(in srgb, var(--tiphys-accent) 28%, var(--tiphys-border)); border-radius: 7px; background: color-mix(in srgb, var(--tiphys-surface-elevated) 94%, transparent); color: var(--tiphys-text-secondary); box-shadow: 0 3px 12px color-mix(in srgb, var(--tiphys-text) 9%, transparent); font-size: 11px; backdrop-filter: blur(8px); }
+.aoi-hud-label { color: var(--tiphys-accent); font-size: 10px; font-weight: 700; letter-spacing: .04em; }
+.aoi-hud code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--tiphys-font-mono); font-size: 10px; color: var(--tiphys-text-secondary); }
+.aoi-hud button { display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0; padding: 3px 6px; border: 1px solid var(--tiphys-border); border-radius: 5px; background: transparent; color: var(--tiphys-text-secondary); font: inherit; cursor: pointer; }
+.aoi-hud button:hover { color: var(--tiphys-accent); border-color: color-mix(in srgb, var(--tiphys-accent) 45%, var(--tiphys-border)); }
+
+/* Denser but clean chat dock */
+.chat-messages { padding: 12px; gap: 9px; }
+.chat-bubble { max-width: 94%; padding: 9px 11px; }
+.agent-welcome { margin: auto 0; padding: 22px 9px; max-width: 310px; line-height: 1.7; }
+.agent-welcome h2 { margin: 0 0 9px; font-size: 18px; letter-spacing: -.25px; }
+.chat-suggestions { padding: 0 12px 9px; }
+.chat-dock-header > p { padding: 5px 12px 7px; }
+.composer-wrap { margin: 0 12px 9px; }
+.chat-composer textarea { min-height: 76px; }
+
+/* Long-job card: status, percent and cancel remain obvious */
+.job-card { gap: 7px; padding: 10px 11px; background: color-mix(in srgb, var(--tiphys-bg) 55%, var(--tiphys-surface)); }
+.job-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.job-title strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--tiphys-text); font-weight: 500; }
+.job-state { flex-shrink: 0; padding: 1px 6px; border-radius: 999px; background: var(--tiphys-accent-muted); color: var(--tiphys-accent); font-size: 9px; font-weight: 600; }
+.job-state[data-status="failed"], .job-state[data-status="cancelled"], .job-state[data-status="interrupted"] { background: color-mix(in srgb, #e5484d 12%, transparent); color: #c93b40; }
+.job-percent { flex-shrink: 0; color: var(--tiphys-text); font-family: var(--tiphys-font-mono); font-size: 11px; }
+.job-message { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.job-cancel { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; padding: 3px 7px; border: 1px solid var(--tiphys-border); border-radius: 5px; background: var(--tiphys-surface); color: var(--tiphys-text-secondary); font: inherit; font-size: 10px; cursor: pointer; }
+.job-cancel:hover { color: #c93b40; border-color: color-mix(in srgb, #e5484d 40%, var(--tiphys-border)); }

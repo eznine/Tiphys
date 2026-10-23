@@ -4,7 +4,7 @@ import {
   CircleDot, Wrench, MessageSquareText, Logs, Settings2, SunMoon, Layers,
   PanelBottom, FolderInput, FileOutput, RefreshCw, Eraser, Hexagon, Ruler,
   Download, Satellite, SlidersHorizontal, Cloud, KeyRound, Search, ListChecks,
-  Mountain, Waves, Sparkles, type LucideIcon,
+  Mountain, Waves, Sparkles, Network, Route, Layers3, type LucideIcon,
 } from "lucide-react";
 
 type Props = { hasLayer: boolean; onAdd: () => void; onZoomAll: () => void; onZoomLayer: () => void; onTable: () => void;
@@ -40,6 +40,8 @@ export function CommandRibbon(props: Props) {
         <div className="ribbon-group"><div>{command("空间连接", Combine, () => props.onTool("spatial_join"), !props.hasLayer)}{command("按位置选择", Focus, () => props.onTool("select_by_location"), !props.hasLayer)}</div><small>空间关联</small></div>
         <div className="ribbon-group"><div>{command("凸包", Hexagon, () => props.onTool("convex_hull"))}{command("简化", SlidersHorizontal, () => props.onTool("simplify"))}{command("面积长度", Ruler, () => props.onTool("calculate_geometry"))}</div><small>几何处理</small></div>
         <div className="ribbon-group"><div>{command("按属性选择", ListFilter, () => props.onTool("select_by_attributes"))}{command("字段统计", Download, () => props.onTool("field_statistics"))}</div><small>查询与统计</small></div>
+        <div className="ribbon-group"><div>{command("加权叠加", Layers3, () => props.onTool("wasm_weighted_overlay"), !props.hasLayer)}{command("加权总和", Layers3, () => props.onTool("wasm_weighted_sum"), !props.hasLayer)}</div><small>栅格叠加</small></div>
+        <div className="ribbon-group"><div>{command("网络拓扑", Network, () => props.onTool("wasm_build_network_topology"), !props.hasLayer)}{command("最近设施", Route, () => props.onTool("wasm_closest_facility_network"), !props.hasLayer)}</div><small>网络分析</small></div>
         <div className="ribbon-group"><div>{command("坡度", Mountain, () => props.onTool("wasm_slope"))}{command("山体阴影", SunMoon, () => props.onTool("wasm_hillshade"))}{command("流域", Waves, () => props.onTool("wasm_watershed"))}{command("河网提取", Waves, () => props.onTool("wasm_extract_streams"))}</div><small>地形 / 水文</small></div>
       </>}
       {tab === "rs" && <>

@@ -10,6 +10,9 @@ import { readRecord, writeRecord } from "../src/lib/browser/storage.ts";
 import { metricCrs } from "../src/lib/browser/geometry.ts";
 import { desktopToolCatalog } from "../src/lib/browser/catalog-schema.ts";
 import { zhToolL1, zhToolL2 } from "../src/lib/i18n/tools.ts";
+import { searchBrowserTools } from "../src/lib/browser/search.ts";
+import { compactBrowserMessages, estimateBrowserTokens, readBrowserContextRecord } from "../src/lib/browser/context.ts";
+import type { ModelMessage } from "ai";
 
 before(async () => {
   await initTools(fs.readFileSync(new URL("../node_modules/geolibre-wasm/geolibre-cli.wasm", import.meta.url)));
@@ -278,4 +281,53 @@ test("catalog union, dedupe, L1 folders and every WASM L2 translation", () => {
   for (const raw of new Set(wasm.map(t => t.subcategory!).filter(Boolean))) {
     assert.notEqual(zhToolL2({ category: "Raster", subcategory: raw }), raw, `${raw} needs a Chinese L2 label`);
   }
+});
+
+test("browser tool search ranks Chinese names and taxonomy, not only descriptions", () => {
+  const weighted = searchBrowserTools(browserCatalog, "加权叠加");
+  assert.equal(weighted[0]?.name, "wasm_weighted_overlay");
+  const nearest = searchBrowserTools(browserCatalog, "最近设施");
+  assert.equal(nearest[0]?.name, "wasm_closest_facility_network");
+  const network = searchBrowserTools(browserCatalog, "网络分析", { limit: 12 });
+  assert.ok(network.some(t => t.name === "wasm_build_network_topology"));
+  assert.ok(network.some(t => t.name === "wasm_closest_facility_network"));
+  const rasterOverlay = searchBrowserTools(browserCatalog, "栅格 叠加", { limit: 12 });
+  assert.ok(rasterOverlay.some(t => t.name === "wasm_weighted_overlay"));
+});
+
+test("browser context trims old tool output, then compacts with GIS state and a retrievable archive", async () => {
+  const huge = "旧工具输出 ".repeat(7000);
+  const messages: ModelMessage[] = [
+    { role: "user", content: "先加载数据并检查字段。" },
+    { role: "assistant", content: "已检查字段，接下来做网络分析。" },
+    { role: "tool", content: [{ type: "tool-result", toolCallId: "call-1", toolName: "describe_layer", output: { type: "text", value: huge } }] },
+    { role: "user", content: "继续。" },
+  ];
+  const trimOnly = await compactBrowserMessages(messages, "system", 50000, { layers: [] }, "trim-test", 200);
+  assert.equal(trimOnly.trimmed, true);
+  assert.equal(trimOnly.compacted, false);
+  assert.ok(trimOnly.after < trimOnly.before);
+  const trimmedOutput = (trimOnly.messages[2].content as any[])[0].output.value as string;
+  assert.match(trimmedOutput, /"spill_id":"[a-f0-9]{32}"/);
+  const spillId = JSON.parse(trimmedOutput).spill_id as string;
+  const spill = await readBrowserContextRecord("trim-test", spillId, 0, 80);
+  assert.equal(spill.kind, "tool-output");
+  assert.match(spill.text, /旧工具输出/);
+
+  const workspace = { layers: [{ id: "lyr_1", name: "道路", crs: "EPSG:4326", feature_count: 12, geometry_types: ["LineString"], bounds: [1, 2, 3, 4] }] };
+  const longSession: ModelMessage[] = Array.from({ length: 10 }, (_, index) => ({
+    role: index % 2 ? "assistant" : "user",
+    content: `第 ${index} 轮决策：保留道路图层，检查网络连通性，准备加权叠加。`.repeat(60),
+  }));
+  const compacted = await compactBrowserMessages(longSession, "system", 12000, workspace, "compact-test", 200);
+  assert.equal(compacted.compacted, true);
+  assert.ok(compacted.after < estimateBrowserTokens(longSession, "system"));
+  const handoff = String((compacted.messages[0] as { content: unknown }).content);
+  assert.match(handoff, /GIS workspace state/);
+  assert.match(handoff, /道路/);
+  const archiveId = /read_browser_output with id=([a-f0-9]{32})/.exec(handoff)?.[1];
+  assert.ok(archiveId);
+  const archive = await readBrowserContextRecord("compact-test", archiveId, 0, 120);
+  assert.equal(archive.kind, "message-archive");
+  assert.match(archive.text, /轮决策/);
 });

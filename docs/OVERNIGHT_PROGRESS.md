@@ -29,3 +29,7 @@
   - Next P2: agent memory/recovery, real LinkageMapper corridor model, optional FileGDB/GDAL adapter, real GEE auth, restrained beauty pass on empty states and symbology defaults.
 
 - 2026-10-24 02:24 Asia/Shanghai — P1 committed+pushed as `db655aa` (batch02 had left tree dirty; verified 16/16 browser tests + tsc, then committed).
+
+- 2026-10-24 02:24 Asia/Shanghai — Starting batch03 P2/P4 (agent search/progress, beauty polish, AOI stub, runtime docs).
+
+- 2026-10-24 — P2/P4 implemented: ranked `search_browser_tools` with Chinese/category boosts; browser Agent memory injection and two-stage context trim/compaction with IndexedDB spill and `read_browser_output`; clearer job percent/cancel cards; restrained empty states and blue-family layer defaults; AOI rectangle stored in App state with map chip; weighted overlay and network tools surfaced on the analysis ribbon; runtime parity notes added. Verified 18/18 browser tests, `tsc --noEmit`, and production build.

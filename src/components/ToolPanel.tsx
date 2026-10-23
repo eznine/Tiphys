@@ -246,7 +246,11 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
             </div>}
           </section>;
         })}
-        {catalog && groups.length === 0 && <p className="chat-notice">没有匹配的工具，试试其他关键词。</p>}
+        {catalog && groups.length === 0 && <div className="toolbox-empty" role="status">
+          <strong>没有匹配的工具</strong>
+          <span>试试“缓冲”“网络分析”或“加权叠加”。</span>
+          <button type="button" className="icon-btn" onClick={() => setSearch("")}>清除搜索</button>
+        </div>}
       </div>
     </> : <>
     <nav className="toolbox-breadcrumb" aria-label="工具位置"><button type="button" onClick={() => setToolName("")}>‹ 工具箱</button><span>/ {zhToolL1(tool)} · {zhToolL2(tool)}</span></nav>

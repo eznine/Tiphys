@@ -23,6 +23,8 @@ type Props = {
   onStatus?: (status: { lng: number; lat: number; zoom: number }) => void;
   selection?: LayerSelection | null;
   onSelect?: (selection: LayerSelection | null, additive: boolean) => void;
+  aoi?: number[] | null;
+  onAoiChange?: (bounds: number[] | null) => void;
 };
 
 const TERRAIN_SRC = "tiphys-terrain-dem";
@@ -55,7 +57,38 @@ function setBuildingsVisible(map: Map, on: boolean) {
   map.setLayoutProperty("building-3d", "visibility", on ? "visible" : "none");
 }
 
-export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus, selection = null, onSelect }: Props) {
+const AOI_SOURCE = "tiphys-aoi";
+
+function renderAoi(map: Map, bounds: number[] | null) {
+  const valid = bounds?.length === 4 && bounds.every(Number.isFinite) && bounds[0] !== bounds[2] && bounds[1] !== bounds[3];
+  const data = valid ? {
+    type: "FeatureCollection" as const,
+    features: [{
+      type: "Feature" as const,
+      properties: {},
+      geometry: { type: "Polygon" as const, coordinates: [[[bounds[0], bounds[1]], [bounds[2], bounds[1]], [bounds[2], bounds[3]], [bounds[0], bounds[3]], [bounds[0], bounds[1]]]] },
+    }],
+  } : null;
+  const source = map.getSource(AOI_SOURCE) as maplibregl.GeoJSONSource | undefined;
+  if (!data) {
+    if (map.getLayer(`${AOI_SOURCE}-fill`)) map.removeLayer(`${AOI_SOURCE}-fill`);
+    if (map.getLayer(`${AOI_SOURCE}-line`)) map.removeLayer(`${AOI_SOURCE}-line`);
+    if (source) map.removeSource(AOI_SOURCE);
+    return;
+  }
+  if (source) source.setData(data);
+  else map.addSource(AOI_SOURCE, { type: "geojson", data });
+  if (!map.getLayer(`${AOI_SOURCE}-fill`)) map.addLayer({ id: `${AOI_SOURCE}-fill`, type: "fill", source: AOI_SOURCE,
+    paint: { "fill-color": "#2563eb", "fill-opacity": 0.1 } });
+  if (!map.getLayer(`${AOI_SOURCE}-line`)) map.addLayer({ id: `${AOI_SOURCE}-line`, type: "line", source: AOI_SOURCE,
+    paint: { "line-color": "#2563eb", "line-width": 1.5, "line-dasharray": [4, 3] } });
+}
+
+function boundsFromPoints(a: maplibregl.LngLat, b: maplibregl.LngLat): number[] {
+  return [Math.min(a.lng, b.lng), Math.min(a.lat, b.lat), Math.max(a.lng, b.lng), Math.max(a.lat, b.lat)];
+}
+
+export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus, selection = null, onSelect, aoi = null, onAoiChange }: Props) {
   const dataLayersRef = useRef(dataLayers);
   dataLayersRef.current = dataLayers;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -67,6 +100,11 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   selectionRef.current = selection;
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
+  const aoiRef = useRef(aoi);
+  aoiRef.current = aoi;
+  const onAoiChangeRef = useRef(onAoiChange);
+  onAoiChangeRef.current = onAoiChange;
+  const drawingAoiRef = useRef(false);
   const appliedSelection = useRef<LayerSelection | null>(null);
 
   const [basemapId, setBasemapId] = useState<BasemapId>("liberty");
@@ -74,6 +112,10 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   const [terrain, setTerrain] = useState(false);
   const [buildings, setBuildings] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [drawingAoi, setDrawingAoi] = useState(false);
+  const [draftAoi, setDraftAoi] = useState<number[] | null>(null);
+  const draftAoiRef = useRef<number[] | null>(null);
+  drawingAoiRef.current = drawingAoi;
 
   const themeRef = useRef(theme);
   themeRef.current = theme;
@@ -106,6 +148,7 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
       map.setTerrain(null);
     }
     setBuildingsVisible(map, buildingsRef.current);
+    renderAoi(map, draftAoiRef.current ?? aoiRef.current);
   }
 
   function loadBasemap(map: Map, id: BasemapId) {
@@ -142,6 +185,7 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
     map.on("mousemove", e => statusRef.current?.({ lng: e.lngLat.wrap().lng, lat: e.lngLat.lat, zoom: map.getZoom() }));
     map.on("moveend", () => { const center = map.getCenter().wrap(); statusRef.current?.({ lng: center.lng, lat: center.lat, zoom: map.getZoom() }); });
     map.on("click", event => {
+      if (drawingAoiRef.current) return;
       const hit = map.queryRenderedFeatures(event.point)
         .find(feature => String((feature as { source?: string }).source ?? "").startsWith("tiphys-lyr_") && feature.id != null);
       if (!hit) { onSelectRef.current?.(null, event.originalEvent.shiftKey || event.originalEvent.metaKey || event.originalEvent.ctrlKey); return; }
@@ -236,6 +280,62 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    const apply = () => renderAoi(map, draftAoi ?? aoi);
+    if (map.isStyleLoaded()) apply();
+    else map.once("idle", apply);
+  }, [aoi, draftAoi]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!drawingAoi) {
+      map.dragPan.enable();
+      map.getCanvas().style.cursor = "";
+      return;
+    }
+    map.dragPan.disable();
+    map.getCanvas().style.cursor = "crosshair";
+    let start: maplibregl.LngLat | null = null;
+    const down = (event: maplibregl.MapMouseEvent) => {
+      event.originalEvent.preventDefault();
+      start = event.lngLat;
+      const bounds = boundsFromPoints(start, start);
+      draftAoiRef.current = bounds;
+      setDraftAoi(bounds);
+    };
+    const move = (event: maplibregl.MapMouseEvent) => {
+      if (!start) return;
+      const bounds = boundsFromPoints(start, event.lngLat);
+      draftAoiRef.current = bounds;
+      setDraftAoi(bounds);
+    };
+    const up = () => {
+      if (!start) return;
+      const bounds = draftAoiRef.current;
+      start = null;
+      setDrawingAoi(false);
+      if (bounds && Math.abs(bounds[2] - bounds[0]) > 0.00001 && Math.abs(bounds[3] - bounds[1]) > 0.00001) onAoiChangeRef.current?.(bounds);
+      else { draftAoiRef.current = null; setDraftAoi(null); }
+    };
+    map.on("mousedown", down);
+    map.on("mousemove", move);
+    map.on("mouseup", up);
+    return () => {
+      map.off("mousedown", down);
+      map.off("mousemove", move);
+      map.off("mouseup", up);
+      map.dragPan.enable();
+      map.getCanvas().style.cursor = "";
+    };
+  }, [drawingAoi]);
+
+  useEffect(() => {
+    if (aoi) { draftAoiRef.current = null; setDraftAoi(null); }
+  }, [aoi]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
     const apply = () => {
       const previous = appliedSelection.current;
       if (previous) {
@@ -266,6 +366,18 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
     <div className="map-canvas-wrap">
       <div className="maplibre-map" ref={containerRef} />
       <div className="map-controls" aria-label="Map controls">
+        <div className="map-ctrl-group">
+          <button
+            type="button"
+            className="map-ctrl-btn"
+            data-active={drawingAoi}
+            onClick={() => setDrawingAoi(value => !value)}
+            aria-pressed={drawingAoi}
+            title="在地图上拖动绘制矩形 AOI"
+          >
+            {drawingAoi ? "绘制中…" : "AOI"}
+          </button>
+        </div>
         <div className="map-ctrl-group">
           <button
             type="button"

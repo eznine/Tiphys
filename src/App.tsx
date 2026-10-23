@@ -47,6 +47,7 @@ export default function App() {
   const [focus, setFocus] = useState<number[] | null>(null);
   const [tableId, setTableId] = useState<string | null>(null);
   const [selection, setSelection] = useState<LayerSelection | null>(null);
+  const [aoi, setAoi] = useState<number[] | null>(null);
   const [properties, setProperties] = useState<{ id: string; tab: "style" | "labels" | "info" } | null>(null);
   const [importing, setImporting] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
@@ -194,11 +195,25 @@ export default function App() {
         <main className="map-pane" aria-label="地图">
           <div className="map-document-bar"><span className="map-document-tab"><MapIcon size={15} /> 地图</span><span>{activeLayer ? activeLayer.name : "地理空间工作区"}</span></div>
           <div className="map-viewport">
-          <MapCanvas theme={theme} dataLayers={layers} focusBounds={focus} onStatus={setMapStatus} selection={selection} onSelect={handleMapSelection} />
-          {selection?.featureIds.length ? <div className="selection-hud" role="status">
-            <span><strong>{selection.featureIds.length}</strong> 个要素已选{selectionLayer ? ` · ${selectionLayer.name}` : ""}</span>
-            <button type="button" aria-label="清除要素选择" title="清除选择（Esc）" onClick={clearSelection}><X size={13} />清除</button>
-          </div> : null}
+          <MapCanvas theme={theme} dataLayers={layers} focusBounds={focus} onStatus={setMapStatus} selection={selection} onSelect={handleMapSelection}
+            aoi={aoi} onAoiChange={setAoi} />
+          {!layers.length && <div className="map-empty-state" role="status">
+            <span className="map-empty-icon"><Layers size={20} /></span>
+            <strong>地图还没有图层</strong>
+            <span>添加 GeoJSON、Shapefile、GeoPackage 或栅格开始工作。</span>
+            <button type="button" className="primary-btn" onClick={() => void addData()}>添加数据</button>
+          </div>}
+          {(selection?.featureIds.length || aoi) && <div className="map-status-stack">
+            {selection?.featureIds.length ? <div className="selection-hud" role="status">
+              <span><strong>{selection.featureIds.length}</strong> 个要素已选{selectionLayer ? ` · ${selectionLayer.name}` : ""}</span>
+              <button type="button" aria-label="清除要素选择" title="清除选择（Esc）" onClick={clearSelection}><X size={13} />清除</button>
+            </div> : null}
+            {aoi && <div className="aoi-hud" role="status" title="分析范围（AOI）">
+              <span className="aoi-hud-label">AOI</span>
+              <code>{aoi[0].toFixed(3)}, {aoi[1].toFixed(3)} — {aoi[2].toFixed(3)}, {aoi[3].toFixed(3)}</code>
+              <button type="button" aria-label="清除分析范围" onClick={() => setAoi(null)}><X size={12} />清除</button>
+            </div>}
+          </div>}
           {importNotice && <div className="import-notice" role="status"><span>{importNotice}</span>
             {importNotice.includes("CRS") && <label>源坐标系 <input aria-label="导入源坐标系" placeholder="如 EPSG:4547，然后重新添加" value={sourceCrs} onChange={e => setSourceCrs(e.target.value)} /></label>}
             <button type="button" className="icon-btn" aria-label="关闭导入提示" onClick={() => setImportNotice("")}>×</button></div>}

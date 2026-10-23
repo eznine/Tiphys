@@ -81,6 +81,9 @@ export function SettingsDialog({ theme, onTheme, density, onDensity, onClose, on
             <div className="settings-section-heading"><h2>运行参数</h2><p>按所使用模型的能力设置，保存时与 API 配置一起生效。</p></div>
             <label className="settings-field"><span>模型上下文窗口（tokens）</span><input type="number" aria-label="模型上下文窗口" min="8000" max="2000000" value={contextWindow} onChange={e => setContextWindow(Number(e.target.value))} /><small>用于判断何时整理对话上下文，不限制模型思考时长。</small></label>
             <label className="settings-field"><span>单次工具输出上限（字符）</span><input type="number" aria-label="工具输出上限" min="1000" max="100000" value={maxOutput} onChange={e => setMaxOutput(Number(e.target.value))} /><small>超出部分保留为可读取记录，避免大表占满对话上下文。</small></label>
+            <h3>工作区记忆</h3>
+            <div className="settings-static"><span>项目记忆</span><strong>.tiphys/MEMORY.md</strong></div>
+            <p className="settings-help">每轮对话会注入项目记忆。桌面版同时读取 <code>~/.tiphys/memory.md</code>；浏览器版读取构建时内置的项目记忆。请勿在记忆文件中保存密钥。</p>
           </>}
           {tab === "about" && <>
             <div className="settings-section-heading"><h2>TIPHYS</h2><p>Agent 驱动的地理空间工作区 · 0.1.0</p></div>

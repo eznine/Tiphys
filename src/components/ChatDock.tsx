@@ -23,6 +23,7 @@ type Props = {
 };
 
 const SUGGESTIONS = ["加载样例点，做 500 米缓冲", "查看当前图层信息"];
+const JOB_STATUS: Record<string, string> = { running: "运行中", queued: "排队中", completed: "已完成", failed: "失败", cancelled: "已取消", interrupted: "已中断", cancelling: "正在取消", unreachable: "连接中断" };
 
 export function ChatDock({ items, busy, connected, provider, layers, onSend, onApprove, onCancelJob, onCancelTurn, onToolResult, selectedLayer, request, onAdd, onSettings }: Props) {
   const [draft, setDraft] = useState("");
@@ -65,7 +66,7 @@ export function ChatDock({ items, busy, connected, provider, layers, onSend, onA
       {tab === "chat" && (
         <>
       <div className="chat-messages">
-        {!items.length && <div className="agent-welcome"><span className="agent-welcome-mark">✦</span><h2>直接说你要做什么</h2><p>{layers.length ? "数据已就绪。描述你的目标，我来选择工具、执行分析，并将结果显示在地图上。" : "先添加数据，或让我加载样例。然后描述你的分析目标。"}</p><p className="tool-desc">右键图层可查看属性表、调整符号与标注。</p></div>}
+        {!items.length && <div className="agent-welcome"><h2>从一个空间问题开始</h2><p>{layers.length ? "图层已就绪。描述目标，我会选择工具、执行分析并显示结果。" : "添加本地数据，或让我加载样例，然后描述分析目标。"}</p><p className="tool-desc">也可以打开工具箱逐项运行；右键图层可查看属性与符号。</p></div>}
         {items.map((it) => {
           if (it.kind === "msg")
             return (
@@ -83,20 +84,21 @@ export function ChatDock({ items, busy, connected, provider, layers, onSend, onA
             );
           if (it.kind === "job") {
             const active = it.status === "running" || it.status === "queued";
+            const percent = Math.max(0, Math.min(100, Math.round((Number.isFinite(it.progress) ? it.progress : 0) * 100)));
             return (
-              <div key={it.id} className="job-card" data-status={it.status}>
+              <div key={it.id} className="job-card" data-status={it.status} aria-live="polite">
                 <div className="job-head">
-                  <strong>{it.label}</strong>
-                  <span>{{ running: "运行中", queued: "排队中", completed: "已完成", failed: "失败", cancelled: "已取消", interrupted: "已中断", cancelling: "正在取消", unreachable: "连接中断" }[it.status] ?? it.status} · {Math.round(it.progress * 100)}%</span>
+                  <span className="job-title"><strong>{it.label}</strong><span className="job-state" data-status={it.status}>{JOB_STATUS[it.status] ?? it.status}</span></span>
+                  <span className="job-percent">{percent}%</span>
                 </div>
-                <div className="route-progress job-route">
-                  <span style={{ ["--progress" as string]: `${Math.round(it.progress * 100)}%` }} />
+                <div className="route-progress job-route" role="progressbar" aria-label={`${it.label} 进度`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+                  <span style={{ ["--progress" as string]: `${percent}%` }} />
                 </div>
                 <div className="job-foot">
-                  <span>{it.message}</span>
+                  <span className="job-message">{it.status === "cancelling" ? "正在取消任务…" : it.message}</span>
                   {active && (
-                    <button type="button" className="icon-btn" onClick={() => onCancelJob(it.id)}>
-                      取消
+                    <button type="button" className="job-cancel" aria-label={`取消 ${it.label}`} onClick={() => onCancelJob(it.id)}>
+                      <Square size={10} />取消
                     </button>
                   )}
                 </div>

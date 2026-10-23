@@ -29,11 +29,14 @@ export type LayerSelection = { layerId: string; featureIds: number[] };
 
 export const SELECTION_COLOR = "#2563eb";
 
-export const PALETTE = ["#ff7a45", "#36cfc9", "#9254de", "#f7ba1e", "#4096ff", "#ef5da8", "#52c41a", "#c9a678"];
+/** Cool, accent-compatible defaults; layer IDs still produce stable variation. */
+export const PALETTE = ["#2563eb", "#0284c7", "#0891b2", "#4f46e5", "#0d9488", "#3b82f6", "#0369a1", "#6366f1"];
 
 export function defaultLayerStyle(id: string): LayerStyle {
   const hash = [...id].reduce((value, char) => (value * 31 + char.charCodeAt(0)) >>> 0, 0);
-  return { color: PALETTE[hash % PALETTE.length], opacity: .65, pointSize: 5, lineWidth: 1.6, labelSize: 13, labelColor: "#172033" };
+  const accent = typeof document === "undefined" ? "" : getComputedStyle(document.documentElement).getPropertyValue("--tiphys-accent").trim();
+  const palette = accent && /^#[0-9a-f]{6}$/i.test(accent) ? [accent, ...PALETTE.filter(color => color !== accent)] : PALETTE;
+  return { color: palette[hash % palette.length], opacity: .65, pointSize: 5, lineWidth: 1.6, labelSize: 13, labelColor: "#172033" };
 }
 
 export function layerColor(style: LayerStyle): string | ExpressionSpecification {
