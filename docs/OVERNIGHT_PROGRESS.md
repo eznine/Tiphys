@@ -240,3 +240,5 @@
   - Agent: added restrained 中心要素 and 标准差椭圆 recipe cards that only open forms. Chinese aliases now rank Frost, NoData掩膜, 焦点统计, 指定等值线, 主成分分析 and K均值 alongside the previously requested GIS terms; recovery/compaction remains state-only.
   - Catalog counts remain honest: 958 WASM schemas, 997 browser-visible tools after hydration; shell starts below 900. Blue `#2563eb`, light default and `logo-temp` are unchanged; no teal or mythology.
   - Verification: 58/58 browser tests passed (`npm run test:browser`), `npx tsc --noEmit` passed, `npm run build` passed. `dist/` remains 36 MB (35.0 MiB; app 1.92 MB, lazy catalog 1.95 MB, CLI WASM 24.11 MB), so no deploy-size edit and no live deploy. GEE remains docs/demo only; no credentials read or created. No Python changes.
+
+- 2026-10-24 ~06:53 Asia/Shanghai — Overnight supervisor interrupted after batch20 (`c5fe0c1`, clean tree). No tf-codex alive; re-dispatching batch21+. No user ping.
