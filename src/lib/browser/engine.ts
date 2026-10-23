@@ -306,6 +306,8 @@ const RAW_INPUT_PARAMETERS: Record<string, Set<string>> = {
   // Upstream marks the service-area output mode as a vector output path.
   network_service_area: new Set(["output_mode"]),
 };
+/** Optional report output that would otherwise clutter the workspace layer rail. */
+const WASM_OMITTED_OUTPUTS = new Set(["k_means_clustering.out_html"]);
 /** Formats the WASI build can actually read/write; example paths sometimes name others (e.g. shp). */
 const SUPPORTED_EXT: Record<string, string[]> = {
   vector: ["geojson", "topojson", "gml", "gpx", "kml", "fgb", "gpkg", "kmz", "geoparquet"],
@@ -319,6 +321,8 @@ const WASM_OUTPUT_KIND_OVERRIDES: Record<string, Record<string, string>> = {
   closing: { output: "raster" },
   conservative_smoothing_filter: { output: "raster" },
   edge_preserving_mean_filter: { output: "raster" },
+  fast_almost_gaussian_filter: { output: "raster" },
+  frost_filter: { output: "raster" },
   gaussian_filter: { output: "raster" },
   histogram_equalization: { output: "raster" },
   laplacian_filter: { output: "raster" },
@@ -329,6 +333,7 @@ const WASM_OUTPUT_KIND_OVERRIDES: Record<string, Record<string, string>> = {
   opening: { output: "raster" },
   percentile_filter: { output: "raster" },
   prewitt_filter: { output: "raster" },
+  principal_component_analysis: { output: "raster" },
   ruggedness_index: { output: "raster" },
   slope: { output: "raster" },
   wetness_index: { output: "raster" },
@@ -375,36 +380,42 @@ async function runNative(id: string, args: Record<string, any>, signal?: AbortSi
         paths.push(`/work/${file}`);
       }
       if (paths.length) parameters[p.name] = paths.join(",");
-    } else if (isWasmOutputParam(id, p)) parameters[p.name] = `/work/${p.name}.${outputExt(p)}`;
+    } else if (isWasmOutputParam(id, p)) {
+      if (!WASM_OMITTED_OUTPUTS.has(`${id}.${p.name}`)) parameters[p.name] = `/work/${p.name}.${outputExt(p)}`;
+    }
     else {
       const value = args[p.name] ?? defaults[p.name];
       if (value !== undefined && value !== null && value !== "") parameters[p.name] = value;
     }
   }
   const result = await wasmTool(id, input, parameters, signal);
-  const outputs = manifest.params.filter(p => isWasmOutputParam(id, p));
+  const outputs = manifest.params.filter(p => isWasmOutputParam(id, p) && !WASM_OMITTED_OUTPUTS.has(`${id}.${p.name}`));
   const published = { layers: [] as Record<string, any>[], attachments: [] as Record<string, any>[] };
   let firstName = "";
   for (const p of outputs) {
-    const match = Object.entries(result.files).find(([file]) => file === parameters[p.name] || file.endsWith(`/${parameters[p.name]}`) || file.split("/").pop() === parameters[p.name]?.split("/").pop());
-    if (!match) {
-      if (p.required) throw new Error("工具没有生成声明的必需输出，请检查参数和输入数据。");
-      continue;
-    }
-    const [file, bytes] = match;
-    if (!bytes?.length) { if (p.required) throw new Error(`输出 ${p.name} 是空的。`); continue; }
-    const base = String(args.output_name || "") || firstName || manifest.display_name;
-    const name = outputs.length > 1 ? `${base}_${p.name}` : base;
-    firstName = firstName || base;
-    const kind = outputKind(id, p);
-    // Vector outputs may be written in the tool's example format (e.g. shp);
-    // adopt with the actual extension so the read-back conversion is correct.
-    if (kind === "vector") published.layers.push(await adopt(bytes, file.split(".").pop() || "fgb", name, signal));
-    else if (kind === "raster") published.layers.push(await adoptRaster(bytes, name, rasterRenderer(), signal));
-    else if (kind === "table") published.layers.push(await adoptTable(bytes, name, signal));
-    else if (ATTACHMENT_KINDS.has(kind)) {
-      const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: kind === "json" ? "application/json" : "application/octet-stream" }));
-      published.attachments.push({ name: file.split("/").pop() ?? p.name, kind, bytes: bytes.length, url });
+    // PCA writes one raster per component rather than the single declared path.
+    const componentFiles = id === "principal_component_analysis" && p.name === "output"
+      ? Object.entries(result.files).filter(([file]) => file.split("/").pop()?.startsWith(`${parameters[p.name].split("/").pop()!.replace(/\.tif+$/, "")}_comp`))
+        .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+      : [];
+    const matches = componentFiles.length ? componentFiles : Object.entries(result.files).filter(([file]) => file === parameters[p.name] || file.endsWith(`/${parameters[p.name]}`) || file.split("/").pop() === parameters[p.name]?.split("/").pop());
+    if (!matches.length && p.required) throw new Error("工具没有生成声明的必需输出，请检查参数和输入数据。");
+    for (const [file, bytes] of matches) {
+      if (!bytes?.length) { if (p.required) throw new Error(`输出 ${p.name} 是空的。`); continue; }
+      const base = String(args.output_name || "") || firstName || manifest.display_name;
+      const suffix = componentFiles.length ? `_comp${file.match(/_comp(\d+)\./)?.[1] ?? ""}` : outputs.length > 1 ? `_${p.name}` : "";
+      const name = `${base}${suffix}`;
+      firstName = firstName || base;
+      const kind = outputKind(id, p);
+      // Vector outputs may be written in the tool's example format (e.g. shp);
+      // adopt with the actual extension so the read-back conversion is correct.
+      if (kind === "vector") published.layers.push(await adopt(bytes, file.split(".").pop() || "fgb", name, signal));
+      else if (kind === "raster") published.layers.push(await adoptRaster(bytes, name, rasterRenderer(), signal));
+      else if (kind === "table") published.layers.push(await adoptTable(bytes, name, signal));
+      else if (ATTACHMENT_KINDS.has(kind)) {
+        const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: kind === "json" ? "application/json" : "application/octet-stream" }));
+        published.attachments.push({ name: file.split("/").pop() ?? p.name, kind, bytes: bytes.length, url });
+      }
     }
   }
   if (!published.layers.length && !published.attachments.length) throw new Error("工具运行结束但没有生成结果文件，请检查参数和输入数据。");

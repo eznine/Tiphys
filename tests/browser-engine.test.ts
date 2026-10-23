@@ -257,7 +257,10 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_near", "wasm_extend_vector_lines", "wasm_split_vector_lines", "wasm_find_identical",
     "wasm_integrate", "wasm_median_center", "wasm_lee_filter", "wasm_downslope_index",
     "wasm_central_feature", "wasm_directional_distribution", "wasm_corridor", "wasm_path_distance",
-    "wasm_prewitt_filter", "wasm_conservative_smoothing_filter", "wasm_extract_valleys", "wasm_local_kriging"]) {
+    "wasm_prewitt_filter", "wasm_conservative_smoothing_filter", "wasm_extract_valleys", "wasm_local_kriging",
+    "wasm_frost_filter", "wasm_fast_almost_gaussian_filter", "wasm_circular_variance_of_aspect",
+    "wasm_average_flowpath_slope", "wasm_cut_fill", "wasm_is_nodata", "wasm_focal_statistics",
+    "wasm_k_means_clustering"]) {
     assert.ok(names.includes(name), `${name} should be exposed in the ribbon`);
   }
   const dock = fs.readFileSync(new URL("../src/components/ChatDock.tsx", import.meta.url), "utf8");
@@ -268,7 +271,7 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_opening", "wasm_symmetrical_difference", "wasm_difference", "wasm_ruggedness_index",
     "wasm_strahler_stream_order", "wasm_cost_connectivity", "wasm_mean_filter",
     "wasm_change_vector_analysis", "wasm_near", "wasm_extend_vector_lines",
-    "wasm_central_feature", "wasm_directional_distribution"]) {
+    "wasm_central_feature", "wasm_directional_distribution", "wasm_frost_filter", "wasm_cut_fill"]) {
     assert.ok(recipeTools.includes(name), `${name} should be available as an agent recipe`);
     assert.ok(browserCatalog.some(tool => tool.name === name), `${name} recipe must resolve to a catalog tool`);
   }
@@ -735,6 +738,13 @@ test("Chinese GIS aliases rank conversion, interpolation and service-area tools"
     ["主成分分析", "wasm_principal_component_analysis"], ["K均值", "wasm_k_means_clustering"]]) {
     assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
   }
+  for (const [query, expected] of [["快速高斯", "wasm_fast_almost_gaussian_filter"], ["Horton", "wasm_horton_stream_order"],
+    ["Shreve", "wasm_shreve_stream_magnitude"], ["Pennock", "wasm_pennock_landform_classification"],
+    ["相对坡向", "wasm_relative_aspect"], ["相对高程", "wasm_elev_relative_to_min_max"],
+    ["水深指数", "wasm_depth_to_water"], ["NoData", "wasm_is_nodata"],
+    ["焦点统计", "wasm_focal_statistics"], ["点生成等值线", "wasm_contours_from_points"]]) {
+    assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
+  }
   const streamOrders = searchBrowserTools(browserCatalog, "河网分级", { limit: 4 }).map(tool => tool.name);
   assert.ok(streamOrders.includes("wasm_strahler_stream_order") && streamOrders.includes("wasm_hack_stream_order"),
     "河网分级 should surface both Strahler and Hack stream ordering");
@@ -976,6 +986,102 @@ test("batch20 statistics, corridor, filters, valleys and local kriging publish r
   const valleyLayer = valleys.layer ?? valleys.layers?.[0]?.layer;
   assert.equal(valleyLayer.kind, "raster", "valley extraction must publish a raster");
   assert.equal(valleyLayer.raster?.width, dem.raster?.width);
+});
+
+test("batch21 filter, terrain and clustering forms expose honest executable contracts", async () => {
+  await ensureBrowserCatalog();
+  const props = (name: string) => (browserCatalog.find(tool => tool.name === name)!.parameters.properties ?? {}) as any;
+  const required = (name: string) => browserCatalog.find(tool => tool.name === name)!.parameters.required ?? [];
+  for (const name of ["wasm_frost_filter", "wasm_fast_almost_gaussian_filter", "wasm_circular_variance_of_aspect",
+    "wasm_average_flowpath_slope", "wasm_cut_fill", "wasm_is_nodata", "wasm_focal_statistics"]) {
+    const properties = props(name);
+    const inputName = name === "wasm_average_flowpath_slope" ? "dem" : "input";
+    assert.equal(properties[inputName]["x-layer-kind"], "raster", `${name} input must be raster`);
+    assert.ok(!("output" in properties), `${name} output path must stay internal`);
+    assert.ok(required(name).includes(inputName), `${name} input must be required`);
+  }
+  assert.equal(props("wasm_frost_filter").radius.type, "integer");
+  assert.equal(props("wasm_fast_almost_gaussian_filter").sigma.type, "number");
+  assert.equal(props("wasm_circular_variance_of_aspect").filter.type, "integer");
+
+  const cutFill = props("wasm_cut_fill");
+  assert.equal(cutFill.after["x-layer-kind"], "raster");
+  assert.equal(cutFill.plane.type, "number");
+  assert.equal(cutFill.band.type, "integer");
+  assert.ok(!("region_output" in cutFill) && !("csv_output" in cutFill), "cut-fill side outputs must stay internal");
+
+  const focal = props("wasm_focal_statistics");
+  assert.deepEqual(focal.statistics.enum, ["mean", "majority", "maximum", "median", "minimum", "minority", "percentile", "range", "std", "sum", "variety"]);
+  assert.deepEqual(focal.neighborhood.enum, ["rectangle", "circle", "annulus", "wedge"]);
+  assert.equal(focal.width.type, "integer");
+  assert.equal(focal.ignore_nodata.type, "boolean");
+
+  const kmeans = props("wasm_k_means_clustering");
+  assert.equal(kmeans.inputs.type, "array");
+  assert.equal(kmeans.inputs["x-layer-multiple"], true);
+  assert.equal(kmeans.classes.type, "integer");
+  assert.equal(kmeans.max_iterations.type, "integer");
+  assert.deepEqual(kmeans.initialize.enum, ["diagonal", "random"]);
+
+  const pca = props("wasm_principal_component_analysis");
+  assert.equal(pca.inputs.type, "array");
+  assert.equal(pca.inputs["x-layer-multiple"], true);
+  assert.equal(pca.num_components.type, "integer");
+  assert.equal(pca.standardized.type, "boolean");
+});
+
+test("batch21 filter, terrain, NoData and clustering tools publish result layers", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const ring = (x: number, y: number, width: number, height: number) => [[x, y], [x + width, y], [x + width, y + height], [x, y + height], [x, y]];
+  const cell = 100, features: any[] = [];
+  for (let row = 0; row < 12; row++) for (let col = 0; col < 12; col++) {
+    const x = 500000 + col * cell, y = 4400000 + row * cell;
+    features.push({ type: "Feature", properties: { elev: 1200 - row * 4 - col + (row === 5 && col === 5 ? -15 : 0) },
+      geometry: { type: "Polygon", coordinates: [ring(x, y, cell, cell)] } });
+  }
+  const source = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features })]), "batch21_dem_source.geojson")).layer;
+  const dem = (await finished("wasm_vector_polygons_to_raster", {
+    input: source.id, field: "elev", cell_size: cell, output_name: "batch21_dem",
+  })).layer;
+
+  for (const [tool, args, name] of [
+    ["wasm_frost_filter", { input: dem.id, radius: 2, damping_factor: 2 }, "batch21_frost"],
+    ["wasm_fast_almost_gaussian_filter", { input: dem.id, sigma: 1.8 }, "batch21_fast_gaussian"],
+    ["wasm_circular_variance_of_aspect", { input: dem.id, filter: 5 }, "batch21_aspect_variance"],
+    ["wasm_average_flowpath_slope", { dem: dem.id }, "batch21_flowpath_slope"],
+    ["wasm_is_nodata", { input: dem.id }, "batch21_nodata"],
+    ["wasm_focal_statistics", { input: dem.id, statistics: "mean", neighborhood: "rectangle", width: 3, height: 3, ignore_nodata: true, band: 1 }, "batch21_focal"],
+  ] as const) {
+    const result = await finished(tool, { ...args, output_name: name });
+    const layer = result.layer ?? result.layers?.[0]?.layer;
+    assert.equal(layer.kind, "raster", `${tool} must publish a raster`);
+    assert.equal(layer.raster?.width, dem.raster?.width);
+    assert.equal(result.attachments, undefined);
+  }
+
+  const cutFill = await finished("wasm_cut_fill", {
+    input: dem.id, plane: 1150, band: 1, tolerance: 0, output_name: "batch21_cut_fill",
+  });
+  const cutFillLayers = cutFill.layers?.map((item: any) => item.layer) ?? [];
+  assert.deepEqual(cutFillLayers.map((layer: any) => layer.kind), ["raster", "raster", "table"]);
+  assert.equal(cutFillLayers[0].raster?.width, dem.raster?.width);
+
+  const clusters = await finished("wasm_k_means_clustering", {
+    inputs: [dem.id, dem.id], classes: 3, max_iterations: 5, class_change: 2, initialize: "diagonal",
+    min_class_size: 1, output_name: "batch21_kmeans",
+  });
+  const clusterLayer = clusters.layer ?? clusters.layers?.[0]?.layer;
+  assert.equal(clusterLayer.kind, "raster", "K-means must publish its class raster");
+  assert.equal(clusterLayer.raster?.width, dem.raster?.width);
+  assert.equal(clusters.attachments, undefined, "the optional HTML report must not become a workspace attachment");
+
+  const pca = await finished("wasm_principal_component_analysis", {
+    inputs: [dem.id, dem.id, dem.id], num_components: 2, standardized: false, auto_reproject: true,
+    output_name: "batch21_pca",
+  });
+  const pcaLayers = pca.layers?.map((item: any) => item.layer) ?? [];
+  assert.equal(pcaLayers.length, 2, "PCA must publish one raster per requested component");
+  assert.ok(pcaLayers.every((layer: any) => layer.kind === "raster" && layer.name.includes("_comp")));
 });
 
 test("morphology and vector cleanup ribbon tools publish displayed result layers", async () => {

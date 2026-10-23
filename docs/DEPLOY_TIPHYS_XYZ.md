@@ -38,7 +38,7 @@ Minimum server behavior:
 ## Current payload shape
 
 - The lazy catalog chunk is about 1.95 MB uncompressed / 327 kB gzip in the current build. It contains tool schemas, not cartographic tiles.
-- The main app chunk is about 1.90 MB uncompressed / 577 kB gzip. It includes MapLibre and the workspace shell; the 500 kB Vite warning is expected and does not mean the page fails to load.
+- The main app chunk is about 1.92 MB uncompressed / 585 kB gzip. It includes MapLibre and the workspace shell; the 500 kB Vite warning is expected and does not mean the page fails to load.
 - `geolibre-cli.wasm` is about 24.1 MB uncompressed / 8.2 MB gzip and `geolibre_wasm_bg.wasm` is about 6.66 MB / 2.13 MB gzip. They are fetched only for local WASM tools and are not part of the initial HTML.
 - The map starts before tool catalog hydration finishes. The toolbox shows a 39-tool shell first and reaches 997 merged tools after hydration (993 visible after hiding four engine-only controls).
 - Enable Brotli/gzip for HTML, JS, CSS and JSON. The host may also compress `.wasm`; always preserve the `application/wasm` type.

@@ -60,6 +60,8 @@ const RECIPES = [
   { title: "线延伸分割", detail: "端点延伸或按长度拆分折线，打开表单", tool: "wasm_extend_vector_lines", Icon: Scissors },
   { title: "中心要素", detail: "找出到所有要素总距离最小的位置，打开表单", tool: "wasm_central_feature", Icon: ChartScatter },
   { title: "标准差椭圆", detail: "方向分布与标准差椭圆，打开表单", tool: "wasm_directional_distribution", Icon: ChartScatter },
+  { title: "Frost 滤波", detail: "SAR 斑点抑制并保留边缘，打开表单", tool: "wasm_frost_filter", Icon: SlidersHorizontal },
+  { title: "填挖方", detail: "比较两期 DEM 或参考平面，打开体积表单", tool: "wasm_cut_fill", Icon: Mountain },
   { title: "最小成本路径", detail: "连接源与目的地，保留真实路径结果", tool: "least_cost_path_pipeline", Icon: Route },
   { title: "按 AOI 裁剪", detail: "先在地图绘制 AOI，再插入提示词", prompt: "用当前 AOI 范围裁剪所选图层。", Icon: Scissors },
 ] as const;

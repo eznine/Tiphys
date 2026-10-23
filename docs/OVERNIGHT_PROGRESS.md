@@ -243,3 +243,11 @@
 
 - 2026-10-24 ~06:53 Asia/Shanghai — Overnight supervisor interrupted after batch20 (`c5fe0c1`, clean tree). No tf-codex alive; re-dispatching batch21+. No user ping.
 - 2026-10-24 ~06:53 Asia/Shanghai — Overnight supervisor resumed at c5fe0c1/9633766 (batch20 tip). Tree clean. No tf-codex. Launching batch21 (filter/terrain/RS densify, agent recipes).
+
+- 2026-10-24 07:02 Asia/Shanghai — Batch21 implemented and verified on the Linux box:
+  - Ribbon: added eight catalog-backed actions — Frost 滤波, 快速高斯, 坡向圆方差, 平均流路坡度, 填挖方, NoData 掩膜, 焦点统计 and K 均值分类. They extend 平滑与边缘滤波, 地形, 水文指数, 栅格清理与诊断 and 增强与分割; the ribbon now exposes 134 unique WASM actions, all resolving to hydrated catalog tools.
+  - Contracts: Frost and fast almost-Gaussian file outputs now publish as rasters; focal statistics exposes the upstream neighborhood/statistic enums and integer window fields honestly; cut-fill keeps its region/table side outputs internal to the form contract; PCA and K-means accept ordered multi-raster inputs. PCA's unlisted per-component outputs are adopted as real rasters, and K-means' optional HTML report is omitted from the layer rail.
+  - Executions covered: Frost, fast almost-Gaussian, aspect circular variance, average flowpath slope, cut/fill (change raster, region raster and volume table), NoData mask, focal mean, K-means classes and two PCA components from a synthetic DEM.
+  - Agent: added restrained Frost 滤波 and 填挖方 recipe cards that only open forms. Chinese aliases now rank 快速高斯, Horton, Shreve, Pennock, 相对坡向, 相对高程, 水深指数, NoData, 焦点统计 and 点生成等值线 alongside the previous search terms; recovery/compaction remains state-only.
+  - Catalog counts remain honest: 958 WASM schemas, 997 browser-visible tools after hydration; shell starts below 900. Blue `#2563eb`, light default and `logo-temp` are unchanged; no teal or mythology.
+  - Verification: 60/60 browser tests passed (`npm run test:browser`), `npx tsc --noEmit` passed, `npm run build` passed. `dist/` remains 36 MB (CLI WASM 24.11 MB); the DEPLOY payload note reflects the changed main chunk, and no live deploy was performed. GEE remains docs/demo only; no credentials read or created. No Python changes.
