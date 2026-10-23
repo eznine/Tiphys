@@ -113,3 +113,4 @@
 - 2026-10-24 Asia/Shanghai — Batch10 worktree is stable and fully verified, but this sandbox cannot write `.git` (`index.lock: Read-only file system`). Patch saved at `/tmp/tiphys-batch10-gis-agent-perf-beauty.patch`; supervisor should commit+push with `P3/P4: GIS ribbon densify, agent recipes, perf/beauty`.
 
 - 2026-10-24 04:47 Asia/Shanghai — Overnight supervisor: batch10 exited (sandbox blocked commit). Re-verified `npm run test:browser` 33/33 + `npx tsc --noEmit`. Committing+pushing as `P3/P4: GIS ribbon densify, agent recipes, perf/beauty`, then starting batch11.
+- 2026-10-24 04:48 Asia/Shanghai — Batch10 pushed as `6299af7` (33/33). Launching batch11 tf-codex (raster↔vector convert, IDW/TIN, agent recipes, thin export).
