@@ -33,6 +33,8 @@ const WASM_SCALAR_INPUT_OVERRIDES = new Set([
   // Upstream marks bilateral sigma/intensity options as raster inputs.
   "bilateral_filter.sigma_int",
   "bilateral_filter.treat_as_rgb",
+  "extend_vector_lines.distance",
+  "split_vector_lines.segment_length",
 ]);
 
 export function isWasmInputParam(toolId: string, param: { name: string; io_role?: string; description?: string }): boolean {
@@ -79,10 +81,12 @@ const WASM_SCHEMA_OVERRIDES: Record<string, Record<string, CatalogSchema>> = {
   simple_kriging: {
     cell_size: { type: "number", default: 1, description: "输出像元大小，单位与输入点图层坐标系一致；也可选择基准栅格。" },
     known_mean: { type: "number", default: 0, description: "已知的总体均值；仅在空间场均值可靠已知时使用。" },
+    value_field: { type: "string", description: "用于插值的数值字段。" },
   },
   local_kriging: {
     cell_size: { type: "number", default: 1, description: "输出像元大小，单位与输入点图层坐标系一致；也可选择基准栅格。" },
     k_neighbors: { type: "integer", default: 10, description: "参与局部估计的最近邻点数。" },
+    value_field: { type: "string", description: "用于插值的数值字段。" },
   },
   bilateral_filter: {
     sigma_int: { type: "number", default: 1, description: "强度核阈值；越大保留的强度差异越多，边缘保持越明显。" },
@@ -97,6 +101,33 @@ const WASM_SCHEMA_OVERRIDES: Record<string, Record<string, CatalogSchema>> = {
   mean_filter: {
     filter_size_x: { type: "integer", default: 11, description: "移动窗口宽度（奇数像元）。" },
     filter_size_y: { type: "integer", default: 11, description: "移动窗口高度（奇数像元）。" },
+  },
+  laplacian_filter: {
+    variant: { type: "string", enum: ["3x3(1)", "3x3(2)", "3x3(3)", "3x3(4)", "5x5(1)", "5x5(2)"],
+      default: "3x3(1)", description: "拉普拉斯卷积核变体。" },
+    clip_amount: { type: "number", default: 0, description: "可选的两端裁剪百分比（0–40）。" },
+  },
+  extend_vector_lines: {
+    distance: { type: "number", default: 1, description: "线端点延伸距离，单位与输入图层坐标系一致。" },
+    extend_direction: { type: "string", enum: ["both", "start", "end"], default: "both",
+      description: "延伸端点：both 两端、start 起点、end 终点。" },
+  },
+  split_vector_lines: {
+    segment_length: { type: "number", description: "每段的最大长度，单位与输入图层坐标系一致。" },
+  },
+  vector_lines_to_raster: {
+    field: { type: "string", description: "可选数值字段，用于烧录像元值；留空时使用 FID。" },
+    cell_size: { type: "number", description: "输出像元大小；未提供基准栅格时使用。单位与输入图层坐标系一致。" },
+  },
+  downslope_index: {
+    output_type: { type: "string", enum: ["tangent", "degrees", "radians", "distance"], default: "tangent",
+      description: "下坡指数输出形式。" },
+  },
+  change_vector_analysis: {
+    date1: { type: "array", "x-layer": true, "x-layer-kind": "raster", "x-layer-multiple": true,
+      description: "早期日期栅格，按波段顺序选择。" },
+    date2: { type: "array", "x-layer": true, "x-layer-kind": "raster", "x-layer-multiple": true,
+      description: "后期日期栅格，波段数量与顺序需和早期日期一致。" },
   },
   minimum_bounding_box: {
     min_criteria: { type: "string", enum: ["area", "perimeter", "length", "width"], default: "area",

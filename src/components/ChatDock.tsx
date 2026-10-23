@@ -6,7 +6,7 @@ import { ToolPanel } from "./ToolPanel";
 import { PipelineResultDetails, pipelineResult } from "./ToolResultDetails";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Settings2, FolderPlus, ArrowUp, Square, Layers, Network, Waves, Route, Scissors, Sparkles, History, Mountain, Shapes, CircleDot, Hexagon, ChartScatter, Expand, Boxes } from "lucide-react";
+import { Settings2, FolderPlus, ArrowUp, Square, Layers, Network, Waves, Route, Scissors, Sparkles, History, Mountain, Shapes, CircleDot, Hexagon, ChartScatter, Expand, Boxes, SlidersHorizontal, RefreshCw } from "lucide-react";
 
 type Props = {
   items: TimelineItem[];
@@ -54,6 +54,8 @@ const RECIPES = [
   { title: "矢量差集", detail: "从输入面中扣除叠加面范围，打开表单", tool: "wasm_difference", Icon: Scissors },
   { title: "地形崎岖度", detail: "从 DEM 计算 Riley 地形粗糙度指数，打开表单", tool: "wasm_ruggedness_index", Icon: Mountain },
   { title: "对称差", detail: "保留两个面图层互不重叠的区域，打开表单", tool: "wasm_symmetrical_difference", Icon: Boxes },
+  { title: "均值滤波", detail: "对 DEM 或影像做局部均值平滑，打开表单", tool: "wasm_mean_filter", Icon: SlidersHorizontal },
+  { title: "变化矢量", detail: "双日期多波段影像 → 变化幅度与方向栅格", tool: "wasm_change_vector_analysis", Icon: RefreshCw },
   { title: "最小成本路径", detail: "连接源与目的地，保留真实路径结果", tool: "least_cost_path_pipeline", Icon: Route },
   { title: "按 AOI 裁剪", detail: "先在地图绘制 AOI，再插入提示词", prompt: "用当前 AOI 范围裁剪所选图层。", Icon: Scissors },
 ] as const;

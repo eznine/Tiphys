@@ -209,3 +209,13 @@
 - 2026-10-24 06:19 Asia/Shanghai — Overnight supervisor: duplicate batch17 detected (parallel supervisor launched `batch17-hydro-filters-geometry`). Stopped this supervisor's waiting tf-codex (filter-geom-hydro) to leave a single writer. Continuing watch on hydro-filters-geometry log.
 
 - 2026-10-24 06:24 Asia/Shanghai — Overnight supervisor: batch17 exited (sandbox blocked commit). Re-verified `npm run test:browser` 51/51 + `npx tsc --noEmit`. Committing+pushing as `P3/P4: hydro/filters/geometry densify, agent recipes`, then starting batch18.
+
+- 2026-10-24 06:24 Asia/Shanghai — Batch17 pushed as `cf96af9` (51/51). Launching batch18 (filter/distance/RS densify, agent recipes).
+
+- 2026-10-24 06:31 Asia/Shanghai — Batch18 implemented and verified on the Linux box:
+  - Ribbon: added eight catalog-backed actions — 均值滤波, 拉普拉斯滤波, 欧氏方向, 更新叠加, 线转栅格, 简单克里金, 湿润指数 and 变化矢量. They extend the existing 平滑与边缘滤波, 距离与成本, 矢量叠加, 矢量转栅格, 空间插值, 水文指数 and 光谱与变化 groups; every action opens a hydrated, executable WASM form.
+  - Contracts: Laplacian variants are an enum and filter file outputs publish rasters; Euclidean direction publishes direction, distance and back-direction rasters; simple/local kriging expose numeric cell size and field pickers; extend/split line distances are numeric scalars; CVA date inputs are ordered multi-raster lists with dual magnitude/direction outputs. Also fixed the pre-existing `坡度` output path bug caused by an empty upstream example defaulting to `.bin`.
+  - Executions covered: mean and Laplacian filtering, Euclidean direction plus both companion rasters, polygon update overlay, line-to-raster, simple kriging, slope → SCA → wetness index, and CVA magnitude/direction from two real date rasters.
+  - Agent: added restrained 均值滤波 and 变化矢量 recipe cards that only open forms. Chinese aliases now rank 均值滤波, 拉普拉斯, Lee滤波, 欧氏方向, 廊道, 路径距离, 更新叠加, 邻近, 线转栅格, 简单克里金, 局部克里金, 湿润指数, 下坡指数, 谷线, 直方图均衡 and 变化矢量 to their intended tools. Recovery/compaction remains state-only.
+  - Perf/beauty: no risky perf refactor (no obvious remaining hot path); blue `#2563eb`, light default and logo-temp are unchanged. No teal or mythology.
+  - Verification: 53/53 browser tests passed (`npm run test:browser`), `npx tsc --noEmit` passed, `npm run build` passed. `dist/` remains ~36 MB with unchanged payload shape (app 1.92 MB, lazy catalog 1.95 MB, CLI WASM 24.11 MB), so no deploy-size edit and no live deploy. GEE remains docs/demo only; no credentials read or created. No Python changes.

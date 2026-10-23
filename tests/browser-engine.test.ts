@@ -251,7 +251,9 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_ordinary_kriging", "wasm_trend_surface", "wasm_ruggedness_index",
     "wasm_strahler_stream_order", "wasm_hack_stream_order", "wasm_cost_connectivity",
     "wasm_gaussian_filter", "wasm_edge_preserving_mean_filter", "wasm_points_to_line",
-    "wasm_minimum_bounding_box", "wasm_relative_topographic_position"]) {
+    "wasm_minimum_bounding_box", "wasm_relative_topographic_position", "wasm_mean_filter",
+    "wasm_laplacian_filter", "wasm_euclidean_direction", "wasm_update", "wasm_vector_lines_to_raster",
+    "wasm_simple_kriging", "wasm_wetness_index", "wasm_change_vector_analysis"]) {
     assert.ok(names.includes(name), `${name} should be exposed in the ribbon`);
   }
   const dock = fs.readFileSync(new URL("../src/components/ChatDock.tsx", import.meta.url), "utf8");
@@ -260,7 +262,8 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_cost_distance", "wasm_raster_to_vector_polygons", "wasm_idw_interpolation",
     "wasm_line_density", "wasm_concave_hull", "wasm_empirical_bayesian_kriging", "wasm_basins",
     "wasm_opening", "wasm_symmetrical_difference", "wasm_difference", "wasm_ruggedness_index",
-    "wasm_strahler_stream_order", "wasm_cost_connectivity"]) {
+    "wasm_strahler_stream_order", "wasm_cost_connectivity", "wasm_mean_filter",
+    "wasm_change_vector_analysis"]) {
     assert.ok(recipeTools.includes(name), `${name} should be available as an agent recipe`);
     assert.ok(browserCatalog.some(tool => tool.name === name), `${name} recipe must resolve to a catalog tool`);
   }
@@ -494,6 +497,67 @@ test("hydro-order, smoothing, geometry and cost-connectivity forms expose honest
   assert.ok(!("output" in rtp), "relative-topographic-position output path must stay internal");
 });
 
+test("filter, distance, vector, interpolation and RS ribbon forms expose honest contracts", async () => {
+  await ensureBrowserCatalog();
+  const props = (name: string) => browserCatalog.find(tool => tool.name === name)!.parameters.properties as any;
+
+  const mean = props("wasm_mean_filter");
+  assert.equal(mean.input["x-layer-kind"], "raster");
+  assert.equal(mean.filter_size_x.type, "integer");
+  assert.equal(mean.filter_size_y.type, "integer");
+  assert.ok(!("output" in mean), "mean filter file output must stay internal");
+
+  const laplacian = props("wasm_laplacian_filter");
+  assert.equal(laplacian.input["x-layer-kind"], "raster");
+  assert.deepEqual(laplacian.variant.enum, ["3x3(1)", "3x3(2)", "3x3(3)", "3x3(4)", "5x5(1)", "5x5(2)"]);
+  assert.equal(laplacian.clip_amount.type, "number");
+  assert.ok(!("output" in laplacian), "Laplacian output path must stay internal");
+
+  const direction = props("wasm_euclidean_direction");
+  assert.equal(direction.input["x-layer-kind"], "raster");
+  assert.equal(direction.barriers["x-layer-kind"], "raster");
+  for (const name of ["output", "output_distance", "output_back_direction"]) assert.ok(!(name in direction), `${name} must stay internal`);
+
+  const update = props("wasm_update");
+  assert.equal(update.input["x-layer-kind"], "vector");
+  assert.equal(update.overlay["x-layer-kind"], "vector");
+  assert.ok(!("output" in update), "update overlay output path must stay internal");
+  const near = props("wasm_near");
+  assert.equal(near.input["x-layer-kind"], "vector");
+  assert.equal(near.near["x-layer-kind"], "vector");
+
+  const lines = props("wasm_vector_lines_to_raster");
+  assert.equal(lines.input["x-layer-kind"], "vector");
+  assert.equal(lines.cell_size.type, "number");
+  assert.equal(lines.field.type, "string");
+  assert.ok(!("output" in lines), "line-to-raster output path must stay internal");
+
+  const simple = props("wasm_simple_kriging");
+  assert.equal(simple.points["x-layer-kind"], "vector");
+  assert.equal(simple.value_field.type, "string");
+  assert.equal(simple.known_mean.type, "number", "simple kriging mean is a numeric scalar");
+  assert.equal(simple.cell_size.type, "number", "simple kriging cell size is a numeric scalar");
+  assert.ok(!("output" in simple), "simple kriging output path must stay internal");
+  assert.equal(props("wasm_local_kriging").cell_size.type, "number", "local kriging cell size is a numeric scalar");
+
+  assert.equal(props("wasm_extend_vector_lines").distance.type, "number", "line extension distance is numeric, not a vector layer");
+  assert.equal(props("wasm_split_vector_lines").segment_length.type, "number", "line split length is numeric, not text");
+
+  const wetness = props("wasm_wetness_index");
+  assert.equal(wetness.sca["x-layer-kind"], "raster");
+  assert.equal(wetness.slope["x-layer-kind"], "raster");
+  assert.ok(!("output" in wetness), "wetness output path must stay internal");
+  assert.deepEqual(props("wasm_downslope_index").output_type.enum, ["tangent", "degrees", "radians", "distance"]);
+
+  const change = props("wasm_change_vector_analysis");
+  for (const name of ["date1", "date2"]) {
+    assert.equal(change[name].type, "array", `${name} must expose an ordered raster list`);
+    assert.equal(change[name]["x-layer-kind"], "raster");
+    assert.equal(change[name]["x-layer-multiple"], true);
+  }
+  assert.ok(!("magnitude_output" in change) && !("direction_output" in change), "CVA outputs must stay internal");
+});
+
 test("Chinese GIS aliases rank conversion, interpolation and service-area tools", async () => {
   await ensureBrowserCatalog();
   const rasterToVector = searchBrowserTools(browserCatalog, "栅格转矢量", { limit: 6 }).map(tool => tool.name);
@@ -540,6 +604,13 @@ test("Chinese GIS aliases rank conversion, interpolation and service-area tools"
     ["点转线", "wasm_points_to_line"], ["最小外包矩形", "wasm_minimum_bounding_box"],
     ["地形位置", "wasm_relative_topographic_position"], ["湿润指数", "wasm_wetness_index"],
     ["填挖方", "wasm_cut_fill"], ["块统计", "wasm_block_statistics"]]) {
+    assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
+  }
+  for (const [query, expected] of [["Lee滤波", "wasm_lee_filter"], ["路径距离", "wasm_path_distance"],
+    ["更新叠加", "wasm_update"], ["邻近", "wasm_near"], ["线转栅格", "wasm_vector_lines_to_raster"],
+    ["简单克里金", "wasm_simple_kriging"], ["局部克里金", "wasm_local_kriging"],
+    ["谷线", "wasm_extract_valleys"], ["直方图均衡", "wasm_histogram_equalization"],
+    ["变化矢量", "wasm_change_vector_analysis"], ["下坡指数", "wasm_downslope_index"]]) {
     assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
   }
   const streamOrders = searchBrowserTools(browserCatalog, "河网分级", { limit: 4 }).map(tool => tool.name);
@@ -589,6 +660,14 @@ test("geometry densify, centroid and line density tools publish real result laye
   assert.equal(densityLayer.kind, "raster", "line density must publish a raster layer");
   assert.ok(densityLayer.raster?.width > 1 && densityLayer.raster?.height > 1);
   assert.equal(density.attachments, undefined);
+
+  const lineRaster = await finished("wasm_vector_lines_to_raster", {
+    input: lines.id, cell_size: 50, zero_background: true, output_name: "geometry_line_raster",
+  });
+  const lineRasterLayer = lineRaster.layer ?? lineRaster.layers?.[0]?.layer;
+  assert.equal(lineRasterLayer.kind, "raster", "line-to-raster must publish a raster layer");
+  assert.ok(lineRasterLayer.raster?.width > 1 && lineRasterLayer.raster?.height > 1);
+  assert.equal(lineRaster.attachments, undefined);
 });
 
 test("morphology and vector cleanup ribbon tools publish displayed result layers", async () => {
@@ -721,6 +800,14 @@ test("ordinary kriging runs from an honest numeric cell-size form", async () => 
   assert.equal(layer.kind, "raster", "ordinary kriging must publish a raster layer");
   assert.ok(layer.raster?.width > 1 && layer.raster?.height > 1);
   assert.equal(result.attachments, undefined);
+
+  const simple = await finished("wasm_simple_kriging", {
+    points: points.id, value_field: "z", known_mean: 110, cell_size: 500, output_name: "simple_kriging_surface",
+  });
+  const simpleLayer = simple.layer ?? simple.layers?.[0]?.layer;
+  assert.equal(simpleLayer.kind, "raster", "simple kriging must publish a raster layer");
+  assert.ok(simpleLayer.raster?.width > 1 && simpleLayer.raster?.height > 1);
+  assert.equal(simple.attachments, undefined);
 });
 
 test("overlay, advanced geometry, bilateral filter and terrain tools publish real layers", async () => {
@@ -747,6 +834,13 @@ test("overlay, advanced geometry, bilateral filter and terrain tools publish rea
   const identityLayer = identity.layer ?? identity.layers?.[0]?.layer;
   assert.ok(identityLayer.feature_count >= 1, "identity must preserve polygon coverage");
   assert.ok(identityLayer.geometry_types.every((type: string) => type === "Polygon" || type === "MultiPolygon"));
+
+  const updated = await finished("wasm_update", {
+    input: overlayA.id, overlay: overlayB.id, snap_tolerance: 0.000001, output_name: "update_result",
+  });
+  const updatedLayer = updated.layer ?? updated.layers?.[0]?.layer;
+  assert.ok(updatedLayer.feature_count >= 1, "update overlay must publish a polygon result");
+  assert.ok(updatedLayer.geometry_types.every((type: string) => type === "Polygon" || type === "MultiPolygon"));
 
   const line = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [
     { type: "Feature", properties: { id: 1 }, geometry: { type: "LineString", coordinates: [[500000, 4400000], [500200, 4400000], [500200, 4400200]] } },
@@ -826,6 +920,22 @@ test("overlay, advanced geometry, bilateral filter and terrain tools publish rea
   assert.equal(gaussianLayer.kind, "raster", "Gaussian filter file output must publish as raster");
   assert.equal(gaussianLayer.raster?.width, dem.raster?.width);
   assert.equal(gaussian.attachments, undefined);
+
+  const mean = await finished("wasm_mean_filter", {
+    input: dem.id, filter_size_x: 3, filter_size_y: 3, output_name: "mean_filter_result",
+  });
+  const meanLayer = mean.layer ?? mean.layers?.[0]?.layer;
+  assert.equal(meanLayer.kind, "raster", "mean filter file output must publish as raster");
+  assert.equal(meanLayer.raster?.width, dem.raster?.width);
+  assert.equal(mean.attachments, undefined);
+
+  const laplacian = await finished("wasm_laplacian_filter", {
+    input: dem.id, variant: "3x3(1)", clip_amount: 0, output_name: "laplacian_result",
+  });
+  const laplacianLayer = laplacian.layer ?? laplacian.layers?.[0]?.layer;
+  assert.equal(laplacianLayer.kind, "raster", "Laplacian filter file output must publish as raster");
+  assert.equal(laplacianLayer.raster?.width, dem.raster?.width);
+  assert.equal(laplacian.attachments, undefined);
 
   const edgeMean = await finished("wasm_edge_preserving_mean_filter", {
     input: dem.id, filter_size: 3, threshold: 15, output_name: "edge_mean_result",
@@ -967,6 +1077,12 @@ test("euclidean and cost allocation tools publish raster surfaces from real inpu
   assert.equal(euclideanLayer.kind, "raster");
   assert.equal(euclideanLayer.raster?.width, source.raster?.width);
 
+  const direction = await finished("wasm_euclidean_direction", { input: source.id, output_name: "euclidean_direction" });
+  assert.equal(direction.layers?.length, 3, "Euclidean direction must publish direction, distance and back-direction rasters");
+  assert.ok(direction.layers?.every((item: any) => item.layer?.kind === "raster"));
+  assert.ok(direction.layers?.every((item: any) => item.layer?.raster?.width === source.raster?.width));
+  assert.equal(direction.attachments, undefined);
+
   const distance = await finished("wasm_cost_distance", { source: source.id, cost: friction.id, output_name: "cost_surface" });
   assert.equal(distance.layers?.length, 2, "cost distance must publish both the cost and backlink rasters");
   const backlink = distance.layers?.find((item: any) => item.layer?.name?.includes("backlink"))?.layer;
@@ -1094,6 +1210,20 @@ test("hydrology helper chains depression fill, D8 flow and stream extraction on 
   const stored = await browserLayers();
   for (const layer of outputs) assert.ok(stored.some(item => item.id === layer.id));
 
+  const slope = await finished("wasm_slope", { input: demLayer.id, units: "degrees", z_factor: 1, output_name: "synthetic_slope" });
+  const slopeLayer = slope.layer ?? slope.layers?.[0]?.layer;
+  const sca = await finished("wasm_d8_flow_accum", {
+    input: outputs[1].id, input_is_pointer: true, out_type: "sca", output_name: "synthetic_sca",
+  });
+  const scaLayer = sca.layer ?? sca.layers?.[0]?.layer;
+  const wetness = await finished("wasm_wetness_index", {
+    sca: scaLayer.id, slope: slopeLayer.id, output_name: "synthetic_wetness",
+  });
+  const wetnessLayer = wetness.layer ?? wetness.layers?.[0]?.layer;
+  assert.equal(wetnessLayer.kind, "raster", "wetness index must publish a raster");
+  assert.equal(wetnessLayer.raster?.width, demLayer.raster?.width);
+  assert.equal(wetness.attachments, undefined);
+
   for (const [tool, output] of [["wasm_strahler_stream_order", "strahler_order"],
     ["wasm_hack_stream_order", "hack_order"]]) {
     const order = await finished(tool, {
@@ -1115,6 +1245,31 @@ test("hydrology helper chains depression fill, D8 flow and stream extraction on 
   const watershedLayer = watershed.layers.at(-1).layer;
   assert.equal(watershedLayer.kind, "raster");
   assert.equal(watershedLayer.raster.width, outputs[0].raster.width);
+});
+
+test("change vector analysis publishes magnitude and direction rasters", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const cell = 100, features: any[] = [];
+  for (let row = 0; row < 6; row++) for (let col = 0; col < 6; col++) {
+    const x = 500000 + col * cell, y = 4400000 + row * cell;
+    features.push({ type: "Feature", properties: { before: 100 + row * 3 + col, after: 80 + row * 4 + col * 2 },
+      geometry: { type: "Polygon", coordinates: [[[x, y], [x + cell, y], [x + cell, y + cell], [x, y + cell], [x, y]]] } });
+  }
+  const source = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features })]), "cva_source.geojson")).layer;
+  const before = (await finished("wasm_vector_polygons_to_raster", {
+    input: source.id, field: "before", cell_size: cell, output_name: "cva_before",
+  })).layer;
+  const after = (await finished("wasm_vector_polygons_to_raster", {
+    input: source.id, field: "after", cell_size: cell, output_name: "cva_after",
+  })).layer;
+  const change = await finished("wasm_change_vector_analysis", {
+    date1: [before.id], date2: [after.id], output_name: "cva_change",
+  });
+  assert.equal(change.layers?.length, 2, "CVA must publish both magnitude and direction rasters");
+  assert.ok(change.layers?.every((item: any) => item.layer?.kind === "raster"));
+  assert.ok(change.layers?.some((item: any) => item.layer?.name?.includes("magnitude_output")));
+  assert.ok(change.layers?.some((item: any) => item.layer?.name?.includes("direction_output")));
+  assert.equal(change.attachments, undefined);
 });
 
 test("Whitebox extension is a real breach, fill and D8 chain", async () => {
