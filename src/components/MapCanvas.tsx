@@ -15,6 +15,7 @@ import {
 } from "../lib/basemaps";
 import { DataLayer, LayerSelection, syncDataLayers } from "../lib/dataLayers";
 import { engineHeaders } from "../lib/service";
+import { downloadMapPng, mapExportFilename } from "../lib/map-export";
 
 type Props = {
   theme: "light" | "dark";
@@ -114,6 +115,8 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   const [menuOpen, setMenuOpen] = useState(false);
   const [drawingAoi, setDrawingAoi] = useState(false);
   const [draftAoi, setDraftAoi] = useState<number[] | null>(null);
+  const [exportStatus, setExportStatus] = useState("");
+  const exportStatusTimer = useRef<number | undefined>(undefined);
   const draftAoiRef = useRef<number[] | null>(null);
   drawingAoiRef.current = drawingAoi;
 
@@ -174,6 +177,7 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
       attributionControl: { compact: true },
       locale: { "NavigationControl.ZoomIn": "放大", "NavigationControl.ZoomOut": "缩小", "NavigationControl.ResetBearing": "拖动旋转，点击恢复正北", "AttributionControl.ToggleAttribution": "显示地图来源" },
       maxPitch: 85,
+      canvasContextAttributes: { preserveDrawingBuffer: true },
       transformRequest: (url) => ({ url, headers: engineHeaders(url) }),
     });
 
@@ -222,6 +226,10 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
       map.remove();
       mapRef.current = null;
     };
+  }, []);
+
+  useEffect(() => () => {
+    if (exportStatusTimer.current !== undefined) window.clearTimeout(exportStatusTimer.current);
   }, []);
 
   useEffect(() => {
@@ -360,6 +368,35 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
     map.fitBounds([[a, b], [c, d]], { padding: 80, duration: 1800, maxZoom: 14 });
   }, [focusBounds]);
 
+  async function exportMapImage() {
+    const map = mapRef.current;
+    if (!map || exportStatus === "导出中…") return;
+    if (exportStatusTimer.current !== undefined) window.clearTimeout(exportStatusTimer.current);
+    setExportStatus("导出中…");
+    try {
+      await new Promise<void>(resolve => {
+        let settled = false;
+        let timer: number | undefined;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          if (timer !== undefined) window.clearTimeout(timer);
+          map.off("idle", finish);
+          resolve();
+        };
+        timer = window.setTimeout(finish, 900);
+        map.once("idle", finish);
+        map.triggerRepaint();
+      });
+      downloadMapPng(map.getCanvas(), mapExportFilename());
+      setExportStatus("已导出");
+    } catch (error) {
+      console.error("Map export failed", error);
+      setExportStatus("导出失败");
+    }
+    exportStatusTimer.current = window.setTimeout(() => setExportStatus(""), 1800);
+  }
+
   const current = getBasemap(basemapId);
 
   return (
@@ -377,6 +414,18 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
           >
             {drawingAoi ? "绘制中…" : "AOI"}
           </button>
+        </div>
+        <div className="map-ctrl-group">
+          <button
+            type="button"
+            className="map-ctrl-btn"
+            onClick={() => void exportMapImage()}
+            disabled={exportStatus === "导出中…"}
+            title="将当前地图视图下载为 PNG"
+          >
+            PNG
+          </button>
+          {exportStatus && <span className="map-ctrl-status" role="status">{exportStatus}</span>}
         </div>
         <div className="map-ctrl-group">
           <button

@@ -63,7 +63,8 @@ const FIELDS: Record<string, string> = {
   by_field: "融合字段（留空则全部融合）", tolerance: "容差", field: "字段", op: "比较方式",
   value: "比较值", predicate: "空间关系", target_crs: "目标坐标系", fmt: "格式", overwrite: "覆盖已有文件",
   color: "颜色（#RRGGBB）", opacity: "不透明度（0–1）", point_size: "点半径（像素）", line_width: "线宽（像素）", size: "文字大小（像素）",
-  keep_fields: "保留连接字段", format_group: "格式类别",
+  keep_fields: "保留连接字段", format_group: "格式类别", resistance: "阻力栅格",
+  barriers: "障碍图层（可选）", corridor_width: "廊道宽度（地图单位）", neighbor_option: "连接方式",
 };
 const STATUS: Record<string, string> = {
   submitting: "提交中", queued: "排队中", running: "运行中", cancelling: "正在取消",

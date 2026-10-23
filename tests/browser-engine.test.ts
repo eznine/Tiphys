@@ -12,6 +12,7 @@ import { desktopToolCatalog } from "../src/lib/browser/catalog-schema.ts";
 import { zhToolL1, zhToolL2 } from "../src/lib/i18n/tools.ts";
 import { searchBrowserTools } from "../src/lib/browser/search.ts";
 import { compactBrowserMessages, estimateBrowserTokens, readBrowserContextRecord } from "../src/lib/browser/context.ts";
+import { mapExportFilename, mapPngDataUrl } from "../src/lib/map-export.ts";
 import type { ModelMessage } from "ai";
 
 before(async () => {
@@ -203,6 +204,47 @@ test("vector points rasterize into a displayed raster layer and feed raster tool
   assert.equal(shadeLayer.kind, "raster");
 });
 
+test("linkage mapper helper chains core rasterization and a least-cost corridor network", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const square = (x: number, y: number, id: number) => ({ type: "Feature", properties: { id },
+    geometry: { type: "Polygon", coordinates: [[[x, y], [x + 100, y], [x + 100, y + 100], [x, y + 100], [x, y]]] } });
+  const collection = (features: any[]) => new Blob([JSON.stringify({ type: "FeatureCollection", crs, features })]);
+  const habitats = (await importBrowserFile(collection([
+    square(500000, 4400000, 1), square(500700, 4400200, 2), square(501400, 4400400, 3),
+  ]), "habitats.geojson")).layer;
+  const resistanceSource = (await importBrowserFile(collection([
+    { type: "Feature", properties: { id: 1 }, geometry: { type: "Polygon", coordinates: [[[499500, 4399500], [502000, 4399500], [502000, 4402500], [499500, 4402500], [499500, 4399500]]] } },
+  ]), "resistance.geojson")).layer;
+  const resistance = await finished("wasm_vector_polygons_to_raster", { input: resistanceSource.id, cell_size: 100, output_name: "resistance" });
+  const resistanceLayer = resistance.layer ?? resistance.layers?.[0]?.layer;
+  const result = await finished("linkage_mapper_corridor", {
+    layer: habitats.id, resistance: resistanceLayer.id, corridor_width: 200,
+    neighbor_option: "spanning_tree", output_name: "habitat_corridors",
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.available, true);
+  assert.equal(result.plugin, "linkage-mapper");
+  assert.deepEqual(result.tools, ["wasm_vector_polygons_to_raster", "wasm_optimal_corridor_connections"]);
+  assert.equal(result.source_raster.kind, "raster");
+  assert.equal(result.source_raster.raster.width, resistanceLayer.raster.width);
+  const corridorLayers = result.layers.slice(1).map((item: any) => item.layer);
+  assert.ok(corridorLayers.some((layer: any) => layer.geometry_types.includes("Polygon") && layer.feature_count > 0));
+  assert.ok(corridorLayers.some((layer: any) => layer.geometry_types.includes("LineString") && layer.feature_count > 0));
+  const stored = await browserLayers();
+  assert.ok(stored.some(layer => layer.id === result.source_raster.id));
+  for (const layer of corridorLayers) assert.ok(stored.some(item => item.id === layer.id));
+  await assert.rejects(finished("linkage_mapper_corridor", { layer: habitats.id }), /缺少参数：resistance/);
+});
+
+test("map export produces a PNG data URL and timestamped filename", () => {
+  let requestedType = "";
+  const canvas = { toDataURL: (type?: string) => { requestedType = type ?? ""; return "data:image/png;base64,AAAA"; } };
+  assert.equal(mapPngDataUrl(canvas), "data:image/png;base64,AAAA");
+  assert.equal(requestedType, "image/png");
+  assert.equal(mapExportFilename(new Date("2026-10-24T02:40:10.500Z")), "tiphys-map-2026-10-24_02-40-10.png");
+  assert.throws(() => mapPngDataUrl({ toDataURL: () => "data:," }), /画布为空/);
+});
+
 test("rename_layer updates the display name in place and reorder_layers sets the draw order", async () => {
   const first = (await sample("order-keep"));
   const second = (await sample("order-move"));
@@ -218,7 +260,7 @@ test("rename_layer updates the display name in place and reorder_layers sets the
   assert.ok(!(await browserLayers()).some(l => l.id === second.id));
 });
 
-test("GEE slice, ArcGIS adapters and plugin stubs return honest structured results", async () => {
+test("GEE slice, ArcGIS adapters and explanatory plugin return honest structured results", async () => {
   const auth = await runBrowserTool("gee_auth_status", {});
   assert.equal(auth.connected, false);
   assert.equal(auth.status, "not_connected");
@@ -246,10 +288,6 @@ test("GEE slice, ArcGIS adapters and plugin stubs return honest structured resul
   assert.equal(arcgis.supported, false);
   assert.ok(arcgis.alternatives.length > 0);
 
-  const input = await sample("plugin");
-  const corridor = await finished("linkage_mapper_corridor", { layer: input.id });
-  assert.equal(corridor.available, false);
-  assert.equal(corridor.plugin, "linkage-mapper");
   const whitebox = await finished("whitebox_extra", {});
   assert.equal(whitebox.available, false);
   assert.ok(browserCatalog.some(t => t.name === "linkage_mapper_corridor"));

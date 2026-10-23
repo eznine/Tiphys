@@ -337,7 +337,9 @@ async function spatialJoin(record: LayerRecord, other: LayerRecord, args: Record
 }
 async function execute(name: string, args: Record<string, any>, signal?: AbortSignal): Promise<Record<string, any>> {
   if (name.startsWith("wasm_")) return runNative(name.slice(5), args, signal);
-  if (pluginToolNames.has(name)) return runPluginTool(name, args);
+  if (pluginToolNames.has(name)) return runPluginTool(name, args, {
+    runTool: (toolName, toolArgs) => execute(toolName, toolArgs, signal),
+  });
   if (name === "list_supported_formats") return {
     ok: true,
     runtime: "browser-wasm",

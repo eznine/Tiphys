@@ -1,4 +1,4 @@
-import type { ExtensionManifest } from "./types";
+import type { ExtensionManifest, ExtensionRunContext } from "./types";
 
 const EXTENSION_CATEGORY = "扩展";
 const EXTENSION_SUBCATEGORY = "插件";
@@ -6,32 +6,63 @@ const EXTENSION_SUBCATEGORY = "插件";
 const linkageMapper: ExtensionManifest = {
   id: "linkage-mapper",
   name: "Linkage Mapper",
-  version: "0.1.0-stub",
+  version: "0.2.0",
   tools: [{
     name: "linkage_mapper_corridor",
-    label: "生态廊道分析（占位）",
+    label: "生态廊道分析",
     category: EXTENSION_CATEGORY,
     subcategory: EXTENSION_SUBCATEGORY,
-    description: "LinkageMapper 风格生态连通性插件占位。接口已预留，当前未包含阻力面建模、廊道提取与夹点分析。",
+    description: "基于核心生境多边形与阻力栅格，构建最小成本廊道网络并输出廊道面与中心线；内部串联多边形栅格化与最优廊道连接工具。",
     parameters: {
       type: "object",
       properties: {
-        layer: { type: "string", "x-layer": true, "x-layer-kind": "vector", description: "核心生境或源地图层" },
-        resistance_field: { type: "string", description: "可选阻力字段" },
+        layer: { type: "string", "x-layer": true, "x-layer-kind": "vector", description: "核心生境面图层，至少包含两个区域" },
+        resistance: { type: "string", "x-layer": true, "x-layer-kind": "raster", description: "阻力/成本栅格；NoData 表示不可通行" },
+        barriers: { type: "string", "x-layer": true, "x-layer-kind": "vector", description: "可选障碍面图层" },
+        corridor_width: { type: "number", description: "廊道宽度（阻力栅格的地图单位）；留空按 10 个像元" },
+        neighbor_option: { type: "string", enum: ["spanning_tree", "all_pairs"], description: "使用最小生成树或所有区域对连接" },
         output_name: { type: "string", description: "结果图层名称" },
       },
-      required: ["layer"],
+      required: ["layer", "resistance"],
       additionalProperties: false,
     },
     annotations: {},
   }],
-  run: () => ({
-    ok: false,
-    available: false,
-    plugin: "linkage-mapper",
-    message: "插件接口已就绪，但 LinkageMapper 廊道模型尚未打包。当前可用内置缓冲区、距离与叠加工具准备源地和阻力数据。",
-    alternatives: ["buffer", "select_by_location", "spatial_join", "wasm_cost_distance"],
-  }),
+  run: async (_toolName, args, context) => {
+    const outputName = String(args.output_name || "生态廊道");
+    const width = args.corridor_width == null || args.corridor_width === "" ? undefined : Number(args.corridor_width);
+    if (width !== undefined && (!Number.isFinite(width) || width <= 0)) throw new Error("廊道宽度必须为正数。");
+    const source = await context.runTool("wasm_vector_polygons_to_raster", {
+      input: args.layer,
+      base: args.resistance,
+      zero_background: true,
+      output_name: `${outputName}_核心源`,
+    });
+    const corridor = await context.runTool("wasm_optimal_corridor_connections", {
+      input: args.layer,
+      cost_raster: args.resistance,
+      ...(args.barriers ? { barriers: args.barriers } : {}),
+      ...(width !== undefined ? { corridor_width: width } : {}),
+      neighbor_option: args.neighbor_option || "spanning_tree",
+      output_name: outputName,
+    });
+    const sourceLayer = source.layer ?? source.layers?.[0]?.layer;
+    const corridorLayers = corridor.layers ?? (corridor.layer ? [{ ok: true, layer: corridor.layer, engine: corridor.engine }] : []);
+    if (!sourceLayer || !corridorLayers.length) throw new Error("廊道分析未生成预期结果。");
+    return {
+      ok: true,
+      plugin: "linkage-mapper",
+      available: true,
+      model: "least_cost_corridor_network",
+      corridor_width: width ?? null,
+      neighbor_option: args.neighbor_option || "spanning_tree",
+      source_raster: sourceLayer,
+      layers: [source, ...corridorLayers],
+      tools: ["wasm_vector_polygons_to_raster", "wasm_optimal_corridor_connections"],
+      message: "廊道网络已生成：核心生境已栅格化到阻力栅格网格，并输出廊道面与中心线。",
+      limitations: "当前实现为无方向的最小成本廊道网络；不包含 LinkageMapper 的夹点、阻碍点和分区统计后处理。",
+    };
+  },
 };
 
 const whiteboxExtra: ExtensionManifest = {
@@ -71,8 +102,9 @@ export const extensionRegistry = registry;
 export const pluginToolSchemas = [...registry.values()].flatMap(manifest => manifest.tools);
 export const pluginToolNames = new Set(pluginToolSchemas.map(tool => tool.name));
 
-export async function runPluginTool(toolName: string, args: Record<string, unknown>) {
+export async function runPluginTool(toolName: string, args: Record<string, unknown>, context?: ExtensionRunContext) {
   const manifest = [...registry.values()].find(item => item.tools.some(tool => tool.name === toolName));
   if (!manifest?.run) throw new Error(`插件工具尚未提供执行入口：${toolName}`);
-  return manifest.run(toolName, args);
+  if (!context) throw new Error(`插件工具缺少浏览器执行上下文：${toolName}`);
+  return manifest.run(toolName, args, context);
 }

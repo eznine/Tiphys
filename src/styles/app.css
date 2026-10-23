@@ -590,6 +590,16 @@ textarea {
   cursor: not-allowed;
 }
 
+.map-ctrl-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 9px;
+  border-left: 1px solid var(--tiphys-border);
+  color: var(--tiphys-text-muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
 .basemap-switcher {
   position: relative;
 }

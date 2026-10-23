@@ -33,3 +33,14 @@
 - 2026-10-24 02:24 Asia/Shanghai — Starting batch03 P2/P4 (agent search/progress, beauty polish, AOI stub, runtime docs).
 
 - 2026-10-24 — P2/P4 implemented: ranked `search_browser_tools` with Chinese/category boosts; browser Agent memory injection and two-stage context trim/compaction with IndexedDB spill and `read_browser_output`; clearer job percent/cancel cards; restrained empty states and blue-family layer defaults; AOI rectangle stored in App state with map chip; weighted overlay and network tools surfaced on the analysis ribbon; runtime parity notes added. Verified 18/18 browser tests, `tsc --noEmit`, and production build.
+
+- 2026-10-24 02:40 Asia/Shanghai — Starting batch04 P3 (corridor pipeline, RS ribbon tools, map export).
+
+- 2026-10-24 — P3 implemented on Linux box:
+  - `linkage_mapper_corridor` is now a real inline pipeline instead of a stub. It rasterizes core habitat polygons onto the supplied resistance grid with `wasm_vector_polygons_to_raster`, then runs `wasm_optimal_corridor_connections` for least-cost corridor polygons + centerlines. Extension runners receive `context.runTool` so nested tools share the parent job/cancellation instead of deadlocking on the browser GIS CPU lock. Optional barriers, corridor width, and spanning-tree/all-pairs modes are exposed.
+  - 分析 ribbon adds 坡向, 分区统计, and 栅格裁剪; 遥感 adds 光谱指数 alongside the existing NDVI-like normalized difference, change detection, and spectral analysis actions. All buttons open the existing tool form by catalog name.
+  - Map view now has a restrained PNG control that waits for MapLibre idle, exports the current canvas via `toDataURL`, and downloads a timestamped PNG. The context uses `preserveDrawingBuffer` so screenshots do not depend on a blank WebGL buffer.
+  - Browser tests cover the real corridor chain (raster alignment, corridor polygon/line outputs, persistence) and PNG data-URL/filename validation. Plugin/engine docs updated.
+  - Verification: `npm run test:browser` 20/20 passed; `npx tsc --noEmit` passed; production build run before commit.
+
+- 2026-10-24 ~02:41 Asia/Shanghai — Overnight executor interrupted; tf-codex batch04 still alive on box. Supervisor re-dispatched; no user ping.
