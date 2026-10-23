@@ -3,16 +3,22 @@
  * tools from the Python engine over MCP, SSE events to the UI on 127.0.0.1.
  */
 import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
 import { streamText, generateText, stepCountIs, tool, jsonSchema, type ToolSet } from "ai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { loadConfig, maskKey } from "./config.js";
+import { loadConfig, TIPHYS_DIR, type AgentConfig } from "./config.js";
+import { providerFetch } from "./provider-fetch.js";
+import { once } from "node:events";
+import { eventLogEntries, redact } from "./diagnostics.js";
+import { prepareSettings, publicSettings, saveSettings } from "./settings.js";
 import { EngineMcp } from "./mcp.js";
 import { createMockModel } from "./mock.js";
 import { Session, type AgentEvent } from "./session.js";
 import { COMPACT_PROMPT, loadMemory, maybeCompact, readToolOutput, spillIfLarge, workspaceSnapshot } from "./context.js";
 import { allowedOrigins, authorized, serviceToken } from "./security.js";
 
-const cfg = loadConfig();
+let cfg = loadConfig();
 const engine = new EngineMcp(cfg.engineUrl);
 const sessions = new Map<string, Session>();
 const clients = new Map<string, Set<http.ServerResponse>>();
@@ -21,26 +27,12 @@ const DESTRUCTIVE = new Set(["remove_layer"]);
 const watching = new Set<string>();
 
 /** fetch wrapper: rotate to the next key on 401/402/403/429/5xx (tf-chat behaviour). Keys never logged unmasked. */
-let keyIdx = 0;
-const rotatingFetch: typeof fetch = async (input, init) => {
-  let lastRes: Response | undefined;
-  for (let tries = 0; tries < cfg.apiKeys.length; tries++) {
-    const key = cfg.apiKeys[keyIdx % cfg.apiKeys.length];
-    const headers = new Headers(init?.headers);
-    headers.set("Authorization", `Bearer ${key}`);
-    const res = await fetch(input, { ...init, headers });
-    if (![401, 402, 403, 429].includes(res.status) && res.status < 500) return res;
-    console.log(`[tiphys-agent] key ${maskKey(key)} -> HTTP ${res.status}; rotating`);
-    lastRes = res;
-    keyIdx++;
-  }
-  return lastRes!;
-};
-
-const model =
-  cfg.provider === "mock"
-    ? createMockModel()
-    : createOpenAICompatible({ name: "tiphys-llm", baseURL: cfg.baseURL!, fetch: rotatingFetch }).chatModel(cfg.model);
+function configuredModel(config: AgentConfig) {
+  if (config.provider === "mock") return createMockModel();
+  if (config.provider === "unconfigured") return null;
+  return createOpenAICompatible({ name: "tiphys-llm", baseURL: config.baseURL!, fetch: providerFetch(config) }).chatModel(config.model);
+}
+let model = configuredModel(cfg);
 
 function getSession(id: string) {
   let s = sessions.get(id);
@@ -148,6 +140,7 @@ function buildTools(s: Session): ToolSet {
           if (!ok) return { denied: true, reason: "user rejected destructive action" };
         }
         const out = await engine.call(t.name, input ?? {}, abortSignal);
+        if (out?.view) emit(s, { type: "view-command", command: out.view });
         if (out?.layer && t.name === "add_data") {
           const layer = { ...out.layer, url: layerUrl(out.layer) };
           s.workspace.layers = [...s.workspace.layers.filter(l => l.id !== layer.id), layer];
@@ -180,6 +173,8 @@ async function runTurn(s: Session, text: string) {
   const turnId = `turn_${Date.now()}`;
   emit(s, { type: "user", text, turnId });
   try {
+    const turnModel = model;
+    if (!turnModel) throw new Error(cfg.configIssue || "API 尚未配置，请打开设置。");
     await engine.ensure();
     await refreshWorkspace(s);
     for (const jobId of s.workspace.pendingJobs) void watchJob(s, jobId, "recovered");
@@ -188,13 +183,13 @@ async function runTurn(s: Session, text: string) {
     const system = systemPrompt(s);
     const tools = buildTools(s);
     const c = await maybeCompact(s.messages, system + JSON.stringify(engine.tools), cfg.contextWindow, s.workspace,
-      cfg.provider === "mock" ? undefined : async messages => (await generateText({ model, system: COMPACT_PROMPT, messages,
+      cfg.provider === "mock" ? undefined : async messages => (await generateText({ model: turnModel, system: COMPACT_PROMPT, messages,
         maxOutputTokens: Math.min(4000, Math.floor(cfg.contextWindow * 0.15)), abortSignal: s.controller!.signal })).text);
     if (c.compacted) {
       s.messages = c.messages;
       emit(s, { type: "compaction", before: c.before, after: c.after, summary: c.summary });
     }
-    const result = streamText({ model, system, messages: s.messages, tools, abortSignal: s.controller.signal, stopWhen: stepCountIs(8) });
+    const result = streamText({ model: turnModel, system, messages: s.messages, tools, abortSignal: s.controller.signal, stopWhen: stepCountIs(8) });
     let buf = "";
     for await (const p of result.fullStream as AsyncIterable<any>) {
       if (p.type === "text-delta") {
@@ -262,6 +257,70 @@ const server = http.createServer(async (req, res) => {
     }
     const credential = req.headers.authorization?.replace(/^Bearer /, "");
     if (!authorized(credential)) return json({ error: "unauthorized" }, 401);
+    if (url.pathname === "/model/chat/completions" && req.method === "POST") {
+      if (cfg.provider !== "openai-compatible") return json({ error: "请先配置真实 API。" }, 409);
+      const payload = await body(req);
+      if (!Array.isArray(payload.messages) || typeof payload !== "object") return json({ error: "Invalid model request" }, 400);
+      const current = cfg;
+      const abort = new AbortController();
+      res.once("close", () => { if (!res.writableEnded) abort.abort(); });
+      const upstream = await providerFetch(current)(`${current.baseURL!.replace(/\/$/, "")}/chat/completions`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, model: current.model }), signal: abort.signal,
+      });
+      if (!upstream.ok) return json({ error: redact((await upstream.text()).slice(0, 2500), current.apiKeys) }, upstream.status);
+      res.writeHead(200, { "Content-Type": upstream.headers.get("content-type") ?? "application/json", "Cache-Control": "no-store", "X-Accel-Buffering": "no" });
+      if (upstream.body) for await (const chunk of upstream.body as any) if (!res.write(chunk)) await once(res, "drain", { signal: abort.signal });
+      res.end(); return;
+    }
+    if (url.pathname === "/settings" && req.method === "GET") return json(publicSettings(cfg));
+    if (url.pathname === "/settings" && req.method === "POST") {
+      if ([...sessions.values()].some(session => session.busy)) return json({ error: "当前任务正在运行，完成或停止后再保存 API 配置。" }, 409);
+      const overrides = publicSettings(cfg).environmentOverrides;
+      if (overrides.length) return json({ error: `启动环境覆盖了这些设置：${overrides.join("、")}。请先调整启动配置。` }, 409);
+      try {
+        const next = prepareSettings(cfg, await body(req));
+        const nextModel = configuredModel(next);
+        saveSettings(next);
+        cfg = next; model = nextModel;
+        for (const session of sessions.values()) emit(session, { type: "model-config", provider: cfg.provider, model: cfg.model });
+        return json(publicSettings(cfg));
+      } catch (err) { return json({ error: String(err instanceof Error ? err.message : err) }, 400); }
+    }
+    if (url.pathname === "/settings/test" && req.method === "POST") {
+      let candidate: AgentConfig | undefined;
+      try {
+        candidate = prepareSettings(cfg, await body(req));
+        const testModel = configuredModel(candidate)!;
+        const started = Date.now();
+        const result = await generateText({ model: testModel, prompt: "只回复：连接成功", maxOutputTokens: 32, maxRetries: 0,
+          abortSignal: AbortSignal.timeout(60000) });
+        if (!result.text.trim()) throw new Error("API 未返回文本，请核对模型名称。");
+        return json({ ok: true, model: candidate.model, latencyMs: Date.now() - started, message: "真实 API 调用成功" });
+      } catch (err) { return json({ error: redact(err instanceof Error ? err.message : String(err), candidate?.apiKeys ?? cfg.apiKeys) }, 400); }
+    }
+    if (url.pathname === "/logs" && req.method === "GET") {
+      const s = getSession(sid);
+      let engineDiagnostics: any = {};
+      try {
+        const response = await fetch(`${cfg.engineUrl}/diagnostics`, { headers: { Authorization: `Bearer ${serviceToken}` }, signal: AbortSignal.timeout(3000) });
+        if (response.ok) engineDiagnostics = await response.json();
+      } catch { /* Local Agent records remain available if the engine is offline. */ }
+      const serviceLogs: Record<string, string> = {};
+      for (const name of ["agent.log", "engine.log", "startup-error.log"]) {
+        const file = path.join(TIPHYS_DIR, name);
+        if (!fs.existsSync(file)) continue;
+        const fd = fs.openSync(file, "r");
+        try {
+          const size = fs.fstatSync(fd).size;
+          const buffer = Buffer.alloc(Math.min(size, 64000));
+          const count = fs.readSync(fd, buffer, 0, buffer.length, Math.max(0, size - buffer.length));
+          serviceLogs[name] = buffer.subarray(0, count).toString("utf8");
+        } finally { fs.closeSync(fd); }
+      }
+      return json(redact({ entries: [...eventLogEntries(s.events()), ...(engineDiagnostics.entries ?? [])].sort((a, b) => a.ts - b.ts).slice(-1000),
+        diagnostics: { provider: cfg.provider, model: cfg.model, engineUrl: cfg.engineUrl, stateDir: TIPHYS_DIR,
+          engineReachable: !!engineDiagnostics.entries, layerCount: engineDiagnostics.layer_count, pendingJobs: engineDiagnostics.pending_jobs ?? [], busy: s.busy, serviceLogs } }, cfg.apiKeys));
+    }
     if (url.pathname === "/tools") {
       await engine.ensure();
       return json({ tools: engine.tools.map((t) => ({ name: t.name, description: t.description, inputSchema: t.inputSchema })) });

@@ -99,6 +99,87 @@ test("isolated engine + Agent: auth, buffer, approval ownership, reconnect, rest
     assert.equal(output.feature_count, 5);
     assert.ok(fs.statSync(output.path).size > 0);
     assert.equal((await fetch(output.url, { headers: { Authorization: `Bearer ${token}` } })).status, 200);
+
+    // The manual form uses authenticated REST; dispatch must match the MCP contract.
+    const engineRequest = async (route: string, body?: object) => fetch(`${engineUrl}${route}`, {
+      method: body ? "POST" : "GET", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const manual = async (name: string, args: object) => {
+      const response = await engineRequest("/tools/run", { name, arguments: args });
+      assert.equal(response.status, 200, await response.clone().text());
+      let result = await response.json();
+      if (result.job_id) {
+        const end = Date.now() + 10000;
+        do {
+          const state = await (await engineRequest(`/jobs/${result.job_id}`)).json();
+          if (state.status === "completed") return state.result;
+          assert.ok(["queued", "running"].includes(state.status), JSON.stringify(state));
+          await new Promise(resolve => setTimeout(resolve, 30));
+        } while (Date.now() < end);
+        throw new Error(`Manual job did not settle: ${JSON.stringify(result)}`);
+      }
+      return result;
+    };
+    const catalog = await (await engineRequest("/tools/catalog")).json();
+    assert.equal(catalog.tools.length, 24);
+    assert.equal(catalog.tools.find((t: any) => t.name === "buffer").category, "邻近分析");
+    assert.equal(catalog.tools.find((t: any) => t.name === "clip").category, "叠加分析");
+    assert.equal(catalog.tools.find((t: any) => t.name === "remove_layer").annotations.destructiveHint, true);
+    assert.equal((await fetch(`${engineUrl}/tools/catalog`)).status, 401);
+    assert.equal((await engineRequest("/tools/run", { name: "buffer", arguments: { layer: output.id } })).status, 400);
+    assert.equal((await engineRequest("/tools/run", { name: "set_layer_symbology", arguments: { layer: output.id, color: "guess", opacity: 4 } })).status, 400);
+    const zoom = await manual("zoom_to_layer", { layer: output.id });
+    assert.deepEqual(zoom.view.bounds, output.bounds);
+    const labels = await manual("set_layer_labels", { layer: output.id, field: "name" });
+    assert.equal(labels.view.style.labelField, "name");
+    assert.equal((await engineRequest("/tools/run", { name: "set_layer_labels", arguments: { layer: output.id, field: "missing" } })).status, 400);
+    assert.equal((await engineRequest("/tools/run", { name: "select_by_location", arguments: { layer: output.id, filter_layer: output.id, predicate: "guess" } })).status, 400);
+    const hull = (await manual("convex_hull", { layer: output.id })).layer;
+    const clipped = (await manual("clip", { layer: output.id, mask_layer: hull.id })).layer;
+    assert.equal(clipped.feature_count, 5);
+    const projection = (await manual("reproject", { layer: clipped.id, target_crs: "EPSG:3857" })).layer;
+    const description = await manual("describe_layer", { layer: projection.id });
+    assert.equal(description.crs, "EPSG:3857");
+    const exportedPath = path.join(dir, "manual.geojson");
+    const exported = await manual("export_features", { layer: projection.id, path: exportedPath });
+    assert.equal(exported.feature_count, 5);
+    assert.equal(JSON.parse(fs.readFileSync(exportedPath, "utf8")).features.length, 5);
+    for (const layer of [projection, clipped, hull]) {
+      assert.equal((await manual("remove_layer", { layer: layer.id })).removed, layer.id);
+    }
+    const fixture = { type: "FeatureCollection", features: Array.from({ length: 205 }, (_, i) => ({
+      type: "Feature", geometry: { type: "Point", coordinates: [116 + i * .00001, 40] },
+      properties: { n: i, name: `记录${i}`, category: i % 2 ? "公园" : null },
+    })) };
+    const upload = await fetch(`${engineUrl}/layers/import?filename=table.geojson`, {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/octet-stream" }, body: JSON.stringify(fixture),
+    });
+    assert.equal(upload.status, 200);
+    const uploaded = (await upload.json()).layer;
+    const page = await (await engineRequest(`/layers/${uploaded.id}/attributes?offset=100&limit=100&sort=n&descending=true`)).json();
+    assert.equal(page.total, 205);
+    assert.equal(page.rows.length, 100);
+    assert.equal(page.rows[0].attributes.n, 104);
+    assert.equal(page.rows[0].id, 104);
+    assert.equal(page.rows[0].bounds.length, 4);
+    assert.ok(page.fields.some((f: any) => f.name === "category"));
+    const filtered = await (await engineRequest(`/layers/${uploaded.id}/attributes?search=${encodeURIComponent("记录204")}`)).json();
+    assert.equal(filtered.total, 1);
+    assert.equal(filtered.rows[0].id, 204);
+    const categories = await (await engineRequest(`/layers/${uploaded.id}/field-values?field=category`)).json();
+    assert.equal(categories.unique_count, 2);
+    assert.equal(categories.values.find((v: any) => v.value === null).count, 103);
+    assert.equal((await engineRequest(`/layers/${uploaded.id}/attributes?sort=missing`)).status, 400);
+    assert.equal((await engineRequest(`/layers/${uploaded.id}/attributes?limit=10000`)).status, 422);
+    assert.equal((await fetch(`${engineUrl}/layers/${uploaded.id}/attributes`)).status, 401);
+    await manual("remove_layer", { layer: uploaded.id });
+    const logs = await (await request("/logs")).json();
+    assert.ok(logs.entries.some((e: any) => e.source === "Engine" && e.kind === "tool-error"));
+    assert.ok(logs.entries.some((e: any) => e.source === "Agent" && e.kind === "tool-call"));
+    assert.equal(logs.diagnostics.engineReachable, true);
+    assert.ok(!JSON.stringify(logs).includes(token));
+    assert.equal((await fetch(`${agentUrl}/logs`)).status, 401);
     assert.equal((await request("/chat", { text: "删除最后一个图层" })).status, 200);
     await wait(() => events.some(e => e.type === "approval-request"));
     const approval = events.find(e => e.type === "approval-request");

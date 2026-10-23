@@ -19,6 +19,8 @@ TIPHYS uses or adapts the following third-party works. Original notices for adap
 - `@modelcontextprotocol/sdk` (TypeScript), `mcp` (Python) — MIT / Apache-2.0 (see packages)
 - geopandas (BSD-3), shapely (BSD-3), pyproj (MIT), pyogrio (MIT), FastAPI (MIT), uvicorn (BSD-3)
 - maplibre-gl (BSD-3), React (MIT), Tauri (MIT/Apache-2.0)
+- `geolibre-wasm@1.7.1` (in-browser Whitebox/GDAL-compatible vector and raster tools) — MIT, source in `opengeos/geolibre-rust`; GeoLibre integration code and license at `docs/licenses/GeoLibre-MIT.txt`
+- lucide-react (ISC), react-markdown / remark-gfm (MIT); original frontend package notices are emitted by the Vite production build.
 
 No code from Anthropic Claude Code / Claude Agent SDK (proprietary) is used.
 

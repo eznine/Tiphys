@@ -1,4 +1,5 @@
 /** TIPHYS spatial engine HTTP client (M0: ping only). */
+import { browserRuntime } from "./runtime";
 
 export type EnginePing = {
   ok: boolean;
@@ -23,7 +24,7 @@ export async function pingEngine(
 ): Promise<PingResult> {
   const started = performance.now();
   try {
-    const res = await fetch(`${baseUrl}/ping`, {
+    const res = browserRuntime ? await (await import("./browser/engine")).browserEngineRequest("/ping", { signal }) : await fetch(`${baseUrl}/ping`, {
       method: "GET",
       headers: { Accept: "application/json" },
       signal,

@@ -9,7 +9,7 @@ export default defineConfig(() => ({
   plugins: [react()],
   build: { license: { fileName: "licenses/frontend.md" } },
   // maplibre-gl v6 loads its module worker relative to its own file; pre-bundling breaks that URL.
-  optimizeDeps: { exclude: ["maplibre-gl"] },
+  optimizeDeps: { exclude: ["maplibre-gl", "geolibre-wasm"] },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

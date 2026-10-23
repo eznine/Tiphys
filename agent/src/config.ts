@@ -30,25 +30,31 @@ function parseKeysFile(p: string): { keys: string[]; base?: string } {
  * 1. TIPHYS_TF_KEYS (space/comma separated)
  * 2. TIPHYS_TF_KEYS_FILE, else <project>/.tiphys/tierflow_keys.txt (gitignored), else ~/.tierflow (Windows: C:\\Users\\<you>\\.tierflow) if it is a file
  * 3. `tf_keys` from ~/.local/bin/tf-keys.sh (non-Windows only, if present)
- * Never throws; missing sources -> no keys (mock fallback).
+ * Missing sources leave the API unconfigured; read errors are exposed in settings.
  */
-function loadTierflowKeys(): { keys: string[]; base?: string; source: string } {
+function loadTierflowKeys(stateDir: string): { keys: string[]; base?: string; source: string; issue?: string } {
   const env = process.env.TIPHYS_TF_KEYS;
   if (env) return { keys: env.split(/[\s,]+/).filter(Boolean), source: "env TIPHYS_TF_KEYS" };
   const candidates = process.env.TIPHYS_TF_KEYS_FILE
     ? [process.env.TIPHYS_TF_KEYS_FILE]
-    : [path.join(PROJECT_ROOT, ".tiphys", "tierflow_keys.txt"), path.join(os.homedir(), ".tierflow")];
+    : [
+        // State dir first: packaged/desktop runs have no repo checkout.
+        path.join(stateDir, "tierflow_keys.txt"),
+        path.join(PROJECT_ROOT, ".tiphys", "tierflow_keys.txt"),
+        path.join(os.homedir(), ".tierflow"),
+      ];
+  const issues: string[] = [];
   for (const file of candidates) {
     try {
       if (fs.statSync(file).isFile()) {
         const r = parseKeysFile(file);
         if (r.keys.length) return { ...r, source: `keys file ${file}` };
       }
-    } catch {
-      /* missing file is fine */
+    } catch (err: any) {
+      if (err.code !== "ENOENT") issues.push(`${file}: ${err.code ?? "读取失败"}`);
     }
   }
-  if (process.platform === "win32" || !fs.existsSync(TF_KEYS_SCRIPT)) return { keys: [], source: "none" };
+  if (process.platform === "win32" || !fs.existsSync(TF_KEYS_SCRIPT)) return { keys: [], source: "none", issue: issues.join("；") || undefined };
   try {
     const out = execFileSync("bash", ["-c", `source "${TF_KEYS_SCRIPT}" >/dev/null 2>&1; echo "$TF_BASE"; tf_keys`], {
       encoding: "utf8",
@@ -71,7 +77,8 @@ export const TIPHYS_DIR = process.env.TIPHYS_STATE_DIR || path.join(PROJECT_ROOT
 export const USER_DIR = path.join(os.homedir(), ".tiphys");
 
 export type AgentConfig = {
-  provider: "mock" | "openai-compatible";
+  provider: "mock" | "openai-compatible" | "unconfigured";
+  configIssue?: string;
   /** Key pool for rotation (tierflow). Never logged. */
   apiKeys: string[];
   keySource: string;
@@ -92,18 +99,22 @@ function readJson(p: string): Record<string, unknown> {
   }
 }
 
-export function loadConfig(): AgentConfig {
-  const file = { ...readJson(path.join(USER_DIR, "agent.json")), ...readJson(path.join(TIPHYS_DIR, "agent.json")) } as Record<string, any>;
+export function loadConfig(stateDir = TIPHYS_DIR, userDir = USER_DIR): AgentConfig {
+  const file = { ...readJson(path.join(userDir, "agent.json")), ...readJson(path.join(stateDir, "agent.json")) } as Record<string, any>;
   const e = process.env;
   let baseURL = e.TIPHYS_LLM_BASE_URL || file.baseURL;
   const apiKey = e.TIPHYS_LLM_API_KEY || file.apiKey;
-  let apiKeys: string[] = apiKey ? [apiKey] : [];
-  let keySource = apiKey ? "TIPHYS_LLM_API_KEY/config" : "none";
+  let apiKeys: string[] = apiKey ? [apiKey] : Array.isArray(file.apiKeys) ? file.apiKeys.filter((k: unknown) => typeof k === "string" && k.trim()) : [];
+  let keySource = apiKeys.length ? "API 设置/环境变量" : "none";
+  let configIssue: string | undefined;
   let defaultModel = "gpt-4o-mini";
-  let provider = (e.TIPHYS_LLM_PROVIDER || file.provider) as AgentConfig["provider"] | undefined;
-  // Priority: explicit TIPHYS_LLM_* > tierflow key pool > mock.
-  if (provider !== "mock" && !apiKey) {
-    const tf = loadTierflowKeys();
+  // Simulation is only an explicit test/development opt-in. Missing credentials
+  // must never turn a production application into a fake model.
+  let provider: AgentConfig["provider"] | undefined = e.TIPHYS_LLM_PROVIDER === "mock" ? "mock" : undefined;
+  // Priority: explicit TIPHYS_LLM_* > saved API settings > tierflow key pool.
+  if (provider !== "mock" && !apiKeys.length) {
+    const tf = loadTierflowKeys(stateDir);
+    configIssue = tf.issue;
     if (tf.keys.length) {
       apiKeys = tf.keys;
       keySource = `${tf.source} (${tf.keys.length} keys)`;
@@ -111,10 +122,12 @@ export function loadConfig(): AgentConfig {
       defaultModel = "tierflow_pro";
     }
   }
-  if (!provider) provider = baseURL && apiKeys.length ? "openai-compatible" : "mock";
-  if (provider === "openai-compatible" && !apiKeys.length) provider = "mock";
+  if (apiKeys.length && !baseURL) baseURL = "https://api.openai.com/v1";
+  if (!provider) provider = baseURL && apiKeys.length ? "openai-compatible" : "unconfigured";
+  if (provider === "unconfigured") configIssue ||= "尚未加载 API 凭据，请打开设置。";
   return {
     provider,
+    configIssue,
     baseURL,
     apiKey: apiKeys[0],
     apiKeys,

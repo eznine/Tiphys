@@ -1,0 +1,876 @@
+[
+  {
+    "name": "ping",
+    "description": "Health check for the TIPHYS spatial engine.",
+    "parameters": {
+      "properties": {},
+      "title": "pingArguments",
+      "type": "object"
+    },
+    "category": "其他工具",
+    "annotations": {}
+  },
+  {
+    "name": "list_layers",
+    "description": "List layers currently loaded in the GIS workspace.",
+    "parameters": {
+      "properties": {},
+      "title": "list_layersArguments",
+      "type": "object"
+    },
+    "category": "其他工具",
+    "annotations": {}
+  },
+  {
+    "name": "add_data",
+    "description": "Load a local GeoJSON or shapefile into the workspace and return layer info + URL for the map.\n\nArgs:\n    path: Absolute or project-relative path to GeoJSON / shapefile.\n    name: Optional layer display name (defaults to file stem).\n    source_crs: Required if the source has no CRS; never guessed.\n",
+    "parameters": {
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "source_crs": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Crs"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "add_dataArguments",
+      "type": "object"
+    },
+    "category": "数据管理",
+    "annotations": {}
+  },
+  {
+    "name": "describe_layer",
+    "description": "Describe a layer: CRS, bounds, columns, sample rows.\n\nArgs:\n    layer: Layer id or name.\n",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        }
+      },
+      "required": [
+        "layer"
+      ],
+      "title": "describe_layerArguments",
+      "type": "object"
+    },
+    "category": "数据管理",
+    "annotations": {}
+  },
+  {
+    "name": "buffer",
+    "description": "Buffer a layer (GeoLibre WASM). Returns a job_id immediately; poll job_status / job_cancel.\n\nParameter shape follows RustGIS analysis buffer (input/distance/units/dissolve/output)\nand GeoLibre unit names (meters|kilometers|miles). Implementation is GeoLibre WASM.\n\nArgs:\n    layer: Source layer id or name.\n    distance: Buffer distance.\n    units: meters (default), kilometers, or miles.\n    dissolve: Merge all buffers into one polygon.\n    output_name: Optional output layer name.\n",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        },
+        "distance": {
+          "title": "Distance",
+          "type": "number"
+        },
+        "units": {
+          "default": "meters",
+          "enum": [
+            "meters",
+            "kilometers",
+            "miles"
+          ],
+          "title": "Units",
+          "type": "string"
+        },
+        "dissolve": {
+          "default": false,
+          "title": "Dissolve",
+          "type": "boolean"
+        },
+        "output_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Name"
+        }
+      },
+      "required": [
+        "layer",
+        "distance"
+      ],
+      "title": "bufferArguments",
+      "type": "object"
+    },
+    "category": "邻近分析",
+    "annotations": {}
+  },
+  {
+    "name": "clip",
+    "description": "Clip a layer by a mask layer (keeps this layer's attributes). Job-based.\n\nArgs:\n    layer: Layer id or name to clip.\n    mask_layer: Layer id or name whose extent cuts the input.\n    output_name: Optional output layer name.\n",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        },
+        "mask_layer": {
+          "title": "Mask Layer",
+          "type": "string"
+        },
+        "output_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Name"
+        }
+      },
+      "required": [
+        "layer",
+        "mask_layer"
+      ],
+      "title": "clipArguments",
+      "type": "object"
+    },
+    "category": "叠加分析",
+    "annotations": {}
+  },
+  {
+    "name": "intersection",
+    "description": "Intersection of two layers; attributes combine. Job-based.\n\nArgs:\n    layer: First layer id or name.\n    other_layer: Second layer id or name.\n    output_name: Optional output layer name.\n",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        },
+        "other_layer": {
+          "title": "Other Layer",
+          "type": "string"
+        },
+        "output_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Name"
+        }
+      },
+      "required": [
+        "layer",
+        "other_layer"
+      ],
+      "title": "intersectionArguments",
+      "type": "object"
+    },
+    "category": "叠加分析",
+    "annotations": {}
+  },
+  {
+    "name": "union_layers",
+    "description": "Union of two overlapping polygon layers; attributes combine. Job-based.\n\nArgs:\n    layer: First layer id or name.\n    other_layer: Second layer id or name.\n    output_name: Optional output layer name.\n",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        },
+        "other_layer": {
+          "title": "Other Layer",
+          "type": "string"
+        },
+        "output_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Name"
+        }
+      },
+      "required": [
+        "layer",
+        "other_layer"
+      ],
+      "title": "union_layersArguments",
+      "type": "object"
+    },
+    "category": "叠加分析",
+    "annotations": {}
+  },
+  {
+    "name": "erase",
+    "description": "Erase (difference): keep parts of the layer outside the mask layer. Job-based.\n\nArgs:\n    layer: Layer id or name to erase from.\n    mask_layer: Layer whose extent is removed.\n    output_name: Optional output layer name.\n",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        },
+        "mask_layer": {
+          "title": "Mask Layer",
+          "type": "string"
+        },
+        "output_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Name"
+        }
+      },
+      "required": [
+        "layer",
+        "mask_layer"
+      ],
+      "title": "eraseArguments",
+      "type": "object"
+    },
+    "category": "叠加分析",
+    "annotations": {}
+  },
+  {
+    "name": "dissolve",
+    "description": "Dissolve features into fewer geometries, optionally grouped by a field. Job-based.\n\nArgs:\n    layer: Layer id or name.\n    by_field: Optional column to group by (omitted = merge everything).\n    output_name: Optional output layer name.\n",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        },
+        "by_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "By Field"
+        },
+        "output_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Name"
+        }
+      },
+      "required": [
+        "layer"
+      ],
+      "title": "dissolveArguments",
+      "type": "object"
+    },
+    "category": "几何处理",
+    "annotations": {}
+  },
+  {
+    "name": "convex_hull",
+    "description": "Convex hull of all features as one polygon. Job-based.\n\nArgs:\n    layer: Layer id or name.\n    output_name: Optional output layer name.\n",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        },
+        "output_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Name"
+        }
+      },
+      "required": [
+        "layer"
+      ],
+      "title": "convex_hullArguments",
+      "type": "object"
+    },
+    "category": "几何处理",
+    "annotations": {}
+  },
+  {
+    "name": "simplify",
+    "description": "Topology-preserving simplify with a metre tolerance (checked local UTM). Job-based.\n\nArgs:\n    layer: Layer id or name.\n    tolerance: Simplification tolerance (> 0).\n    units: meters (default), kilometers, or miles.\n    output_name: Optional output layer name.\n",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        },
+        "tolerance": {
+          "title": "Tolerance",
+          "type": "number"
+        },
+        "units": {
+          "default": "meters",
+          "enum": [
+            "meters",
+            "kilometers",
+            "miles"
+          ],
+          "title": "Units",
+          "type": "string"
+        },
+        "output_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Name"
+        }
+      },
+      "required": [
+        "layer",
+        "tolerance"
+      ],
+      "title": "simplifyArguments",
+      "type": "object"
+    },
+    "category": "几何处理",
+    "annotations": {}
+  },
+  {
+    "name": "select_by_attributes",
+    "description": "Select features by an attribute condition into a new layer. Structured ops only (no free-form expressions).\n\nOps: eq, ne, gt, ge, lt, le, contains, startswith, endswith, isnull, notnull.\n\nArgs:\n    layer: Layer id or name.\n    field: Column name.\n    op: Comparison operator from the list above.\n    value: Comparison value (ignored for isnull/notnull).\n    output_name: Optional output layer name.\n",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        },
+        "field": {
+          "title": "Field",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "eq",
+            "ne",
+            "gt",
+            "ge",
+            "lt",
+            "le",
+            "contains",
+            "startswith",
+            "endswith",
+            "isnull",
+            "notnull"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "value": {
+          "default": "",
+          "title": "Value",
+          "type": "string"
+        },
+        "output_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Name"
+        }
+      },
+      "required": [
+        "layer",
+        "field",
+        "op"
+      ],
+      "title": "select_by_attributesArguments",
+      "type": "object"
+    },
+    "category": "查询与选择",
+    "annotations": {}
+  },
+  {
+    "name": "select_by_location",
+    "description": "Select features spatially related to a filter layer into a new layer.\n\nPredicates: intersects, within, contains, crosses, touches, overlaps.\n\nArgs:\n    layer: Layer id or name to select from.\n    filter_layer: Layer providing the filter geometries.\n    predicate: Spatial predicate from the list above (default intersects).\n    output_name: Optional output layer name.\n",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        },
+        "filter_layer": {
+          "title": "Filter Layer",
+          "type": "string"
+        },
+        "predicate": {
+          "default": "intersects",
+          "enum": [
+            "intersects",
+            "within",
+            "contains",
+            "crosses",
+            "touches",
+            "overlaps"
+          ],
+          "title": "Predicate",
+          "type": "string"
+        },
+        "output_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Name"
+        }
+      },
+      "required": [
+        "layer",
+        "filter_layer"
+      ],
+      "title": "select_by_locationArguments",
+      "type": "object"
+    },
+    "category": "查询与选择",
+    "annotations": {}
+  },
+  {
+    "name": "reproject",
+    "description": "Reproject a layer to a target CRS (EPSG code or WKT/PROJ string). Job-based.\n\nArgs:\n    layer: Layer id or name.\n    target_crs: Target CRS, e.g. EPSG:3857 or EPSG:4326.\n    output_name: Optional output layer name.\n",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        },
+        "target_crs": {
+          "title": "Target Crs",
+          "type": "string"
+        },
+        "output_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Name"
+        }
+      },
+      "required": [
+        "layer",
+        "target_crs"
+      ],
+      "title": "reprojectArguments",
+      "type": "object"
+    },
+    "category": "数据管理",
+    "annotations": {}
+  },
+  {
+    "name": "export_features",
+    "description": "Write a verified layer to an absolute path; existing files require explicit overwrite approval.\n\nArgs:\n    layer: Layer id or name.\n    path: Absolute output file path.\n    fmt: geojson (default), gpkg, or \n    overwrite: Replace an existing file only when explicitly requested (default false).\n CSV output is generated by the browser bridge with a WKT geometry column in the layer's source CRS.",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "fmt": {
+          "default": "geojson",
+          "enum": [
+            "geojson",
+            "gpkg",
+            "csv",
+            "fgb"
+          ],
+          "title": "Fmt",
+          "type": "string"
+        },
+        "overwrite": {
+          "default": false,
+          "title": "Overwrite",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "layer",
+        "path"
+      ],
+      "title": "export_featuresArguments",
+      "type": "object"
+    },
+    "category": "数据管理",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true
+    }
+  },
+  {
+    "name": "calculate_geometry",
+    "description": "Add area_m2 / length_m columns measured on a checked local UTM projection. Job-based.\n\nArgs:\n    layer: Layer id or name.\n    output_name: Optional output layer name.\n",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        },
+        "output_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Name"
+        }
+      },
+      "required": [
+        "layer"
+      ],
+      "title": "calculate_geometryArguments",
+      "type": "object"
+    },
+    "category": "几何处理",
+    "annotations": {}
+  },
+  {
+    "name": "zoom_to_layer",
+    "description": "Zoom the user's map to a layer's actual bounds. This directly changes the UI view.",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        }
+      },
+      "required": [
+        "layer"
+      ],
+      "title": "zoom_to_layerArguments",
+      "type": "object"
+    },
+    "category": "地图与显示",
+    "annotations": {}
+  },
+  {
+    "name": "open_attribute_table",
+    "description": "Open a layer's paged attribute table below the map in the user's UI.",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        }
+      },
+      "required": [
+        "layer"
+      ],
+      "title": "open_attribute_tableArguments",
+      "type": "object"
+    },
+    "category": "地图与显示",
+    "annotations": {}
+  },
+  {
+    "name": "set_layer_symbology",
+    "description": "Set a layer's single-symbol display color (#RRGGBB), opacity (0-1), point radius and line width (pixels). Does not alter analysis data.",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        },
+        "color": {
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Color",
+          "type": "string"
+        },
+        "opacity": {
+          "default": 0.65,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Opacity",
+          "type": "number"
+        },
+        "point_size": {
+          "default": 5,
+          "maximum": 30,
+          "minimum": 1,
+          "title": "Point Size",
+          "type": "number"
+        },
+        "line_width": {
+          "default": 1.6,
+          "maximum": 20,
+          "minimum": 0.1,
+          "title": "Line Width",
+          "type": "number"
+        }
+      },
+      "required": [
+        "layer",
+        "color"
+      ],
+      "title": "set_layer_symbologyArguments",
+      "type": "object"
+    },
+    "category": "地图与显示",
+    "annotations": {}
+  },
+  {
+    "name": "set_layer_labels",
+    "description": "Show map labels from an attribute field; omit field to disable. Size is in pixels. Does not alter analysis data.",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        },
+        "field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Field"
+        },
+        "size": {
+          "default": 13,
+          "maximum": 36,
+          "minimum": 8,
+          "title": "Size",
+          "type": "number"
+        },
+        "color": {
+          "default": "#172033",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Color",
+          "type": "string"
+        }
+      },
+      "required": [
+        "layer"
+      ],
+      "title": "set_layer_labelsArguments",
+      "type": "object"
+    },
+    "category": "地图与显示",
+    "annotations": {}
+  },
+  {
+    "name": "job_status",
+    "description": "Get status/progress/result of a long-running job.\n\nArgs:\n    job_id: Id returned by analysis tools (buffer, clip, ...).\n",
+    "parameters": {
+      "properties": {
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id"
+      ],
+      "title": "job_statusArguments",
+      "type": "object"
+    },
+    "category": "其他工具",
+    "annotations": {}
+  },
+  {
+    "name": "job_cancel",
+    "description": "Request cancellation of a running job.\n\nArgs:\n    job_id: Job to cancel.\n",
+    "parameters": {
+      "properties": {
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id"
+      ],
+      "title": "job_cancelArguments",
+      "type": "object"
+    },
+    "category": "其他工具",
+    "annotations": {}
+  },
+  {
+    "name": "remove_layer",
+    "description": "DESTRUCTIVE: remove a layer from the workspace and delete its file. Requires user approval.\n\nArgs:\n    layer: Layer id or name.\n",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        }
+      },
+      "required": [
+        "layer"
+      ],
+      "title": "remove_layerArguments",
+      "type": "object"
+    },
+    "category": "数据管理",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true
+    }
+  },
+  {
+    "name": "rename_layer",
+    "description": "重命名图层的显示名称，不改动分析数据。",
+    "category": "数据管理",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "layer": {
+          "type": "string",
+          "x-layer": true,
+          "description": "图层 ID 或名称"
+        },
+        "name": {
+          "type": "string",
+          "description": "新的显示名称（唯一且非空）"
+        }
+      },
+      "required": [
+        "layer",
+        "name"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "reorder_layers",
+    "description": "设置工作区图层顺序，即地图绘制顺序（越靠后越在上层）。",
+    "category": "数据管理",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "layer_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "全部现有图层 ID，每个一次，按目标顺序"
+        }
+      },
+      "required": [
+        "layer_ids"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "field_statistics",
+    "description": "统计图层某个属性字段：数值字段给出最小/最大/均值/中位数/标准差，其他字段给出最常见值；空值单独计数。",
+    "category": "查询与选择",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "layer": {
+          "type": "string",
+          "x-layer": true,
+          "description": "图层 ID 或名称"
+        },
+        "field": {
+          "type": "string",
+          "description": "字段名"
+        }
+      },
+      "required": [
+        "layer",
+        "field"
+      ],
+      "additionalProperties": false
+    }
+  }
+]

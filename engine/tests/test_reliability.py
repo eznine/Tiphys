@@ -49,10 +49,166 @@ class SpatialReliability(unittest.TestCase):
         jobs = JobRegistry()
         register_tools(mcp, self.store, jobs)
         tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
-        self.assertEqual(len(tools), 8)
+        self.assertEqual(len(tools), 27)
         self.assertIn("source_crs", tools["add_data"].inputSchema["properties"])
+        self.assertIn("name", tools["rename_layer"].inputSchema["properties"])
+        self.assertIn("layer_ids", tools["reorder_layers"].inputSchema["properties"])
+        self.assertIn("field", tools["field_statistics"].inputSchema["properties"])
         self.assertTrue(tools["remove_layer"].annotations.destructiveHint)
+        self.assertTrue(tools["export_features"].annotations.destructiveHint)
+        self.assertEqual(tools["select_by_location"].inputSchema["properties"]["predicate"]["enum"],
+                         ["intersects", "within", "contains", "crosses", "touches", "overlaps"])
         jobs.close()
+
+    def test_overlay_dissolve_and_selection_tools(self):
+        from geo_ops import overlay_sync, dissolve_sync, select_attributes_sync, select_location_sync
+        polys = gpd.GeoDataFrame(
+            {"zone": ["a", "b"]},
+            geometry=[Point(116.4, 39.9).buffer(0.01), Point(116.5, 39.95).buffer(0.01)],
+            crs=4326,
+        )
+        mask = gpd.GeoDataFrame(geometry=[Point(116.4, 39.9).buffer(0.005)], crs=4326)
+        poly_layer = self.store.add_gdf(polys, "zones")["id"]
+        mask_layer = self.store.add_gdf(mask, "mask")["id"]
+        clipped = overlay_sync(self.store, "clip", poly_layer, mask_layer)
+        self.assertEqual(clipped["feature_count"], 1)
+        self.assertEqual(clipped["layer"]["name"], "zones_clip")
+        erased = overlay_sync(self.store, "difference", poly_layer, mask_layer, output_name="rest")
+        # Both circles survive: the first with a hole, the second untouched.
+        self.assertEqual(erased["feature_count"], 2)
+        pts = self.store.add_gdf(gpd.GeoDataFrame(
+            {"name": ["公园", "站"]},
+            geometry=[Point(116.4, 39.9), Point(116.5, 39.95)],
+            crs=4326,
+        ), "pts")["id"]
+        selected = select_attributes_sync(self.store, pts, "name", "contains", "公")
+        self.assertEqual(selected["feature_count"], 1)
+        located = select_location_sync(self.store, pts, mask_layer, "intersects")
+        self.assertEqual(located["feature_count"], 1)
+        merged = dissolve_sync(self.store, pts)
+        self.assertEqual(merged["feature_count"], 1)
+        grouped = dissolve_sync(self.store, poly_layer, by_field="zone")
+        self.assertEqual(grouped["feature_count"], 2)
+
+    def test_reproject_export_and_geometry_tools(self):
+        from geo_ops import reproject_sync, export_sync, calculate_geometry_sync
+        src = self.store.add_gdf(
+            gpd.GeoDataFrame({"v": [1]}, geometry=[Point(116.4, 39.9).buffer(0.001)], crs=4326),
+            "area",
+        )
+        repro = reproject_sync(self.store, src["id"], "EPSG:32650")
+        self.assertEqual(self.store.get_gdf(repro["layer"]["id"]).crs.to_epsg(), 32650)
+        with self.assertRaisesRegex(ValueError, "already in"):
+            reproject_sync(self.store, repro["layer"]["id"], "EPSG:32650")
+        measured = calculate_geometry_sync(self.store, src["id"])
+        row = self.store.get_gdf(measured["layer"]["id"]).iloc[0]
+        self.assertGreater(row["area_m2"], 1000)
+        out = self.dir / "exported.geojson"
+        exported = export_sync(self.store, src["id"], str(out), fmt="geojson")
+        self.assertTrue(out.is_file())
+        self.assertEqual(exported["feature_count"], 1)
+        csv_path = self.dir / "exported.csv"
+        export_sync(self.store, src["id"], str(csv_path), fmt="csv")
+        csv_rows = csv_path.read_text(encoding="utf-8").splitlines()
+        self.assertEqual(csv_rows[0], "v,geometry")
+        self.assertIn("POLYGON", csv_rows[1])
+        with self.assertRaisesRegex(ValueError, "absolute"):
+            export_sync(self.store, src["id"], "relative.geojson")
+
+    def test_manual_tool_dispatch_matches_mcp_contract(self):
+        import time
+        from mcp.server.fastmcp import FastMCP
+        from tools import register_tools
+        mcp = FastMCP("test")
+        pts = self.store.add_gdf(gpd.GeoDataFrame(geometry=[Point(116.4, 39.9)], crs=4326), "p")["id"]
+        jobs = JobRegistry()
+        register_tools(mcp, self.store, jobs)
+        _, job = asyncio.run(mcp.call_tool("convex_hull", {"layer": pts}))
+        while jobs.status(job["job_id"])["status"] in ("queued", "running"):
+            time.sleep(0.05)
+        status = jobs.status(job["job_id"])
+        self.assertEqual(status["status"], "completed")
+        self.assertEqual(status["result"]["layer"]["feature_count"], 1)
+        jobs.close()
+
+    def test_attribute_selection_preserves_numeric_null_and_string_semantics(self):
+        from geo_ops import select_attributes_sync
+        source = self.store.add_gdf(gpd.GeoDataFrame(
+            {"n": [2.0, 10.0, None], "code": ["002", "010", " 002 "]},
+            geometry=[Point(116, 40)] * 3, crs=4326), "values")["id"]
+        selected = select_attributes_sync(self.store, source, "n", "gt", "3")
+        self.assertEqual(self.store.get_gdf(selected["layer"]["id"])["n"].tolist(), [10])
+        selected = select_attributes_sync(self.store, source, "code", "eq", "002")
+        self.assertEqual(selected["feature_count"], 1)
+        selected = select_attributes_sync(self.store, source, "n", "contains", "0")
+        self.assertEqual(selected["feature_count"], 2)
+
+    def test_location_selection_matches_any_filter_feature_without_duplicates(self):
+        from geo_ops import select_location_sync
+        source = self.store.add_gdf(gpd.GeoDataFrame(geometry=[Point(116, 40).buffer(.01)], crs=4326), "area")["id"]
+        filters = self.store.add_gdf(gpd.GeoDataFrame(
+            geometry=[Point(116, 40), Point(116.001, 40), Point(117, 40)], crs=4326), "points")["id"]
+        selected = select_location_sync(self.store, source, filters, "contains")
+        self.assertEqual(selected["feature_count"], 1)
+
+    def test_overlay_preserves_input_native_crs_and_geometry(self):
+        from geo_ops import overlay_sync
+        from shapely.geometry import box
+        a = self.store.add_gdf(gpd.GeoDataFrame({"a": [1]}, geometry=[box(500000, 4400000, 501000, 4401000)], crs=32650), "a")["id"]
+        b = self.store.add_gdf(gpd.GeoDataFrame({"b": [2]}, geometry=[box(500500, 4400000, 501500, 4401000)], crs=32650), "b")["id"]
+        for how, expected in [("clip", 500000), ("intersection", 500000), ("difference", 500000), ("union", 1500000)]:
+            with self.subTest(how=how):
+                result = overlay_sync(self.store, how, a, b)
+                frame = self.store.get_gdf(result["layer"]["id"])
+                self.assertEqual(frame.crs.to_epsg(), 32650)
+                self.assertAlmostEqual(frame.geometry.area.sum(), expected, delta=2)
+
+    def test_export_cancel_before_commit_preserves_existing_target(self):
+        from geo_ops import start_export_job
+        source = self.point()["id"]
+        target = self.dir / "existing.geojson"
+        target.write_bytes(b"original")
+        jobs = JobRegistry()
+        jobs.on_event(lambda e: jobs.cancel(e["job_id"]) if e.get("progress") == .9 else None)
+        job = start_export_job(self.store, jobs, source, str(target), overwrite=True)
+        jobs._pool.shutdown(wait=True)
+        self.assertEqual(jobs.status(job["job_id"])["status"], "cancelled")
+        self.assertEqual(target.read_bytes(), b"original")
+        self.assertEqual(list(self.dir.glob(".tiphys-export-*")), [])
+
+    def test_export_requires_overwrite_and_preserves_fid_and_crs(self):
+        from geo_ops import export_sync
+        source = self.store.add_gdf(gpd.GeoDataFrame({"fid": [123]}, geometry=[Point(116, 40)], crs=4326).to_crs(32650), "source")["id"]
+        target = self.dir / "features.gpkg"
+        target.write_bytes(b"original")
+        with self.assertRaises(FileExistsError):
+            export_sync(self.store, source, str(target), fmt="gpkg")
+        self.assertEqual(target.read_bytes(), b"original")
+        result = export_sync(self.store, source, str(target), fmt="gpkg", overwrite=True)
+        frame = gpd.read_file(result["path"])
+        self.assertEqual(frame["fid"].tolist(), [123])
+        self.assertEqual(frame.crs.to_epsg(), 32650)
+        geojson = self.dir / "features.geojson"
+        export_sync(self.store, source, str(geojson))
+        self.assertEqual(gpd.read_file(geojson).crs.to_epsg(), 4326)
+        flatgeobuf = self.dir / "features.fgb"
+        result = export_sync(self.store, source, str(flatgeobuf), fmt="fgb")
+        frame = gpd.read_file(result["path"])
+        self.assertEqual(len(frame), 1)
+        self.assertEqual(frame["fid"].tolist(), [123])
+        self.assertEqual(frame.crs.to_epsg(), 32650)
+        with self.assertRaisesRegex(ValueError, "managed"):
+            export_sync(self.store, source, self.store.list()[0]["path"], fmt="gpkg", overwrite=True)
+
+    def test_failed_export_does_not_replace_target(self):
+        from geo_ops import export_sync
+        source = self.point()["id"]
+        target = self.dir / "existing.geojson"
+        target.write_bytes(b"original")
+        with patch.object(gpd.GeoDataFrame, "to_file", side_effect=OSError("disk full")):
+            with self.assertRaisesRegex(OSError, "disk full"):
+                export_sync(self.store, source, str(target), overwrite=True)
+        self.assertEqual(target.read_bytes(), b"original")
 
     def test_native_crs_and_attributes_survive_restart(self):
         gdf = gpd.GeoDataFrame({"name": ["测试"], "value": [None]}, geometry=[Point(116.4, 39.9)], crs=4326).to_crs(32650)

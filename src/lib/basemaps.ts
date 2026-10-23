@@ -25,7 +25,7 @@ export type BasemapDef = {
 export const BASEMAPS: BasemapDef[] = [
   {
     id: "liberty",
-    label: "Streets",
+    label: "街道",
     kind: "style-url",
     url: "https://tiles.openfreemap.org/styles/liberty",
     attribution: "© OpenFreeMap © OpenMapTiles © OpenStreetMap",
@@ -34,7 +34,7 @@ export const BASEMAPS: BasemapDef[] = [
   },
   {
     id: "positron",
-    label: "Light",
+    label: "浅色",
     kind: "style-url",
     url: "https://tiles.openfreemap.org/styles/positron",
     attribution: "© OpenFreeMap © OpenMapTiles © OpenStreetMap",
@@ -42,7 +42,7 @@ export const BASEMAPS: BasemapDef[] = [
   },
   {
     id: "dark",
-    label: "Dark",
+    label: "深色",
     kind: "style-url",
     url: "https://tiles.openfreemap.org/styles/dark",
     attribution: "© OpenFreeMap © OpenMapTiles © OpenStreetMap",
@@ -50,7 +50,7 @@ export const BASEMAPS: BasemapDef[] = [
   },
   {
     id: "bright",
-    label: "Bright",
+    label: "明亮",
     kind: "style-url",
     url: "https://tiles.openfreemap.org/styles/bright",
     attribution: "© OpenFreeMap © OpenMapTiles © OpenStreetMap",
@@ -58,7 +58,7 @@ export const BASEMAPS: BasemapDef[] = [
   },
   {
     id: "satellite",
-    label: "Satellite",
+    label: "卫星影像",
     kind: "raster",
     tiles: [
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -68,7 +68,7 @@ export const BASEMAPS: BasemapDef[] = [
   },
   {
     id: "hillshade",
-    label: "Hillshade",
+    label: "地形晕渲",
     kind: "raster",
     tiles: [
       "https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}",
@@ -78,7 +78,7 @@ export const BASEMAPS: BasemapDef[] = [
   },
   {
     id: "opentopo",
-    label: "Topo",
+    label: "地形图",
     kind: "raster",
     tiles: ["https://tile.opentopomap.org/{z}/{x}/{y}.png"],
     attribution: "© OpenTopoMap (CC-BY-SA) © OpenStreetMap",

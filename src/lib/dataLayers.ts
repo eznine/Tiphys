@@ -1,5 +1,12 @@
 /** Agent/engine result layers rendered as MapLibre GeoJSON sources. */
-import type { Map } from "maplibre-gl";
+import type { Map, ExpressionSpecification } from "maplibre-gl";
+
+export type LayerStyle = {
+  color: string; opacity: number; pointSize: number; lineWidth: number;
+  categoryField?: string;
+  categories?: { value: string | number | boolean | null; color: string }[];
+  labelField?: string; labelSize: number; labelColor: string;
+};
 
 export type DataLayer = {
   id: string;
@@ -10,9 +17,28 @@ export type DataLayer = {
   bounds: number[] | null;
   crs?: string;
   visible?: boolean;
+  style?: LayerStyle;
+  /** vector renders GeoJSON; raster renders a georeferenced PNG; table has no map drawing. */
+  kind?: "vector" | "raster" | "table";
+  /** WGS84 corners of a raster layer in MapLibre image-source order (TL, TR, BR, BL). */
+  image_coords?: number[][];
+  raster?: { width: number; height: number; bands: number };
 };
 
-const PALETTE = ["#ff7a45", "#36cfc9", "#9254de", "#f7ba1e", "#4096ff"];
+export const PALETTE = ["#ff7a45", "#36cfc9", "#9254de", "#f7ba1e", "#4096ff", "#ef5da8", "#52c41a", "#c9a678"];
+
+export function defaultLayerStyle(id: string): LayerStyle {
+  const hash = [...id].reduce((value, char) => (value * 31 + char.charCodeAt(0)) >>> 0, 0);
+  return { color: PALETTE[hash % PALETTE.length], opacity: .65, pointSize: 5, lineWidth: 1.6, labelSize: 13, labelColor: "#172033" };
+}
+
+export function layerColor(style: LayerStyle): string | ExpressionSpecification {
+  if (!style.categoryField || !style.categories?.length) return style.color;
+  // Boolean predicates preserve the distinction between null, numeric and text values.
+  return ["case", ...style.categories.flatMap(item => [
+    ["==", ["get", style.categoryField!], item.value], item.color,
+  ]), style.color] as ExpressionSpecification;
+}
 
 export function syncDataLayers(map: Map, layers: DataLayer[]) {
   if (!map.isStyleLoaded()) return;
@@ -24,30 +50,62 @@ export function syncDataLayers(map: Map, layers: DataLayer[]) {
   for (const id of Object.keys(map.getStyle().sources ?? {})) {
     if (id.startsWith("tiphys-lyr_") && !want.has(id)) map.removeSource(id);
   }
-  layers.forEach((l, i) => {
+  layers.forEach((l) => {
     const sid = `tiphys-${l.id}`;
-    const color = PALETTE[i % PALETTE.length];
-    if (!map.getSource(sid)) map.addSource(sid, { type: "geojson", data: l.url });
+    const style = l.style ?? defaultLayerStyle(l.id);
     const vis = l.visible === false ? "none" : "visible";
+    if ((l.kind ?? "vector") === "table") return;
+    if (l.kind === "raster") {
+      if (!map.getSource(sid) && l.image_coords?.length === 4 && l.url)
+        map.addSource(sid, { type: "image", url: l.url, coordinates: l.image_coords as [[number, number], [number, number], [number, number], [number, number]] });
+      if (map.getSource(sid)) {
+        if (!map.getLayer(`${sid}-raster`))
+          map.addLayer({ id: `${sid}-raster`, type: "raster", source: sid, paint: { "raster-opacity": style.opacity, "raster-fade-duration": 0 } });
+        map.setPaintProperty(`${sid}-raster`, "raster-opacity", style.opacity);
+        map.setLayoutProperty(`${sid}-raster`, "visibility", vis);
+      }
+      return;
+    }
+    const color = layerColor(style);
+    if (!map.getSource(sid)) map.addSource(sid, { type: "geojson", data: l.url });
     // Geometry filters adapted from GeoLibre map-controller.ts (MIT, Qiusheng Wu).
     // Always provide all three representations: mixed datasets must not lose features.
       if (!map.getLayer(`${sid}-fill`))
         map.addLayer({ id: `${sid}-fill`, type: "fill", source: sid,
           filter: ["match", ["geometry-type"], ["Polygon", "MultiPolygon"], true, false],
-          paint: { "fill-color": color, "fill-opacity": 0.28 } });
+          paint: { "fill-color": color, "fill-opacity": style.opacity * .55 } });
       if (!map.getLayer(`${sid}-line`))
         map.addLayer({ id: `${sid}-line`, type: "line", source: sid,
           filter: ["match", ["geometry-type"], ["LineString", "MultiLineString", "Polygon", "MultiPolygon"], true, false],
-          paint: { "line-color": color, "line-width": 1.6 } });
+          paint: { "line-color": color, "line-width": style.lineWidth, "line-opacity": style.opacity } });
     if (!map.getLayer(`${sid}-pt`)) {
       map.addLayer({
         id: `${sid}-pt`,
         type: "circle",
         source: sid,
         filter: ["match", ["geometry-type"], ["Point", "MultiPoint"], true, false],
-        paint: { "circle-radius": 5, "circle-color": color, "circle-stroke-color": "#fff", "circle-stroke-width": 1.5 },
+        paint: { "circle-radius": style.pointSize, "circle-color": color, "circle-opacity": style.opacity, "circle-stroke-color": "#fff", "circle-stroke-width": 1.5, "circle-stroke-opacity": style.opacity },
       });
     }
-    for (const suf of ["-fill", "-line", "-pt"]) if (map.getLayer(sid + suf)) map.setLayoutProperty(sid + suf, "visibility", vis);
+    for (const [suffix, paint] of Object.entries({
+      "-fill": { "fill-color": color, "fill-opacity": style.opacity * .55 },
+      "-line": { "line-color": color, "line-width": style.lineWidth, "line-opacity": style.opacity },
+      "-pt": { "circle-radius": style.pointSize, "circle-color": color, "circle-opacity": style.opacity, "circle-stroke-opacity": style.opacity },
+    })) {
+      for (const [name, value] of Object.entries(paint)) map.setPaintProperty(sid + suffix, name as Parameters<Map["setPaintProperty"]>[1], value);
+      map.setLayoutProperty(sid + suffix, "visibility", vis);
+    }
+    const labelId = `${sid}-label`;
+    if (style.labelField) {
+      if (!map.getStyle().glyphs) map.setGlyphs("https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf");
+      if (!map.getLayer(labelId)) map.addLayer({ id: labelId, type: "symbol", source: sid,
+        layout: { "text-field": ["to-string", ["coalesce", ["get", style.labelField], ""]], "text-font": ["Noto Sans Regular"],
+          "text-size": style.labelSize, "text-offset": [0, 1], "text-anchor": "top" },
+        paint: { "text-color": style.labelColor, "text-halo-color": "#ffffff", "text-halo-width": 1.5 } });
+      map.setLayoutProperty(labelId, "text-field", ["to-string", ["coalesce", ["get", style.labelField], ""]]);
+      map.setLayoutProperty(labelId, "text-size", style.labelSize);
+      map.setLayoutProperty(labelId, "visibility", vis);
+      map.setPaintProperty(labelId, "text-color", style.labelColor);
+    } else if (map.getLayer(labelId)) map.removeLayer(labelId);
   });
 }

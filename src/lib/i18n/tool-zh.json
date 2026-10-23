@@ -1,0 +1,4262 @@
+{
+ "abs": {
+  "name": "绝对值",
+  "desc": "计算每个栅格像元的绝对值。"
+ },
+ "accumulation_curvature": {
+  "name": "累积曲率",
+  "desc": "从 DEM 计算累积曲率。"
+ },
+ "adaptive_filter": {
+  "name": "自适应滤波",
+  "desc": "自适应滤波器根据局部图像统计量（均值、方差、峰度）动态调整滤波强度，实现能够响应场景特征的上下文感知平滑。其实现将图像划分为移动窗口，计算局部统计量（区分噪声主导区域与要素主导区域），并据此选择滤波参数。平坦区域进行强力平滑，复杂区域则温和滤波。数学基础是利用统计检验识别局部特征：方差低于阈值的区域进行重度平滑，超过阈值的区域保留细节。主要特性包括参数自动适配（用户指定范围，算法在局部进行选择）、适用于任意滤波核（高斯、中值、形态学），以及对光学和雷达影像的有效性。自适应滤波尤其适用于异构卫星镶嵌影像的预处理（不同传感器、不同采集条件）、LiDAR 点云平滑（在森林中保留植被边缘，在开阔区域平滑地面）、兼顾目标与背景的选择性 SAR 斑点噪声抑制，以及多时相影像堆栈处理。输出解读显示：均质区域经历高强度滤波（局部方差低 → 强平滑），复杂区域则保守滤波（方差高 → 处理极小）。平滑半径按区域动态调整：平坦区域采用大半径滤波，纹理丰富区域采用小半径或不滤波。输出值域保持在输入范围之内；可通过检查空间滤波强度图来验证自适应效果。平滑区域的统计量向局部均值偏移，复杂区域基本保持不变。常见伪影包括区域边界处可能的过度平滑（通常会施加平滑过渡）以及对噪声-方差关系的敏感性。可通过分析局部方差图验证自适应效果。适用于均匀滤波不足以处理多源数据的自动化预处理流程。"
+ },
+ "add": {
+  "name": "相加",
+  "desc": "逐像元地将两个栅格相加。"
+ },
+ "add_field": {
+  "name": "添加字段",
+  "desc": "添加一个新的属性字段，可指定默认值。"
+ },
+ "add_geometry_attributes": {
+  "name": "添加几何属性",
+  "desc": "自动计算几何属性（面积、长度、周长、质心）并作为新字段添加，支持平面和测地线两种度量方式。"
+ },
+ "add_point_coordinates_to_table": {
+  "name": "点坐标添加到表",
+  "desc": "复制点图层并追加 XCOORD 和 YCOORD 属性字段。"
+ },
+ "add_surface_information": {
+  "name": "添加表面信息",
+  "desc": "将来自高程栅格的逐要素表面统计量——Z 值、三维表面长度、三维表面面积、最小/最大/平均 Z 值以及最小/最大/平均坡度——作为属性字段追加，而不改变输入几何，类似 ArcGIS 的 Add Surface Information。"
+ },
+ "add_z_information": {
+  "name": "添加 Z 信息",
+  "desc": "将基于 Z 值的几何统计量追加到三维要素——点值/最小/最大/平均 Z 值、三维长度、网格表面面积和体积、坡度统计以及顶点数量（类似 ArcGIS Add Z Information）。vector_summary_statistics 和 attribute_histogram 统计的是属性而非几何，而 polygon_volume / surface_volume 是将栅格与参考平面进行比较量测，因此目前没有工具能根据三维矢量要素自身的 Z 值对其进行标注。"
+ },
+ "adjust_3d_z": {
+  "name": "调整三维 Z 值",
+  "desc": "对三维要素的 Z 坐标应用 Z 单位换算、垂直偏移和/或乘性系数。"
+ },
+ "adjust_stream_to_raster": {
+  "name": "河流线贴合栅格",
+  "desc": "通过将节点捕捉到高汇流累积量像元并追踪其间的 D8 指向链，把河流折线的顶点移动到 DEM 隐含的流路上，使矢量水系与高程表面保持一致。河流烧录的逆操作。类似 ArcGIS 的 Adjust Stream To Raster。"
+ },
+ "aggregate_multidimensional_raster": {
+  "name": "聚合多维栅格",
+  "desc": "沿维度对栅格立方体的切片进行分箱，并将每个分箱缩减为一个输出波段——将逐日场景聚合为逐月合成影像，将十年数据聚合为年均值（类似 ArcGIS Aggregate Multidimensional Raster）。第 17 轮加入的 cell_statistics 只能将堆栈缩减为单个图层，没有维度的概念；而第 16 轮加入的 multidimensional_anomaly 执行的是相反的操作并保留切片数量。"
+ },
+ "aggregate_points": {
+  "name": "聚合点",
+  "desc": "将在聚合距离范围内的点分组为集群面（凸包或缓冲区联合），每个集群面携带点数以及可选的逐集群字段求和，类似 ArcGIS 的 Aggregate Points。"
+ },
+ "aggregate_polygons": {
+  "name": "聚合面",
+  "desc": "将聚合距离范围内的面合并为更大的面（形态学闭运算），支持最小面积和最小孔洞大小过滤，并可指定聚合不可跨越的障碍图层。"
+ },
+ "aggregate_raster": {
+  "name": "聚合栅格",
+  "desc": "通过均值、总和、最小值、最大值或极差对像元块进行聚合，从而降低栅格分辨率。"
+ },
+ "align_features": {
+  "name": "要素对齐",
+  "desc": "在搜索距离内，使源线/面边缘与附近可信的目标图层保持一致，以平滑渐变的方式拉动整段边缘（而不仅仅是端点），并使共享边界重合，类似 ArcGIS 的 Align Features。"
+ },
+ "analyze_changes_ccdc": {
+  "name": "使用 CCDC 分析变化",
+  "desc": "对密集影像时间序列执行 CCDC 连续变化检测（类似 ArcGIS Analyze Changes Using CCDC）：先进行逐像元的谐波（季节）OLS 回归，再通过滑动残差检验（k×RMSE、最小连续异常数）判定断点并重新拟合分段。输出断点数量、首个断点日期以及初始波段的 RMSE/斜率/振幅栅格——这是年度 landtrendr 和两期 change_vector_analysis 无法给出的季节性多断点变化历史。"
+ },
+ "anisotropic_diffusion_filter": {
+  "name": "各向异性扩散滤波",
+  "desc": "各向异性扩散滤波通过区分边缘与平坦区域的方向性扩散过程，实现迭代的保边缘平滑。算法基于与邻近像元的加权差分迭代更新每个像元，采用传导函数抑制高梯度边界处的扩散，同时允许均质区域内部继续平滑。实现上求解偏微分方程 ∂I/∂t = div(c(|∇I|)∇I)，其中传导系数 c(·) 随局部梯度幅值自适应调整。这种数据驱动的方法在逐步降低均质区域噪声的同时保留尖锐的过渡。主要特性包括无需显式边缘掩膜的真实边缘保持、通过迭代次数实现自动尺度选择、在保持要素清晰度的同时有效降噪，以及适用于单波段和多光谱数据。各向异性扩散尤其适用于保留地形起伏断点的 LiDAR 点云平滑、面向细微地质要素探测的卫星影像去噪、保持雷达目标边缘的 SAR 斑点噪声抑制，以及对边缘保真度要求苛刻的医学/科学影像。输出解读需要理解：平滑区域逐步均质化（数值向局部均值收敛），而边缘则不断变陡直至稳定。早期迭代（t<5）产生轻度降噪；中间迭代（t=5-20）提供显著平滑；过度迭代（t>50）可能导致边界过度增强或产生虚假要素。输出值保持在源数据范围内；随着处理进行，统计量向区域均值偏移。可通过监测输出方差评估平滑完成程度。常用指标包括信噪比改善和边缘清晰度指数。在多尺度工作流中应谨慎应用，因为边缘保持的精度直接影响下游分类或变化检测的准确性。"
+ },
+ "anova": {
+  "name": "方差分析",
+  "desc": "按分类栅格类别对栅格值分组，执行单因素方差分析（ANOVA）。"
+ },
+ "apply_radiometric_calibration": {
+  "name": "应用辐射定标",
+  "desc": "将原始 SAR 数字数（DN）转换为定标后的后向散射——beta nought、sigma nought 或 gamma nought——使不同时相的观测具有物理可比性，公开发表的阈值也因此适用（类似 ArcGIS Apply Radiometric Calibration）。现有工具中没有能完成此操作的：rescale_value_range 只是不具辐射意义的线性拉伸，而 multilook、sar_coherence、Lee 斑点滤波器和 compute_sar_indices 都是直接使用传入的任何数值。"
+ },
+ "apportion_polygon": {
+  "name": "面属性分摊",
+  "desc": "将源面图层的数值属性按重叠面积比例分摊到目标面图层（区域体系之间的分区重新聚合），类似 ArcGIS 的 Apportion Polygon。"
+ },
+ "arccos": {
+  "name": "反余弦",
+  "desc": "计算每个栅格像元的反余弦（arccos）。"
+ },
+ "arcosh": {
+  "name": "反双曲余弦",
+  "desc": "计算每个栅格像元的反双曲余弦。"
+ },
+ "arcsin": {
+  "name": "反正弦",
+  "desc": "计算每个栅格像元的反正弦（arcsin）。"
+ },
+ "arctan": {
+  "name": "反正切",
+  "desc": "计算每个栅格像元的反正切（arctan）。"
+ },
+ "areal_interpolation": {
+  "name": "面插值",
+  "desc": "通过拟合一个平滑的潜在表面并对其重新积分（而非按面积加权），从地理范围不同的源面预测目标面的聚合值（类似 ArcGIS Areal Interpolation Layer To Polygons）。apportion_polygon 假设数量在每个源面内部均匀分布——这是可变面元问题的经典失效情形——且不提供标准误差；附带的克里金工具套件完全基于点支撑，无法接受面状观测。"
+ },
+ "arsinh": {
+  "name": "反双曲正弦",
+  "desc": "计算每个栅格像元的反双曲正弦。"
+ },
+ "artanh": {
+  "name": "反双曲正切",
+  "desc": "计算每个栅格像元的反双曲正切。"
+ },
+ "ascii_to_las": {
+  "name": "ASCII 转 LAS",
+  "desc": "格式转换：CSV→LAS 批处理。解析以空格/逗号/制表符分隔的文本文件（x,y,z,intensity,class,returns,angle,time），输出带 EPSG 元数据的 LAS。"
+ },
+ "aspect": {
+  "name": "坡向",
+  "desc": "最大坡度方向（0°=北，90°=东，180°=南，270°=西）。对太阳辐射、植被格局、小气候和坡向暴露分析至关重要。"
+ },
+ "assess_route": {
+  "name": "路线评估",
+  "desc": "对路线线段进行分段，并从 DEM 评估每个线段的地形指标。"
+ },
+ "assign_projection_lidar": {
+  "name": "定义 LiDAR 投影",
+  "desc": "为 LiDAR 点云指定坐标参考系统，而不重投影其点。"
+ },
+ "assign_projection_raster": {
+  "name": "定义栅格投影",
+  "desc": "为栅格指定坐标参考系统，而不扭曲其像元。"
+ },
+ "assign_projection_vector": {
+  "name": "定义矢量投影",
+  "desc": "为矢量图层指定坐标参考系统，而不重投影其几何。"
+ },
+ "atan2": {
+  "name": "四象限反正切",
+  "desc": "基于两个栅格逐像元计算四象限反正切。"
+ },
+ "attribute_correlation": {
+  "name": "属性相关性",
+  "desc": "对矢量数值属性字段执行皮尔逊相关分析。"
+ },
+ "attribute_histogram": {
+  "name": "属性直方图",
+  "desc": "为矢量属性表中的数值字段创建直方图。"
+ },
+ "attribute_scattergram": {
+  "name": "属性散点图",
+  "desc": "计算两个数值矢量字段之间的散点图汇总统计量。"
+ },
+ "attribute_uncertainty": {
+  "name": "属性不确定性",
+  "desc": "针对不确定属性进行带随机种子的蒙特卡洛误差传播（类似 ArcGIS Attribute Uncertainty）：从逐要素误差字段或误差上下界抽取 NORMAL/UNIFORM 分布的实现样本，并追加 mean/std/p5/p50/p95/CV 统计量。"
+ },
+ "average_flowpath_slope": {
+  "name": "平均流路坡度",
+  "desc": "计算经过每个 DEM 像元的流路的平均坡度。"
+ },
+ "average_horizon_distance": {
+  "name": "平均地平线距离",
+  "desc": "计算各方位角方向上到地平线的平均距离。"
+ },
+ "average_normal_vector_angular_deviation": {
+  "name": "平均法向量角偏差",
+  "desc": "计算原始表面法向量与平滑后表面法向量之间的局部平均角偏差。"
+ },
+ "average_overlay": {
+  "name": "平均叠加",
+  "desc": "计算栅格堆栈的逐像元平均值，除非所有输入均为 NoData，否则忽略 NoData。"
+ },
+ "average_upslope_flowpath_length": {
+  "name": "平均坡面流路长度",
+  "desc": "计算经过每个 DEM 像元的坡上方流路的平均长度。"
+ },
+ "balance_contrast_enhancement": {
+  "name": "对比度平衡增强",
+  "desc": "使用逐通道抛物线拉伸减少打包 RGB 图像中的色彩偏差。"
+ },
+ "band_collection_statistics": {
+  "name": "波段集合统计",
+  "desc": "计算栅格堆栈每个波段的最小/最大/均值/标准差以及跨波段协方差矩阵和相关矩阵（类似 ArcGIS Band Collection Statistics）——是现有工具套件缺少的多变量汇总（PCA / 分类的前置步骤）；与逐像元的 cell_statistics 不同。"
+ },
+ "basins": {
+  "name": "流域盆地",
+  "desc": "勾绘所有汇入有效数据边缘的 D8 流域盆地。"
+ },
+ "bilateral_filter": {
+  "name": "双边滤波",
+  "desc": "通过空间核与强度核相结合实现保边缘双边平滑。在细节保持方面优于高斯滤波。sigma_dist 为半径，sigma_int 为边缘保持阈值。支持 RGB 感知。"
+ },
+ "bivariate_spatial_association": {
+  "name": "双变量空间关联",
+  "desc": "Lee's L 全局与局部统计量，用于度量两个连续变量在空间上何处协同变化，并提供带随机种子的置换检验 p 值以及每个要素的 High-High/High-Low/Low-High/Low-Low 类别——类似 ArcGIS 的 Bivariate Spatial Association。是 colocation_analysis 在连续场上的对应版本。"
+ },
+ "block_maximum": {
+  "name": "块最大值",
+  "desc": "通过对每个输出像元赋予其中观测到的最大值，将点要素栅格化。"
+ },
+ "block_minimum": {
+  "name": "块最小值",
+  "desc": "通过对每个输出像元赋予其中观测到的最小值，将点要素栅格化。"
+ },
+ "block_statistics": {
+  "name": "块统计",
+  "desc": "将栅格划分为互不重叠的块，对每块计算一个统计量，并按输入分辨率将该值写回块中的每个像元（类似 ArcGIS Block Statistics）。与自带的 focal_statistics（重叠窗口）、zonal_statistics（按分区图层）和 cell_statistics（跨堆栈）互为补充；与附带的 aggregate_raster 不同，它保持像元大小不变，因此“输入 − 块均值”可得到局部残差表面，并且它增加了众数/少数/中位数/种类数等类别统计量。"
+ },
+ "bool_and": {
+  "name": "布尔与",
+  "desc": "逐像元计算两个栅格的逻辑与。"
+ },
+ "bool_not": {
+  "name": "布尔非",
+  "desc": "逐像元计算栅格的逻辑非，对值为零的像元输出 1，其余输出 0。"
+ },
+ "bool_or": {
+  "name": "布尔或",
+  "desc": "逐像元计算两个栅格的逻辑或。"
+ },
+ "bool_xor": {
+  "name": "布尔异或",
+  "desc": "逐像元计算两个栅格的逻辑异或。"
+ },
+ "boundary_clean": {
+  "name": "边界清理",
+  "desc": "通过众数滤波或扩展/收缩边界清理来平滑分类栅格的分区边界并去除斑点噪声——是多边形化之前的标准清理步骤，类似 ArcGIS Boundary Clean / Majority Filter。"
+ },
+ "boundary_shape_complexity": {
+  "name": "边界形状复杂度",
+  "desc": "使用线状细化骨架分支度量计算栅格斑块边界形状复杂度。"
+ },
+ "brdf_normalization": {
+  "name": "BRDF 归一化",
+  "desc": "利用 DEM 坡度/坡向几何信息，采用 C 校正或 Minnaert 方法对单景影像进行 BRDF 归一化。"
+ },
+ "breach_depressions_least_cost": {
+  "name": "最小成本洼地开挖",
+  "desc": "使用约束最小成本路径搜索开挖 DEM 中的洼地。"
+ },
+ "breach_single_cell_pits": {
+  "name": "开挖单像元坑点",
+  "desc": "通过开凿单像元通道来消除 DEM 中的单像元坑点。"
+ },
+ "breakline_mapping": {
+  "name": "断裂线提取",
+  "desc": "通过对对数变换后的弯曲度进行阈值分割，并对细化后的线状要素进行矢量化，实现断裂线制图。"
+ },
+ "buffer_3d": {
+  "name": "三维缓冲区",
+  "desc": "将三维点和线缓冲为体几何（球体和胶囊体），以三角化表面形式输出，类似 ArcGIS 的 Buffer 3D。"
+ },
+ "buffer_raster": {
+  "name": "栅格缓冲区",
+  "desc": "在指定的距离范围内，围绕非零且非 NoData 的栅格像元创建二值缓冲区。"
+ },
+ "buffer_vector": {
+  "name": "矢量缓冲区",
+  "desc": "按指定距离扩展几何，创建可自定义端头/连接样式的面缓冲区。可选融合操作将重叠的缓冲区合并为统一的面。"
+ },
+ "build_balanced_zones": {
+  "name": "构建均衡分区",
+  "desc": "使用 SKATER 生成树分区法，将相邻接的面组合为目标数量的连通分区，使要素数量、属性总和或属性均质性达到平衡。"
+ },
+ "build_network_topology": {
+  "name": "构建网络拓扑",
+  "desc": "构建具有稳定边和节点输出的结点化拓扑线网络。"
+ },
+ "build_object_hierarchy_multiscale": {
+  "name": "构建多尺度对象层级",
+  "desc": "通过跨多个分割尺度的迭代聚合构建层级对象网络，基于光谱相似性和空间邻接逐步合并更细的分割对象。构建树状结构，其中叶节点表示细尺度分割对象，根节点表示整幅影像。包含关系编码了父子（部分-整体）对象层级，支持跨层级的多分辨率分析和尺度自适应对象查询。主要特性：多尺度分割层级；追踪部分-整体关系；支持嵌套对象查询；实现尺度自适应分析；内存高效的层级表示；便于级联分类。用例：层级土地覆盖制图；由部件构建复杂建筑物提取；农田探测；植被层次分析；城市街区勾绘；含子组件分类的湿地制图。输出解读：输出为编码尺度相关结构的层级对象数据库。可查询特定尺度的对象；中间尺度揭示平衡细节与综合化的过渡对象尺度。父子关系揭示组成结构。尺度级别的统计分布刻画每个层级上对象的大小/形状属性，支持选择尺度最优的分类策略。"
+ },
+ "build_seamlines": {
+  "name": "构建接缝线",
+  "desc": "给定一组重叠栅格（及可选的覆盖范围轮廓），计算每幅影像应如何裁切才能使镶嵌沿最不显眼的接缝连接，通过 Voronoi、优先级顺序、辐射或边缘感知分配，为每幅影像输出一个互不重叠的接缝线面。类似 ArcGIS 的 Build Seamlines。"
+ },
+ "burn_streams": {
+  "name": "河流烧录",
+  "desc": "通过降低河流像元的高程，将河流网络烧录到 DEM 中。"
+ },
+ "burn_streams_at_roads": {
+  "name": "道路处河流烧录",
+  "desc": "降低河流-道路交叉处附近的河流高程，以贯通 DEM 中的路基。"
+ },
+ "calculate_adjacent_fields": {
+  "name": "计算相邻字段",
+  "desc": "为地图系列索引网格的每个图幅填充八个方向的相邻图幅字段（N、NE、E、SE、S、SW、W、NW），写入相邻页面的名称，用于“接下页 …”的图廓标注——类似 ArcGIS 的 Calculate Adjacent Fields。"
+ },
+ "calculate_central_meridian_and_parallels": {
+  "name": "计算中央经线与标准纬线",
+  "desc": "根据每个要素的范围计算其各自的中央经线和两条标准纬线，用于地图系列和图集页面，类似 ArcGIS 的 Calculate Central Meridian And Parallels。"
+ },
+ "calculate_composite_index": {
+  "name": "计算综合指数",
+  "desc": "将多个数值属性组合为综合指数（类似 ArcGIS Calculate Composite Index）：逐变量缩放（min-max/z-score/百分位）并可选反转方向，加权组合（均值/总和/几何均值），以及输出重新缩放——是 fuzzy_overlay 在矢量侧的姊妹工具。"
+ },
+ "calculate_distance_band": {
+  "name": "计算距离带宽",
+  "desc": "报告每个要素至少拥有 N 个邻居的最小、平均和最大距离（类似 ArcGIS Calculate Distance Band from Neighbor Count）——该阈值诊断可在基于距离的空间统计之前保证没有要素的邻居数为零。附带的 generate_spatial_weights_matrix 虽构建矩阵，但从不报告此带宽。"
+ },
+ "calculate_end_time": {
+  "name": "计算结束时间",
+  "desc": "按实体分组，用下一条记录的开始时间填充结束时间字段，将时刻观测转换为时间区间记录（类似 ArcGIS Calculate End Time）。transform_fields 执行逐值变换，summary_statistics 进行分组汇总，但目前没有任何工具能执行这种按行排序的时间填充。"
+ },
+ "calculate_grid_convergence_angle": {
+  "name": "计算格网收敛角",
+  "desc": "根据质心经纬度和中央经线（默认为要素自身所在的 UTM 中央经线），逐要素计算格网北与真北之间的格网收敛角，并将其写入字段，以便在投影地图上正确旋转符号/标注——类似 ArcGIS 的 Calculate Grid Convergence Angle。支持地理约定（从北顺时针）或数学约定（从东逆时针）。纯数学计算，不依赖 PROJ；与附带的 convergence_index 地形度量无关。几何按经纬度（度）读取。"
+ },
+ "calculate_missing_z_values": {
+  "name": "计算缺失 Z 值",
+  "desc": "通过从两侧有效 Z 值插值，沿三维要素填充占位或缺失的 Z 值，类似 ArcGIS 的 Calculate Missing Z Values。"
+ },
+ "calculate_motion_statistics": {
+  "name": "计算运动统计量",
+  "desc": "为带时间戳的轨迹点标注运动统计量——速度、加速度、方位角、分段与累计距离、经过时间以及空闲标志——按轨迹分组并按时间排序，类似 ArcGIS 的 Calculate Motion Statistics。"
+ },
+ "calculate_polygon_main_angle": {
+  "name": "计算面主方向角",
+  "desc": "将每个面的主导方向（通过旋转卡壳获得的最小面积外接矩形长边方向）写入角度字段——类似 ArcGIS 的 Calculate Polygon Main Angle。是附带的仅面向栅格的 patch_orientation 所缺少的逐面矢量方向；可用于符号/标注旋转。"
+ },
+ "calculate_rates": {
+  "name": "计算比率",
+  "desc": "根据计数和人口字段计算平滑比率（类似 ArcGIS Calculate Rates）：粗糙率、Marshall 全局经验贝叶斯，或基于 k 最近邻的空间经验贝叶斯——是疾病/犯罪率热点分析之前的标准稳定化步骤。"
+ },
+ "calculate_transformation_errors": {
+  "name": "计算变换误差",
+  "desc": "根据位移链接拟合相似/仿射/投影变换，并报告每个链接的残差误差以及总体 RMSE，以便在变换之前发现并剔除劣质控制点。类似 ArcGIS 的 Calculate Transformation Errors。"
+ },
+ "calculate_transit_service_frequency": {
+  "name": "计算公交服务频率",
+  "desc": "基于时间窗的 GTFS 公交服务频率：针对某一服务日期（通过 calendar/calendar_dates）和时间窗，统计服务每个站点或线路的班次数并报告每小时班次数，类似 ArcGIS 的 Calculate Transit Service Frequency。"
+ },
+ "calculate_utm_zone": {
+  "name": "计算 UTM 分带",
+  "desc": "根据每个要素质心的经纬度计算最优 UTM 分带和 WGS84 EPSG 代码，添加分带（1–60）和 EPSG（326##/327##）字段——用于自适应投影的地图系列，类似 ArcGIS 的 Calculate UTM Zone。包含挪威/斯瓦尔巴特例的纯数学计算，不依赖 PROJ。几何按经纬度（度）读取。"
+ },
+ "canny_edge_detection": {
+  "name": "Canny 边缘检测",
+  "desc": "应用 Canny 多阶段边缘检测（高斯模糊 → Sobel 梯度 → 非极大值抑制 → 双阈值 → 滞后阈值化）。"
+ },
+ "cartogram": {
+  "name": "变形地图",
+  "desc": "使面变形以令其面积与某属性值成比例：非连续变形（围绕质心缩放每个面）或 Dorling 变形（比例圆并消除重叠）。"
+ },
+ "casorati_curvature": {
+  "name": "Casorati 曲率",
+  "desc": "从 DEM 计算 Casorati 曲率。"
+ },
+ "causal_inference_analysis": {
+  "name": "因果推断分析",
+  "desc": "通过倾向得分匹配、逆概率加权或回归调整，估计二元处理对结局变量的因果效应，并提供带随机种子的自助法置信区间，以及调整前后每个混杂因素的协变量平衡表（类似 ArcGIS Causal Inference Analysis）。"
+ },
+ "ceil": {
+  "name": "向上取整",
+  "desc": "将每个栅格像元向上舍入到最近的整数。"
+ },
+ "cell_position_statistics": {
+  "name": "像元位置统计",
+  "desc": "跨对齐栅格堆栈的逐像元位置和排名统计（对应 ArcGIS Highest Position、Lowest Position、Popularity 和 Rank）：极端值位于哪个图层、出现给定次数的值，或第 n 小的值。cell_statistics 将堆栈缩减为一个值，永远无法报告该值来自哪个图层；附带的 find_argument_statistics 沿单个多波段栅格的参数轴工作，不具备 popularity/rank 选择器语义。"
+ },
+ "cell_records_to_sectors": {
+  "name": "基站记录转扇区",
+  "desc": "根据基站塔点构建天线覆盖几何：依据每座塔的方位角、波束宽度和半径生成扇形面或角平分线扇区线——类似 ArcGIS Cell Site Records To Feature Class / Generate Sector Lines。"
+ },
+ "cell_statistics": {
+  "name": "像元统计",
+  "desc": "跨对齐栅格堆栈的逐像元统计（类似 ArcGIS Cell Statistics）：均值、众数、最大值、中位数、最小值、少数、百分位、极差、标准差、总和或种类数——是附带的 sum_overlay/weighted_sum（仅求和）以及邻域/分区工具都不提供的局部的多栅格缩减器。"
+ },
+ "central_feature": {
+  "name": "中心要素 / 线性方向均值",
+  "desc": "中心要素（到所有其他要素总距离最小的输入要素）或线性方向均值（线要素的平均方位、圆方差和平均长度）——是度量地理分布工具集中 directional_distribution 所缺少的两个成员（ArcGIS Central Feature / Linear Directional Mean）。"
+ },
+ "centroid_raster": {
+  "name": "栅格质心",
+  "desc": "计算栅格中每个正值斑块 ID 的质心像元。"
+ },
+ "centroid_vector": {
+  "name": "矢量质心",
+  "desc": "计算每个矢量要素的地理中心（质量平均坐标），生成用于标注放置、聚类和空间分析的点图层。"
+ },
+ "change_point_detection": {
+  "name": "变点检测",
+  "desc": "检测 H3 时空立方体每个位置时间序列中的突变（类似 ArcGIS Change Point Detection）：基于均值或斜率变化的代价函数执行二分分段，采用随敏感度缩放的惩罚项（或固定变点数），报告每个单元的变点数量、最大变化发生的年份以及各分段均值。是两期 change_vector_analysis 和单调 Mann-Kendall 检验无法完成的时间分段。"
+ },
+ "change_vector_analysis": {
+  "name": "变化向量分析",
+  "desc": "对两期多光谱数据执行变化向量分析，返回幅度和方向栅格。"
+ },
+ "circular_variance_of_aspect": {
+  "name": "坡向圆方差",
+  "desc": "在移动邻域内计算坡向的局部圆方差。"
+ },
+ "classification_accuracy_assessment": {
+  "name": "分类精度评估",
+  "desc": "以标注了地面真值的参考点对分类栅格（或已携带预测类别的点）进行评分，生成混淆矩阵、总体精度、逐类别的生产者/用户精度以及 Cohen's kappa——类似 ArcGIS Compute Confusion Matrix。"
+ },
+ "classify_buildings_in_lidar": {
+  "name": "LiDAR 建筑物分类",
+  "desc": "标记建筑物轮廓内的点：将位于面边界内的所有点赋为第 6 类。基于矢量的建筑物提取。"
+ },
+ "classify_lidar": {
+  "name": "LiDAR 点云分类",
+  "desc": "自动点云分类：通过局部几何（线性度、平面度）和 RANSAC 平面拟合识别地面、植被、建筑物。基于几何的分割。"
+ },
+ "classify_objects_ensemble_pro": {
+  "name": "集成对象分类（高级）",
+  "desc": "运行针对异构场景稳定性调优的集成式对象分类配置。"
+ },
+ "classify_objects_random_forest": {
+  "name": "随机森林对象分类",
+  "desc": "在带标注的分割训练样本上训练集成随机森林分类器，以光谱、形态和纹理特征作为预测变量。通过自助采样和特征随机化构建多棵决策树，然后通过多数投票聚合预测结果。分类作用于逐分割对象的特征向量，基于集成共识以概率方式分配对象类别标签，从而实现从 OBIA 特征中稳健地进行多类对象归类。主要特性包括：结合多棵决策树的集成学习实现稳健分类；处理多光谱 OBIA 典型的高维特征空间；提供分类置信度和概率估计；通过特征重要性排序识别具有判别力的属性；自然处理非线性特征交互；对特征噪声和冗余具有鲁棒性。用例涵盖：从 OBIA 分段进行多类土地覆盖分类（城市、农业、森林、水体）；通过训练样本选择精化的对象级监督分类；跨时间分段序列的变化检测分类；层级分类（由粗略生境类型细化到细类别）；以及与目视解译的手动训练样本集成。输出的预测类别标签标识主要对象类型；置信概率表示分类确定性；低置信度提示存在模糊的过渡对象；特征重要性揭示驱动分类决策的光谱/形态属性；分类图直接表示对象类型分布；相似类别之间的混淆提示需改进训练；概率化输出支持不确定性量化。"
+ },
+ "classify_objects_rules_basic": {
+  "name": "基础规则对象分类",
+  "desc": "应用来自“特征-算符-阈值”规则 CSV 的透明的基于规则的对象分类。面向领域专家工作流和合规要求的完全可解释决策逻辑。"
+ },
+ "classify_objects_rules_hierarchical": {
+  "name": "层级规则对象分类",
+  "desc": "应用层级式基于规则的对象分类；当前使用有序规则与确定性回退。"
+ },
+ "classify_objects_svm": {
+  "name": "SVM 对象分类",
+  "desc": "使用 SVM 风格的工作流对对象进行分类（通过稳健的对象分类后端默认实现）。"
+ },
+ "classify_overlap_points": {
+  "name": "分类重叠点",
+  "desc": "识别航线重叠区：检测具有多个点源 ID 的格网单元，标记或移除重叠点。用于采集验证的质量控制。"
+ },
+ "clean_vector": {
+  "name": "清理矢量",
+  "desc": "移除空几何和无效矢量几何（如尺寸过小的线/面），同时保留有效要素及其属性。"
+ },
+ "clip": {
+  "name": "裁剪",
+  "desc": "使用基于拓扑的相交运算将输入面裁剪到叠加面边界。"
+ },
+ "clip_lidar_to_polygon": {
+  "name": "按面裁剪 LiDAR",
+  "desc": "点云空间子集：保留面边界内部的点。基于矢量的点选择，用于研究区提取。"
+ },
+ "clip_raster_to_polygon": {
+  "name": "按面裁剪栅格",
+  "desc": "将栅格裁剪到面范围；面外像元设为 NoData。"
+ },
+ "closest_facility_network": {
+  "name": "最近设施（网络）",
+  "desc": "为每个事件点查找到其最近可达设施点的最小成本网络路径。"
+ },
+ "closing": {
+  "name": "闭运算",
+  "desc": "使用矩形结构元素执行形态学闭运算。"
+ },
+ "cloude_pottier_decomposition": {
+  "name": "Cloude-Pottier 分解",
+  "desc": "Cloude-Pottier 分解对来自全极化 SAR 数据的相干矩阵进行对角化，提取刻画散射机制的特征值和特征向量。由特征向量计算出的熵、各向异性和平均 alpha 角分别表征散射无序度、机制主导性和散射类型。H-alpha 参数空间利用极化相位信息，实现独立于幅度变化的物理散射机制分类。主要特性：全极化 SAR 分解；利用相位信息；物理意义明确的散射参数；分离散射机制；对幅度斑点噪声稳健；支持目标分类与解译。用例：SAR 目标识别；森林生物量估算；湿地特征刻画；舰船/车辆检测；土地覆盖分类；极化 SAR 数据解译。输出解读：输出包括熵（无序程度；0=有序散射，1=随机散射）、各向异性（机制主导性，0-1）和 alpha 角（散射类型：约 45°=偶极子，约 30°=表面，约 60°=体散射）。H-alpha 散点图揭示表明散射类型的聚集模式。二面角散射（城市）表现为高 alpha；表面散射（水体）表现为低 alpha；体散射（森林）表现为中间值。"
+ },
+ "clump": {
+  "name": "栅格聚类",
+  "desc": "将相邻且等值的栅格像元归组为唯一的斑块标识符。"
+ },
+ "collapse_dual_lines_to_centerline": {
+  "name": "双线归并为中心线",
+  "desc": "在宽度容差范围内检测大致平行的线对（双向车道、道路边线），并将每对线替换为一条重新连接交叉口的中心线——类似 ArcGIS 的 Collapse Dual Lines To Centerline。"
+ },
+ "collapse_hydro_polygon": {
+  "name": "水系面归并",
+  "desc": "将狭窄的水体面归并为中心线，同时将宽阔河段保留为面（类似 ArcGIS Collapse Hydro Polygon）：沿每个面的主轴通过垂直断面中点追踪其中心线，量测局部宽度，并在中位宽度不大于阈值处进行归并。是按宽度阈值进行的面→线综合化，为线状边线归并工具 dual_lines_to_centerline 和栅格 river_centerlines 所不具备。"
+ },
+ "collapse_road_detail": {
+  "name": "道路细节归并",
+  "desc": "将小于直径阈值的道路环岛和错位接头（环形交叉、哑铃形、错位接头）归并为单一的贯通连接，以保持网络连通性，用于小比例尺显示——类似 ArcGIS 的 Collapse Road Detail。"
+ },
+ "collect_events": {
+  "name": "收集事件",
+  "desc": "将重合的事件点折叠为唯一位置，每个位置携带该处事件数量的 ICOUNT 计数，类似 ArcGIS 的 Collect Events。"
+ },
+ "colocation_analysis": {
+  "name": "同位分析",
+  "desc": "局部同位商（Leslie & Kronenfeld），度量 A 类点是否不成比例地出现在 B 类邻居之中，并提供带随机种子的置换检验 p 值——类似 ArcGIS 的 Colocation Analysis。"
+ },
+ "color_polygons": {
+  "name": "面着色",
+  "desc": "为每个面分配一个小整数颜色索引，使任意两个相邻面的取值不同（类似 ArcGIS Calculate Color Theorem Field）——通过在共享边（或共享角）邻接关系上运行 DSATUR 图着色实现邻接安全的分级设色样式。"
+ },
+ "colourize_based_on_class": {
+  "name": "按类别着色",
+  "desc": "按类别为点着色：ASPRS 标准颜色（绿色=植被、棕色=地面、灰色=建筑物等）。与强度混合以增强对比。用于分类可视化。"
+ },
+ "colourize_based_on_point_returns": {
+  "name": "按回波次序着色",
+  "desc": "按回波次序为点着色：第一次/中间/最后一次回波使用不同颜色。用于处理验证的多回波脉冲结构可视化。"
+ },
+ "combine": {
+  "name": "组合",
+  "desc": "为两个或多个配准的分类栅格中每种唯一的取值组合分配唯一的分区 ID，并输出值-属性表（id、count 以及每个输入一列）。"
+ },
+ "compactness_ratio": {
+  "name": "紧凑度比率",
+  "desc": "计算面要素的紧凑度比率（面积 / 周长）。"
+ },
+ "compare_spatial_weights": {
+  "name": "比较空间权重",
+  "desc": "以行标准化的全局 Moran's I 及其 z 得分和双侧 p 值，按各候选空间权重概念化方案（KNN、固定距离带宽、边邻接 / 边+角邻接、Delaunay）对单一或多个分析字段的空间聚类捕捉强度进行排序——类似 ArcGIS Compare Neighborhood Conceptualizations。输出排名比较表和最优的单一方法。"
+ },
+ "composite_bands": {
+  "name": "合成波段",
+  "desc": "将多个单波段栅格按给定顺序堆叠为一个多波段栅格（类似 ArcGIS Composite Bands）。附带的 create_colour_composite 固定为三个 RGB 波段，因此此前无法组装 band_collection_statistics、principal_component_analysis、spectral_index 和 OBIA 套件都需要的 N 波段输入。"
+ },
+ "compute_accuracy_for_object_detection": {
+  "name": "计算目标检测精度",
+  "desc": "使用 IoU 匹配将检测要素与地面真值进行评分，报告逐类别精确率、召回率、平均精度（AP）和总体 mAP，类似 ArcGIS Compute Accuracy For Object Detection。"
+ },
+ "compute_sar_indices": {
+  "name": "计算 SAR 指数",
+  "desc": "从多极化后向散射中推导极化 SAR 指数——RVI（雷达植被指数）、RFDI（雷达森林退化指数）、CSI（冠层结构指数）和 DPSVI（双极化 SAR 植被指数）（类似 ArcGIS Compute SAR Indices）。spectral_index 仅覆盖光学波段运算：其公式和波段约定属于反射率域，且没有极化通道的概念，因此目录中的 SAR 处理链（multilook、sar_coherence、斑点滤波）目前没有分析端点。"
+ },
+ "concave_hull": {
+  "name": "凹包",
+  "desc": "使用 concaveman 算法围绕输入要素坐标创建凹包面。"
+ },
+ "conditional_evaluation": {
+  "name": "条件运算",
+  "desc": "对栅格像元执行 if-then-else 条件运算。"
+ },
+ "conservative_smoothing_filter": {
+  "name": "保守平滑滤波",
+  "desc": "保守平滑通过将每个像元替换为相似邻近像元（处于给定强度范围内）的平均值来实现非线性滤波，在降低噪声的同时保留边缘。实现上检查邻域，识别与中心像元强度差在阈值内的像元，并对这些相似取值的像元求平均。数学表达式：F = (1/N) Σ(I_j : |I_j - I_center| < T)，其中 T 为相似性阈值，N 为相似像元的数量。主要特性包括简单的基于阈值的相似性定义、对光学和雷达影像的有效性、参数可解释性强（阈值控制边缘锐度），以及极小的计算开销。保守平滑尤其适用于多光谱卫星影像预处理（在保留光谱边界的同时降低噪声）、热红外影像增强（在保持温度不连续性的同时平滑辐射噪声）、LiDAR 分类平滑（保留植被/地面边界）以及噪声调查数据预处理。输出解读：均质区域被完全平均（所有邻近像元均相似）；边缘处滤波极小（仅同侧的相似像元参与平均）。阈值参数控制边缘保持程度：小阈值（严格相似性）产生温和平滑；大阈值（宽松相似性）产生激进平滑，可能损失边缘。输出值与输入邻近值完全一致（无插值；输出为现有值的平均）。统计量向局部聚类偏移；异质区域变化极小。可通过目视检查和局部直方图分析验证阈值的有效性。常见伪影包括阈值过严导致的平滑不足和阈值过松导致的边缘模糊。迭代次数可实现渐进滤波：单次处理提供温和平滑，多次处理增强效果。可在分类之前应用，以在保持类别边界清晰的同时减少噪声引起的类别混淆。"
+ },
+ "construct_sight_lines": {
+  "name": "构建视线",
+  "desc": "在观察点与目标要素之间构建视线要素，支持观察/目标高度偏移、沿线状和面状目标采样、可选的方位角和垂直角字段，以及二维或三维距离。类似 ArcGIS 的 Construct Sight Lines。"
+ },
+ "construct_vector_tin": {
+  "name": "构建矢量 TIN",
+  "desc": "使用 Delaunay 三角剖分根据输入点集构建不规则三角网（TIN）。"
+ },
+ "contiguous_cartogram": {
+  "name": "连续变形统计图",
+  "desc": "密度均衡化（Gastner-Newman 扩散）变形统计图：按某一属性成比例地变形面的面积，同时保持地图为一张边界相连的连通图幅（对应 ArcGIS Generate Contiguous Cartogram）。随附的 cartogram 工具仅实现了非邻接和 Dorling 两种方法，二者都会破坏邻接关系，其自身模块文档也未涵盖连续形式。"
+ },
+ "continuum_removal": {
+  "name": "连续统去除",
+  "desc": "连续统去除通过估计包络光谱的上凸包（连续统），并将每个波段除以对应的连续统值，从而对多光谱光谱进行归一化。该方法消除整体光谱斜率和亮度变化，使吸收特征（波段、深度）得到增强显示。吸收深度和位置被标准化，可借助光谱库进行矿物/物质识别。连续统线通过凸包算法连接整个光谱范围内的局部极大值计算得到。主要功能：去除光谱连续统；增强吸收特征；对亮度变化进行归一化；支持光谱库匹配；标准化光谱形状。应用场景：矿物识别；物质分类；植被光谱分析；光谱异常探测；吸收特征制图。输出解读：连续统去除后的光谱呈现吸收特征（值 <1.0），指示物质特有的波段。吸收深度表示特征强度：浅特征（<0.2）表示次要成分，深特征（>0.5）表示主要吸收。特征在波长空间中的位置可借助参考库进行物质识别。平坦的连续统去除光谱（接近 1.0）表示光谱中性的物质。"
+ },
+ "contour_list": {
+  "name": "按列表提取等高线",
+  "desc": "按显式给定的值列表（而非固定间隔）生成等高线，输出为链式折线或填充面，每条等高线都标注其等级值（对应 ArcGIS Contour List）。随附的 contours_from_raster 仅接受 'interval' 和 'base' 参数，因此实际海图所用的不规则序列——IHO 水深分级、洪水重现期水位、已发布的分类断点——需要对每个值单独运行一次再合并，且仍无法输出为按等级标注的单一图层。"
+ },
+ "contour_with_barriers": {
+  "name": "含障碍的等高线",
+  "desc": "沿表面追踪等值线，等值线在障碍要素处终止而不穿越障碍。"
+ },
+ "contours_from_points": {
+  "name": "由点提取等高线",
+  "desc": "基于 Delaunay TIN，由点高程创建等高线折线。"
+ },
+ "contours_from_raster": {
+  "name": "由栅格提取等高线",
+  "desc": "由栅格表面模型创建等高线折线。"
+ },
+ "convergence_index": {
+  "name": "汇聚指数",
+  "desc": "根据局部坡向的一致性计算水流汇聚/发散程度。无需完整汇流演算即可识别谷地（汇聚）与山脊（发散），是流向算法的高效替代方案。"
+ },
+ "convert_coordinate_notation": {
+  "name": "转换坐标记法",
+  "desc": "在多种记法之间转换每个要素的坐标——十进制度（DD）、度分秒（DMS）、度和十进制分（DDM）、UTM 以及 MGRS/USNG——并将目标记法写入新字段，类似 ArcGIS Convert Coordinate Notation。纯格网数学计算（WGS84 上的 Krüger 横轴墨卡托投影 + MGRS 字母标注），不依赖 PROJ。"
+ },
+ "convert_nodata_to_zero": {
+  "name": "将NoData转换为零",
+  "desc": "将栅格中的 NoData 像元替换为 0，有效像元保持不变。"
+ },
+ "convert_sar_units": {
+  "name": "转换SAR单位",
+  "desc": "在幅值、强度、线性功率、分贝、复数转强度以及解缠相位转位移等表示形式之间转换 SAR 栅格（对应 ArcGIS Convert SAR Units）。raster_calculator 虽然可以执行这类算术运算，但不包含任何语义或保护逻辑——在对数转换中遇零值像元会返回 -inf，且目录中没有任何记录表明 SAR 栅格所处的单位，因此斑点滤波器和比值指数经常被错误地应用于错误的表示形式。"
+ },
+ "coregister_rasters": {
+  "name": "栅格配准",
+  "desc": "通过分块格网的归一化互相关、亚像元峰值细化、剔除粗差的最小二乘变换拟合以及重采样，自动将辅助栅格与参考栅格对齐（对应 ArcGIS Apply Coregistration）。这是目录中整个 InSAR 处理链缺失的前置条件：sar_coherence、flatten_interferogram 和 goldstein_phase_filter 都要求输入已配准，而此前没有任何工具能生成该结果。georeference_raster_from_control_points 需要手工挑选控制点，image_correlation 只能评估相似度，而 warp_raster 则需要外部提供变换参数。"
+ },
+ "corner_detection": {
+  "name": "角点检测",
+  "desc": "使用击中-击不中（hit-and-miss）模板识别二值栅格中的角点形态。"
+ },
+ "correct_vignetting": {
+  "name": "渐晕校正",
+  "desc": "镜头渐晕校正可消除由镜头离轴光学特性引起的辐射伪影：图像边缘接收到的光线少于中心，产生与地表反射率变化无关的人为亮度梯度。渐晕校正应用由渐晕剖面模型（高斯或四次余弦律公式）计算的空间可变乘性因子，并针对传感器特性进行标定，从而恢复整个图像视场内均匀的辐射响应。这一预处理步骤对多光谱和高光谱遥感至关重要，否则渐晕会破坏光谱分析，并在分类和变化检测流程中引入系统性误差。主要功能包括：根据图像统计量或用户指定的标定参数自动估计渐晕剖面；逐像元施加空间可变的校正因子且不产生插值伪影；可选对过度校正的边缘像元进行掩膜，避免放大边缘噪声；以及针对各光谱波段渐晕差异的波段级校正。应用场景包括：对辐射一致性敏感的光谱分类算法的预处理、渐晕边界造成明显不连续的镶嵌数据准备、图像帧内的精确辐射比较，以及要求均匀光照响应的高光谱分析。经渐晕校正的影像在视场内亮度均匀。输出消除了边缘变暗现象，从图像中心到边缘辐射响应均匀；若校正幅度过大，边缘像元可能出现噪声升高；校正后的影像可无缝融入多光谱分析流程，不再存在辐射伪影。"
+ },
+ "corridor": {
+  "name": "廊道",
+  "desc": "在两个累积成本表面之间构建最小成本廊道（对应 ArcGIS Corridor）：将两个成本距离栅格相加得到廊道表面，其最小值即最小成本路径，随后可按阈值截取近最优廊道带。支持直接模式（两个成本栅格）或便捷模式（一个摩擦栅格 + 两个源栅格）。"
+ },
+ "cos": {
+  "name": "余弦",
+  "desc": "计算每个栅格像元值的余弦。"
+ },
+ "cosh": {
+  "name": "双曲余弦",
+  "desc": "计算每个栅格像元的双曲余弦。"
+ },
+ "cost_allocation": {
+  "name": "成本分配",
+  "desc": "利用成本距离分析生成的回链栅格，将每个像元分配到相应的源区域。"
+ },
+ "cost_back_link": {
+  "name": "成本回溯链接",
+  "desc": "输出 0-8 邻域方向编码栅格，为每个像元记录沿最小成本路径返回最近源的下一步方向，同时输出累积成本表面（对应 ArcGIS Cost Back Link 与 Path Back Link）。cost_distance、cost_pathway 和 cost_allocation 内部都会计算该信息然后丢弃，因此目前回溯 N 个目的地需要 N 次完整的成本求解，而不是一次累积计算加 N 次廉价的回溯。"
+ },
+ "cost_connectivity": {
+  "name": "成本连通性",
+  "desc": "在成本表面上连接多个地点的最小成本网络（类似 ArcGIS Cost Connectivity / Optimal Region Connections）：多源 Dijkstra 分配、相邻区域之间的两两最小成本路径，以及它们的最小生成树——这是随附的单源 cost_distance 和 path_distance 无法构建的最小成本网络。"
+ },
+ "cost_distance": {
+  "name": "成本距离",
+  "desc": "根据源表面和成本表面计算累积通行成本栅格和回链栅格。"
+ },
+ "cost_pathway": {
+  "name": "成本路径",
+  "desc": "利用回链栅格从目的地像元回溯最小成本路径。"
+ },
+ "count_if": {
+  "name": "条件计数",
+  "desc": "统计像元值等于比较值的输入栅格数量。"
+ },
+ "count_overlapping_features": {
+  "name": "统计重叠要素",
+  "desc": "将重叠的面压平为互不相交的区域，每个区域记录覆盖它的输入要素数量（可选包括要素 id），类似 ArcGIS Count Overlapping Features。"
+ },
+ "create_accuracy_assessment_points": {
+  "name": "创建精度评估点",
+  "desc": "按分类栅格或面图层的类别分层，生成随机分布的参考点，并预填地图类别，供实地真值标注使用（对应 ArcGIS Create Accuracy Assessment Points）。classification_accuracy_assessment 需要消费此类点，但此前没有任何工具能生成它们；create_spatial_sampling_locations 按面要素或字段而非栅格类别分层，且不具备均等分配功能。"
+ },
+ "create_cartographic_partitions": {
+  "name": "创建制图分区",
+  "desc": "生成自适应、互不重叠的分区面，每个分区大致包含目标数量的要素（数据密集处分区更小），使大规模综合化/掩膜作业能够安全地按覆盖范围分块处理——相当于 ArcGIS Create Cartographic Partitions 的纯 Rust 实现。"
+ },
+ "create_colour_composite": {
+  "name": "创建彩色合成",
+  "desc": "由红、绿、蓝及可选的不透明度栅格创建打包的 RGB 彩色合成影像。"
+ },
+ "create_overpass": {
+  "name": "创建跨线桥",
+  "desc": "在“上层”线与“下层”线交叉处生成挖空掩膜面（以及可选的翼状短线装饰线），使下层线在交叉处被遮断。"
+ },
+ "create_plane": {
+  "name": "创建平面",
+  "desc": "使用基准栅格的几何信息，根据平面方程创建栅格。"
+ },
+ "create_routes": {
+  "name": "创建路径",
+  "desc": "按路径标识符字段融合线要素，将各线段排序合并为每条路径一条折线，并根据几何长度或起止度量字段为其赋予线性度量值（m 值）。"
+ },
+ "create_spatial_sampling_locations": {
+  "name": "创建空间采样位置",
+  "desc": "在面状研究区内按简单随机、分层、系统（方形/六边形/三角形）或聚类等设计生成采样点，并采用可设种子的可复现随机数。"
+ },
+ "create_spatially_balanced_points": {
+  "name": "创建空间均衡点",
+  "desc": "在约束面内生成空间分布均匀（准随机 Halton 序列）的采样点，可选用包含概率栅格加权，每个点都带有均衡采样顺序标记，类似 ArcGIS Create Spatially Balanced Points。"
+ },
+ "create_underpass": {
+  "name": "创建下穿桥",
+  "desc": "在线交叉处，沿上层要素方向构建掩膜面，并从下层要素上切出对应的断口，使其呈现从下方穿过的效果（对应 ArcGIS Create Underpass）。它是随附 create_overpass 的姊妹工具：后者遮断下层线以保持上层线连续，而下穿桥需要装饰性断口，正是隧道洞口与桥梁的视觉区别所在。该工具同时输出掩膜和裁剪后的下层线。"
+ },
+ "crispness_index": {
+  "name": "清晰度指数",
+  "desc": "计算隶属概率栅格的清晰度指数。"
+ },
+ "cross_tabulation": {
+  "name": "交叉表",
+  "desc": "对两个类别栅格执行交叉表分析。"
+ },
+ "csv_points_to_vector": {
+  "name": "CSV点转矢量",
+  "desc": "将 CSV 文件中的点记录导入为点矢量图层。"
+ },
+ "cul_de_sac_masks": {
+  "name": "尽端路掩膜",
+  "desc": "在道路网络的尽端路环岛处生成考虑比例尺的挖空掩膜面，类似 ArcGIS Cul-De-Sac Masks。"
+ },
+ "cumulative_distribution": {
+  "name": "累积分布",
+  "desc": "将栅格值转换为累积分布概率。"
+ },
+ "curvedness": {
+  "name": "弯曲度",
+  "desc": "根据 DEM 计算弯曲度（curvedness）表面形态描述因子。"
+ },
+ "cut_fill": {
+  "name": "挖填方",
+  "desc": "计算两个 DEM 表面（前后时相）之间或一个表面与参考平面之间的体积变化：输出带符号的高程变化栅格以及挖方、填方和净体积，并可选按区域标注体积。"
+ },
+ "d8_flow_accum": {
+  "name": "D8汇流累积量",
+  "desc": "根据 DEM 或 D8 指向栅格计算 D8 汇流累积量。"
+ },
+ "d8_mass_flux": {
+  "name": "D8质量通量",
+  "desc": "使用载荷、效率和吸收栅格执行基于 D8 的质量通量累积。"
+ },
+ "d8_pointer": {
+  "name": "D8流向指针",
+  "desc": "在 8 个邻域（北/东北/东/东南/南/西南/西/西北）内按最陡下降法确定流向。是 D8 水文分析和流域划定的基础。"
+ },
+ "darcy_flow": {
+  "name": "达西流",
+  "desc": "根据水头、导水系数和孔隙度栅格计算稳态地下水达西速度场——输出流速大小（达西速度）栅格和沿梯度下降的流向栅格（v = -(T/n)·∇head），并可选从种子点进行平流质点追踪（RK2），生成流线折线——类似 ArcGIS Darcy Flow / Particle Track。"
+ },
+ "dark_object_subtraction": {
+  "name": "暗目标减除",
+  "desc": "暗目标减除（DOS）是一种简单而有效的大气霾去除启发式方法，无需辅助气象数据或复杂的辐射传输模型。该技术依据的原理是：零反射率应产生零反射信号（忽略瑞利散射）；从光学黑暗表面（深水、茂密森林阴影、城市沥青）观测到的任何信号都归因于气溶胶散射引起的大气程辐射。本工具识别图像中每个波段的最小 DN 值，将其解释为大气霾，并作为逐波段常量偏移从所有像元中减去；更精细的变体（DOS2、DOS3、DOS4）则借助植被指数或暗像元聚类来考虑瑞利散射和可变的气溶胶光学厚度。主要功能包括：通过直方图分析分离暗目标，区分随场景变化的大气霾与真实零反射；可选掩膜已知的高反射要素（城市、积雪、云），避免其干扰暗目标识别；逐波段霾校正；以及适合实时或大规模处理的快速计算。应用场景包括：快速预览式反射率估算、绝对定标不如相对变化重要的植被与水质监测、快速灾害响应制图，以及无法获得精确气溶胶信息的旧存档数据。输入包括大气顶层反射率或定标后的辐亮度、可选用于排除高亮要素的土地覆盖掩膜，以及场景元数据。输出为霾校正后的反射率、逐波段大气程辐射估计，以及指示暗目标识别置信度的质量标记（例如暗像元偏少、以城市为主的场景）。与辐射传输模型相比虽然粗糙，但在缺乏精细大气数据时，DOS 对于多时相分析和全球覆盖制图仍然实用。"
+ },
+ "dbscan": {
+  "name": "DBSCAN聚类",
+  "desc": "对输入栅格堆栈执行无监督的 DBSCAN 密度聚类。"
+ },
+ "decrement": {
+  "name": "递减",
+  "desc": "从栅格中每个非 NoData 像元减去一个值（默认 1.0）。"
+ },
+ "delete_field": {
+  "name": "删除字段",
+  "desc": "从矢量图层中删除一个或多个属性字段。"
+ },
+ "delineate_built_up_areas": {
+  "name": "建成区提取",
+  "desc": "通过邻近建筑物归组（形态学闭运算），将密集的建筑物轮廓综合化为平滑的居民地/城市范围面，并应用最小建筑物数量和面积过滤条件。"
+ },
+ "delineate_depressions": {
+  "name": "洼地提取",
+  "desc": "使用水平集方法从洼地（sink）栅格中勾绘嵌套洼地（lidar slicing.py）。"
+ },
+ "delineate_mounts": {
+  "name": "凸起地形提取",
+  "desc": "勾绘 DEM 中凸起地形（高地）的嵌套层级结构（lidar mounts.py）。"
+ },
+ "dem_filter": {
+  "name": "DEM滤波",
+  "desc": "使用均值、中值或高斯滤波器对 DEM 进行平滑（lidar filtering.py）。"
+ },
+ "dem_void_filling": {
+  "name": "DEM空穴填充",
+  "desc": "利用辅助表面和插值高程偏移填充 DEM 空穴，实现无缝融合。"
+ },
+ "dendrogram": {
+  "name": "树状图",
+  "desc": "基于类别特征构建层次合并树，展示各类别之间的可分性，类似 ArcGIS Dendrogram。"
+ },
+ "densify_features": {
+  "name": "要素加密",
+  "desc": "按指定间距沿线和面边界添加折点。"
+ },
+ "densify_sampling_network": {
+  "name": "加密采样网络",
+  "desc": "在克里金预测（标准误差）表面值最高的像元处提出新的采样位置，并遵守最小间距抑制距离，类似 ArcGIS Densify Sampling Network。"
+ },
+ "depth_in_sink": {
+  "name": "洼地深度",
+  "desc": "量测每个 DEM 像元低于填洼后表面的深度。"
+ },
+ "depth_to_water": {
+  "name": "至水面深度",
+  "desc": "以河流/湖泊源要素为起点，利用最小成本累积计算制图意义上的至水面深度。"
+ },
+ "detect_bright_ocean_objects": {
+  "name": "探测海洋亮目标",
+  "desc": "使用双参数 CFAR 检测器在 SAR 影像的水面上查找船舶及其他亮点目标，并将其输出为带长、宽、航向和峰值后向散射信息的旋转边界框（对应 ArcGIS Detect Bright Ocean Objects）。两个工具注册表中都没有局部杂波检测器：全局阈值无法奏效，因为海面杂波会随风和入射角变亮；matched_filter_target_detection 是光谱光学检测器；detect_image_anomalies 则使用全局模型而非滑动窗口模型。"
+ },
+ "detect_dark_ocean_areas": {
+  "name": "探测海洋暗区",
+  "desc": "在 SAR 影像的水面上查找异常暗斑——油膜、天然渗漏、藻膜、低风区——即低于局部海面背景若干个标准差的区域，并报告其 dB 对比度（对应 ArcGIS Detect Dark Ocean Areas）。它是 detect_bright_ocean_objects 的补集，也不同于 extract_water_sar：全水场景是单峰分布，Otsu 分割只会把海面杂波一分为二，将半个海洋误报为油膜。"
+ },
+ "detect_feature_changes": {
+  "name": "检测要素变化",
+  "desc": "按 Hausdorff 距离匹配两个线数据集，将每个要素分类为未变化 / 空间 / 属性 / 空间与属性 / 新增，并识别被删除的基准要素——这是矢量变化检测与数据合并的入口，类似 ArcGIS Detect Feature Changes。"
+ },
+ "detect_graphic_conflict": {
+  "name": "检测图形冲突",
+  "desc": "查找两个要素图层（或同一图层内部）的符号化（绘制宽度）范围在最小间距内发生重叠或拥挤的位置，为每对冲突输出一个冲突面，并标记两个源要素 id 和重叠面积，类似 ArcGIS Detect Graphic Conflict。"
+ },
+ "detect_image_anomalies": {
+  "name": "检测影像异常",
+  "desc": "以每个像元到场景（或移动窗口）波段统计量的马氏距离为多波段影像的每个像元打分——即 Reed–Xiaoli（RX）异常检测器——并可选应用百分位阈值掩膜，类似 ArcGIS Detect Image Anomalies。"
+ },
+ "detect_incidents": {
+  "name": "检测事件",
+  "desc": "标记条件沿每条轨迹的开始与结束位置：按轨迹对带时间戳的点分组，按时间排序，对数值属性评估开始（及可选的结束）比较条件，以标记点或按事件输出的线段（含 id 和持续时间）的形式给出事件片段——类似 ArcGIS Detect Incidents。"
+ },
+ "deviation_from_mean_elevation": {
+  "name": "偏离平均高程",
+  "desc": "利用局部均值和标准差计算局部地形 z 分数。"
+ },
+ "deviation_from_regional_direction": {
+  "name": "偏离区域方向",
+  "desc": "计算面相对于加权区域平均朝向的方向偏差，并追加 DEV_DIR 字段。"
+ },
+ "dice": {
+  "name": "要素细分",
+  "desc": "将超过折点数上限的面或折线切分为更小的网格状碎片（类似 ArcGIS Dice），使下游叠加和分块处理保持高效——自适应四叉树将几何与每个象限求交，直到每个碎片都低于上限。"
+ },
+ "diff_of_gaussians_filter": {
+  "name": "高斯差分滤波",
+  "desc": "高斯差分（DoG）滤波通过对两个不同半径的高斯模糊版本做减法来检测边缘和细微要素，形成强调中间空间频率的带通滤波器。实现方式是计算两个高斯模糊（小半径 σ₁ 和大半径 σ₂），然后相减：DoG = G(σ₁) - G(σ₂)。这种非线性组合在增强边缘和脊线的同时抑制细噪声和大尺度光照趋势。主要功能包括：可调的频率响应（σ₂/σ₁ 比值控制带通特性）、以零为中心的输出（双极性：正值与负值）、适用于边缘检测和特征提取，以及通过高斯复用实现的计算高效性。高斯差分在地质构造检测（断层、构造线性体表现为高 DoG 响应）、从正射影像中提取建筑物、遥感镶嵌影像的细纹理增强，以及受神经科学启发的处理模型中表现出色。输出解读显示：边缘产生峰值响应（亮侧为正、暗侧为负），过零点恰好位于过渡处。过零点检测能够独立于边缘方向揭示真实边缘。DoG 幅值表示边缘强度；对于 8 位输入，典型范围在 -1000 到 +1000 之间，取决于局部对比度。σ₂/σ₁ 比值决定带通中心：比值约 2 强调极细微要素；约 5 强调中间尺度要素；约 10 强调较粗尺度要素。输出呈双峰分布（正负极值处各有一个峰）表明边缘分离良好。常见伪影包括强边缘周围的光晕，以及频带与要素尺度不匹配时可能出现的响应不足。可与幅值阈值化结合进行边缘提取。在形态学后处理之前应用该滤波器，可从含噪卫星影像中稳健地提取要素。"
+ },
+ "difference": {
+  "name": "差集",
+  "desc": "使用基于拓扑的差运算从输入面中移除叠加面区域。"
+ },
+ "difference_3d": {
+  "name": "3D差集",
+  "desc": "将一组 3D 实体从另一组实体中减去，报告每个被减要素被移除的体积和剩余体积（对应 ArcGIS Difference 3D）。两个注册表中 union_3d 是唯一的 3D 叠加工具，erase 仅支持 2D 面，因此此前无法计算切削体之后的剩余开挖体积，或排除包络范围之外的羽流体积。被减要素的体积为精确值；移除体积则按报告的分辨率通过体素占用进行估计。"
+ },
+ "difference_curvature": {
+  "name": "差异曲率",
+  "desc": "根据 DEM 计算差异曲率。"
+ },
+ "difference_from_mean_elevation": {
+  "name": "与平均高程之差",
+  "desc": "计算每个高程与局部平均高程之间的差值。"
+ },
+ "diffusion_interpolation_with_barriers": {
+  "name": "含障碍的扩散插值",
+  "desc": "通过模拟热扩散绕过绝对（无通量）障碍而非穿透障碍，将离散点观测插值为栅格（类似 ArcGIS Diffusion Interpolation With Barriers）。采样点被固定为已知像元；其余像元在拉普拉斯/热传导方程的 `number_iterations` 次 Jacobi 迭代中向其非障碍邻居的均值松弛，因此影响随扩散距离衰减。不同于 interpolate_with_barriers 的最短无障碍路径核，也不同于栅格平滑工具 anisotropic_diffusion_filter。"
+ },
+ "dimension_reduction": {
+  "name": "降维",
+  "desc": "对要素数值属性执行主成分分析（类似 ArcGIS Dimension Reduction）：标准化所选字段，用自实现的 Jacobi 旋转对相关/协方差矩阵进行特征分解，将 PC1..PCk 得分写回要素，并输出特征值/方差/载荷报告——这是随附的仅支持波段的 principal_component_analysis 在矢量属性上的对应版本。"
+ },
+ "dimensional_moving_statistics": {
+  "name": "维度移动统计",
+  "desc": "沿栅格数据立方体的维度运行移动窗口，为每个输入切片输出一个平滑切片——这种就地滚动均值或中值能将含噪的卫星时间序列变为可用的时间序列（对应 ArcGIS Dimensional Moving Statistics）。第 17 轮的 time_series_smoothing 仅支持矢量，随附的焦点滤波器只在单个切片内沿空间移动窗口，而 aggregate_multidimensional_raster 会将立方体缩短为分箱。工具包含循环均值，缺少它时，跨越回绕点对坡向或相位求平均将毫无意义。"
+ },
+ "dinf_flow_accum": {
+  "name": "D-Infinity汇流累积量",
+  "desc": "根据 DEM 或 D-Infinity 指向栅格计算 D-Infinity 汇流累积量。"
+ },
+ "dinf_mass_flux": {
+  "name": "D-Infinity质量通量",
+  "desc": "使用载荷、效率和吸收栅格执行基于 D-Infinity 的质量通量累积。"
+ },
+ "dinf_pointer": {
+  "name": "D-Infinity流向指针",
+  "desc": "连续流向（0-2π 弧度），消除了 D8 的对角偏差，更适合泥沙输移和发散流建模。"
+ },
+ "direct_decorrelation_stretch": {
+  "name": "直接去相关拉伸",
+  "desc": "通过削弱消色差分量并对各通道进行线性拉伸，提升打包 RGB 彩色影像的饱和度。"
+ },
+ "directional_distribution": {
+  "name": "方向分布",
+  "desc": "描述性地理分布统计：平均中心、中位中心、中心要素、标准距离（圆）和标准差椭圆——支持可选的加权和分组。"
+ },
+ "directional_relief": {
+  "name": "方向地形起伏",
+  "desc": "通过沿指定方位角对高程进行射线追踪来计算方向性地形起伏。"
+ },
+ "directional_trend": {
+  "name": "方向趋势",
+  "desc": "将采样点投影到选定方位角上，并拟合值随距离变化的 1-3 阶多项式，以便在变异函数建模前检测全局/各向异性趋势（类似 ArcGIS 的 Directional Trend）。'determine' 模式会扫描各方位角，找出解释方差最大的方向。"
+ },
+ "directional_variogram": {
+  "name": "方向变异函数分析",
+  "desc": "计算多个方向的变异函数以探测空间各向异性，揭示方向性连续性模式，这对实现真实的克里金插值至关重要。"
+ },
+ "disperse_markers": {
+  "name": "分散标记",
+  "desc": "将重合或重叠的点符号按最小中心间距相互散开（扩展/环形/十字/方形模式），使堆叠的点保持各自可见，类似 ArcGIS Disperse Markers。"
+ },
+ "dissolve": {
+  "name": "融合",
+  "desc": "全局地或按融合属性字段移除面的公共边界。"
+ },
+ "dissolve_route_events": {
+  "name": "融合路径事件",
+  "desc": "将同一路径上接触或重叠的路径事件合并为单个度量区间，方式可以是仅在融合字段取值一致时合并（'dissolve'），或通过拼接不同取值合并（'concatenate'）。类似 ArcGIS Dissolve Route Events。"
+ },
+ "distance_to_outlet": {
+  "name": "至出口距离",
+  "desc": "计算每个河流像元沿下游方向至出口的距离。"
+ },
+ "diversity_filter": {
+  "name": "多样性滤波",
+  "desc": "以邻域内唯一值/类别的数量计算移动窗口多样性，衡量局部异质性：多样性高表示地形/类别多变，多样性低表示均质。可揭示纹理、破碎度和格局多样性，常用于分类影像或类别影像，以识别过渡/边缘地带。\n\n多样性滤波创建一种独立于具体取值的局部变化度量，可用于景观生态学（生境多样性、破碎度指标）、分类质量评估（高多样性 = 混合/不确定区域）和纹理分析。应用于高程数据时，多样性指示邻域尺度上的粗糙度；应用于分类结果时，它识别混合/交错群落/边界地带。\n\n应用场景：(1) 景观破碎度制图（高多样性 = 多样化镶嵌体，低多样性 = 均质斑块）；(2) 分类置信度/不确定性评估（高多样性 = 不确定区域）；(3) 纹理分析（异质性制图）；(4) 通过多样性峰值进行边缘/边界检测；(5) 用于生态分析的生境多样性（适宜性取决于局部多样性）。"
+ },
+ "divide": {
+  "name": "除",
+  "desc": "逐像元地将第一个栅格除以第二个栅格。"
+ },
+ "dn_to_toa_reflectance": {
+  "name": "DN转TOA反射率",
+  "desc": "数字值（DN）转大气顶层反射率通过应用从卫星元数据中提取的逐波段辐射定标系数，将原始传感器数字值转换为具有物理意义的光谱反射率。该转换执行辐射重定标、大气层外太阳光谱辐照度校正、太阳天顶角补偿，以及可选的日地距离归一化，从而产生可直接跨传感器、跨获取时间和跨地理位置比较的反射率值。大气顶层反射率表示在大气效应之前，地表目标在传感器处反射的太阳入射能量的比例，是定量遥感分析的基础。主要功能包括：应用逐波段定标系数并完整解析标准卫星产品的元数据；根据获取时间戳和位置自动计算太阳几何；针对季节变化提供可选的日地距离校正；以及以标准化系数格式灵活处理多种传感器类型。应用范围包括：使用一致物理单位的定量变化检测、跨多时相获取和不同传感器的绝对辐射比较、需要精确反射率的光谱植被指数计算，以及卫星星座工作中的跨传感器验证。TOA 反射率支持严谨的分析流程和科学上站得住脚的结果。输出反射率取值范围为 0-1（有时以 0-10000 表示以保证整数精度），代表无量纲比例；元数据中嵌入了所使用的定标系数和传感器几何参数；负值表示存在数据质量问题，分析前需要掩膜。"
+ },
+ "download_osm_vector": {
+  "name": "下载OSM矢量",
+  "desc": "通过 Overpass API 下载指定边界框范围内的 OpenStreetMap 要素，并将结果保存为矢量图层。"
+ },
+ "downslope_distance_to_stream": {
+  "name": "顺坡至河流距离",
+  "desc": "计算每个 DEM 像元沿汇流路径至最近河流的顺坡距离。"
+ },
+ "downslope_flowpath_length": {
+  "name": "顺坡流径长度",
+  "desc": "在 D8 指向栅格中计算每个像元至出口的顺坡流径长度。"
+ },
+ "downslope_index": {
+  "name": "顺坡指数",
+  "desc": "使用 D8 流向计算 Hjerdt 等（2004）提出的顺坡指数。"
+ },
+ "edge_contamination": {
+  "name": "边缘污染",
+  "desc": "针对常见汇流演算方案，识别其汇水区延伸到 DEM 边界之外的像元。"
+ },
+ "edge_density": {
+  "name": "边缘密度",
+  "desc": "利用角度法向量差异计算坡度突变点的局部密度。"
+ },
+ "edge_preserving_mean_filter": {
+  "name": "保边均值滤波",
+  "desc": "保边均值滤波进行选择性像元平均：在计算局部均值时排除可能代表边缘或噪声的离群像元。实现方式是对像元邻域排序，剔除极值（最低值和最高值，或超出统计阈值的值），再对剩余值求平均。这种稳健方法在平滑与保持清晰度之间取得平衡。变体包括强调中心像元的加权平均，以及基于局部统计量的自适应阈值选择。主要功能包括：简单的参数控制（排除数量或阈值）、通过对小邻域排序实现的计算高效性、不模糊细节的有效降噪，以及对光学、雷达和热红外数据的适用性。保边均值滤波在以下场景表现出色：用于植被指数计算的光学卫星影像预处理（在不模糊要素的情况下去除阴影和云）、保持坡度突变的 DEM 平滑、保持边界清晰的热红外影像去噪，以及供人工数字化使用的正射影像准备。输出解读显示：被剔除的离群值集中于边缘和噪声区域；剩余值取平均形成局部平滑。排除参数控制边缘锐度：排除单一极值可去除椒盐噪声；排除多个极值则产生更平滑的结果和更缓和的边缘过渡。输出范围保持在输入范围之内；统计量向正常值均值偏移。通过观察输出与输入的差异可识别被滤波的区域（通常为高方差区域）。边缘保持质量取决于离群值识别的准确性；应目视检查要素是否保持清晰。常见伪影包括阈值过严时平滑不足、排除数量过多时过度滤波。迭代次数可实现渐进式滤波；单次处理提供温和的平滑。在基于阈值的分类之前应用该滤波器，可在保持要素边界的同时减少由噪声引起的类别误分。"
+ },
+ "edge_proportion": {
+  "name": "边缘占比",
+  "desc": "计算每个斑块的像元中边缘像元所占比例，并将结果映射回斑块像元。"
+ },
+ "edgematch_features": {
+  "name": "要素接边",
+  "desc": "跨图幅/图块边界连接线数据集（类似 ArcGIS Generate Edgematch Links + Edgematch Features）：在容差范围内将悬挂端点一一匹配并进行协调（取中点或捕捉），可选输出匹配链接图层。这是盲目的 snap_endnodes 所欠缺的跨要素一一匹配能力。"
+ },
+ "eighty_twenty_analysis": {
+  "name": "八二分析",
+  "desc": "将事件点捕捉到加权位置并计算帕累托集中度（“X% 的事件发生在 Y% 的位置”），为每个位置标记其排名、累积事件百分比和头部/尾部区段，类似 ArcGIS Eighty Twenty Analysis。"
+ },
+ "elev_above_pit": {
+  "name": "高于坑底高程",
+  "desc": "计算每个像元高于最近顺坡坑底像元（或边缘汇）的高程。"
+ },
+ "elev_above_pit_dist": {
+  "name": "高于坑底高程（别名）",
+  "desc": "elev_above_pit 的兼容别名。"
+ },
+ "elev_relative_to_min_max": {
+  "name": "相对最小/最大高程",
+  "desc": "将每个高程表示为栅格高程范围的百分比（0–100）。"
+ },
+ "elev_relative_to_watershed_min_max": {
+  "name": "相对流域最小/最大高程",
+  "desc": "以百分比计算 DEM 像元在各流域内的相对高程位置。"
+ },
+ "elevation_above_stream": {
+  "name": "高于河流高程",
+  "desc": "沿顺坡汇流路径计算高于最近河流的高程。"
+ },
+ "elevation_above_stream_euclidean": {
+  "name": "高于河流高程（欧氏）",
+  "desc": "使用直线（欧氏）邻近度计算高于最近河流的高程。"
+ },
+ "elevation_percentile": {
+  "name": "高程百分位数",
+  "desc": "邻域内的局部高程百分位排名（0-100）。可识别谷地（低百分位）、山脊（高百分位）和坡地（中间百分位），是独立于绝对高程的地形分类指标。"
+ },
+ "eliminate_coincident_points": {
+  "name": "消除重合点",
+  "desc": "移除容差距离内的重合或近似重合点。"
+ },
+ "eliminate_polygon_part": {
+  "name": "消除面部件",
+  "desc": "移除面积低于绝对面积或百分比阈值的面内部孔洞（以及可选的小外环部件），并保留属性。"
+ },
+ "eliminate_polygons": {
+  "name": "消除面",
+  "desc": "将狭长面（按最大面积和/或属性查询选出）合并到相邻面中，相邻面按最长公共边界或最大面积选取。"
+ },
+ "elongation_ratio": {
+  "name": "伸长比",
+  "desc": "计算面要素的伸长比（边界矩形短轴/长轴）。"
+ },
+ "embankment_mapping": {
+  "name": "路堤制图",
+  "desc": "基于 DEM 和道路网络制图交通路堤，并可通过插值选择性地去除路堤表面。由 John Lindsay 和 Nigel VanNieuwenhuizen 开发。"
+ },
+ "emboss_filter": {
+  "name": "浮雕滤波",
+  "desc": "浮雕滤波通过方向性阴影增强边缘要素，营造出独特的三维浮雕外观：根据模拟的方向光照，边缘呈现为凸起或凹陷的表面。该滤波器应用一个 3×3 卷积核，将边缘检测与单向光照相结合，通常模拟来自左上象限的光线，在保持平滑区域的同时在边界处形成强烈的视觉对比。浮雕变换在特定方向上减去加权邻域值，使高光和阴影突出地形和要素的不连续性。主要功能包括：直观的方向控制，可调整模拟光照方向（八方向变体）；自然融入三维感知以增强视觉解译；以及在源影像不同光照条件下表现稳健。浮雕滤波可用于质量保证、解译可视化和要素边界强调。应用场景包括：地质解译的视觉增强（矿物边界以浮雕图案显现）、航空像片解译（提高细微边界的可见性）、制图生产（浮雕化数字高程模型生成引人注目的地貌晕渲图），以及考古要素探测（埋藏结构表现为细微的地形起伏变化）。输出解读将高值视为受光面、低值视为阴影，产生人眼可自然解读为浮雕的感知深度。浮雕输出通常需要缩放到 0-255 可视化范围；原始输出常包含代表阴影区域的负值。该效果纯粹是视觉上的——浮雕不计算真实光照，也不生成高程派生产品。对于多光谱影像，应根据分析目标应用于主成分或选定波段。后处理通常包括对比度增强或色调映射，以优化视觉效果。"
+ },
+ "emerging_hot_spot_analysis": {
+  "name": "新兴热点分析",
+  "desc": "在 H3 时空立方体上进行时空热点趋势分析：将带时间戳的点分箱到 H3 单元 × 时间步，逐箱计算 Getis-Ord Gi*，并通过 Mann-Kendall 趋势检验对每个单元进行分类（新增/增强/持续/减弱等热点或冷点），类似 ArcGIS Emerging Hot Spot Analysis。"
+ },
+ "empirical_bayesian_kriging": {
+  "name": "经验贝叶斯克里金法",
+  "desc": "通过大量重叠的局部子集对点场进行插值，每个子集各自拟合半变异函数，其不确定性通过种子随机器模拟扰动半变异函数来刻画，再按距离融合各子集的克里金预测值/方差（类似 ArcGIS 的 Empirical Bayesian Kriging）——不同于随附的普通克里金/泛克里金/简单克里金/协同克里金，后者都只拟合一个由人工接受的全局（或单一移动窗口）半变异函数。"
+ },
+ "enclose_multipatch": {
+  "name": "封闭多面片",
+  "desc": "通过封盖边界环，将开放的 3D 三角网表面转换为封闭且水密的实体，使其成为体积分析的有效输入（对应 ArcGIS Enclose Multipatch）。is_closed_3d 可以诊断开放网格但无法修复，而 union_3d / intersect_3d / difference_3d / inside_3d 都会拒绝开放网格或给出错误结果——开放网格正是拉伸轮廓、地形外壳和导入建筑表面的常态。"
+ },
+ "enforce_river_monotonicity": {
+  "name": "河流单调性强化",
+  "desc": "沿已绘制的河流折线对 DEM 进行刻挖，使高程沿下游单调递减——这是面向水力学和洪水建模的水文强化步骤，类似 ArcGIS Enforce River Monotonicity。不同于 fill_depressions/fill_burn（用于消除封闭洼坑），此工具沿已知河流矢量强制单调剖面。"
+ },
+ "enhanced_lee_filter": {
+  "name": "增强Lee滤波",
+  "desc": "增强 Lee 滤波将 Lee 乘性噪声模型与精细的方差估计和多尺度处理相结合，在保持 SAR 影像细微细节和边缘的同时实现更优的斑点抑制。实现方式采用自适应尺寸窗口计算的局部统计量，融入基于拉普拉斯的边缘检测，并施加空间可变的滤波参数。增强公式为：F = μ + w·(I - μ)，其中 w 随边缘邻近度自适应调整：边缘附近 w→0（最小滤波），均质区域 w→1（激进滤波）。主要功能包括：边缘自适应处理（保持边界）、多尺度参数自适应、相比标准 Lee 改进的目标保持能力，以及对高噪声 SAR 的有效性。增强 Lee 滤波在要素众多的复杂 SAR 场景、以边缘定位为关键的洪水制图、城市 SAR 建筑物提取以及多时相变化分析中表现出色。输出解读显示边缘通过过渡区附近减弱的滤波得以保留：边界像元保留的方差大于远处像元。多尺度适应性可通过直方图分析显现，直方图中与场景类别对应的峰值明显。输出范围与输入一致；与标准 Lee 相比，边缘模糊减少且目标锐度得以保持。边缘检测质量直接影响输出：强边缘可实现良好的边界保持；弱边缘可能导致过度平滑。统计结果呈现受控的方差削减，在噪声抑制与细节保持之间取得平衡。常见伪影包括多尺度过渡可见时可能出现的块状外观，以及边缘检测过于激进时的过度保持。应监测边缘图质量以验证滤波行为。适用于必须保留多种要素且边缘必须保持锐利的综合 SAR 分析流程，对需要具备清晰要素边界的训练数据的机器学习预处理尤为重要。"
+ },
+ "envelope_test": {
+  "name": "包络检验",
+  "desc": "执行蒙特卡洛包络检验，将观测格局与完全空间随机（CSR）零分布进行比较，判定聚集/离散的显著性。"
+ },
+ "equal_to": {
+  "name": "等于",
+  "desc": "逐像元地测试两个栅格是否相等。"
+ },
+ "erase": {
+  "name": "擦除",
+  "desc": "从输入面中擦除叠加面区域，并保留输入属性。"
+ },
+ "erase_polygon_from_lidar": {
+  "name": "从LiDAR擦除面",
+  "desc": "移除落在面几何范围内的 LiDAR 点。"
+ },
+ "erase_polygon_from_raster": {
+  "name": "从栅格擦除面",
+  "desc": "将面范围内的栅格像元设为 NoData，同时保留面孔洞内的像元。"
+ },
+ "estimate_time_to_event": {
+  "name": "估计事件发生时间",
+  "desc": "通过 Kaplan-Meier 生存曲线估计事件发生前的时间（类似 ArcGIS Estimate Time To Event）：根据时长字段和事件/删失字段，计算每个要素的生存概率及其所在分层的至事件时间中位数，并可按类别字段分层。"
+ },
+ "estimate_variogram": {
+  "name": "估计变异函数",
+  "desc": "由点观测计算经验半变异函数，刻画空间相关结构，是地统计工作流程中必不可少的第一步。"
+ },
+ "euclidean_allocation": {
+  "name": "欧氏分配",
+  "desc": "将每个有效像元分配其最近的非零目标像元的值。"
+ },
+ "euclidean_direction": {
+  "name": "欧氏方向",
+  "desc": "计算每个像元指向其最近源像元的罗盘方位角，并可选输出距离和回向栅格（对应 ArcGIS Euclidean Direction）。补齐了随附的欧氏工具族：现有 euclidean_distance（多远）和 euclidean_allocation（哪个源）但没有方位。采用携带最近源坐标的精确距离变换；存在障碍栅格时将绕开障碍行进。"
+ },
+ "euclidean_distance": {
+  "name": "欧氏距离",
+  "desc": "计算到栅格中最近非零目标像元的欧氏距离。"
+ },
+ "evaluate_bin_sizes": {
+  "name": "评估分箱大小",
+  "desc": "遍历候选聚合分箱大小并输出诊断信息，指出哪种大小最能揭示数据结构，类似 ArcGIS Evaluate Bin Sizes。"
+ },
+ "evaluate_object_classification_accuracy": {
+  "name": "评估对象分类精度",
+  "desc": "将预测的对象标签与参考真值或验证标签进行比较，计算分类精度指标。生成记录各类别分类一致/不一致模式的混淆矩阵，计算总体精度（全部正确预测）、逐类别的生产者精度（检出率）、用户精度（可靠性）、F1 分数（调和平均）、kappa 统计量（剔除随机一致后的吻合度），以及识别系统性误分类模式的类别级误差分析。主要功能包括：跨所有类别的综合精度评估、支持类别级诊断的逐类别性能指标、揭示系统性误分类模式的混淆矩阵、通过 kappa 系数进行的统计显著性检验、对不平衡类别分布的自然处理，以及训练数据充分性问题的识别。应用场景包括：分类模型验证与性能量化、比较相互竞争的分类方法和参数、识别需要补充训练的问题类别、评估分类在业务应用中的适用性、基于精度的模型选择和超参数调优、自动化制图工作流中的质量保证，以及为同行评审报告标准化精度指标。输出的总体精度代表所有对象的分类可靠性；生产者精度表示各类别的检出完备程度；用户精度表示预测可靠性；kappa 较高（>0.8）表示远超随机水平的吻合度；混淆矩阵揭示哪些类别相互混淆；对角线占优表示类别分离良好；非对角线条目精确定位误分类来源；类别级指标指导有针对性的训练改进。"
+ },
+ "evaluate_segmentation_quality_pro": {
+  "name": "评估分割质量",
+  "desc": "计算分割质量诊断指标，包括对象数量统计和主导标签重叠统计。"
+ },
+ "evaluate_training_sites": {
+  "name": "评估训练样区",
+  "desc": "评估多波段训练面中各类别的可分性，并生成包含逐波段分布统计的 HTML 报告。"
+ },
+ "evaluate_variable_influence": {
+  "name": "评估变量影响",
+  "desc": "报告由表格拟合的森林模型的置换重要性和部分依赖曲线，回答模型实际使用了哪些解释变量以及各效应呈何种形态（对应 ArcGIS Evaluate Variable Influence）。目录中可以拟合模型——generalized_linear_regression、exploratory_regression、geographically_weighted_regression、forest_based_forecast、whitebox 的随机森林——但没有任何工具报告这两类度量。ArcGIS 读取训练好的 .ssm 模型文件；本技术栈没有可移植的模型格式，因此该工具自行拟合森林模型再进行解释。完全确定性：采用跨步自助采样（strided bagging）和固定置换，不使用随机数发生器。"
+ },
+ "excel_to_table": {
+  "name": "Excel转表",
+  "desc": "读取 .xlsx/.xls/.xlsb/.ods 工作簿中的一个工作表并导入属性表，自动推断数值列与文本列。"
+ },
+ "exp": {
+  "name": "指数",
+  "desc": "计算以 e 为底、以每个栅格像元值为幂的指数值。"
+ },
+ "exp2": {
+  "name": "2 的幂",
+  "desc": "计算每个栅格像元的 2 的幂（2^像元值）。"
+ },
+ "expand_shrink": {
+  "name": "扩展/收缩",
+  "desc": "将分类栅格中选定的类别按指定像元数向外生长（扩展）或向内收缩，其他类别保持不变——这是多边形化之前对分类土地覆被进行清理的标准操作，类似于 ArcGIS 的 Expand / Shrink。"
+ },
+ "exploratory_interpolation": {
+  "name": "探索性插值",
+  "desc": "运行多种插值方法（反距离权重（IDW）、最近邻、一阶/二阶趋势面），对每种方法进行留一交叉验证，并按预测精度（RMSE/MAE）或偏差（ME）排序——类似于 ArcGIS 的探索性插值（Exploratory Interpolation）。输出按排名排列的各方法对比表，并可输出最佳方法的预测栅格。涵盖独立的交叉验证请求。"
+ },
+ "exploratory_regression": {
+  "name": "探索性回归",
+  "desc": "在候选解释字段的每种组合上枚举 OLS 模型，并按调整 R2、系数显著性、VIF 多重共线性、Jarque-Bera 残差正态性以及残差 Moran's I 空间自相关性逐一筛选，报告所有模型、通过筛选的模型排名列表以及各变量的显著性汇总——类似于 ArcGIS 的探索性回归（Exploratory Regression）。"
+ },
+ "export_table_to_csv": {
+  "name": "导出表为 CSV",
+  "desc": "将矢量属性表导出为 CSV 文件。"
+ },
+ "exposure_towards_wind_flux": {
+  "name": "风通量暴露度",
+  "desc": "根据主导风向和上风向地平线遮蔽计算地形暴露度。"
+ },
+ "extend_vector_lines": {
+  "name": "延伸折线",
+  "desc": "在起点、终点或两端按指定距离延伸折线端点。"
+ },
+ "extract_by_attribute": {
+  "name": "按属性提取",
+  "desc": "提取满足属性表达式的矢量要素。"
+ },
+ "extract_locations_from_text": {
+  "name": "从文本提取位置",
+  "desc": "扫描自由文本中嵌入的坐标——十进制度（DD）、度-十进制分（DDM）、度分秒（DMS）以及 MGRS/USNG 网格坐标——每命中一处即生成一个 WGS84 点，类似于 ArcGIS 的从文本提取位置（Extract Locations From Text，坐标分支）。纯模式扫描，不调用地理编码服务。"
+ },
+ "extract_nodes": {
+  "name": "提取节点",
+  "desc": "将折线和面的顶点转换为点要素。"
+ },
+ "extract_ocean_winds": {
+  "name": "提取海洋风场",
+  "desc": "通过反演 CMOD5.N 地球物理模型函数，从定标后的 SAR 后向散射中反演 10 米等效中性海洋风速（对应 ArcGIS 的 Extract Ocean Winds）。现有的整套 SAR 工具链都停留在辐射域，没有任何工具能把后向散射转换为地球物理量，而这正是区分低风区与油污的关键。"
+ },
+ "extract_raster_values_at_points": {
+  "name": "在点处提取栅格值",
+  "desc": "在一个或多个栅格上按点位采样，并将采样值写入点要素的属性。"
+ },
+ "extract_scanned_features": {
+  "name": "提取扫描要素",
+  "desc": "将二值（扫描/阈值化）栅格矢量化为干净的线条（骨架追踪）或面，支持去噪、孔洞填充、缝隙闭合和简化。"
+ },
+ "extract_sinks": {
+  "name": "提取洼地",
+  "desc": "从 DEM 中提取洼地（最大洼地范围；lidar filling.py）。"
+ },
+ "extract_spectra_from_image": {
+  "name": "从影像提取光谱",
+  "desc": "从多波段影像和训练区导出光谱库，每个类别一条光谱，采用 spectral_library_matching 可读取的 CSV 布局（对应 ArcGIS 的 Extract Spectra From Image）。spectral_library_matching、spectral_angle_mapper 和 matched_filter_target_detection 都需要消费光谱库，而此前没有任何工具能生成光谱库，因此光谱分析套件此前只能使用已有的公开光谱库。"
+ },
+ "extract_streams": {
+  "name": "提取河流",
+  "desc": "基于汇流累积量阈值提取河流（水系）。"
+ },
+ "extract_valleys": {
+  "name": "提取山谷",
+  "desc": "从 DEM 中提取山谷。"
+ },
+ "extract_water_sar": {
+  "name": "提取水体（SAR）",
+  "desc": "基于分贝值逐景 Otsu 阈值从 SAR 后向散射中勾绘开阔水面和洪水范围，并可选 DEM 坡度和高于最低点高度（height-above-minimum）滤波，以剔除雷达阴影和干燥暗表面（对应 ArcGIS 的 Extract Water）。现有工具都无法从雷达数据完成此任务：spectral_index 的 NDWI/MNDWI 需要 SAR 不具备的绿光/近红外/短波红外反射率波段，depth_to_water 是用地形推测水体应出现的位置而非实际观测，而手工设定的 raster_calculator 阈值无法在景间通用，因为水/陆分界会随风和入射角移动。"
+ },
+ "extrude_between": {
+  "name": "表面间拉伸",
+  "desc": "在每个输入面内部构建横跨两个表面之间空间的密闭实体，并给出精确的逐要素体积（对应 ArcGIS 的 Extrude Between）。cut_fill 给出两个栅格之间的逐像元体积变化，但输出的是栅格，无法限定在地块范围内，也不携带属性；buffer_3d 和 minimum_bounding_volume 是从要素而非一对表面构建实体。输出可直接送入 union_3d、intersect_3d、difference_3d 和 inside_3d。"
+ },
+ "farthest_channel_head": {
+  "name": "最远河源",
+  "desc": "计算到最远河道源头的距离。"
+ },
+ "fast_almost_gaussian_filter": {
+  "name": "快速近似高斯滤波",
+  "desc": "快速近似高斯滤波通过迭代可分离的盒式（均值）滤波实现快速的高斯近似平滑，无论模糊半径多大，都能以 O(N) 的计算复杂度获得接近高斯的模糊响应。其实现采用逐次盒式卷积（每次计算局部像元平均值）来逼近累积高斯分布；N 次迭代近似越来越大的高斯核。数学基础是中心极限定理：盒式函数的反复卷积渐近趋于高斯分布。主要特点包括：计算速度快，可对大型影像进行大核平滑；可分离实现降低内存需求；通过迭代次数控制参数（控制模糊半径）；对任何数据类型均有效。快速近似高斯滤波在以下场景表现出色：用于多尺度分析的快速影像金字塔、实时卫星影像浏览、分类前对海量遥感数据集的预处理，以及需要响应迅速的平滑效果的交互式影像查看器。输出解读：迭代次数与模糊半径直接相关——N=1 产生最小平滑；N=3-5 提供中等模糊；N>10 产生强平滑，近似大核高斯。随着迭代次数增加，输出值逐渐向局部均值靠拢；方差缩减遵循可预测的规律。剩余值保持在输入数据范围之内。与真正的高斯滤波相比，对大多数应用而言近似误差在 2-5% 以内，可以接受。在大半径下，相比真正高斯滤波的速度提升非常显著：半径 >20 像元时快 5-20 倍。次要伪影包括边缘处细微的波纹（盒式伪影在多次迭代中累积）以及与高斯滤波略有不同的边界处理方式。可通过监视输出直方图中是否出现多峰分布来判断平滑是否充分。适用于以速度优先、可容忍轻微近似误差的影像预处理流程。"
+ },
+ "fd8_flow_accum": {
+  "name": "FD8 汇流累积量",
+  "desc": "从 DEM 计算 FD8 汇流累积量。"
+ },
+ "fd8_pointer": {
+  "name": "FD8 流向",
+  "desc": "按坡度加权将水流分配给多个下游邻居。对于发散、扩散过程和质量守恒而言优于 D8。"
+ },
+ "feature_outline_masks": {
+  "name": "要素轮廓掩膜",
+  "desc": "围绕要素按边距生成制图掩膜面（精确轮廓、凸包或边界框），可选按第二图层裁剪（相交图层掩膜，Intersecting Layers Masks）。"
+ },
+ "feature_preserving_smoothing": {
+  "name": "特征保持平滑",
+  "desc": "使用法向量滤波在保持坡度转折的同时平滑 DEM 粗糙度。"
+ },
+ "feature_preserving_smoothing_multiscale": {
+  "name": "特征保持平滑（多尺度）",
+  "desc": "以多尺度由粗到细的延续方式平滑 DEM 粗糙度。每个尺度重新推导法线，施加自适应稳健法向量场扩散，并通过带屏蔽的泊松求解重建高程。"
+ },
+ "feature_to_line": {
+  "name": "要素转线",
+  "desc": "将线/面边界要素平面化为在每处相互相交和自相交处打断的、带节点的互不重叠线段，类似于 ArcGIS 的要素转线（Feature To Line）——这是内置的 polygons_to_lines 和 split_vector_lines 所不具备的拓扑构建前置步骤。"
+ },
+ "feature_vertices_to_points": {
+  "name": "要素折点转点",
+  "desc": "从选定的要素折点创建点图层——ALL（全部）、START（起点）、END（终点）、BOTH_ENDS（两端）、MID（弧长中点）或 DANGLE（未共享的线端点）——并带有父要素 FID 字段，类似于 ArcGIS 的要素折点转点（Feature Vertices To Points）。"
+ },
+ "features_to_gpx": {
+  "name": "要素转 GPX",
+  "desc": "将点要素写为 GPX 航点、线要素写为 GPX 轨迹，并把属性字段映射到名称/描述/高程/时间。"
+ },
+ "features_to_gtfs": {
+  "name": "要素转 GTFS",
+  "desc": "将点要素导出为 GTFS stops.txt、线要素导出为 GTFS shapes.txt，完成 GTFS 的双向转换。"
+ },
+ "features_to_kml": {
+  "name": "要素转 KML",
+  "desc": "将矢量图层写为 KML 2.2 文档（或压缩的 KMZ），属性作为 ExtendedData，并支持可选的共享样式（对应 ArcGIS 的 Layer To KML / Map To KML）。kml_to_features 此前已能读取 KML，但没有任何工具能写出 KML，不像 GPX、GTFS 和 GeoParquet 那样具备对称的读写对。"
+ },
+ "fence_diagram": {
+  "name": "栅状图",
+  "desc": "生成一条线迹穿过一组堆叠表面时的三维垂直剖面面板——这是可视化地下地层或大气分层的标准方式（对应 ArcGIS 的 Fence Diagram）。profile、long_profile 和 stack_profile 沿线采样表面，但返回的是二维剖面线或表格，没有相邻表面之间空间的几何信息，而 voxel_isosurface 是从体数据中提取等值面而非剖面。"
+ },
+ "fetch_analysis": {
+  "name": "风区长度分析",
+  "desc": "计算沿指定方位角到首个地形障碍物的上风距离。"
+ },
+ "fft_random_field": {
+  "name": "FFT 随机场",
+  "desc": "使用 FFT 谱合成方法创建具有空间自相关性的随机场。"
+ },
+ "field_calculator": {
+  "name": "字段计算器",
+  "desc": "使用表达式并借助要素属性和几何变量计算字段值；支持 SQL 风格的 CASE、CAST、空值检查以及 UPDATE ... SET ... [WHERE ...] 包装形式。"
+ },
+ "fill_burn": {
+  "name": "河流下切填洼",
+  "desc": "通过将河流下切（burn）到 DEM 中然后再填充洼地，实现 DEM 的水文强化。"
+ },
+ "fill_depressions": {
+  "name": "洼地填充",
+  "desc": "使用优先淹没（priority-flood）策略填充 DEM 中的洼地，默认采用 Garbrecht-Martz 平地处理，并可选旧的自然路径（natural-path）平地处理。"
+ },
+ "fill_depressions_planchon_and_darboux": {
+  "name": "洼地填充（Planchon-Darboux）",
+  "desc": "以与 Planchon-Darboux 算法兼容的接口填充 DEM 中的洼地。"
+ },
+ "fill_depressions_wang_and_liu": {
+  "name": "洼地填充（Wang-Liu）",
+  "desc": "以与 Wang-Liu 算法兼容的接口填充 DEM 中的洼地。"
+ },
+ "fill_missing_data": {
+  "name": "填充缺失数据",
+  "desc": "使用来自有效缺口边缘像元的反距离权重填充 NoData 缺口。"
+ },
+ "fill_missing_values": {
+  "name": "填充缺失值",
+  "desc": "利用空间邻居（k 近邻或距离带宽）估计并填充数值属性字段中的空值，可选限定在时间窗口内，估计器可选（mean/median/min/max/temporal_trend）。被插补的行会通过标志字段加以标记（对应 ArcGIS 的 Fill Missing Values）。"
+ },
+ "fill_pits": {
+  "name": "坑洼填充",
+  "desc": "填充 DEM 中的单像元坑洼。"
+ },
+ "fill_spill_merge": {
+  "name": "填洼-溢流-合并",
+  "desc": "在 DEM 上演算有限体积的地表水流，生成真实的湖泊/淹没范围（部分洼地填充，含溢流与合并），是对 RichDEM 的 Fill-Spill-Merge 的重新实现。"
+ },
+ "filter_lidar": {
+  "name": "过滤 LiDAR",
+  "desc": "通过表达式移除点：对属性（class、elevation、return_number、scan_angle、noise_flag 等）进行布尔逻辑筛选，点选择方式灵活。"
+ },
+ "filter_lidar_by_percentile": {
+  "name": "按百分位数过滤 LiDAR",
+  "desc": "选取每个像元内按百分位排名的点：在每个网格块中保留指定高程百分位上的一个点。用于代表性抽样抽稀。"
+ },
+ "filter_lidar_by_reference_surface": {
+  "name": "按参考面过滤 LiDAR",
+  "desc": "相对于参考面提取点：z<surface、z>surface 或在阈值范围内。可识别 DTM 之上的植被或地下点。"
+ },
+ "filter_lidar_classes": {
+  "name": "按分类过滤 LiDAR",
+  "desc": "按分类移除点：滤除不需要的 LAS 类别（噪声、水体、建筑物等）。是地形整形工作流中必不可少的预处理步骤。"
+ },
+ "filter_lidar_noise": {
+  "name": "过滤 LiDAR 噪声",
+  "desc": "移除 ASPRS 噪声类别：滤除第 7 类（低噪声）和第 18 类（高噪声）。是符合 LAS 1.4 标准数据的标准点云清理操作。"
+ },
+ "filter_lidar_scan_angles": {
+  "name": "按扫描角过滤 LiDAR",
+  "desc": "移除倾斜的 LiDAR 回波：按扫描角阈值筛选点。通过去除带有定位误差的掠射角回波来提高垂直精度。"
+ },
+ "filter_raster_features_by_area": {
+  "name": "按面积过滤栅格要素",
+  "desc": "移除小于像元数阈值的整型标记栅格要素（斑块）。"
+ },
+ "filter_vector_features_by_area": {
+  "name": "按面积过滤矢量要素",
+  "desc": "过滤低于最小面积阈值的面要素。"
+ },
+ "find_argument_statistics": {
+  "name": "查找参数统计",
+  "desc": "对栅格堆栈执行逐像元的参数（argument）统计（类似于 ArcGIS 的 Find Argument Statistics）：最大/最小值所在的切片索引（或日期）、中位数位置、超过阈值的切片数量（持续时间），或最长连续段——这类“位置型”答案是内置的 cell-statistics 和 image_stack_profile 等数值聚合无法给出的。"
+ },
+ "find_dwell_locations": {
+  "name": "查找驻留位置",
+  "desc": "检测移动实体停留的位置：轨迹定位点在距离容差内且持续至少时间容差的连续段，输出形式可以是定位点、平均中心或凸包，类似于 ArcGIS 的 Find Dwell Locations。"
+ },
+ "find_flightline_edge_points": {
+  "name": "查找航线边缘点",
+  "desc": "过滤航线边缘点：仅提取位于采集条带边界上的点。用于条带重叠和边缘效应的质量检查。"
+ },
+ "find_identical": {
+  "name": "查找相同要素",
+  "desc": "在几何和/或所选字段上查找完全相同的要素并对重复项分组；'report' 模式添加 dup_group/dup_seq 列，'delete' 模式仅保留每组中的第一个，类似于 ArcGIS 的 Find Identical / Delete Identical。"
+ },
+ "find_lowest_or_highest_points": {
+  "name": "查找最低或最高点",
+  "desc": "定位栅格中最低和/或最高的像元，并将其位置输出为点。"
+ },
+ "find_main_stem": {
+  "name": "查找干流",
+  "desc": "识别河流（水系）网络的干流。"
+ },
+ "find_meeting_locations": {
+  "name": "查找聚集位置",
+  "desc": "检测多条不同轨迹在一段距离内共同停留至少最短时长的聚集事件（类似于 ArcGIS 的 Find Meeting Locations）——这是已有的 trace_proximity_events（成对分析）和 reconstruct_tracks（单轨迹驻留）无法覆盖的多轨迹共现分析。输出带参与者数量、起止时间和时长的区域包络（hull）与代表点。"
+ },
+ "find_noflow_cells": {
+  "name": "查找无流向像元",
+  "desc": "查找 DEM 中没有更低 D8 邻居的像元。"
+ },
+ "find_parallel_flow": {
+  "name": "查找平行流",
+  "desc": "识别具有平行 D8 流向的河流像元。"
+ },
+ "find_patch_edge_cells": {
+  "name": "查找斑块边缘像元",
+  "desc": "识别每个正值栅格斑块 ID 的边缘像元；非边缘的斑块像元被置为零。"
+ },
+ "find_ridges": {
+  "name": "查找山脊",
+  "desc": "识别 DEM 中潜在的山脊和山峰像元，可选进行线状细化。"
+ },
+ "find_space_time_matches": {
+  "name": "查找时空匹配",
+  "desc": "在两个带时间戳的点图层之间匹配彼此落在空间搜索距离内且处于对方时间窗口（之前/之后/任一）中的要素，输出带距离和时间偏移的匹配对，类似于 ArcGIS 的 Find Space Time Matches。"
+ },
+ "fit_variogram": {
+  "name": "拟合变异函数模型",
+  "desc": "将理论变异函数模型（球状、指数、高斯）拟合到经验半变异函数数据，供克里金法使用。"
+ },
+ "fix_dangling_arcs": {
+  "name": "修复悬挂弧段",
+  "desc": "通过在阈值距离内捕捉线端点，修复线网络中未及和过冲的悬挂弧段。"
+ },
+ "flatten_interferogram": {
+  "name": "平整干涉图",
+  "desc": "使用 DEM 和干涉基线从缠绕干涉图中去除地形相位分量，保留形变和大气信号（对应 ArcGIS 的 Generate Interferogram 中的 TOPO flattening 模式）。sar_coherence 已能通过 output_phase 输出干涉图本身，但此前没有任何工具能模拟并扣除地形相位——而在任何有起伏的地形上该分量都占主导，因此未平整的干涉图无法用于形变分析。"
+ },
+ "flatten_lakes": {
+  "name": "湖泊平整",
+  "desc": "使用每个多边形周长上的最小高程来平整湖泊高程。"
+ },
+ "flightline_overlap": {
+  "name": "航线重叠",
+  "desc": "检测采集重叠：统计每个像元内不同的点源 ID 数量。以网格方式可视化重叠，用于航线覆盖评估。"
+ },
+ "flip_image": {
+  "name": "翻转影像",
+  "desc": "垂直、水平或双向翻转影像。"
+ },
+ "flip_line": {
+  "name": "翻转线",
+  "desc": "反转折线要素的顶点顺序（起点↔终点），从而翻转其数字化方向。"
+ },
+ "flood_order": {
+  "name": "淹没顺序",
+  "desc": "输出每个 DEM 像元的优先淹没顺序编号。"
+ },
+ "floor": {
+  "name": "向下取整",
+  "desc": "将每个栅格像元向下取整为最近的整数。"
+ },
+ "flow_accum_full_workflow": {
+  "name": "汇流累积完整工作流",
+  "desc": "运行完整的非发散汇流累积工作流，返回破口处理（breached）后的 DEM、流向指针和汇流累积量。"
+ },
+ "flow_length_diff": {
+  "name": "流长差",
+  "desc": "从 D8 流向指针栅格计算顺坡路径长度的局部最大绝对差。"
+ },
+ "focal_flow": {
+  "name": "焦点流",
+  "desc": "将像元八个邻居中哪些汇入该像元编码为 8 位掩膜（对应 ArcGIS 的 Focal Flow）。与内置的 D8/D-infinity 汇流工具不同——那些工具沿单一方向将每个像元顺坡导流——此工具记录每一个汇入邻居，能捕捉汇入坑洼、洼地和鞍部的汇流。位权重从东开始逆时针递增（1、2、4、8、16、32、64、128）；0 表示局部高点，255 表示坑洼。"
+ },
+ "focal_statistics": {
+  "name": "焦点统计",
+  "desc": "移动窗口邻域统计（矩形/圆形/环形/楔形；支持数值型和类别型数据）。"
+ },
+ "forest_based_forecast": {
+  "name": "基于森林的预测",
+  "desc": "使用以每个位置自身历史的滑动滞后窗口训练的随机森林，对各位置的值进行向前预测，类似于 ArcGIS 的 Forest-based Forecast。"
+ },
+ "frangi_filter": {
+  "name": "Frangi 滤波",
+  "desc": "执行多尺度 Frangi 血管状增强，用于在多个尺度上检测血管状（管状）结构。基于 Hessian 矩阵特征值分析。对线状要素（血管、道路、河流）响应强烈，对团块状结构响应微弱。多尺度分析（尝试多个 sigma 值）可自动检测不同宽度的血管状结构。在医学影像和遥感领域广泛用于线状要素检测。Frangi 血管似然度利用主曲率（Hessian 特征值）对局部结构分类：线状要素的血管似然度高，平台或团块的血管似然度低。多尺度实现在多个 sigma（宽度）值上施加滤波并合并响应。非常适合检测道路、河流和血管网络。多尺度下计算量中等。输出高度可解释——对可辨识的要素产生响应。应用场景：（1）卫星影像中的道路检测，（2）河流/水系网络提取，（3）一般性线状要素检测，（4）血管检测（医学影像），（5）多尺度结构检测。"
+ },
+ "freeman_durden_decomposition": {
+  "name": "Freeman-Durden 分解",
+  "desc": "Freeman-Durden 分解通过正交基分解，将全极化 SAR 的散射机制贡献量化为表面反射、二次散射（城市/二面角）和体散射（植被/随机介质）三个分量。非负最小二乘优化对功率占比施加约束，保证物理可实现性和可解释性。输出的功率图与地表性质直接相关：表面散射占主导指示裸土/水体，二次散射高指示城市建筑，体散射高指示森林/植被。主要特点：物理上可解释的散射分量；针对地表类型的特征签名；约束优化；支持全极化 SAR；对斑点噪声稳健；支持面向特定目标的分类。用途：城乡分类；森林生物量估算；土壤水分探测；洪水探测；作物物候监测；土地覆被制图。输出解读：表面功率表示来自干燥地表/水体的镜面反射；二次散射功率表示人造结构/城市区域；体散射功率表示植被/森林。通过分量组合可区分土地覆被：体散射高 + 二次散射低指示森林；二次散射高 + 体散射低指示城市；表面/体散射均衡指示混合地表。"
+ },
+ "frequency_comparison": {
+  "name": "频率比较",
+  "desc": "逐像元统计堆栈中有多少个栅格等于/大于/小于参考值栅格的对应像元（对应 ArcGIS 的 Equal To Frequency、Greater Than Frequency 和 Less Than Frequency，另含包含性和取反的算子）。现有工具都无法跨堆栈聚合比较结果：cell_statistics 没有参考输入，raster_calculator 只能表达单次比较而无法在任意长度的堆栈上计数，conditional_evaluation 则是单条件选择器。"
+ },
+ "frost_filter": {
+  "name": "Frost 滤波",
+  "desc": "Frost 滤波基于乘性噪声模型和自适应局部统计实现 SAR 斑点噪声抑制，专为斑点服从伽马分布而非高斯噪声的雷达影像设计。其实现计算局部均值和方差，然后施加自适应乘性权重：F = I · exp(-variance/(2·mean²)·distance²)，其中 distance 表示像元相对局部均值的偏离。该公式使斑点抑制强度与估计相干性成反比。主要特点包括：SAR 专用适配（乘性而非加性噪声模型）、保持点目标和边缘（相干特征）、由局部方差驱动的自适应从而可调节强度，以及在单极化和多极化 SAR 数据上的成熟效果。Frost 滤波在以下场景表现出色：面向分类的 SAR 影像预处理（农业监测、土地利用制图）、相干性加权的 SAR-光学融合、云覆盖期间基于雷达的洪水制图，以及合成孔径雷达变化检测工作流。输出解读：高方差（可能为相干目标）区域受到的滤波极小；低方差（斑点主导）区域受到激进滤波。典型输出范围与输入一致；为便于可视化，通常在滤波前或滤波后采用对数（分贝）尺度。方差-均值比直接控制滤波强度：比值 > 0.5 表明可能存在斑点；比值 < 0.1 提示相干目标。输出伪影包括：方差估计不可靠时可能损失细节，以及在取向性特征上的方向性偏差。可通过相干图验证高相干区的边缘保持情况。监视输出统计量：均值应在多次滤波迭代间保持稳定；方差应大幅下降。在分类前应用以提升类别精度。可结合形态学后处理来精化目标边界并清除残余斑点碎屑。"
+ },
+ "fuzzy_knn_classification": {
+  "name": "模糊 kNN 分类",
+  "desc": "执行模糊 k 近邻分类，并输出类别隶属置信度。"
+ },
+ "fuzzy_overlay": {
+  "name": "模糊叠加",
+  "desc": "将栅格重缩放为 0..1 的模糊隶属度表面（linear/gaussian/small/large/ms_small/ms_large），或用模糊 AND/OR/PRODUCT/SUM/GAMMA 组合多个隶属度栅格，对应 ArcGIS 的 Fuzzy Membership + Fuzzy Overlay。"
+ },
+ "gabor_filter_bank": {
+  "name": "Gabor 滤波器组",
+  "desc": "执行多方向 Gabor 响应滤波——方向性纹理分析。在多个方向（通常为 0°、45°、90°、135°）上应用 Gabor 滤波器组，以提取方向性纹理特征。Gabor 响应指示纹理强度和方向。适用于方向性要素检测、纹理刻画和取向模式分析。每个方向单独输出。Gabor 滤波通过与特定方向的小波卷积提取方向性纹理。每个方向揭示与该方向对齐的要素。输出多个波段（每个方向一个），揭示局部纹理的方向和强度。Gabor 响应是计算机视觉中纹理特征提取和目标检测的基础。滤波器组支持全面的方向性分析。应用场景：（1）方向性纹理分析，（2）取向要素检测（山脊、山谷、线状构造），（3）方向性侵蚀/沉积制图，（4）道路/河流检测（线状要素），（5）基于纹理的分类。"
+ },
+ "gamma_correction": {
+  "name": "伽马校正",
+  "desc": "伽马校正通过幂律变换施加非线性亮度调整，以优化影像对比度、显示保真度和感知亮度分布。数学变换为 I_corrected = I^(1/γ)，其中 γ（伽马）是用户指定的指数，控制亮度调整的方向和幅度。γ > 1 使影像变暗（用于补偿显示过亮），γ < 1 使影像变亮（用于补偿显示过暗）。实现对每个像元或每个光谱波段独立操作，在调整强度缩放的同时保持空间关系。主要特点包括：在重新分配色调值的同时保持影像结构；仅需查找表即可实现的高计算效率；适用于包括 16/32 位影像在内的任何辐射数据；可逆性支持逆校正。伽马校正的重要应用包括：补偿传感器特性以便卫星影像的目视解译；跨航线或传感器类型归一化正射影像亮度；增强热红外影像的要素可见性；以及在机器学习流程中对多光谱数据做预处理（输入归一化有助于收敛）。输出解读：校正后的值遵循幂律缩放——中间调经历的相对调整最大，极端值压缩较少。对 8 位输入（0-255），伽马 0.4-0.6 会显著提亮影像；伽马 1.4-1.6 会明显压暗。直方图形状可预期地变化：左偏（偏暗）直方图适合 γ < 1，右偏（偏亮）直方图适合 γ > 1。请通过直方图可视化和目视检查验证校正输出。对需要统一预处理的影像集合保持一致的设置。常见工作流是在阈值选取或分类之前先做伽马校正，以确保要素可见性均衡。"
+ },
+ "gamma_map_filter": {
+  "name": "Gamma-MAP 滤波",
+  "desc": "Gamma Map 滤波基于伽马分布统计模型实现 SAR 斑点抑制，通过参数自适应显式考虑雷达信号的乘性斑点特性。其实现从影像统计中估计局部伽马分布参数（形状 α 和尺度 β），然后通过尊重该分布的加权函数滤波：F = I · [1 - (1-L/N)/(1 + L/N)·√(1 + N/L²)]，其中 L 为等效视数（相干性度量），N 为估计参数。主要特点包括：理论上严谨的 SAR 统计（伽马分布是雷达的标准模型）；自动估计视数，用户输入极少；相比均匀滤波具有更优的边缘保持；适用于单视和多视 SAR。Gamma Map 滤波在以下场景表现出色：面向时序变化检测的多时相 SAR 堆栈去噪、干涉 SAR（InSAR）相位相干性增强、极化 SAR 分解预处理，以及林业 SAR 后向散射归一化。输出解读表明滤波强度随场景相干性自适应：高相干区（α 大）滤波温和，保留目标；低相干区（α 小）滤波激进，压制斑点。等效视数 L 反映滤波效果：L=1（最小滤波）保留全部细节；L>5 产生大幅平滑。输出保持输入单位；对数转换便于可视化。视场景特征和视数选择，典型输出方差降低幅度为 50-80%。监视输出直方图中残余的斑点特征；双峰分布表明场景组分分离良好。伪影包括：L 被高估时取向性特征上可能出现条带或纹理轻微退化。可在训练区对照地面真值验证滤波效果。在需要相干性加权增强的极化 SAR 分类或 InSAR 相位滤波中策略性地应用。"
+ },
+ "gaussian_contrast_stretch": {
+  "name": "高斯对比度拉伸",
+  "desc": "通过与高斯参考分布匹配来拉伸对比度。"
+ },
+ "gaussian_curvature": {
+  "name": "高斯曲率",
+  "desc": "计算高斯（内蕴）曲率（两个主曲率的乘积）。指示局部表面拓扑：正值（碗状/穹状）、负值（鞍状）、零（柱状）。将地形划分为地貌类别：凸形要素（山脊）、凹形要素（山谷）、鞍形要素（垭口/豁口）。用于高级地貌分类。"
+ },
+ "gaussian_filter": {
+  "name": "高斯滤波",
+  "desc": "采用距离加权核的数学上最优的高斯平滑。是多尺度分析、边缘检测、带通滤波的基础。Sigma 参数控制平滑强度；支持 RGB 感知。"
+ },
+ "gaussian_geostatistical_simulations": {
+  "name": "高斯地统计模拟",
+  "desc": "序贯高斯模拟：生成 N 个服从样本数据的等概率条件随机场实现（类似于 ArcGIS 的 Gaussian Geostatistical Simulations）——这是单表面的 empirical_bayesian_kriging / ordinary kriging 以及无条件模拟的 turning_bands_simulation 都不提供的条件多实现输出。结果可设种子且具有确定性。"
+ },
+ "generalize_classified_raster": {
+  "name": "分类栅格综合化",
+  "desc": "Generalize Classified Raster 通过迭代众数滤波移除细小孤立斑块，将破碎的单像元或多像元组分合并到空间上占主导的邻近类别，从而简化分类图。算法：应用形态学众数滤波，保留移动窗口内的主导类别；移除或整合脱离空间上下文的孤立像元；通过连通组分分析迭代精化分类；将次要类别吸收到邻近的主导类别。可配置的窗口大小和最小斑块面积控制综合化强度。主要特点：减少分类破碎度；提高空间连贯性；消除噪声导致的孤立斑块；通过选择性滤波保持类别边界；高效的连通组分处理。能力：可变的综合化强度；保留大的连续斑块；适用于索引或类别数据。用例：分类后精化以去除椒盐效应；整合破碎的分类结果；制备最终分类产品；综合化到特定最小制图单元。应用：土地覆被图定稿；消除虚假的单像元分类；提高分类的空间连续性。输出解读：类别破碎度降低表明去斑有效；边界得到保留表明综合化参数恰当；综合化过度表明窗口参数过大；空间连贯性改善表明分类噪声主要是单像元伪影。"
+ },
+ "generalize_with_similarity": {
+  "name": "基于相似性综合化",
+  "desc": "通过将分类栅格中的小斑块合并到光谱最相似的邻近斑块，对其进行综合化。"
+ },
+ "generalized_linear_regression": {
+  "name": "广义线性回归",
+  "desc": "通过 IRLS 对因变量字段与解释字段进行全局回归（gaussian/OLS、poisson 或 logistic），输出拟合值和残差字段及完整诊断：逐项系数、标准误、t/z 值、概率和 VIF，以及 AICc、R²/偏差和 studentized Koenker（Breusch–Pagan）异方差检验——类似于 ArcGIS 的 Generalized Linear Regression。"
+ },
+ "generate_breach_lines": {
+  "name": "生成破口线",
+  "desc": "给定洼地面和 DEM，按最小破口成本、最短路径或最小高程变化准则，输出沿其破开（breach）每个洼地以实现排水的折线，并给出每个破口的切割深度和开挖体积。类似于 ArcGIS 的 Generate Breach Lines。"
+ },
+ "generate_near_table": {
+  "name": "生成邻近表",
+  "desc": "为每个输入要素列出 k 个最近（或搜索半径内全部）邻近图层要素，附带距离、排名、可选方位角和近邻 XY 坐标——一张多邻居邻近表，类似于 ArcGIS 的 Generate Near Table。"
+ },
+ "generate_network_nodes": {
+  "name": "生成网络节点",
+  "desc": "从线要素拓扑生成网络节点和节点诊断信息。"
+ },
+ "generate_network_swm": {
+  "name": "生成网络空间权重矩阵",
+  "desc": "构建一个空间权重矩阵，其邻居和权重来自沿线网络的通行距离而非直线几何（对应 ArcGIS 的 Generate Network Spatial Weights）。generate_spatial_weights_matrix 仅提供欧氏和拓扑概念化（knn、固定距离带宽、反距离、邻接、Delaunay），因此对受网络约束的现象，它会把无法互相到达的要素连接起来，并使所有下游统计产生偏差。输出使用相同的表结构，因此 global_morans_i、local_morans_i_lisa、getis_ord_gi_star 和 compare_spatial_weights 可不加修改地使用。"
+ },
+ "generate_od_links": {
+  "name": "生成起讫点连线",
+  "desc": "从起点到终点绘制直线期望线（desire lines）——按共享 id 匹配、按距离范围和/或连到 k 个最近点——每条线携带起点/终点 id 和长度，类似于 ArcGIS 的 Generate Origin-Destination Links。"
+ },
+ "generate_points_along_3d_lines": {
+  "name": "沿三维线生成点",
+  "desc": "沿三维线按真实三维距离（而非内置 points_along_lines 使用的二维平面长度）生成等距点，带插值 Z、可选端点以及累计三维里程字段。类似于 ArcGIS 的 Generate Points Along 3D Lines。"
+ },
+ "generate_spatial_weights_matrix": {
+  "name": "生成空间权重矩阵",
+  "desc": "按选定的空间概念化——KNN、固定距离带宽、反距离、邻接（边 / 边+角）或 Delaunay——输出可复用的长格式邻居/权重表（origin_id, neighbor_id, weight），支持可选的行标准化，类似于 ArcGIS 的 Generate Spatial Weights Matrix。"
+ },
+ "generate_subset_polygons": {
+  "name": "生成子集面",
+  "desc": "将密集点图层划分为紧凑、互不重叠、平铺点范围的多边形，每个多边形包含介于最小值和最大值之间的点数（对应 ArcGIS 的 Generate Subset Polygons）。这是对超大点集进行插值前的标准预处理步骤。与内置的固定网格不同，它自适应密度（中位数 k-d 划分）；与 voronoi_diagram 不同，它对点分组而非每个点一个单元；与 group_by_proximity 不同，它输出面并遵守数量界限。"
+ },
+ "generate_transects_along_lines": {
+  "name": "沿线生成断面线",
+  "desc": "沿每条线按固定间隔行进，生成给定长度（居中或偏移）的垂直断面线，用于岸线变化、河岸带和横断面采样——类似于 ArcGIS 的 Generate Transects Along Lines。"
+ },
+ "generate_trend_raster": {
+  "name": "生成趋势栅格",
+  "desc": "在配准好的栅格时间序列上拟合逐像元时间趋势（类似于 ArcGIS 的 Generate Trend Raster）：OLS 斜率/截距/R²，或非参数 Mann-Kendall + Sen 斜率并带 p 值——这是内置的 trend_surface（空间趋势）和 change_vector_analysis（两时相）无法产生的逐像元时间趋势。"
+ },
+ "generating_function": {
+  "name": "生成函数",
+  "desc": "从 DEM 计算生成函数。"
+ },
+ "geodetic_densify": {
+  "name": "测地线加密",
+  "desc": "在地理坐标系（经纬度）线或面图层的现有顶点之间，沿真实测地线或等角航线（恒向线）插入折点，类似于 ArcGIS 的 Geodetic Densify——使长线段遵循地球曲率而非平面弦线。"
+ },
+ "geographically_weighted_regression": {
+  "name": "地理加权回归",
+  "desc": "带距离衰减核权重的局部线性回归（GWR）：逐要素系数、局部 R²、残差和预测值，外加全局 AICc / R² 诊断；固定或自适应带宽，可选 AICc 优化。"
+ },
+ "geographically_weighted_regression_raster": {
+  "name": "地理加权回归（GWR）— 栅格输出",
+  "desc": "估计 GWR 并输出局部系数栅格表面。"
+ },
+ "geomorphons": {
+  "name": "Geomorphons 地貌分类",
+  "desc": "利用由天顶角和天底角比较导出的 8 方向视线三值模式进行地貌分类，或识别 10 种常见地貌形态。"
+ },
+ "georeference_raster_from_control_points": {
+  "name": "从控制点配准栅格",
+  "desc": "根据地面控制点（GCP）拟合变换，并对栅格进行纠正，输出地理配准结果。"
+ },
+ "geotagged_photos_to_points": {
+  "name": "地理标记照片转点",
+  "desc": "读取一个地理标记照片文件夹，构建 WGS-84 点图层，包含每张照片的路径、拍摄日期时间、高度、相机方位（GPS 影像方向）和品牌/型号——仅从 EXIF 元数据解析（不解码像素），类似于 ArcGIS 的 GeoTagged Photos To Points。"
+ },
+ "getis_ord_general_g": {
+  "name": "高低值聚类（Getis-Ord General G）",
+  "desc": "计算全局 Getis-Ord General G 统计量——一个 z 得分和 p 值，告诉你 HIGH（高）值还是 LOW（低）值在全局上聚集，类似于 ArcGIS 的高低值聚类（Getis-Ord General G）。"
+ },
+ "getis_ord_gi_star": {
+  "name": "Getis-Ord Gi / Gi*",
+  "desc": "计算 Getis-Ord Gi/Gi* z 得分，用于局部热点/冷点识别。直接度量高/低值集中程度。"
+ },
+ "getis_ord_gi_star_raster": {
+  "name": "Getis-Ord Gi* — 栅格输出",
+  "desc": "从点计算 Gi* 热点/冷点分类并输出栅格（-1=冷点，0=不显著，1=热点）。用于基于热点的分析。"
+ },
+ "glcm_texture": {
+  "name": "GLCM 纹理",
+  "desc": "灰度共生矩阵（GLCM）纹理分析器提取二阶统计纹理度量，量化指定位移距离和方向上像元灰度值之间的空间关系，支持复杂的纹理分类，可区分农业植被模式、建筑环境和地质构造。GLCM 计算捕捉灰度对在固定偏移处出现频率的概率矩阵，并计算四个经典 Haralick 统计量：对比度（度量局部变化）、相关性（度量线性依赖）、同质性（度量接近对角线的程度）和能量（度量均匀性）。该工具支持八个方向偏移（0°、45°、90°、135° 及其反向），从而具备方向纹理敏感性——可检测田垄、建筑排列或地质构造等取向模式。主要特点包括：揭示各向异性纹理属性的多方向分析；可调的位移参数以优化尺度敏感性；同时计算多种纹理度量以减少处理开销；以及区分视觉上细微地表特性的固有能力。用例涵盖精准农业（作物类型分类、田块边界检测、作物胁迫评估）、城市分析（建筑密度制图、不透水面提取）和地质遥感（岩性判别、构造模式识别）。应用包括：结合光谱和纹理特征的土地覆被分类、提升分类精度的面向对象影像分析、检测卫星影像中仪器伪影的质量控制，以及从传感器噪声中分离有意义变化的变化检测。输出解读需要理解每个统计量的含义：高对比度表示粗糙/多变的纹理；高相关性表示线性模式；高同质性表示均匀纹理；高能量表示有序的重复模式。输出波段可组合成纹理指数（例如 GLCM 同质性除以对比度可增强均质区域）。方向聚合模式（mean/min/max/separate）会影响输出维度和解读。典型纹理分析会同时使用多个 GLCM 度量以实现稳健分类。"
+ },
+ "global_morans_i": {
+  "name": "全局 Moran's I",
+  "desc": "计算全局 Moran's I 以检验空间自相关：相似值是否在空间上聚集。是地统计分析的重要基础。"
+ },
+ "goldstein_phase_filter": {
+  "name": "Goldstein 相位滤波",
+  "desc": "对干涉 SAR 相位进行自适应谱（Goldstein）滤波，这是使相位解缠可行的步骤（对应 ArcGIS 的 Apply Complex Data Filter）。unwrap_phase 在原始干涉图上会失败，因为噪声残点会迫使生成枝切线；内置的 lee/frost/kuan/wiener/gaussian 滤波器家族都作用于实值强度，无法在此使用，因为跨越 ±pi 不连续处对缠绕相位求平均会将其破坏。该工具在频域逐块滤波复信号，并报告滤波前后的残点数量。"
+ },
+ "gpx_to_features": {
+  "name": "GPX 转要素",
+  "desc": "将 GPX 文件解析为航点点和/或轨迹/路线折线，携带 ele/time/name 属性。"
+ },
+ "graphic_buffer": {
+  "name": "图形缓冲区",
+  "desc": "创建缓冲区时可选端头样式（圆头/方头/平头）和拐角连接样式（圆角/斜接/斜切），并带斜接限制——这是仅支持圆角的缓冲区无法生成的方形/斜接缓冲区几何。"
+ },
+ "greater_than": {
+  "name": "大于",
+  "desc": "逐像元测试第一个栅格是否大于第二个栅格。"
+ },
+ "greater_than_or_equal_to": {
+  "name": "大于等于",
+  "desc": "逐像元测试第一个栅格是否大于等于第二个栅格。"
+ },
+ "grid_index_features": {
+  "name": "网格索引要素",
+  "desc": "构建地图系列索引网格：页面大小的矩形并带页名（A1、B3、……或顺序编号）、按比例尺推算的尺寸，以及可选的数据相交过滤——类似于 ArcGIS 的 Grid Index Features，另提供沿路线旋转页面的条带模式，类似 ArcGIS 的 Strip Map Index Features。"
+ },
+ "group_by_proximity": {
+  "name": "按邻近分组",
+  "desc": "为要素标记 GROUP_ID，实现单链（single-linkage）空间连通分量——距离范围内（'near'）或相互接触（'intersects'）的要素，可选要求共享属性值——类似于 ArcGIS 的 Group By Proximity。"
+ },
+ "gtfs_to_features": {
+  "name": "GTFS 转要素",
+  "desc": "将 GTFS 公交数据解析为站点点和线路线，可选统计每个站点的服务班次频率。"
+ },
+ "guided_filter": {
+  "name": "引导滤波",
+  "desc": "引导滤波通过将滤波输出约束为与引导影像（通常是原始影像或相关参考图层）的局部线性关系，实现边缘保持平滑。其实现将影像划分为重叠的矩形区域，在每个区域内计算线性回归参数，在尊重引导影像结构的同时保证输出平滑。数学形式为最小化 ||Fᵢ - a·Gᵢ - b||² + ε||a||²，其中 Fᵢ 为滤波输出，Gᵢ 为引导影像，(a, b) 为局部线性参数。主要特点包括：灵活性（引导影像可与被滤波影像无关）；基于 O(N) 可分离实现的高计算效率；通过参数控制边缘保持强度；对单波段或多光谱引导均有效。引导滤波在以下场景表现出色：以光学数据引导 SAR 去噪的多传感器融合；利用同步正射影像精化 LiDAR 分类；利用时相参考影像去除卫星镶嵌图中的阴影/云；以及地图规整化任务中的细节增强。输出解读：滤波区域在局部保持与引导影像结构相似，同时强度平均在均质区域内进行。平滑半径控制空间范围（半径越大平滑越强）；正则化参数 ε 在平滑度与结构保真之间权衡（ε 越大越平滑，ε 越小细节越多）。输出范围与输入一致；与引导影像进行目视对比可验证边缘保持保真度。常见伪影包括：强不连续处的过度平滑（应选择合适参数）以及引导信息匮乏区域的平滑不足（应检查引导影像质量）。监视滤波输出与引导影像之间的互相关以评估对齐质量。在以一个源的边缘信息引导另一个源滤波的影像融合、锐化和重建工作流中策略性地应用。"
+ },
+ "h3_polyfill": {
+  "name": "H3 网格填充",
+  "desc": "以选定分辨率用 H3 离散全球网格单元覆盖输入面。"
+ },
+ "h3_to_vector": {
+  "name": "H3 单元转面",
+  "desc": "将一列 H3 单元 id 转换为单元边界多边形，并透传其他属性。"
+ },
+ "h_alpha_wisart_classification": {
+  "name": "H-Alpha Wisart 分类",
+  "desc": "H/α/A-Wisart 分类将基于 H/α/A 参数空间划分的无监督分区与 Wishart 统计聚类相结合，自动将 SAR 极化数据分类为 9 个对应散射机制类别的物理意义明确的分区。算法接收来自 Cloude-Pottier 分解的熵（H）、各向异性（A）和 alpha（α）参数，并使用固定阈值将三维 (H,A,α) 特征空间划分为 9 个区域：分区 1（低 H，α~20°）代表干燥表面的 Bragg 反射；分区 5（H~0.7，α~45°）表示森林中的各向同性体散射；分区 9（高 H，α~80°）代表来自城市结构的二面角（二次）散射。在每个分区内，Wishart 聚类可选地通过在多元极化空间中计算统计距离来精化分类，提高相似机制的区分能力。主要特点包括：无需训练样本的自动无监督分类；9 个具有标准化定义、物理可解释的类别，实现全球可比性；可选双模式运行（仅阈值求速度，阈值+Wishart 求精度）；以及基于到分区边界距离和 Wishart 似然的内置置信度指标。该工具接受预先计算好的 (H,A,α) 影像，或在提供原始矩阵时自动调用 Cloude-Pottier 分解。主要用例包括：从极化数据进行 SAR 影像分割和制图；直接从 SAR 相干矩阵对土地覆被类型（水体、农业、森林、城市）进行无监督分类；通过分区占用分布快速评估极化数据质量；以及揭示指示土地覆被变化的散射机制转变的变化检测。输出解读：9 类图直接对应地表类型；分区可聚合为更宽的类别（水体/镜面 = 分区 1-2，植被/体散射 = 分区 4-6，城市/二面角 = 分区 7-9）。未分类像元（类别 0）表示需要进一步调查的异常极化特征。"
+ },
+ "hack_stream_order": {
+  "name": "Hack 河流分级",
+  "desc": "为河流像元赋予 Hack 河流分级。"
+ },
+ "hdbscan": {
+  "name": "HDBSCAN 聚类",
+  "desc": "层次密度聚类（HDBSCAN*）：相互可达性 MST、精简聚类树和超额质量（excess-of-mass）选择，附带逐点隶属概率和离群得分——无需 epsilon 即可处理变密度数据，类似于 ArcGIS Density-based Clustering 的 HDBSCAN 选项。"
+ },
+ "heat_map": {
+  "name": "热力图",
+  "desc": "从点事件生成核密度热力图栅格。"
+ },
+ "height_above_ground": {
+  "name": "离地高度",
+  "desc": "通过点云几何进行归一化：计算每个点相对于最近的更低地面类别邻点的高度。无需栅格参考即可获得局部地形表面。"
+ },
+ "hexagonal_grid_from_raster_base": {
+  "name": "基于栅格范围的六边形网格",
+  "desc": "创建宽度和方向可配置的六边形面网格，为热力图和聚合分析提供无偏剖分。"
+ },
+ "hexagonal_grid_from_vector_base": {
+  "name": "基于矢量范围的六边形网格",
+  "desc": "创建与矢量图层范围对齐的六边形面网格，支持无偏空间聚合和密度可视化。"
+ },
+ "high_pass_bilateral_filter": {
+  "name": "高通双边滤波",
+  "desc": "通过从输入栅格中减去双边平滑结果来计算高通残差。"
+ },
+ "high_pass_filter": {
+  "name": "高通滤波",
+  "desc": "高通滤波通过从原始影像中减去低频（平滑）版本来分离影像中的高频空间成分。在数学上，这是通过将影像与一个强调梯度、抑制大范围色调变化的卷积核进行卷积来实现的。实现上根据卷积核大小和影像尺寸采用直接卷积或频率域处理。该滤波器在去除大尺度光照趋势的同时增强边缘、精细纹理细节和小尺度变化。其主要特点包括：无边界伪影地保留边缘对比度、基于卷积核半径的选择性频率衰减，以及对灰度影像和多光谱影像的直接适用性。高通滤波在地形分析（需要增强细微地形特征）、卫星影像锐化以供目视解译、小尺度地质构造探测以及机器学习分类的数据预处理中非常有价值。它对于为变化检测准备正射影像以及增强 LiDAR 衍生产品也至关重要。输出解读需要理解正值表示局部极大值（亮边缘），负值表示局部极小值（暗边缘）。对于 8 位影像，典型范围为 ±100；零均值输出表明高频提取成功。常见伪影包括强不连续处的振铃效应，以及源影像有噪声时的噪声放大。尺度解读取决于卷积核半径：较小的卷积核增强精细纹理（单个像元），较大的卷积核强调中等尺度特征（跨数十个像元的地形变化）。应监测输出统计量；过度零中心化表明可能处理过度。与互补的低通结果结合使用可重建原始影像，或用于多尺度分解工作流。"
+ },
+ "high_pass_median_filter": {
+  "name": "高通中值滤波",
+  "desc": "通过从中心值中减去局部中值来执行高通滤波：输出 = 像元 - 邻域中值。将高通滤波（增强细节）与中值的稳健性（去除噪声）相结合。输出以零为中心（负值表示比周围更暗，正值表示比周围更亮）。与基于高斯的高通滤波相比，对离群值更稳健。高通残差揭示了对中值趋势的局部偏离。对噪声数据特别稳健——中值对离群值比均值更稳定。输出强调细尺度变化。常应用于高斯平滑后的版本（形成带通滤波器）。适用于纹理增强和从噪声影像中提取特征。应用场景：(1) 噪声数据的纹理增强，(2) 分类前的细节提取，(3) 稳健的特征检测，(4) 基于纹理的分割预处理，(5) SAR 预处理。"
+ },
+ "highest_position": {
+  "name": "最高值位置",
+  "desc": "返回在每个像元处包含最高值的栅格堆栈索引（从零开始）。"
+ },
+ "hillshade": {
+  "name": "山体阴影",
+  "desc": "单光源方向山体阴影可视化（灰度 0-255）。方位角和高度角参数控制光照方向。用于 DEM 检查和地图显示的快速地形可视化。"
+ },
+ "hillslopes": {
+  "name": "山坡划分",
+  "desc": "识别汇入每条河段的山坡区域，并区分左岸和右岸区域。"
+ },
+ "histogram_equalization": {
+  "name": "直方图均衡化",
+  "desc": "应用直方图均衡化以改善影像对比度。"
+ },
+ "histogram_matching": {
+  "name": "直方图匹配",
+  "desc": "将影像直方图匹配到提供的参考直方图。"
+ },
+ "histogram_matching_two_images": {
+  "name": "两影像直方图匹配",
+  "desc": "将输入影像的直方图匹配到参考影像的直方图。"
+ },
+ "hole_proportion": {
+  "name": "孔洞占比",
+  "desc": "计算面的孔洞面积与凸包面积之比，并追加 HOLE_PROP 字段。"
+ },
+ "horizon_angle": {
+  "name": "地平线角度",
+  "desc": "沿指定方位角方向计算地平线角度（最大坡度）。"
+ },
+ "horizon_area": {
+  "name": "地平线面积",
+  "desc": "计算地平线多边形的面积（公顷）。"
+ },
+ "horizontal_excess_curvature": {
+  "name": "水平过剩曲率",
+  "desc": "从 DEM 计算水平过剩曲率。"
+ },
+ "horton_ratios": {
+  "name": "Horton 比率",
+  "desc": "计算 Horton 分叉比、长度比、汇水面积比和坡度比。"
+ },
+ "horton_stream_order": {
+  "name": "Horton 河流分级",
+  "desc": "为河流像元分配 Horton 河流等级。"
+ },
+ "hot_spot_analysis_comparison": {
+  "name": "热点分析比较",
+  "desc": "比较两个 Getis-Ord 热点结果图层：匹配其位置，对每次转变分类（hot_to_hot、hot_to_cold、none_to_hot 等），并对总体一致性运行带随机种子的置换检验——类似于 ArcGIS 的 Hot Spot Analysis Comparison 工具。"
+ },
+ "hotspot_vs_process": {
+  "name": "热点与过程比较",
+  "desc": "将热点模式与底层点过程的强度进行比较。"
+ },
+ "hydrologic_connectivity": {
+  "name": "水文连通性",
+  "desc": "从 DEM 计算 DUL 和 UDSA 连通性指数。"
+ },
+ "hypsometric_analysis": {
+  "name": "面积-高程分析",
+  "desc": "为一个或多个 DEM 创建面积-高程曲线 HTML 报告。"
+ },
+ "hypsometrically_tinted_hillshade": {
+  "name": "高程设色山体阴影",
+  "desc": "通过多方位角山体阴影与高程设色及可选大气雾效的融合，创建瑞士风格地形渲染。"
+ },
+ "identify_narrow_polygons": {
+  "name": "识别狭窄面",
+  "desc": "标记在某处宽度小于宽度容差的面（狭长条和细颈），并为每个面标注 is_narrow 标志和估算的最小宽度。"
+ },
+ "identity": {
+  "name": "标识叠加",
+  "desc": "保留全部输入要素；与标识图层重叠的部分还会获得标识图层的属性。"
+ },
+ "idw_3d": {
+  "name": "三维反距离权重（IDW）",
+  "desc": "对三维点观测进行体积反距离插值，生成一组高程等级栅格（每个等级一个波段），通过高程膨胀因子处理垂向与水平向的各向异性，并可选输出留一法交叉验证点。类似于 ArcGIS 的 IDW3D 工具。"
+ },
+ "idw_interpolation": {
+  "name": "反距离权重（IDW）插值",
+  "desc": "使用反距离加权法从点样本插值生成栅格。"
+ },
+ "ihs_to_rgb": {
+  "name": "IHS 转 RGB",
+  "desc": "IHS 转 RGB 逆变换将强度-色相-饱和度（Intensity-Hue-Saturation）分量转换回红-绿-蓝颜色空间，从而能够从分解后的遥感数据恢复自然彩色。逆变换公式在圆柱极坐标系上运算，将色相角、饱和度幅值和强度转换回笛卡尔 RGB 坐标，同时保持数值稳定性并尽量减少量化伪影。该变换是 RGB 转 IHS 操作的关键补充，尤其适用于全色锐化工作流中强度已被高分辨率全色数据替换的情形。主要特性包括：对正变换的精确数学求逆，确保往返操作的一致性；自动处理色相未定义的非彩色像元，防止数值伪影传播；在接近零的极端饱和度值下保持数值稳定；计算高效，可无缝集成到快速处理流水线中。逆变换为全色锐化工作流收尾：在全色数据替换强度后恢复自然彩色影像，使增强分辨率数据能够以彩色显示，支持从分解分量进行光谱重建，并在质量控制工作流中验证变换一致性。IHS 转 RGB 输出产生三个波段的自然彩色影像，空间分辨率继承自输入强度波段，适合直接可视化和进一步分析。输出波段按标准顺序表示红、绿、蓝通道；如果强度已被更高分辨率的全色数据替换，色彩会呈现增强的空间细节，同时保留原始色相和饱和度分量的光谱特征。"
+ },
+ "image_autocorrelation": {
+  "name": "影像自相关",
+  "desc": "计算一个或多个栅格影像的 Moran's I。"
+ },
+ "image_correlation": {
+  "name": "影像相关",
+  "desc": "计算两个或多个栅格影像的 Pearson 相关矩阵。"
+ },
+ "image_correlation_neighbourhood_analysis": {
+  "name": "影像相关邻域分析",
+  "desc": "对两个栅格执行移动窗口相关分析，返回相关系数和 p 值栅格。"
+ },
+ "image_difference_change_detection": {
+  "name": "影像差值变化检测",
+  "desc": "影像差值变化检测通过计算精确配准的多时相卫星影像之间的多光谱逐像元差值来识别土地覆盖变化，突出光谱特征变化足以超过统计背景波动的区域。算法将影像配准到公共像元网格，计算所选波段或植被指数的差值（例如 NDVI 差值），使用平均绝对差和置信区间进行统计阈值化以区分变化与噪声，并输出二值变化掩膜或连续差值幅度栅格。影像差值法计算简单、可解释性强，能有效检测植被、城市开发或水体的重大变化。主要特性包括：灵活的波段选择，可在特定光谱域进行针对性变化检测；带自动或手动置信水平的统计阈值化；可选预处理（归一化、指数计算）以提高变化信噪比；处理快速，可支持大范围变化检测。应用包括毁林制图与森林损失监测、基于多光谱卫星时间序列的城市扩张追踪、灾害前后基于 SAR 或光学数据的洪水制图，以及跟踪作物转换的农业变化检测。影像差值输出突出变化区域。输出包括：阈值可配置的二值变化/无变化掩膜栅格、量化变化强度的连续差值幅度栅格，以及可选的区分变化类型（增加、减少）的变化类别栅格；时间聚合支持跨多年份的变化追踪。"
+ },
+ "image_regression": {
+  "name": "影像回归",
+  "desc": "对两个栅格执行二元线性回归，输出残差栅格和报告。"
+ },
+ "image_segmentation": {
+  "name": "影像分割",
+  "desc": "使用种子区域生长法将多波段栅格堆栈分割为连续的均质区域。"
+ },
+ "image_slider": {
+  "name": "影像滑动对比",
+  "desc": "影像滑动对比是一种交互式可视化工具，通过可拖动的水平或垂直叠加分割线，实现对配准栅格数据集的像元级直接比较。算法：在内存中维护两个对齐的栅格数据集，渲染组合视图，可调节的分割线位置控制图层可见性，用户交互动态调整分割线形成分屏效果。支持水平和垂直两种分割方向。主要特性：交互式实时对比、保持全分辨率可视化、无需分析技能的直观用户界面、适用于多光谱和索引栅格、通过高效渲染支持大数据集。功能：变化检测可视化、前后对比、多时相分析、辐射归一化评估、分类精度目视检查。使用场景：检测不同日期影像之间的变化、将分类结果与参考数据对比、评估预处理效果、时间序列分析中的目视变化检测。应用：灾害响应损失评估、城市蔓延监测、森林干扰检测、农业变化监测、影像处理输出质量控制。输出解读：视觉差异揭示变化的幅度和位置；清晰的边缘表示显著变化；渐变过渡表示配准不准或时间上的渐变；整幅影像上的系统性差异揭示系统性的处理伪影。"
+ },
+ "image_stack_profile": {
+  "name": "影像堆栈剖面",
+  "desc": "跨有序栅格堆栈提取逐点剖面，并可选写入 HTML 报告。"
+ },
+ "impoundment_size_index": {
+  "name": "蓄水规模指数",
+  "desc": "计算平均/最大水深、蓄水量、面积和坝高等蓄水指标。"
+ },
+ "improved_ground_point_filter": {
+  "name": "改进地面点滤波",
+  "desc": "多阶段地面点滤波流水线。"
+ },
+ "increment": {
+  "name": "递增",
+  "desc": "为每个非 NoData 栅格像元加一个值（默认 1.0）。"
+ },
+ "incremental_spatial_autocorrelation": {
+  "name": "增量空间自相关",
+  "desc": "在一系列递增的距离波段上计算全局 Moran's I，并报告 z 得分曲线及其第一个峰值和最大峰值——这是选择聚类距离的可靠方法，类似于 ArcGIS 的 Incremental Spatial Autocorrelation 工具。"
+ },
+ "individual_tree_detection": {
+  "name": "单木检测",
+  "desc": "识别树顶：在按高度过滤的点云中，以自适应搜索半径寻找局部极大值。返回潜在树干位置的矢量点 shapefile。"
+ },
+ "individual_tree_segmentation": {
+  "name": "单木分割",
+  "desc": "将植被点分割为树冠：采用基于局部冠层几何的自适应带宽进行均值漂移聚类。面向清查级别的单木勾绘。"
+ },
+ "inhomogeneous_baseline": {
+  "name": "非齐次泊松过程基线",
+  "desc": "估计强度面并计算经强度校正的 K 函数。"
+ },
+ "inhomogeneous_intensity_raster": {
+  "name": "非齐次强度（栅格输出）",
+  "desc": "计算核密度估计（KDE）面，用于可视化空间点强度。揭示超出简单密度的热点和冷点。"
+ },
+ "inplace_add": {
+  "name": "就地加法",
+  "desc": "执行就地加法运算（input1 += input2）。"
+ },
+ "inplace_divide": {
+  "name": "就地除法",
+  "desc": "执行就地除法运算（input1 /= input2）。"
+ },
+ "inplace_multiply": {
+  "name": "就地乘法",
+  "desc": "执行就地乘法运算（input1 *= input2）。"
+ },
+ "inplace_subtract": {
+  "name": "就地减法",
+  "desc": "执行就地减法运算（input1 -= input2）。"
+ },
+ "insert_dams": {
+  "name": "插入坝体",
+  "desc": "使用基于剖面的坝顶选择方式，在指定点添加局部坝体（挡水堤）。"
+ },
+ "inside_3d": {
+  "name": "三维内部判定",
+  "desc": "确定哪些三维要素（点、折线或实体）落在闭合体容器内部，可选报告被包含的长度或顶点比例（ArcGIS Inside 3D）。两个注册表中的所有包含判定都投影到 XY 平面，因此位于某要素占地范围上方的传感器或位于某地块下方的管道目前会被判定为在其内部。容器遵循随附的 buffer_3d 和 minimum_bounding_volume 所采用的三角网格约定。"
+ },
+ "integer_division": {
+  "name": "整数除法",
+  "desc": "将两个栅格相除，并将每个结果向零截断。"
+ },
+ "integral_image_transform": {
+  "name": "积分图变换",
+  "desc": "对每个波段计算求和面积（积分图）变换。"
+ },
+ "integrate": {
+  "name": "整合",
+  "desc": "将聚类容差范围内所有要素的所有折点捕捉到共享位置，使几乎重合的共享边界变得完全重合，并可选在附近的边上插入 T 形交叉折点——类似于 ArcGIS 的 Integrate 工具。"
+ },
+ "interpolate_from_spatiotemporal_points": {
+  "name": "时空点插值",
+  "desc": "将带时间戳的点观测分箱到规则时间切片，并将每个切片插值到共享网格上，生成配准的多维栅格，类似于 ArcGIS 的 Interpolate From Spatiotemporal Points 工具。"
+ },
+ "interpolate_shape": {
+  "name": "插值形状",
+  "desc": "将点/线/面贴合到表面栅格上：加密（加点）、按折点采样 Z 值（双线性或最邻近）、写入三维几何，并添加表面指标（z_min/z_max/z_mean、三维表面长度、平均坡度），类似于 ArcGIS 的 Interpolate Shape / Add Surface Information 工具。"
+ },
+ "interpolate_with_barriers": {
+  "name": "含障碍插值",
+  "desc": "在尊重绝对障碍（海岸线、山脊、断层、墙体）的情况下将点观测插值为栅格：影响通过成本/测地距离绕过障碍传播，而不是穿越障碍——采用 IDW 或一阶局部多项式核，类似于 ArcGIS 的 Kernel Interpolation With Barriers / Spline With Barriers 工具。随附的 idw/kriging/natural-neighbour/spline 工具均不感知障碍。"
+ },
+ "intersect": {
+  "name": "相交",
+  "desc": "使用基于拓扑的叠加对输入面和叠加面求交，并跟踪源要素 ID。"
+ },
+ "intersect_3d": {
+  "name": "三维相交",
+  "desc": "逐对计算重叠的闭合三维实体所共享的体积，并可为每个相交提供可选的边界实体（ArcGIS Intersect 3D）。union_3d 是两个注册表中唯一的三维叠加工具，且只回答组合体积问题；inside_3d 是针对点和线的包含判定，polygon_volume / surface_volume 则是相对参考平面的量测。每个实体的体积是精确的；相交体积通过在报告的分辨率下的体素占用来估计。"
+ },
+ "intersect_3d_line_with_surface": {
+  "name": "三维线与表面相交",
+  "desc": "在三维线与高程表面或多面（multipatch）相交的每个位置分割线，为每段标记在上方或下方，并输出交点（ArcGIS Intersect 3D Line With Surface / Intersect 3D Line With Multi Patch）。第 17 轮的 intersect_3d 处理的是闭合实体而非线，inside_3d 是既不切割几何也不定位交点的包含判定，而 interpolate_shape 将线贴合到表面上，会丢弃该比较所依赖的线 z 值。"
+ },
+ "intersecting_layers_masks": {
+  "name": "相交图层掩膜",
+  "desc": "在掩膜图层要素周围按边距生成制图掩膜面，但仅在与第二个掩膜图层相交之处生成（精确轮廓、凸包或外接矩形）。"
+ },
+ "intervisibility": {
+  "name": "通视性分析",
+  "desc": "将每条视线与三维矢量障碍物进行检验，标记其可见或被遮挡，并报告是哪个障碍物遮挡以及在何处遮挡（ArcGIS Intervisibility）。line_of_sight、visibility_index、viewshed 和 skyline_analysis 都针对表面栅格工作；它们都无法针对建筑物等三维多面（multipatch）障碍物进行检验，而建筑物的悬挑和拱廊在烧录到 DEM 时会丢失。"
+ },
+ "inverse_pca": {
+  "name": "逆 PCA 变换",
+  "desc": "使用存储的特征向量从 PCA 分量栅格重建原始波段影像。"
+ },
+ "is_closed_3d": {
+  "name": "三维闭合判定",
+  "desc": "标记哪些三维多面（multipatch）要素是水密的闭合实体、哪些是开放曲面，并给出未配对边界边、非流形边和绕向一致性的诊断计数（ArcGIS Is Closed 3D）。目录中的所有体积工具——union_3d、inside_3d、minimum_bounding_volume、buffer_3d——都假设输入为闭合实体，对开放网格会返回无意义的数值，而目前没有任何工具能让你先检查这一前提。"
+ },
+ "is_nodata": {
+  "name": "NoData 判定",
+  "desc": "对 NoData 像元输出 1，对所有有效像元输出 0。"
+ },
+ "isobasins": {
+  "name": "等面积流域",
+  "desc": "根据目标面积阈值将景观划分为大小近似相等的流域（等面积盆地）。"
+ },
+ "jenson_snap_pour_points": {
+  "name": "Jenson 汇流点捕捉",
+  "desc": "将每个汇流点捕捉到搜索距离内最近的河流像元，并保留所有输入属性。"
+ },
+ "join_tables": {
+  "name": "连接表",
+  "desc": "使用关键字段将外部矢量表的属性连接到主矢量表。"
+ },
+ "k_means_clustering": {
+  "name": "K 均值聚类",
+  "desc": "K 均值聚类通过将像元迭代划分为 K 个光谱聚类簇来执行非监督光谱分类，最小化簇内方差，并在多光谱影像中发现自然的光谱分组，无需训练样本或先验类别定义。算法初始化 K 个随机聚类中心，迭代地将像元分配到最近的中心并将中心重新计算为簇均值直至收敛，输出最终的簇分配结果和中心。K 均值计算高效、可扩展到大型多光谱堆栈，并能发现有助于探索性分析和自然类别识别的数据驱动光谱模式。主要特性包括：用户指定聚类数量 K，可在光谱细节与输出可解释性之间灵活权衡；带可配置迭代次数上限和中心位移阈值的收敛准则；可选随机种子控制，确保聚类结果可复现以便测试和验证；高效并行化以处理大型影像。应用涵盖发现自然光谱类别的非监督土地覆盖分类、识别光谱异常像元的异常检测、为后续监督分类进行的影像分割，以及揭示主导光谱模式的探索性光谱分析。K 均值输出标识自然光谱分组。输出产生取值为 0 到 K-1 的整数的簇成员栅格、包含每簇平均光谱的聚类中心文件，以及可选的量化簇内紧密程度的簇内方差；将簇类别叠加到真彩色合成影像上进行可视化可揭示空间模式和簇的连续性。"
+ },
+ "k_nearest_mean_filter": {
+  "name": "K 近邻均值滤波",
+  "desc": "执行保边的 k 近邻均值平滑：按与中心值的距离对邻域排序，对最接近的 k 个值取平均。通过相似性加权实现保边的混合方法。中心像元与其 k-1 个最相似的邻近像元一起取平均。比简单 k-NN 更精细（同时考虑空间和亮度相似性）。相比双边滤波计算更高效。K 近邻方法自适应选择邻近像元：与中心值接近的像元值被平均，差异大的像元被忽略。K 参数控制平滑程度：k=1（不平滑），k=n（所有邻近像元 = 均值滤波）。通常取 k=n/2（邻域的一半）。作为双边滤波的高效替代——以更低的计算成本实现相似的保边效果。对具有强亮度不连续的影像特别有用。应用场景：(1) 保边平滑（双边滤波的替代），(2) 分类的快速预处理，(3) 效率至上的预处理，(4) 多波段影像滤波。典型参数：k=neighborhood_size/2 至 3/4。"
+ },
+ "k_shortest_paths_network": {
+  "name": "K 最短路径（网络）",
+  "desc": "在线状网络上查找起点与终点坐标之间的 k 条最短简单路径。"
+ },
+ "kappa_index": {
+  "name": "Kappa 指数",
+  "desc": "计算两个分类栅格之间的 Cohen's kappa 一致性指标。"
+ },
+ "kernel_density_ratio": {
+  "name": "核密度比率",
+  "desc": "两个核密度面的相对风险比率：用相同的四次核和共享带宽评估分子点图层（病例）和分母点图层（风险人群），然后逐像元相除——类似于 ArcGIS 的 Calculate Kernel Density Ratio 工具。分母下限在人群过于稀疏的位置写入 NoData（不泄漏 inf/NaN），可选的自然对数变换使过高/过低代表性对称化。这是单图层 heat_map 无法表达的密度比率。"
+ },
+ "kernel_interpolation_with_barriers": {
+  "name": "含障碍核插值",
+  "desc": "使用移动窗口核加权多项式拟合对点观测进行插值，其中距离按绕过绝对障碍的最短路径而非直线穿越来度量（ArcGIS Kernel Interpolation With Barriers）。与随附的 diffusion_interpolation_with_barriers 互补，后者求解热传导方程而非应用显式核。两个注册表中的所有其他插值器都使用欧氏距离，因此它们都会直接穿越海岬和断层进行插值。"
+ },
+ "kml_to_features": {
+  "name": "KML 转要素",
+  "desc": "将 .kml/.kmz 中的地标（Placemark）读入点、线和面图层，并保留名称/描述属性。"
+ },
+ "knn_classification": {
+  "name": "kNN 分类",
+  "desc": "K 近邻分类基于光谱空间中 K 个最近训练样本的多数投票将像元分配到类别，实现无需显式模型训练的灵活非线性分类。KNN 计算每个影像像元到所有训练样本的距离（欧氏距离、光谱角或马氏距离），识别 K 个最近的训练样本，应用加权或非加权多数投票确定类别，并返回类别标签和可选的置信度得分。KNN 在训练数据有限、类别边界高度非线性以及类别光谱分布异质（参数模型难以应对）的情况下表现出色。主要特性包括：可选距离度量（欧氏距离、光谱角、马氏距离）以适应不同的光谱特性和相关结构；用户指定的 K 值，可在精度与复杂度之间权衡；加权投票选项，强调较近的样本；可选置信度阈值，可拒绝含糊的分类结果。应用包括使用野外采集训练样本的高精度遥感分类、地面真值有限的小样本分类、光谱特征高度多变的困难地形分类，以及可拒绝边缘决策的置信度感知分类。kNN 分类凭借灵活的训练数据实现高精度结果。输出包括：类别标签栅格（整数类别 ID 与训练样本标签一致）、可选的置信度栅格（记录投票百分比或距离加权置信度得分），以及在最佳 K 选择和充足训练样本下可能超过其他方法的分类精度。"
+ },
+ "knn_regression": {
+  "name": "kNN 回归",
+  "desc": "对多波段输入栅格执行监督式 k 近邻回归。"
+ },
+ "ks_normality_test": {
+  "name": "K-S 正态性检验",
+  "desc": "检验栅格值是否来自正态分布。"
+ },
+ "kuan_filter": {
+  "name": "Kuan 滤波",
+  "desc": "使用参数化方法估计局部均值和方差，对 SAR/雷达影像执行 Kuan 斑点滤波。基于噪声方差和局部影像方差的自适应加权。与 Lee 滤波类似但统计假设不同。广泛使用的业务化 SAR 处理方法。在计算效率与跨各类 SAR 数据的良好效果之间取得平衡。Kuan 滤波假设乘性斑点模型下的高斯统计。适应局部方差——区分信号变化与斑点噪声。对非均质 SAR 影像（明亮与黑暗特征混合）特别有效。计算成本合理。代表了复杂度与计算成本之间的实用折中。是许多 SAR 处理系统中的标准方法。应用场景：(1) 业务化 SAR 去斑，(2) 混合后向散射 SAR 预处理，(3) RadarSat/Sentinel-1 预处理，(4) 常规 SAR 处理。典型参数：filter_size=5×7 至 7×7。"
+ },
+ "kuwahara_filter": {
+  "name": "Kuwahara 滤波",
+  "desc": "Kuwahara 滤波实现非线性保边平滑：将每个像元的邻域划分为四个象限，计算每个象限内的统计量，并选择方差最低的象限的值作为输出。实现将 (2k+1)×(2k+1) 窗口划分为四个重叠的 k×k 子窗口，计算每个象限的均值和方差，并输出方差最小象限的均值。这种基于排序的方法同时平滑均质区域并锐化边缘。主要特性包括：通过象限选择实现真正的边缘保持（象限之间的边缘抑制输出模糊）、仅需均值/方差计算的简单实现、通过象限大小 k 进行参数控制，以及对光学、雷达和热红外影像的有效性。Kuwahara 滤波在以下方面表现出色：平滑 LiDAR 衍生的 DEM 同时保留陡坎和台地、从高分辨率影像提取道路网络并保持中心线清晰、从航空照片勾绘建筑物轮廓，以及在 SAR 影像中检测溢油边界。输出解读表明：均质区域输出自然平均的象限（方差最低）；边缘输出包含最靠近边缘的均质结构的象限，实际上将输出锚定在更干净的一侧。象限大小 k 控制细节保持程度：k=1（最小平滑）保留精细边缘；k=3-4 提供平滑与边缘保持的平衡；k>5 有细节丢失风险。输出值与所选象限的输入像元值完全一致（无插值）。监测输出直方图中的双峰分布（边缘和均质区域清晰分离）；单峰分布提示边缘模糊。如果出现过度平滑，可配合锐化处理。常见伪影包括取决于象限对齐方式的方向偏差以及弱边缘附近的块状效应。可在分割预处理中使用，保边特性可确保边界提取的准确性。"
+ },
+ "land_surface_temperature_single_channel": {
+  "name": "地表温度（单通道）",
+  "desc": "单通道热红外地表温度反演通过辐射传输方程求逆估算辐射表面温度。传感器 DN 值使用传感器特定的定标系数转换为光谱辐射亮度；辐射亮度使用波段特定的热常数通过普朗克函数反演为亮温；亮温再通过经验发射率校正转换为物理地表温度（LST）。发射率可由植被指数推导或直接提供，以校正随材质而异的热发射率变化。主要特性：仅需单个热红外波段；辐射处理简单；计算快速；无需多通道；基于植被指数的发射率估计；直接输出物理温度。使用场景：城市热岛制图；干旱胁迫监测；地热特征探测；野火热信号追踪；农业用水管理。输出解读：输出为辐射表面温度，单位为开尔文（若转换则为摄氏度）。单通道反演无法完全去除大气水汽影响；残余大气偏差通常为 2-5 K。发射率误差直接传播：±0.05 的发射率误差 ≈ ±1-2 K 的温度误差。基于植被的发射率随 NDVI 变化；裸土的发射率低于植被。时间序列 LST 揭示升降温趋势；LST 异常超过背景 ±5K 表示热特征。"
+ },
+ "land_surface_temperature_split_window": {
+  "name": "地表温度（劈窗法）",
+  "desc": "劈窗地表温度（LST）反演使用双热红外波段，通过辐射传输方程求逆同时估算地表温度和发射率。两个波段之间（通常在 10-12 μm 区间）的大气吸收差异可实现大气水汽校正，精度优于单通道方法。两个波段的亮温使用基于植被覆盖度的发射率参数化或用户提供的发射率栅格进行反演。主要特性：需要双热红外波段；通过差分吸收进行大气校正；同时反演温度/发射率；针对标准传感器有已发表的算法；大气补偿效果优于单通道。使用场景：城市热岛制图；农业干旱探测；地热特征探测；陆地-大气相互作用研究；火山/热异常探测。输出解读：输出为经改进大气校正的地表辐射温度。劈窗反演将大气水汽偏差降低到 1-2 K 以内，而单通道误差为 2-5 K。温度/发射率权衡仍然存在：高植被指数区域呈现低发射率，需要谨慎解读。非均质表面（植被/土壤混合）显示中间值。时间一致性提高了变化检测的可靠性；LST 趋势超过 ±3K 表示显著的热变化。"
+ },
+ "landtrendr": {
+  "name": "LandTrendr",
+  "desc": "对年度影像序列执行 LandTrendr 时间分割（类似于 ArcGIS 的 Analyze Changes Using LandTrendr 工具）：去尖峰、基于顶点的贪心分段线性拟合，以及逐像元提取最大干扰（年份、幅度、持续时间）。这是两时相的 change_vector_analysis 和单趋势的 generate_trend_raster 无法实现的逐像元变化历史分割。"
+ },
+ "laplacian_filter": {
+  "name": "拉普拉斯滤波",
+  "desc": "拉普拉斯滤波计算影像亮度的二阶空间导数，通过各向同性（全方向）梯度测量提供强大的边缘检测能力。实现应用一个逼近拉普拉斯算子的固定卷积核（x 和 y 方向二阶导数之和），无论边缘方向如何都能捕捉亮度变化。与方向性滤波器不同，该方法对所有边缘方向一视同仁，非常适合需要方向无关性的特征检测。其数学基础是离散逼近：∇²I ≈ I(x+1,y) + I(x-1,y) + I(x,y+1) + I(x,y-1) - 4·I(x,y)。主要特性包括：过零检测能力（真实边缘出现在输出过零处）、对边缘方向不敏感，以及能以相同方式检测由暗到亮和由亮到暗的过渡。拉普拉斯滤波在以下方面表现出色：结构边界表现为过零点的地质制图、植被边界勾绘、从高分辨率影像提取道路网络，以及建筑物轮廓检测。输出解读的核心在于理解符号变化：强正值表示局部暗极小值，负值表示局部亮极大值，过零点标记真实边缘。对于 8 位源影像，典型输出范围为 -1000 到 +1000，取决于局部对比度。输出幅度高表示边缘清晰、界定良好；幅度低表示过渡平缓。过零检测需要仔细选择阈值。注意拉普拉斯对噪声敏感（会放大高频噪声），因此通常建议在应用前先进行高斯平滑预滤波。"
+ },
+ "laplacian_of_gaussians_filter": {
+  "name": "高斯-拉普拉斯（LoG）滤波",
+  "desc": "执行高斯-拉普拉斯（LoG）边缘增强，将高斯平滑与拉普拉斯边缘检测相结合。计算上通过高斯差（DoG）近似实现。先平滑影像（降低噪声），再应用拉普拉斯（检测边缘）。经典的多尺度边缘检测技术。对 LoG 输出进行过零检测可确定精确的边缘位置。LoG 是尺度空间边缘检测的标准方法：高斯去除噪声，拉普拉斯放大边缘。Sigma 参数控制所检测边缘的尺度：小 sigma 检测精细边缘，大 sigma 检测宽大边缘。为提高效率，LoG 通过 DoG 近似实现。多个 sigma 值可实现多尺度边缘检测（识别不同尺度的特征）。应用场景：(1) 稳健的边缘检测（抗噪声），(2) 多尺度边缘检测（使用多个 sigma），(3) 过零边缘定位，(4) 分割预处理，(5) 通过 LoG 过零点进行斑点检测。工作流程：应用 LoG→识别过零点→追踪边缘→矢量化或进一步处理。"
+ },
+ "las_height_metrics": {
+  "name": "LAS 高度指标",
+  "desc": "从 LiDAR 高度按像元栅格化冠层高度指标（类似于 ArcGIS 的 LAS Height Metrics 工具）：均值、标准差、偏度、峰度、MAD 以及高度百分位数，输出为多波段栅格——这是随附的 height_above_ground 和 lidar_point_stats 无法一次性输出的林业矩/百分位数指标集。"
+ },
+ "las_to_ascii": {
+  "name": "LAS 转 ASCII",
+  "desc": "格式转换：LAS→CSV 输出。将所有点属性导出为分隔文本，以便导入电子表格/数据库或用于脚本处理。"
+ },
+ "las_to_shapefile": {
+  "name": "LAS 转 Shapefile",
+  "desc": "将 LAS/LAZ 点云转换为矢量点 shapefile。"
+ },
+ "layer_footprint_raster": {
+  "name": "栅格图层范围面",
+  "desc": "创建表示输入栅格完整范围的面轮廓。"
+ },
+ "layer_footprint_vector": {
+  "name": "矢量图层范围面",
+  "desc": "创建表示输入矢量图层完整外接范围的面轮廓。"
+ },
+ "lee_filter": {
+  "name": "Lee 滤波",
+  "desc": "Lee 滤波使用 Lee 的乘性模型进行 SAR 斑点抑制，假设雷达回波遵循乘性噪声：I = S·N，其中 S 为信号，N 为乘性噪声。实现计算局部均值和方差，估计斑点方差，然后按以下公式滤波：F = μ + (1 - σₙ²/σ_I²)·(I - μ)，其中 σₙ² 为斑点方差，σ_I² 为总方差。这种基于模型的方法在抑制斑点的同时保留高相干特征。主要特性包括：SAR 专用噪声模型（乘性而非高斯）、保留点目标和边缘、参数解释直观（窗口大小控制相干性测量范围），以及在单极化和多极化 SAR 上的成熟效果。Lee 滤波在农业监测、森林分类、海面监测和洪水制图等 SAR 预处理工作流中表现出色。输出解读表明：高相干区域（点目标、强边缘）滤波程度最小；低相干区域（斑点噪声、弱边界）滤波程度大。斑点方差估计影响输出：准确估计需要足够的均质像元；方差被低估会导致平滑不足；方差被高估会导致过度平滑。窗口大小控制相干性测量的分辨率：小窗口（3×3）保留精细细节；大窗口（7×7）改善方差估计但存在细节丢失风险。输出比例与输入一致；对数可视化可增强可读性。典型噪声抑制视视数而定可实现 5-10 dB 的方差下降。监测输出直方图中残留的斑点特征；平滑的分布表明滤波充分。伪影包括弱相干区域的潜在边缘模糊以及线性要素上的方向偏差。可在需要抑制斑点同时保持分类特征完整性的 SAR 分类中策略性地应用。"
+ },
+ "length_of_upstream_channels": {
+  "name": "上游河道长度",
+  "desc": "计算上游河道总长度。"
+ },
+ "less_than": {
+  "name": "小于",
+  "desc": "逐像元检验第一个栅格是否小于第二个栅格。"
+ },
+ "less_than_or_equal_to": {
+  "name": "小于等于",
+  "desc": "逐像元检验第一个栅格是否小于或等于第二个栅格。"
+ },
+ "lidar_block_maximum": {
+  "name": "LiDAR 块最大值",
+  "desc": "由 LiDAR 属性最大值生成栅格：像元值 = 最高点回波（高程、强度、类别等）。用于 DSM 生成、冠层顶部提取和脉冲统计。"
+ },
+ "lidar_block_minimum": {
+  "name": "LiDAR 块最小值",
+  "desc": "由 LiDAR 属性最小值生成栅格：像元值 = 最低点回波（高程、强度、类别）。用于 DEM 生成、地面提取和地形基准面确定。"
+ },
+ "lidar_classify_subset": {
+  "name": "LiDAR 子集分类",
+  "desc": "传递分类结果：将基准点云中与子集点云位置匹配的点进行标记。允许基于辅助点集进行空间重分类。"
+ },
+ "lidar_colourize": {
+  "name": "LiDAR 着色",
+  "desc": "从影像为点赋色：在每个点位置对重叠的正射影像/地理配准影像采样，并存储为 RGB。用于照片级真实感点云渲染。"
+ },
+ "lidar_construct_vector_tin": {
+  "name": "LiDAR 构建矢量 TIN",
+  "desc": "构建三维网格：由过滤后的点进行 Delaunay 三角剖分，并输出为矢量面图层。用于表面表达和地形分析。"
+ },
+ "lidar_contour": {
+  "name": "LiDAR 等高线",
+  "desc": "提取等高线矢量线：基于 TIN 的等高线追踪，可对高程、强度、时间进行插值。等高距和边缘长度过滤均可配置。"
+ },
+ "lidar_convert": {
+  "name": "LiDAR 格式转换",
+  "desc": "在 LAS、LAZ 和 COPC 之间转换 LiDAR 点云。输出格式由输出文件扩展名决定：.las（未压缩）、.laz（LASzip 压缩）或 .copc.laz（云优化点云，可被 Web 查看器流式读取）。"
+ },
+ "lidar_digital_surface_model": {
+  "name": "LiDAR 数字表面模型",
+  "desc": "通过 TIN 从 LiDAR 顶部表面回波生成 DSM：在半径范围内使用局部最高点候选，然后进行三角剖分。用于植被冠层和地物顶部的表达。"
+ },
+ "lidar_eigenvalue_features": {
+  "name": "LiDAR 特征值特征",
+  "desc": "推导 PCA 特征：从邻域计算特征值/特征向量。提供用于点云分析的形状描述子（平面度、线性度、高度方差）。"
+ },
+ "lidar_elevation_slice": {
+  "name": "LiDAR 高程切片",
+  "desc": "提取高程带内的点：过滤或重分类 z 范围内的点。用于分离特定层（地面、林下、冠层）或高程带。"
+ },
+ "lidar_grid_thin": {
+  "name": "LiDAR 网格抽稀",
+  "desc": "通过流式处理将 LiDAR 点云抽稀到每个网格像元至多 `points_per_cell` 个点（默认一个），使峰值内存随输出而非输入规模增长。可处理包含数千万点的 LAS/LAZ/COPC 分块，而随附的 lidar_thin 在 32 位 WebAssembly 标签页中无法加载这些数据。"
+ },
+ "lidar_ground_point_filter": {
+  "name": "LiDAR 地面点滤波",
+  "desc": "将地形与非地面点分离：基于坡度的分类/滤波，利用局部平面几何和高度阈值。高效的地面分割。"
+ },
+ "lidar_hex_bin": {
+  "name": "LiDAR 六边形分箱",
+  "desc": "将点聚合到六边形：分箱网格并提供逐格汇总（计数、平均 z、强度）。用于均匀采样和统计分箱。"
+ },
+ "lidar_hillshade": {
+  "name": "LiDAR 山体阴影",
+  "desc": "通过山体阴影渲染 LiDAR 表面：从局部平面拟合计算逐点表面法线，再按光照角度着色。存储为 RGB 以供三维可视化。"
+ },
+ "lidar_histogram": {
+  "name": "LiDAR 直方图",
+  "desc": "计算属性分布：高程、强度、扫描角、类别的频率直方图。使用截断百分位数抑制离群值。HTML 可视化。"
+ },
+ "lidar_idw_interpolation": {
+  "name": "LiDAR 反距离权重（IDW）插值",
+  "desc": "距离加权的 LiDAR 栅格化：由周围点的加权均值（反距离幂）赋像元值。生成平滑表面，可通过幂参数控制。"
+ },
+ "lidar_info": {
+  "name": "LiDAR 信息",
+  "desc": "生成元数据摘要报告：点数、范围、强度范围、类别直方图、回波分布。输出 HTML/文本用于数据记录。"
+ },
+ "lidar_join": {
+  "name": "LiDAR 合并",
+  "desc": "合并多个 LiDAR 文件：拼接点云，同时保持属性和文件头一致性。支持跨分块集合的批处理。"
+ },
+ "lidar_kappa": {
+  "name": "LiDAR Kappa",
+  "desc": "计算两个已分类 LiDAR 点云之间的 kappa 一致性报告，并写入类别一致性栅格。"
+ },
+ "lidar_nearest_neighbour_gridding": {
+  "name": "LiDAR 最邻近栅格化",
+  "desc": "快速 LiDAR 栅格化：在搜索半径内由最近点赋像元值。插值偏差最小，对高密度点云高效。可快速生成 DSM/DEM。"
+ },
+ "lidar_point_density": {
+  "name": "LiDAR 点密度",
+  "desc": "对 LiDAR 采样强度进行制图：每单位面积的点数（每像元在半径内的计数）。用于数据质量评估、覆盖范围分析和采集模式可视化。"
+ },
+ "lidar_point_return_analysis": {
+  "name": "LiDAR 点回波分析",
+  "desc": "QA 工具：审核回波序列有效性（多次/首次/末次回波一致性）。生成报告并输出标记回波异常的分类结果。数据完整性检查。"
+ },
+ "lidar_point_stats": {
+  "name": "LiDAR 点统计",
+  "desc": "创建栅格统计网格：每像元的点数、脉冲数、每脉冲平均点数、z/强度范围以及主要类别。多输出分析。"
+ },
+ "lidar_radial_basis_function_interpolation": {
+  "name": "LiDAR 径向基函数插值",
+  "desc": "通过 RBF 平滑 LiDAR 表面：径向基函数捕捉局部曲率和微地形。高质量的栅格化，跨边界导数连续。"
+ },
+ "lidar_ransac_planes": {
+  "name": "LiDAR RANSAC 平面",
+  "desc": "使用邻域 RANSAC 平面拟合识别局部平面状的 LiDAR 点。"
+ },
+ "lidar_remove_outliers": {
+  "name": "LiDAR 去除离群点",
+  "desc": "通过局部高程残差检测离群点：将点与邻域均值/中值比较，标记异常。去除突发的粗差和噪声。"
+ },
+ "lidar_rooftop_analysis": {
+  "name": "LiDAR 屋顶分析",
+  "desc": "识别建筑物轮廓内的平面屋顶段，并输出带屋顶属性的段面。"
+ },
+ "lidar_segmentation": {
+  "name": "LiDAR 分割",
+  "desc": "对点云分区：RANSAC 平面拟合 + 区域生长生成连通分量。分割 ID 存储在 RGB 中。基于形状的点聚类。"
+ },
+ "lidar_segmentation_based_filter": {
+  "name": "LiDAR 基于分割的滤波",
+  "desc": "通过低起伏分割进行地面滤波：从局部平坦区域生长连通分量，将地形与植被分离。稳健的地面分离。"
+ },
+ "lidar_shift": {
+  "name": "LiDAR 平移",
+  "desc": "平移点云坐标：x/y/z 偏移用于基准转换、配准校正或坐标系变换。批量坐标调整。"
+ },
+ "lidar_sibson_interpolation": {
+  "name": "LiDAR Sibson 插值",
+  "desc": "自然邻域 LiDAR 栅格化：使用自然邻域权重的基于 Voronoi 的插值。生成平滑、自然的表面，在点位处无坡度伪影。"
+ },
+ "lidar_thin": {
+  "name": "LiDAR 抽稀",
+  "desc": "降低点云密度：使用首次/末次/最低/最高/最近策略在每个网格像元保留 ≤1 个点。在保留覆盖范围和地形复杂性的同时减少存储。"
+ },
+ "lidar_thin_high_density": {
+  "name": "LiDAR 高密度抽稀",
+  "desc": "自适应密度抽稀：在过度密集区域减少点数，同时保留稀疏区域。均衡跨不同航线重叠模式的采样。"
+ },
+ "lidar_tile": {
+  "name": "LiDAR 分块",
+  "desc": "将点云分割为规则网格分块：按 x/y 范围划分，尺寸和最小点数阈值可配置。用于标准的数据分发和处理。"
+ },
+ "lidar_tile_footprint": {
+  "name": "LiDAR 分块轮廓",
+  "desc": "生成轮廓：每个点云的轴对齐外接矩形或凸包。输出矢量面用于空间索引和数据编目。"
+ },
+ "lidar_tin_gridding": {
+  "name": "LiDAR TIN 栅格化",
+  "desc": "通过 TIN 进行精确的 LiDAR 插值：由点构建 Delaunay 三角剖分，从三角形平面插值像元值。尊重点高程，非常适合不规则覆盖区域。"
+ },
+ "lidar_tophat_transform": {
+  "name": "LiDAR Top-hat 变换",
+  "desc": "通过形态学白顶帽（white top-hat）提取离地高度：腐蚀 + 膨胀近似局部地面，残差即高度。无需地面数据的归一化。"
+ },
+ "line_density": {
+  "name": "线密度",
+  "desc": "每个栅格像元周围圆形邻域内线要素的密度（单位面积长度）——道路、河流或断层密度——通过将每条线段裁剪到搜索半径圆（闭式解）并将加权长度之和除以 pi*r^2 计算。类似于 ArcGIS 的 Line Density 工具；这是随附的仅针对点的 heat_map 和基于类别的 edge_density 所缺少的矢量线对应工具。"
+ },
+ "line_detection_filter": {
+  "name": "线状检测滤波",
+  "desc": "线状检测滤波是一种专用的边缘检测器，通过应用针对线连通性和连续性优化的方向卷积核，增强四个基本方向（水平、垂直和两个对角线）上的线性要素——道路、河流、电力线和地质线性构造。该滤波器采用 3×3 卷积核，强调与每个基本方向对齐的线性结构，同时抑制垂直方向上的噪声和随机要素变化。方向性方法按朝向分离检测结果，使下游应用能够区分水平基础设施（管道、田块边界）与垂直结构（树行、管线廊道）。主要特性包括：多方向分解，生成独立的幅度和方向波段；针对线宽和对比度变化的自适应灵敏度调节；以及对嵌入复杂地形中的细微线性要素的出色检测能力。使用场景涵盖基础设施制图（道路、铁路、电力线）、自然要素提取（河流、山脊、断层）和土地利用边界勾绘。应用包括面向地籍数字化的矢量转换预处理、从正射影像提取交通网络、从卫星影像进行地质构造制图，以及遥感分析中的模式识别。输出解读需要理解每个方向分量揭示该特定方向上的线强度——应检查全部四个方向输出以识别主导要素方向。较高的幅度值表示较强的线连续性；低值提示噪声或断裂。输出天然稀疏，仅突出表示线性要素的像元；背景区域保持接近零。多方向输出支持后分类处理，可将道路（建成区通常为水平/垂直）与自然线性构造（任意朝向）区分开。可合并方向分量生成统一的线状图，或分别分析各方向以进行定向结构制图。"
+ },
+ "line_intersections": {
+  "name": "线相交",
+  "desc": "查找输入图层与叠加图层之间的线交点，并追加父要素 ID 和合并后的属性。"
+ },
+ "line_of_sight": {
+  "name": "视线分析",
+  "desc": "基于 DEM 的点对点通视：对每个观察者-目标对输出视线（分为可见和受阻段）以及目标可见标志，类似于 ArcGIS 的 Line Of Sight 工具。"
+ },
+ "line_polygon_clip": {
+  "name": "线面裁剪",
+  "desc": "将线要素裁剪到面内部，并输出裁剪后的线段。"
+ },
+ "line_statistics": {
+  "name": "线统计",
+  "desc": "对线属性进行邻域统计并栅格化（均值、众数、中值、最小/最大值、极差、种类数或总长度），方法是将每条线段裁剪到搜索半径圆并按长度加权——类似于 ArcGIS 的 Line Statistics 工具；这是随附工具集缺少的 line_density 的属性表面版本。"
+ },
+ "line_thinning": {
+  "name": "线状要素细化",
+  "desc": "将连通的二值栅格要素缩减为一个像元宽的骨架线。"
+ },
+ "linear_spectral_unmixing": {
+  "name": "线性光谱解混",
+  "desc": "线性光谱解混将每个像元的多光谱向量分解为代表纯物质光谱的端元的非负线性组合。非负最小二乘优化在 x ≥ 0 约束下求解 min ||y - Ax||²，其中 y 为像元光谱，A 包含端元光谱，x 表示丰度比例。强制和为一约束，确保丰度值代表物理比例。端元可来自训练数据、光谱库数据库，或通过端元提取算法提取。主要特性：亚像元物质估计；丰度比例具有物理解释；支持多个端元；输出约束在有效范围 [0,1] 内；支持物质变化检测。使用场景：土地覆盖丰度制图；矿物成分估算；城市物质清查；植被/土壤/不透水面比例；基于光谱库的分类。输出解读：输出的丰度图显示每像元的物质比例，总和为 1.0。丰度 <0.1 表示次要成分；丰度 >0.7 表示主导物质。残差误差指示解混质量；低残差表示光谱拟合良好；高残差表示端元不匹配或像元组成复杂。"
+ },
+ "linearity_index": {
+  "name": "线性度指数",
+  "desc": "计算面要素的线性度指数（回归 R²）。"
+ },
+ "lines_to_polygons": {
+  "name": "折线转面",
+  "desc": "将折线要素转换为面要素，第一部分作为外环，后续部分作为洞。"
+ },
+ "list_unique_values": {
+  "name": "列出唯一值",
+  "desc": "列出矢量属性字段中的唯一值及其出现频数。"
+ },
+ "list_unique_values_raster": {
+  "name": "列出唯一值（栅格）",
+  "desc": "列出栅格中的有效唯一类别及其出现频数。"
+ },
+ "ln": {
+  "name": "自然对数",
+  "desc": "计算每个栅格像元的自然对数。"
+ },
+ "local_bivariate_relationships": {
+  "name": "局部双变量关系",
+  "desc": "针对每个要素，基于局部线性与二次拟合、熵削减依赖统计量以及带种子的置换检验 p 值，对两个变量在其局部邻域内的关系进行分类（不显著、正/负线性、凹形、凸形、未定义），类似于 ArcGIS 的 Local Bivariate Relationships。"
+ },
+ "local_hypsometric_analysis": {
+  "name": "局部高程积分分析",
+  "desc": "在非线性采样的邻域尺度范围内计算最小局部高程积分。"
+ },
+ "local_kriging": {
+  "name": "局部普通克里金法",
+  "desc": "使用 k 近邻执行局部普通克里金插值，为大型数据集提供高效的空间估计。对于包含数千个点的数据集，这种方法比全局普通克里金法在计算上更为实用。"
+ },
+ "local_morans_i_lisa": {
+  "name": "局部莫兰指数（LISA）",
+  "desc": "为每个要素计算局部莫兰指数（Local Moran's I），通过统计显著性检验识别局部空间聚类和异常值。"
+ },
+ "local_morans_i_lisa_raster": {
+  "name": "局部莫兰指数（LISA）- 栅格输出",
+  "desc": "基于点数据计算 LISA 聚类分析，并输出分类栅格（HH/LL/HL/LH/NS），支持基于栅格的集成分析。"
+ },
+ "local_outlier_analysis": {
+  "name": "局部异常值分析",
+  "desc": "时空局部异常值分析（在 H3 时空立方体上运行 Anselin 局部莫兰指数）：使用带种子的置换检验 p 值，将每个像元 × 时间箱分类为高高/低低聚类或高低/低高异常值，然后按时间对每个像元进行汇总——类似于 ArcGIS 的 Local Outlier Analysis。它是内置仅空间 local_morans_i_lisa 的时空扩展。"
+ },
+ "local_polynomial_interpolation": {
+  "name": "局部多项式插值",
+  "desc": "在每个像元处的核加权移动邻域内拟合 1/2/3 阶多项式，生成预测面、预测标准误差面或条件数面。与内置的全局 trend_surface 不同，多项式在局部重新拟合。类似于 ArcGIS 的 Local Polynomial Interpolation。"
+ },
+ "locate_lines_along_routes": {
+  "name": "沿路线定位线",
+  "desc": "将线或面要素叠加到实测路线上，生成带起讫量测值的线事件（RID、FMEAS、TMEAS），类似于 ArcGIS 的 Locate Features Along Routes（线/面事件）。"
+ },
+ "locate_points_along_routes": {
+  "name": "沿路线定位点",
+  "desc": "在路线线上定位点要素，并写入路线量测属性。"
+ },
+ "locate_regions": {
+  "name": "定位区域",
+  "desc": "从适宜性栅格中查找目标区域的最佳连续区域（类似于 ArcGIS 的 Locate Regions）：从适宜性峰值出发采用最佳优先的区域生长，并带形状/紧凑度控制和区域间距约束——这是将 fuzzy_overlay/weighted_overlay 表面转化为实际区域的选址步骤，而聚块和阈值化无法做到这一点。"
+ },
+ "location_allocation_network": {
+  "name": "位置分配（网络）",
+  "desc": "通过网络成本选择 k 个设施并分配需求点，支持贪婪或精确求解、可选容量约束，以及必选/禁用候选设施约束。"
+ },
+ "log10": {
+  "name": "常用对数",
+  "desc": "计算每个栅格像元的以 10 为底的对数。"
+ },
+ "log2": {
+  "name": "以 2 为底对数",
+  "desc": "计算每个栅格像元的以 2 为底的对数。"
+ },
+ "logistic_regression": {
+  "name": "逻辑回归",
+  "desc": "对多波段输入栅格执行监督逻辑回归分类。"
+ },
+ "long_profile": {
+  "name": "纵剖面",
+  "desc": "创建河流纵剖面。"
+ },
+ "long_profile_from_points": {
+  "name": "由点生成纵剖面",
+  "desc": "由矢量点创建纵剖面。"
+ },
+ "longest_flowpath": {
+  "name": "最长流路",
+  "desc": "为流域栅格中的每个流域勾绘最长流路线。"
+ },
+ "low_points_on_headwater_divides": {
+  "name": "源头分水岭低点",
+  "desc": "定位相邻源头子流域之间分水岭上的低鞍点。"
+ },
+ "lowest_position": {
+  "name": "最低位置",
+  "desc": "返回在每个像元处包含最低值的栅格堆栈索引（从零开始）。"
+ },
+ "majority_filter": {
+  "name": "众数滤波",
+  "desc": "为每个像元计算移动窗口的众数（出现频次最高的值/类别）。这是一种保留类别边界和主导图案的非线性滤波。对于分类影像尤为有用，因为其输出必须保持在原始类别集合内（不同于会产生插值新值的均值滤波）。是分类结果形态学清理的必备工具。\n\n众数滤波是中值滤波基于众数的等价方法。对于类别数据（分类影像、土地覆盖），众数滤波在平滑噪声的同时保留类别定义；对于连续数据，众数滤波可以揭示值分布中的局部峰值。之后通常接少数类别消除（分类后清理）以去除“椒盐”分类伪影。\n\n应用场景：(1) 分类后平滑（去除小的虚假类别图斑）；(2) 从多种分类输出中生成众数类别图；(3) 矢量数据清理（类别细分）；(4) 阈值化影像中的噪声抑制；(5) 分割输出中的属性平滑。典型工作流：分类 → 众数滤波 → 少数类别消除 → 最终清理后的图。"
+ },
+ "map_features": {
+  "name": "隆起地形特征制图",
+  "desc": "使用降优先级区域生长从栅格中勾绘离散的隆起地形特征。"
+ },
+ "map_matching_v1": {
+  "name": "地图匹配（v1）",
+  "desc": "将轨迹点捕捉到线状网络上并重建推断的路线，同时输出诊断信息。"
+ },
+ "map_off_terrain_objects": {
+  "name": "非地形对象制图",
+  "desc": "使用坡度约束区域生长和可选的最小要素尺寸过滤，在 DSM 中勾绘非地形对象片段。"
+ },
+ "matched_filter_target_detection": {
+  "name": "匹配滤波目标探测（CEM/ACE）",
+  "desc": "利用场景统计信息抑制背景，对多波段图像的每个像元相对于已知目标光谱进行评分——约束能量最小化（CEM）或自适应相干估计器（ACE）——并可选生成百分位阈值掩膜，类似于 ArcGIS 的 Detect Target Using Spectra。"
+ },
+ "max": {
+  "name": "最大值",
+  "desc": "对两个栅格或一个栅格与一个常量值执行 MAX 运算。"
+ },
+ "max_absolute_overlay": {
+  "name": "最大绝对值叠加",
+  "desc": "计算栅格堆栈中每个像元的最大绝对值，若任一输入像元为 NoData 则传播 NoData。"
+ },
+ "max_anisotropy_dev": {
+  "name": "最大各向异性偏差",
+  "desc": "在一系列邻域尺度上计算高程偏差的最大各向异性。由 Dan Newman 编写。"
+ },
+ "max_anisotropy_dev_signature": {
+  "name": "最大各向异性偏差特征",
+  "desc": "计算输入点位的多尺度各向异性特征，并输出 HTML 报告。由 Dan Newman 编写。"
+ },
+ "max_branch_length": {
+  "name": "最大分支长度",
+  "desc": "计算相邻 D8 流路之间的最大分支长度，可用于突出分水岭。"
+ },
+ "max_difference_from_mean": {
+  "name": "与均值最大差异",
+  "desc": "在一系列邻域尺度上计算与均值的最大绝对差异。"
+ },
+ "max_downslope_elev_change": {
+  "name": "最大下坡高程变化",
+  "desc": "计算到较低相邻像元的最大高程降幅。"
+ },
+ "max_elev_dev_signature": {
+  "name": "最大高程偏差特征",
+  "desc": "计算输入点位的多尺度高程偏差特征，并输出 HTML 报告。"
+ },
+ "max_elevation_deviation": {
+  "name": "最大高程偏差",
+  "desc": "在一系列邻域尺度上计算最大标准化高程偏差（DEVmax）。"
+ },
+ "max_overlay": {
+  "name": "最大值叠加",
+  "desc": "计算栅格堆栈中每个像元的最大值，若任一输入像元为 NoData 则传播 NoData。"
+ },
+ "max_upslope_elev_change": {
+  "name": "最大上坡高程变化",
+  "desc": "计算到较高相邻像元的最大高程升幅。"
+ },
+ "max_upslope_flowpath_length": {
+  "name": "最大上坡流路长度",
+  "desc": "计算经过每个 DEM 像元的最大上坡流路长度。"
+ },
+ "max_upslope_value": {
+  "name": "最大上坡值",
+  "desc": "沿 DEM 上的 D8 流路传播最大上坡值。"
+ },
+ "maximal_curvature": {
+  "name": "最大曲率",
+  "desc": "由 DEM 计算最大（最大主）曲率。"
+ },
+ "maximum_filter": {
+  "name": "最大值滤波",
+  "desc": "计算移动窗口的最大值，揭示局部峰值和山脊。这是形态学图像处理中的膨胀算子。适用于检测峰值、山脊线和最大振幅特征。对单个离群值敏感（窗口内一个高值即会产生高输出）。\n\n最大值滤波是形态学的“膨胀”算子——扩张亮部区域、收缩暗部区域。反复应用（多遍膨胀）会形成平滑的峰值，孤立特征会生长至填满其邻域。与最小值滤波结合可实现闭运算（先膨胀后腐蚀）和开运算（先腐蚀后膨胀）。是形态学特征检测和多尺度分析的基础。\n\n应用场景：(1) 用于尺寸过滤的形态学膨胀；(2) 通过膨胀→腐蚀的闭运算填充小孔洞；(3) 地形与影像中的峰值/山脊识别；(4) 水深测量/DEM 中的局部上界；(5) 多尺度特征分析（比较不同尺度下的膨胀结果）。典型工作流：最大值滤波 → 与最小值滤波结果比较 → 根据特征类型选择闭运算或开运算。"
+ },
+ "maximum_likelihood_classification": {
+  "name": "最大似然分类",
+  "desc": "高斯最大似然监督分类器：将每个训练类别建模为多元正态分布（各类别均值 + 协方差），按最大高斯对数似然对多波段图像的每个像元进行分类，支持等先验/样本先验权重（可选），并可输出逐像元概率/置信度栅格、剔除置信度最低的像元，类似于 ArcGIS 的 Maximum Likelihood Classification。"
+ },
+ "mdinf_flow_accum": {
+  "name": "MD-Infinity 汇流累积量",
+  "desc": "带坡度梯度权重（指数 1.1）的多流向汇流累积量。兼顾弥散的真实性与主汇流的识别。输出形式：像元数、CA 或 SCA。"
+ },
+ "mean_curvature": {
+  "name": "平均曲率",
+  "desc": "计算平均曲率（主曲率的平均值）。与总曲率相关，但更强调表面平滑程度。值接近 0 表示地形平滑；高值表示曲率急剧变化。适用于表面特征描述和断线检测。"
+ },
+ "mean_filter": {
+  "name": "均值滤波",
+  "desc": "为每个像元计算移动窗口的均值（平均数）。这是一种基本的平滑运算，在降低局部噪声的同时会模糊尖锐的过渡。输出代表局部集中趋势。广泛用于预处理、降噪和多尺度分析。\n\n均值滤波是最常见的低通平滑运算。它对离群值高度敏感（极端值会扭曲结果），因此对于含噪数据更适合使用中值滤波。计算效率高。滤波尺寸控制平滑程度：小窗口（3×3）保留细节，大窗口（31×31 及以上）会产生重度平滑的表面。常进行迭代应用或在多个尺度上应用以进行多分辨率分析。\n\n应用场景：(1) 基本降噪；(2) 特征检测前的预处理（平滑虚假响应）；(3) 多尺度分析（分别以 3×3、11×11、31×31 应用）；(4) 时序平滑（多景合成）；(5) 作为其他统计运算的基准。可与中值滤波（非线性、保留边缘）比较以获得更好的边缘保持效果。"
+ },
+ "median_center": {
+  "name": "中位数中心",
+  "desc": "几何中位数（Weiszfeld 点，使到所有输入点的欧氏距离之和最小，可选加权）——每个案例组一个稳健的中心点，可选输出各字段的中位数属性（ArcGIS Median Center）。"
+ },
+ "median_filter": {
+  "name": "中值滤波",
+  "desc": "为每个像元计算移动窗口的中值，用邻域的第 50 百分位数替换原值。这是一种保留边缘的稳健噪声滤波（非线性）。特别适合去除脉冲噪声（椒盐噪声），同时保持清晰的边界。输出值为邻域中真实的像元值（而非插值）。\n\n中值滤波是非线性的——这是其在降噪方面相对于均值滤波的关键优势，因为它不会产生新值也不会模糊边缘。大滤波尺寸在重度平滑的同时保留尖锐过渡。广泛用于遥感、医学影像和 SAR 图像处理。计算成本随滤波尺寸增大而增加，但通常快于双边滤波或导向滤波。\n\n应用场景：(1) SAR 图像斑点噪声抑制（对相位相干尤为有效）；(2) 椒盐噪声去除；(3) 边缘检测前的预处理（减少虚假边缘）；(4) 分类预处理中的边界保持；(5) 针对离群值的辐射校正。典型工作流：应用中值滤波 → 边缘增强输出 → 阈值化提取特征。"
+ },
+ "medoid": {
+  "name": "中心点",
+  "desc": "由矢量几何计算中心点（medoid）。"
+ },
+ "merge_divided_roads": {
+  "name": "合并分隔道路",
+  "desc": "将匹配成对的分隔道路车道替换为单条中心线，同时保留交叉口连通性；仅配对共享合并字段且在分隔距离内反向平行的车道，并输出位移面供 propagate_displacement 使用。类似于 ArcGIS 的 Merge Divided Roads。"
+ },
+ "merge_line_segments": {
+  "name": "合并线段",
+  "desc": "合并在非分支端点处相接的连接线段。"
+ },
+ "merge_lines_by_pseudo_node": {
+  "name": "按伪节点合并线",
+  "desc": "将在度数为 2 的伪节点处相接的线段链融合为单条折线，保留真实交点，并（可选）保留属性断点。"
+ },
+ "merge_multidimensional_rasters": {
+  "name": "合并多维栅格",
+  "desc": "将多个配准一致的栅格立方体按维度坐标排序连接为一个，并逐像元解决重复坐标问题（ArcGIS Merge Multidimensional Rasters）。aggregate_multidimensional_raster 对立方体进行归约，composite_bands 将单波段栅格堆叠为波段，但此前没有任何工具能沿共享维度连接立方体。"
+ },
+ "merge_table_with_csv": {
+  "name": "合并 CSV 表",
+  "desc": "通过键字段将 CSV 表中的属性合并到矢量属性表中。"
+ },
+ "merge_vectors": {
+  "name": "合并矢量",
+  "desc": "将两个或多个几何类型相同的输入矢量合并为单个输出矢量。"
+ },
+ "mgwr": {
+  "name": "多尺度地理加权回归",
+  "desc": "在 GWR 基础上通过 AICc 回代拟合为每个解释项分配各自的带宽（MGWR）：输出逐要素系数、局部 R2、残差、条件数，以及每个解释项的最优带宽（可解释为局地/区域/全局尺度）和全局 AICc / R2 诊断。"
+ },
+ "min": {
+  "name": "最小值",
+  "desc": "对两个栅格或一个栅格与一个常量值执行 MIN 运算。"
+ },
+ "min_absolute_overlay": {
+  "name": "最小绝对值叠加",
+  "desc": "计算栅格堆栈中每个像元的最小绝对值，若任一输入像元为 NoData 则传播 NoData。"
+ },
+ "min_dist_classification": {
+  "name": "最小距离分类",
+  "desc": "使用面训练数据对多光谱栅格执行监督最小距离分类。"
+ },
+ "min_downslope_elev_change": {
+  "name": "最小下坡高程变化",
+  "desc": "计算到相邻像元的最小非负高程降幅。"
+ },
+ "min_max_contrast_stretch": {
+  "name": "最小-最大对比度拉伸",
+  "desc": "在用户指定的最小值和最大值之间对数值进行线性拉伸。"
+ },
+ "min_overlay": {
+  "name": "最小值叠加",
+  "desc": "计算栅格堆栈中每个像元的最小值，若任一输入像元为 NoData 则传播 NoData。"
+ },
+ "minimal_curvature": {
+  "name": "最小曲率",
+  "desc": "由 DEM 计算最小（最小主）曲率。"
+ },
+ "minimal_dispersion_flow_algorithm": {
+  "name": "最小弥散流算法",
+  "desc": "由 DEM 生成 MDFA 流向和汇流累积量栅格。"
+ },
+ "minimum_bounding_box": {
+  "name": "最小边界框",
+  "desc": "为单个要素或整个图层计算有向最小边界框。"
+ },
+ "minimum_bounding_circle": {
+  "name": "最小边界圆",
+  "desc": "为单个要素或整个图层计算最小外接圆。"
+ },
+ "minimum_bounding_envelope": {
+  "name": "最小边界范围",
+  "desc": "为单个要素或整个图层计算轴对齐的最小边界范围。"
+ },
+ "minimum_bounding_volume": {
+  "name": "最小边界体",
+  "desc": "针对 3D 要素计算最小外接体积（凸包、球体或范围），可逐要素、逐组或对全部输入进行，并将实体输出为带 Z 值的三角面，附带体积和表面积属性。类似于 ArcGIS 的 Minimum Bounding Volume。"
+ },
+ "minimum_convex_hull": {
+  "name": "最小凸包",
+  "desc": "为单个要素或整个输入图层创建凸包面。"
+ },
+ "minimum_filter": {
+  "name": "最小值滤波",
+  "desc": "计算移动窗口的最小值，揭示局部低点和洼地。这是形态学图像处理中的腐蚀算子。适用于检测谷底、洼地和最低高度特征。对单个离群值敏感（窗口内一个低值即会产生低输出）。\n\n最小值滤波是形态学的“腐蚀”算子——收缩亮部区域、扩张暗部区域。反复应用（多遍腐蚀）会形成平滑的谷地，孤立特征会逐渐消失。与最大值滤波（膨胀）结合可实现开运算（先腐蚀后膨胀）和闭运算（先膨胀后腐蚀）。常用于多尺度分解：比较 3×3、11×11、31×31 下的最小值结果以识别特征尺度。\n\n应用场景：(1) 用于尺寸过滤的形态学腐蚀；(2) 通过腐蚀→膨胀的开运算去除小的噪声对象；(3) 地形中的洼地/谷地识别；(4) 水深测量/DEM 中的局部下界；(5) 多尺度特征分析（比较不同尺度下的腐蚀结果）。典型工作流：最小值滤波 → 与最大值滤波结果比较 → 根据特征类型选择开运算或闭运算。"
+ },
+ "minimum_noise_fraction": {
+  "name": "最小噪声分数",
+  "desc": "最小噪声分数（MNF）变换通过两步流程处理高光谱数据：先估计噪声协方差，再进行噪声白化和主成分分析。噪声白化使噪声在各波段间去相关；在白化空间中进行主成分分析以识别以信号为主的方向。输出成分按信噪比排序，前几个成分代表信号，后面的成分代表噪声。通过截断成分即可实现降噪，而不会产生常规平滑的伪影。主要特点：分离信号与噪声；噪声集中在后面的成分中；通过选择成分实现噪声过滤；保持光谱保真度；支持降维。应用场景：高光谱图像去噪；面向分类的降维；信号增强；噪声特征刻画；图像质量评估。输出解读：前 1-3 个 MNF 成分通常包含 70-90% 的信号，后面的成分噪声逐渐增多。截断成分（保留前 N 个成分）可在去除噪声的同时保留关键光谱信息。MNF 成分图像可用于直观评估噪声；后面成分的标准差指示噪声水平。"
+ },
+ "modified_k_means_clustering": {
+  "name": "改进 K 均值聚类",
+  "desc": "改进 K 均值聚类在标准 K 均值的基础上增加了光谱预处理、自动化自适应 K 值选择和增强的收敛准则，使无监督多光谱分类更稳健、更准确。该算法应用可选的预处理，包括去除尺度效应的光谱标准化、强调主导方差方向的主成分变换，以及去除虚假光谱变化的噪声过滤。自适应 K 值选择使用肘部法或轮廓系数分析自动发现最佳聚类数，而无需人工指定。主要特性包括：通过光谱预处理降低尺度敏感性并突出主导光谱变化方向；客观地自动发现最佳聚类数；增强的收敛准则（包括相对中心位移阈值和光谱角相似性度量）；以及可选的后处理（合并相似聚类或分裂弥散聚类）。应用场景包括：自动处理光谱尺度的改进型探索性土地覆盖分类；通过预处理分离信号与噪声的稳健异常检测；自动发现合适细节程度的自适应图像分割；以及归一化不同传感器光谱尺度的多传感器数据集成。改进 K 均值的输出可揭示稳健的自然光谱类别。输出包括自动确定类别数的优化聚类成员栅格、记录预处理变换的聚类中心，以及量化聚类质量、分离度和收敛性的诊断统计；自适应 K 值选择的建议可用于权衡可解释性与细节。"
+ },
+ "modified_shepard_interpolation": {
+  "name": "改进谢帕德插值",
+  "desc": "使用局部加权的改进谢帕德（Shepard）混合方法由点样本插值生成栅格。"
+ },
+ "modify_lidar": {
+  "name": "修改 LiDAR",
+  "desc": "通过赋值表达式更新点属性：z=z+offset、class=reclassify_expr、intensity=scale_factor。灵活的逐点变换。"
+ },
+ "modify_nodata_value": {
+  "name": "修改 NoData 值",
+  "desc": "更改栅格的 NoData 值，并将现有 NoData 像元重写为新值。"
+ },
+ "modulo": {
+  "name": "取模",
+  "desc": "逐像元计算第一个栅格除以第二个栅格的余数。"
+ },
+ "mosaic": {
+  "name": "镶嵌",
+  "desc": "镶嵌通过几何配准、重采样到统一投影和像元网格，以及边缘融合以最小化不连续性，将多个相互重叠的栅格合成为无缝输出。该算法使用地理坐标或地面控制点对栅格进行配准，重采样到目标分辨率和范围，并在重叠区域应用加权融合（羽化融合或指数加权）。重叠像元采用基于栅格边缘的距离加权平均进行融合，在保持内部像元精度的同时创建平滑过渡。由此可生成无缝的大陆或全球栅格镶嵌图，消除边缘伪影和辐射不连续。主要特性包括：多栅格几何对齐到统一投影；重采样方法选择（双线性、三次卷积、最近邻）；消除接缝的边缘融合；补偿传感器或光照差异的辐射归一化；支持数千个输入栅格。该工具会自动管理栅格优先级，通过智能填充策略避免出现空洞。应用场景包括：从景集合制作大陆尺度卫星影像镶嵌图；从多条航迹线生成无缝数字高程模型；从多时相影像创建光学合成镶嵌图；由无人机（UAV）测量构建正射镶嵌图；以及利用重叠卫星景制作大区域底图。镶嵌是大陆和全球尺度分析工作流中不可或缺的步骤。输出解读：输出栅格继承输入的投影和分辨率；融合区域显示平衡各输入栅格的插值。边缘伪影表明重叠不足或辐射归一化不佳；评估时应检查镶嵌边界处的接缝和色彩一致性。镶嵌边缘的 NoData 处理需要注意填充值和范围定义。质量评估包括通过地面控制点进行几何验证，以及将镶嵌值与输入栅格比较的辐射评估。"
+ },
+ "mosaic_with_feathering": {
+  "name": "羽化镶嵌",
+  "desc": "镶嵌两个栅格，并使用边缘距离权重对重叠像元进行羽化融合。"
+ },
+ "multicriteria_overlay": {
+  "name": "多准则叠加",
+  "desc": "将一组准则栅格组合为一个适宜性表面，采用基于排名的 MCDA 方法：weighted_sum、weighted_geometric_mean、OWA（有序加权平均）或 TOPSIS（贴近理想点），支持逐栅格权重以及 from_scale/to_scale 重定标，类似于 ArcGIS 的 Multicriteria Overlay。"
+ },
+ "multidimensional_anomaly": {
+  "name": "生成多维异常",
+  "desc": "由栅格时间堆栈生成逐切片的时序异常立方体（类似于 ArcGIS 的 Generate Multidimensional Anomaly）：对每个像元计算时间基线（沿切片维度的均值/标准差或中位数），并将每个时间切片重写为其相对该基线的偏差——与均值的差、占均值的百分比、z 分数或与中位数的差——输出与输入切片一一对应的异常堆栈。"
+ },
+ "multidimensional_principal_components": {
+  "name": "多维主成分",
+  "desc": "将栅格立方体分解为支撑长时间序列的少数真实模态，输出成分栅格、载荷和特征值，支持降维或空间约简两种形式（ArcGIS Multidimensional Principal Components）。内置的 principal_component_analysis 分解的是单景内部的波段空间，因此其成分混合的是光谱波段而非时间；dimension_reduction 则作用于矢量属性表。两种约简均来自同一个切片空间协方差，因为像元空间的等价形式需要构建数百万行的方阵。"
+ },
+ "multidimensional_raster_correlation": {
+  "name": "多维栅格相关性",
+  "desc": "沿共享维度逐像元关联两个栅格立方体，生成 Pearson、Spearman 或 Kendall 系数地图，在互相关模式下还可输出每个像元关联达到峰值的滞后量（ArcGIS Multidimensional Raster Correlation）。任一工具库中都没有工具能实现此功能：image_correlation 将图像对压缩为单个标量，第 17 轮的 time_series_cross_correlation 仅支持矢量，attribute_correlation 是表操作，而 bivariate_spatial_association 比较的两个单波段栅格没有时间轴。"
+ },
+ "multidirectional_hillshade": {
+  "name": "多方向山体阴影",
+  "desc": "多方向山体阴影（8 个及以上光源），消除单光源造成的阴影伪影。复杂地形下要素显示均衡，是出版制图和详细分析的首选。"
+ },
+ "multilook": {
+  "name": "多视处理",
+  "desc": "通过对距离向和方位向上的相邻视数进行非相干平均来抑制 SAR 斑点噪声，生成方像元强度图像（ArcGIS Multilook）。两个工具库均未提供任何 SAR 工具；内置的 lee_filter 系列作用于已检波的强度数据，因此该工具提供了将复数单视数据转换为这些滤波器所需的检波图像的上游步骤。复数输入按双波段 I/Q 对读取；检波在平均之前进行，并为下游斑点滤波报告等效视数。"
+ },
+ "multimodal_od_cost_matrix": {
+  "name": "多方式 OD 成本矩阵",
+  "desc": "计算起点集与终点集之间分批的多方式 OD 成本及各出行方式摘要。"
+ },
+ "multimodal_routes_from_od": {
+  "name": "由 OD 生成多方式路线",
+  "desc": "为多方式起讫点对构建路线几何，并输出逐路线的方式摘要。"
+ },
+ "multimodal_shortest_path": {
+  "name": "多方式最短路径",
+  "desc": "在线状网络上查找考虑出行方式的最短路径，支持可配置的换乘惩罚。"
+ },
+ "multipart_to_singlepart": {
+  "name": "多部件转单部件",
+  "desc": "将包含多部件要素的矢量转换为仅含单部件要素的矢量。"
+ },
+ "multipatch_footprint": {
+  "name": "多面要素占地轮廓",
+  "desc": "将 3D 多面（multipatch）要素投影到 XY 平面并融合为 2D 占地轮廓面，按每个要素或每个组字段输出（ArcGIS Multipatch Footprint）。layer_footprint_vector 返回的是整个图层的单个外接矩形而非逐要素轮廓，因此目前无法将 buffer_3d / voxel_isosurface / 导入的建筑实体输入 regularize_building_footprints 流程。"
+ },
+ "multipatch_to_mesh": {
+  "name": "多面转网格",
+  "desc": "将多面和 3D 实体几何导出为 OBJ 或 glTF 2.0 / GLB，供任何 3D 或 Web 查看器使用（ArcGIS Multipatch To Collada）。union_3d / difference_3d / enclose_multipatch / voxel_isosurface 系列此前完全没有导出途径——工具库中不存在任何网格格式——因此 3D 结果只能通过本目录读回。"
+ },
+ "multiple_ring_buffer": {
+  "name": "多环缓冲区",
+  "desc": "按一组距离对要素做缓冲区，生成同心带——嵌套圆盘或互不重叠的环——可选按距离融合，并将带的距离存储为属性。"
+ },
+ "multiply": {
+  "name": "相乘",
+  "desc": "逐像元将两个栅格相乘。"
+ },
+ "multiply_overlay": {
+  "name": "乘积叠加",
+  "desc": "计算栅格堆栈中每个像元的乘积，若任一输入像元为 NoData 则传播 NoData。"
+ },
+ "multiscale_curvatures": {
+  "name": "多尺度曲率",
+  "desc": "由 DEM 计算多尺度曲率及基于曲率的指数。"
+ },
+ "multiscale_elevated_index": {
+  "name": "多尺度隆起指数",
+  "desc": "使用高斯尺度空间残差计算多尺度隆起指数（MsEI）及关键尺度栅格。"
+ },
+ "multiscale_elevation_percentile": {
+  "name": "多尺度高程百分位",
+  "desc": "在一系列邻域尺度上计算最极端的局部高程百分位。"
+ },
+ "multiscale_low_lying_index": {
+  "name": "多尺度低洼指数",
+  "desc": "使用高斯尺度空间残差计算多尺度低洼指数（MsLLI）及关键尺度栅格。"
+ },
+ "multiscale_roughness": {
+  "name": "多尺度粗糙度",
+  "desc": "在一系列邻域尺度上计算地表粗糙度。"
+ },
+ "multiscale_roughness_signature": {
+  "name": "多尺度粗糙度特征",
+  "desc": "计算输入点位的多尺度粗糙度特征，并输出 HTML 报告。"
+ },
+ "multiscale_std_dev_normals": {
+  "name": "多尺度法向标准差",
+  "desc": "在非线性采样的尺度范围内计算表面法向的最大球面标准差。"
+ },
+ "multiscale_std_dev_normals_signature": {
+  "name": "多尺度法向标准差特征",
+  "desc": "计算输入点位的球面标准差尺度特征，并输出 HTML 报告。"
+ },
+ "multiscale_topographic_position_class": {
+  "name": "多尺度地形位置类别",
+  "desc": "使用两幅 DEVmax 尺度镶嵌图，将每个 DEM 像元划分为九类大尺度/局地相对地形位置体系。"
+ },
+ "multiscale_topographic_position_image": {
+  "name": "多尺度地形位置图像",
+  "desc": "由局地、中尺度和宏观 DEVmax 栅格创建打包 RGB 的多尺度地形位置图像。"
+ },
+ "multitemporal_coherence": {
+  "name": "多时相相干性",
+  "desc": "计算一组配准一致的多时相 SAR 影像的干涉相干性，并将其归纳为均值/最小值/最大值/标准差和时间失相干斜率，可选输出逐像对的相干性立方体（ArcGIS Generate Multitemporal Coherence）。sar_coherence 只能处理恰好两景影像，因此此前无法进行永久散射体选取和相干性变化时序分析。"
+ },
+ "multivariate_clustering": {
+  "name": "多变量聚类",
+  "desc": "按标准化属性值的相似性对矢量要素进行聚类（带种子的 k 均值或 k 中心点），未指定时通过 Calinski-Harabasz 伪 F 值自动选择聚类数，类似于 ArcGIS 的 Multivariate Clustering。"
+ },
+ "narrowness_index": {
+  "name": "狭长度指数",
+  "desc": "基于到边界的最大距离所确定的最大内切圆，以图斑面积除以最大内切圆面积计算栅格图斑的狭长度指数。"
+ },
+ "narrowness_index_vector": {
+  "name": "狭长度指数（矢量）",
+  "desc": "计算面要素的狭长度指数（周长 / sqrt(area)）。"
+ },
+ "natural_neighbour_interpolation": {
+  "name": "自然邻域插值",
+  "desc": "使用真正的 Sibson 自然邻域面积权重由点样本插值生成栅格。"
+ },
+ "ndvi_based_emissivity": {
+  "name": "基于 NDVI 的发射率",
+  "desc": "基于 NDVI 的地表发射率估算利用由 NDVI 计算的植被覆盖度推导宽波段热红外发射率，从而支持从热红外卫星数据进行地表温度反演时的热辐射传输校正。该算法由红光和近红外反射率计算 NDVI，将 NDVI 转换为植被覆盖度，然后应用经实地测量和模拟辐射传输验证的植被覆盖度与发射率之间的经验关系。植被对热发射率影响显著：植被越多，发射率越接近约 0.99；裸土发射率则视土壤成分和地表粗糙度在约 0.90-0.98 之间。主要特性包括：无需实地校准即可由 NDVI 自动计算植被覆盖度；基于物理辐射传输理论的标准化经验关系；可选的发射率变化敏感性分析；以及与热红外卫星数据的直接兼容性。应用场景包括：需要精确发射率校正的热卫星数据地表温度反演（Landsat、MODIS、Sentinel-3）；针对植被变化进行校正的城市热岛分析；水资源和农业应用中的热建模；以及需要全球一致热数据集的气候应用。基于 NDVI 的发射率可实现精确的热校正。输出包括适用于热辐射传输校正的发射率栅格（0-1）、便于解读的植被覆盖度中间产品，以及记录经验关系和所假设土壤/地表特性的元数据；发射率值可用于评估热校正的不确定性及其对特定应用的适用性。"
+ },
+ "near": {
+  "name": "邻近",
+  "desc": "利用空间索引添加 NEAR_FID 和 NEAR_DIST 属性，标识最近的要素及其距离。"
+ },
+ "near_3d": {
+  "name": "三维邻近",
+  "desc": "查找真实 3D 距离下最近的要素，报告距离、最近位置、角度及各轴分量差，类似于 ArcGIS 的 Near 3D。"
+ },
+ "nearest_neighbour_index": {
+  "name": "最近邻指数",
+  "desc": "计算 Clark-Evans 最近邻指数，检验完全空间随机性，用于检测聚集或离散分布模式。"
+ },
+ "nearest_neighbour_interpolation": {
+  "name": "最近邻插值",
+  "desc": "通过为每个像元分配最近样本值，由点样本插值生成栅格。"
+ },
+ "negate": {
+  "name": "取负",
+  "desc": "将每个非 NoData 栅格像元值取负。"
+ },
+ "neighborhood_summary_statistics": {
+  "name": "邻域汇总统计",
+  "desc": "针对每个要素，在其邻域（k 近邻、一定距离内或共享边邻接）内汇总所选数值字段，添加 <field>_nbr_mean/median/std/min/max/sum 及邻域要素数，类似于 ArcGIS 的 Neighborhood Summary Statistics。"
+ },
+ "network_accessibility_metrics": {
+  "name": "网络可达性指标",
+  "desc": "基于起点到目的地的可达性计算可达性指数，支持可选的阻抗阈值和衰减函数。"
+ },
+ "network_centrality_metrics": {
+  "name": "网络中心性指标",
+  "desc": "计算网络节点的基础度、接近中心和中介中心性指标。"
+ },
+ "network_connected_components": {
+  "name": "网络连通分量",
+  "desc": "为网络中的每条线要素分配连通分量 ID。"
+ },
+ "network_node_degree": {
+  "name": "网络节点度",
+  "desc": "从线要素中提取网络节点，并计算节点度和节点类型。"
+ },
+ "network_od_cost_matrix": {
+  "name": "网络 OD 成本矩阵",
+  "desc": "在线状网络上计算起讫点最短路径成本，并输出 CSV 矩阵。"
+ },
+ "network_routes_from_od": {
+  "name": "由 OD 生成网络路线",
+  "desc": "在线状网络上为起讫点对构建路线几何。"
+ },
+ "network_service_area": {
+  "name": "网络服务区",
+  "desc": "计算在最大网络成本内从起点可达的网络节点。"
+ },
+ "network_topology_audit": {
+  "name": "网络拓扑审计",
+  "desc": "审计线状网络的拓扑异常——不连通分量、断头路和度数异常——这些异常会导致路径分析失败。"
+ },
+ "new_raster_from_base_raster": {
+  "name": "由基础栅格新建栅格",
+  "desc": "使用基础栅格的范围、尺寸和 CRS 创建新栅格。"
+ },
+ "new_raster_from_base_vector": {
+  "name": "由基础矢量新建栅格",
+  "desc": "基于基础矢量的范围和像元大小创建新栅格，并可用可选值填充。"
+ },
+ "nibble": {
+  "name": "邻域填充",
+  "desc": "使用最近邻分配填充背景区域。"
+ },
+ "nnd_classification": {
+  "name": "NND 分类",
+  "desc": "执行最近归一化距离分类，支持可选的离群值剔除。"
+ },
+ "non_local_means_filter": {
+  "name": "非局部均值滤波",
+  "desc": "非局部均值滤波通过在整个图像范围内寻找相似图块进行加权平均，而非仅依赖相邻像元，利用图像的自相似性在抑制噪声的同时保留结构，实现强大的去噪能力。该实现通过图块空间中的欧氏距离识别与每个目标图块相似的图块，按相似度以指数方式为相似图块赋权，并对加权图块求平均。算法计算公式为：Fᵢ = (1/Z) Σⱼ exp(-d(Pᵢ, Pⱼ)²/h²) · Iⱼ，其中 d 度量图块距离，h 控制带宽，Z 用于归一化。主要特性包括：通过相似性搜索而非单纯的空间邻近性实现卓越的去噪效果；对复杂纹理和细微细节同样有效；适用于任何数据类型；在医学、卫星和摄影图像上具有经过验证的表现。非局部均值滤波擅长在保留细微纹理和结构的同时恢复精细卫星图像，用于变化检测准备的多时相堆栈平均，极强噪声测量数据的去噪（超声、高光谱），以及考古/航空测量影像增强。输出解读需要理解：图像中所有相似区域都会对每个输出像元产生贡献，而局部不相似区域的贡献可以忽略。图块大小控制特征保留程度（图块越大结果越平滑，图块越精细细节越多）；带宽 h 控制相似性加权（h 越大纳入的图块越多，h 越小对相似性的要求越严格）。输出范围与输入一致；统计值向区域均值偏移，而细微结构得以保留。计算成本随图像尺寸和图块半径增加；处理大型影像通常需要较长的处理时间。可通过 PSNR 或目视检查监控滤波进程。常见伪影包括细微纹理被过度平滑（需谨慎增大图块尺寸）和高噪声区域平滑不足（需增大带宽）。适用于需要在保留细微尺度特征的同时实现最大降噪的工作流。"
+ },
+ "non_maximum_suppression": {
+  "name": "非极大值抑制",
+  "desc": "在每个重叠簇中保留置信度最高的检测结果，丢弃交并比超过阈值的低分面（类似于 ArcGIS 的 Non Maximum Suppression）——这是面向目标检测/OBIA 输出的基于评分的去重工具，而 count_overlapping_features（仅计数且全部保留）、resolve_building_conflicts（进行位移）和 find_identical（仅限完全相同）都无法提供此功能。"
+ },
+ "normal_vectors": {
+  "name": "法向量",
+  "desc": "计算逐点表面法向量：对局部邻域执行 PCA 以估计平面朝向。法向量存储在点记录中，并提供 RGB 可视化。"
+ },
+ "normalize_lidar": {
+  "name": "LiDAR 归一化",
+  "desc": "将 LiDAR 绝对高程转换为离地高度：从点 z 值中减去 DTM（栅格 DEM）。生成用于结构分析的归一化点云。"
+ },
+ "normalized_difference_index": {
+  "name": "归一化差异指数",
+  "desc": "由多波段栅格计算 (band1 - band2) / (band1 + band2)。"
+ },
+ "not_equal_to": {
+  "name": "不等于",
+  "desc": "逐像元检验两个栅格是否不相等。"
+ },
+ "num_downslope_neighbours": {
+  "name": "下坡相邻像元数",
+  "desc": "统计 DEM 中每个像元周围 8 邻域内高程更低的像元数量。"
+ },
+ "num_inflowing_neighbours": {
+  "name": "入流相邻像元数",
+  "desc": "统计 DEM 中每个像元的 D8 入流相邻像元数量。"
+ },
+ "num_upslope_neighbours": {
+  "name": "上坡相邻像元数",
+  "desc": "统计 DEM 中每个像元周围 8 邻域内高程更高的像元数量。"
+ },
+ "obia_audit_report_pro": {
+  "name": "OBIA 审计报告",
+  "desc": "为 OBIA 工作流产物构建审计报告，包括文件是否存在、大小和时间戳等元数据。"
+ },
+ "obia_batch_orchestrator_pro": {
+  "name": "OBIA 批处理编排器",
+  "desc": "在单个请求中运行多个 OBIA 流水线作业，并返回汇总的作业报告。"
+ },
+ "obia_pipeline_basic": {
+  "name": "OBIA 基础流水线",
+  "desc": "在单一操作中执行完整的端到端 OBIA 工作流：分割（SLIC/图方法）、小区域合并、光谱/形状特征提取以及随机森林分类。"
+ },
+ "object_class_probability_maps": {
+  "name": "对象类别概率图",
+  "desc": "将预测结果转换为各类别的概率图，支持基于栅格的不确定性可视化与基于置信度的过滤，可用于后续的置信度阈值筛选和多标签场景。"
+ },
+ "object_features_context_neighbors": {
+  "name": "对象邻域上下文特征",
+  "desc": "计算空间上下文特征：相邻对象数量、共享边界长度和孤立度指标，支持捕捉景观中对象关系的邻域感知分类。"
+ },
+ "object_features_shape_basic": {
+  "name": "对象基础形状特征",
+  "desc": "为每个分割对象计算几何与形态特征描述子，包括面积（像元数）、周长（边界长度）、紧凑度（经周长归一化的圆形度）、伸长率（长宽比）、形状系数（归一化的形状规则度）和实心度（凸包效率）。形状描述子捕捉与光谱内容无关的结构特征，支持对象几何分类和形态模式识别。主要特性包括覆盖面积、周长、规则度和伸长率的完整形状指标体系、计算高效的边界追踪算法、对旋转和平移不变的指标、跨尺度范围的适用性，以及形态学对象分类能力（如细长的道路与紧凑的建筑物）。用例涵盖建筑物轮廓分类与城市结构分析、线性要素提取（道路、河流、边界）、植被斑块特征刻画与破碎化分析、基于形状的质量控制过滤、结合形状与光谱属性的分级对象识别，以及生态监测中的景观结构量化。输出中，面积以像元数衡量对象大小；周长反映边界复杂度；紧凑度接近 1.0 表示圆形/规则形状，数值较低表示不规则/伸长的要素；伸长率大于 1 表示线性要素，接近 1 表示紧凑对象；形状系数综合多项形状属性用于整体形状分类；形状指标支持形态学过滤以分离目标对象类型。"
+ },
+ "object_features_spectral_basic": {
+  "name": "对象基础光谱特征",
+  "desc": "对每个分割对象在所有影像波段上计算光谱反射率值的完整单变量统计汇总。逐对象计算包括平均反射率、标准差（均质性）、最小和最大反射率界限、用于稳健估计的分位数值，以及逐波段统计，支持多光谱纹理量化与光谱剖面刻画，这是 OBIA 分类工作流的基础。主要特性包括面向多光谱和高光谱影像的逐波段光谱统计生成、捕捉集中趋势与离散程度的稳健统计量、识别分割对象内部的光谱异常与离群值、高效的栅格到矢量汇总，以及可直接输入机器学习分类流水线的输出。用例涵盖利用光谱指标进行面向对象分类的特征提取、通过光谱特征分析识别土地覆盖类型、通过跨时间序列的光谱统计比较进行变化检测、数据质量评估与离群值检测、通过光谱时间序列分析进行环境监测，以及需要归一化光谱响应刻画的精准农业应用。输出中，均值代表对象物质的典型光谱响应；标准差量化内部异质性（低=均质表面，高=混合物质或阴影）；最小/最大界限识别对象内部的光谱极值；光谱剖面支持与参考特征进行比对；统计量构成分类特征向量的基础；逐波段分析可揭示光谱指数与物质判别能力。"
+ },
+ "object_features_texture_glcm_basic": {
+  "name": "对象基础 GLCM 纹理特征",
+  "desc": "利用灰度共生矩阵（GLCM）分析提取纹理特征，GLCM 基于每个分割对象内部的逐波段强度分布计算。GLCM 量化灰度级的空间共生关系，生成包括对比度（局部变化）、同质性（空间规则性）、能量（有序性）、熵（无序度）和相异性等描述子，捕捉与整体光谱亮度无关的纹理模式。主要特性包括基于 GLCM 的纹理指标捕捉对象内部的局部空间模式、用于方向无关纹理刻画的（水平、垂直、对角）多方向分析、适用于所有影像波段的纹理指纹能力、区分有纹理表面与平滑表面，以及对象级计算上可行的分析。用例包括表面粗糙度与基于纹理的材料分类（沥青与混凝土、作物类型区分）、通过冠层纹理刻画森林结构与密度、SAR 影像解译与城市肌理纹理分析、完好表面与退化表面判别、通过冠层纹理指标评估作物健康，以及通过纹理异常检测云和阴影。输出中，对比度高表示粗糙/多变的纹理，低表示平滑表面；同质性高表示规则的空间模式，低表示杂乱的纹理；能量高表示有组织的纹理，低表示随机噪声；熵量化纹理无序度；相异性捕捉空间模式的不规则性；纹理剖面支持材料特异性分类；与光谱特征结合可提升对象类型判别能力。"
+ },
+ "object_features_topology_relations": {
+  "name": "对象拓扑关系特征",
+  "desc": "计算图拓扑特征：对象度（邻居数量）、主导邻居强度和割点标志，捕捉对象网络中的结构位置，用于分级分类。"
+ },
+ "object_uncertainty_diagnostics_pro": {
+  "name": "对象不确定性诊断",
+  "desc": "基于对象概率输出计算聚合的不确定性诊断指标。"
+ },
+ "objects_boundary_refinement_pro": {
+  "name": "对象边界精化",
+  "desc": "通过迭代的小区域清理与邻域感知合并来精化对象边界。"
+ },
+ "objects_enforce_min_mapping_unit": {
+  "name": "强制最小制图单元",
+  "desc": "通过合并尺寸过小的对象图斑来强制执行最小制图单元。"
+ },
+ "observer_points": {
+  "name": "观测点",
+  "desc": "以每位观测者的位掩码形式标识最多 32 个观测者中哪些可以看到每个像元，并输出地表面以上高度（AGL）栅格，给出目标需要抬升多少高度才能变为可见（相当于 ArcGIS 观测点工具 / OBSERVERS 模式下的视域 2）。内置的视域工具只返回可见站点数量，无法从中恢复上述任一答案：数量为 1 不能说明哪个塔覆盖了该地块，数量为 0 也无法区分是差两米还是被山体遮挡。"
+ },
+ "od_sensitivity_analysis": {
+  "name": "OD 敏感性分析",
+  "desc": "通过蒙特卡洛采样，在阻抗扰动下计算 OD（起讫点）最短路径成本，并输出敏感性统计结果。"
+ },
+ "olympic_filter": {
+  "name": "Olympic 滤波",
+  "desc": "Olympic 滤波通过从每个像元邻域中移除单个最高值和单个最低值，再对其余像元取平均，实现基于秩的平滑。这种稳健滤波方法能消除极端异常值（可能是噪声或虚假值），同时保持中心趋势。数学表达：F = (1/(N-2)) Σ(I_sorted[2:N-1])，其中排序后的邻域值剔除最高值和最低值。实现需要对较小邻域进行排序（计算高效），但能产生有效的噪声抑制。主要特性包括简单的异常值剔除策略、有效的椒盐噪声抑制、边缘感知滤波（边缘常表现为极值），以及对任意数据类型的适用性。Olympic 滤波在光学卫星影像预处理（去除孤立的亮云像元和暗阴影）、减少测量噪声伪影的 DEM 平滑、热红外图像去噪（去除传感器异常值）以及雷达图像预处理中表现出色。输出解读：对称噪声分布（高/低异常值数量相等）会被对称滤波；偏态分布（高值或低值偏多）会产生方向性滤波。邻域大小控制平滑范围：3×3 窗口从 9 个像元中剔除 2 个极值（轻度滤波）；更大窗口滤波更激进。输出值保持在输入范围内（输出是真实邻域值的平均）。统计表明方差缩减有针对性，专门抑制异常值。差异图像（原图 - 滤波后）可突出被剔除的异常值；集中的高值区域表示噪声被有效隔离。常见问题包括异常值频率低时平滑不足，以及边缘像元持续被列为极值时造成的边缘模糊。多次迭代可实现渐进式平滑：单次处理即可降噪，重复处理会加强平滑。适用于需要简单、可解释滤波的快速降噪工作流，对多传感器镶嵌中的椒盐噪声尤为有效。"
+ },
+ "opening": {
+  "name": "开运算",
+  "desc": "使用矩形结构元素执行形态学开运算。"
+ },
+ "openness": {
+  "name": "地形开放度",
+  "desc": "Yokoyama 地形开放度：正开放度（暴露的山脊/山峰）与负开放度（封闭的山谷）暴露度指标，用于地貌分类以及可视性/微气候分析。"
+ },
+ "optics_clustering": {
+  "name": "OPTICS 聚类",
+  "desc": "通过 OPTICS 实现多尺度基于密度的聚类（类似于 ArcGIS 基于密度聚类中的 OPTICS 选项）：构建可达性排序，并用 ξ-陡峭方法提取不同密度的聚类——是 DBSCAN/HDBSCAN/OPTICS 三者中的多尺度成员，补足了内置 dbscan 和 hdbscan 未覆盖的部分。"
+ },
+ "optimal_corridor_connections": {
+  "name": "最优廊道连接",
+  "desc": "在成本表面上计算固定宽度的最小成本廊道面网络，以最优方式连接所有输入区域，并同时输出廊道中心线。不同于 cost_connectivity（零宽度线）或 corridor（仅单一成对成本面），该工具为整个区域网络输出可直接使用的廊道面。类似于 ArcGIS 最优廊道连接。"
+ },
+ "optimal_interpolation": {
+  "name": "最优插值",
+  "desc": "通过最优插值/资料同化分析步骤 x_a = x_b + B Hᵀ (H B Hᵀ + R)⁻¹ (y − H x_b)，采用给定相关长度的高斯空间相关函数以及各观测/背景误差方差，用点观测校正背景栅格场（类似 ArcGIS 的 Optimal Interpolation）。与仅基于点进行插值的 IDW/克里金/EBK 不同，该工具将先验格网场与观测相融合，并可输出分析误差方差栅格。"
+ },
+ "optimal_path_as_line": {
+  "name": "最优路径转线",
+  "desc": "从每个目的地沿成本回溯链接栅格回溯至其源，并以折线形式输出最小成本路径（相当于 ArcGIS 的 Optimal Path As Line / Cost Path As Polyline）。cost_pathway 仅以栅格像元标记路径，cost_connectivity 仅覆盖 N 个站点的网络情形，因此普通的源到目的地路径此前没有矢量形式。"
+ },
+ "optimized_hot_spot_analysis": {
+  "name": "优化热点分析",
+  "desc": "自动聚合事件点、自动选择分析距离带宽、执行 Getis-Ord Gi* 统计，并报告经 FDR 校正的热点/冷点分级（类似 ArcGIS 优化热点分析）——这是内置的原始 getis_ord_gi_star 所缺少的工作流封装。"
+ },
+ "optimized_outlier_analysis": {
+  "name": "优化异常值分析",
+  "desc": "自动聚合事件点、自动选择分析距离带宽、执行 Anselin 局部 Moran's I，并报告经 FDR 校正的聚类/异常值类型（HH/LL/HL/LH）——类似 ArcGIS 优化异常值分析；这是内置原始 local_morans_i_lisa 和时空 local_outlier_analysis 均未提供的非时空局部 Moran 封装。"
+ },
+ "ordinary_cokriging": {
+  "name": "普通协同克里金插值",
+  "desc": "利用辅助变量执行多变量空间插值，以改进主变量的预测。适用于主变量数据稀疏但相关的次级数据丰富的情形。"
+ },
+ "ordinary_kriging": {
+  "name": "普通克里金插值",
+  "desc": "执行普通克里金插值，基于点测量样本估计未制图格网像元上的值。普通克里金是一种地统计方法，利用空间自相关结构同时提供预测值及相应的克里金方差（预测不确定性）。该工具自动从输入点数据估计经验变异函数，并拟合理论变异函数模型（球状、指数或高斯）以刻画空间依赖结构。"
+ },
+ "orthorectification": {
+  "name": "正射校正",
+  "desc": "基于 DEM、采用 RPC 相机模型对原始影像进行几何校正，消除地形起伏位移，输出具有地理参考的正射影像。"
+ },
+ "otsu_thresholding": {
+  "name": "Otsu 阈值分割",
+  "desc": "Otsu 阈值分割是一种自动图像分割方法，通过最大化像元灰度直方图的类间方差确定最优全局阈值。算法过程：检查灰度或单波段图像的直方图，迭代测试所有可能的阈值，计算每个阈值的类间方差，选择使前景与背景类别方差分离最大的值。该方法为非参数方法，无需手动指定阈值。主要特性：完全自动的阈值确定、对光照变化稳健、基于直方图的方法计算快速、无外部参数、提供单一全局阈值。能力：二值分割、单峰和双峰直方图优化、可处理窄动态范围或高对比度图像。用例：无需用户干预的自动图像分割、文档二值化、水体提取、卫星影像中的云检测、冰雪制图。应用：变化检测预处理、简单土地覆盖分类、水体掩膜生成、高级分类前的初步分割。输出解读：低于阈值的像元归为一个类别，高于阈值的归为另一类别；直方图双峰性指示分离质量；分离不佳的直方图表明不适合二值分类；类间方差和均匀性等统计量可指示分割质量。"
+ },
+ "paired_sample_t_test": {
+  "name": "配对样本 t 检验",
+  "desc": "使用配对的有效像元对两个栅格执行配对样本 t 检验。"
+ },
+ "pairwise_comparison_weights": {
+  "name": "成对比较权重",
+  "desc": "从 AHP 成对比较矩阵（Saaty 1-9 标度）推导准则权重，即归一化主特征向量，并附带一致性检验（lambda_max、一致性指标、一致性比率）——类似 ArcGIS 的 Assign Weights By Pairwise Comparison。"
+ },
+ "panchromatic_sharpening": {
+  "name": "全色锐化",
+  "desc": "全色锐化使用 Brovey 融合法将高分辨率全色影像与较低分辨率的多光谱数据融合，这是一种光谱乘法技术，可在保留光谱信息的同时增强空间细节。该方法先将多光谱波段重采样到全色分辨率，再计算全色图像与计算所得多光谱强度之间的强度比，并据此对每个波段进行缩放。这种方式在大幅提升空间分辨率的同时保持光谱保真度。主要特性包括保留原始光谱特性、线性代数运算高效可快速处理大影像、与波段配准输入自动兼容重采样，以及自动归一化以保证异构传感器间的辐射一致性。该技术广泛应用于制图用途的卫星影像增强，包括城市规划、农业监测和资源勘查等对光谱与空间细节均有要求的领域。全色锐化生成的增强多光谱输出具有更优的空间清晰度，适合目视解译和精细制图。输出波段保持原始多光谱波段顺序但达到全色级分辨率，可无缝集成到标准影像分析流程和 GIS 系统中。空间分辨率提升至与输入全色影像一致，能够以比原始多光谱数据更精细的尺度进行特征提取。"
+ },
+ "parallelepiped_classification": {
+  "name": "平行六面体分类",
+  "desc": "使用面训练数据对多光谱栅格执行监督平行六面体分类。"
+ },
+ "patch_orientation": {
+  "name": "斑块方向",
+  "desc": "使用简化主轴回归计算面方向（相对北方向的角度，单位为度），并追加 ORIENT 字段。"
+ },
+ "path_distance": {
+  "name": "路径距离",
+  "desc": "累积最小成本距离，其中每一步的成本为真实三维表面距离（来自 DEM）乘以随坡度变化的垂直系数（Tobler 徒步函数、线性或二值），再乘以摩擦系数，类似 ArcGIS 路径距离。"
+ },
+ "pca_based_change_detection": {
+  "name": "基于 PCA 的变化检测",
+  "desc": "主成分分析变化检测通过从多时相堆叠光谱数据计算主成分来识别土地覆盖变化，其中前几个成分捕捉跨时间的共同模式，后几个成分分离时间变化。算法将多时相多光谱数据（配准到共同格网）堆叠，计算 PCA 变换到不相关的正交光谱-时间成分，将后几个主成分解读为变化敏感成分，并对主成分载荷/得分应用统计阈值进行变化检测。当变化信号在光谱上较为微弱时，基于 PCA 的检测表现优异，因为 PCA 最大化方差并将时间一致的光谱模式（前几个主成分）与时间变化（后几个主成分）分离。主要特性包括处理可变影像数量和配准要求的多时相数据融合、自动方差最大化以突出重要的光谱-时间模式、相比单变量差值法改善变化判别的多变量统计，以及可选的降低像元噪声的空间滤波。应用包括视觉可辨识之前的微妙植被胁迫检测、追踪数十年城市发展变化的多光谱城市变化检测、通过快速损毁制图评估自然灾害影响，以及检测生态系统状态转变的环境监测。基于 PCA 的检测输出可区分时间模式。输出包括具有可解读光谱-时间载荷的主成分影像、由后几个成分得分推导的变化概率栅格，以及可选的用于区分变化类型的变化分类；主成分空间模式支持目视模式识别，与统计检测互为补充。"
+ },
+ "pennock_landform_classification": {
+  "name": "Pennock 地貌分类",
+  "desc": "将地貌要素划分为 Pennock 等（1987）提出的七个地形类别。"
+ },
+ "percent_elev_range": {
+  "name": "高程范围百分比",
+  "desc": "以邻域高程范围的百分比计算局部地形位置。"
+ },
+ "percent_equal_to": {
+  "name": "等于百分比",
+  "desc": "计算像元栈中取值等于比较栅格的栅格所占的比例。"
+ },
+ "percent_greater_than": {
+  "name": "大于百分比",
+  "desc": "计算像元栈中取值大于比较栅格的栅格所占的比例。"
+ },
+ "percent_less_than": {
+  "name": "小于百分比",
+  "desc": "计算像元栈中取值小于比较栅格的栅格所占的比例。"
+ },
+ "percentage_contrast_stretch": {
+  "name": "百分比对比度拉伸",
+  "desc": "百分比对比度拉伸是一种线性对比度增强方法，在拉伸至全动态范围之前，先从直方图中去除指定百分比的极端值（尾部）。算法：对每个波段独立去除下百分位和上百分位值，将剩余范围线性映射到输出范围（通常为 0-255 或全位深），消除导致对比度差的辐射极值。百分位选取（通常为 2-3%）在对比度增强与数据完整性保持之间取得平衡。主要特性：自动去除辐射异常值、防止异常值造成对比度压缩、可按波段或全局应用、计算高效的线性变换、操作可逆。能力：处理辐射伪影、增强细微要素的可见性、适应可变的输入范围。用例：分类或融合前的预处理、增强未充分利用的动态范围、多光谱显示前的准备、跨场景辐射归一化。应用：面向目视解译的卫星影像增强、基于卫星的滑坡检测预处理、分类前归一化、存档影像修复。输出解读：增强后的影像对比度改善；极值被裁剪；此前隐藏的细微要素变得可见；各波段特定的裁剪值可反映辐射分布质量。"
+ },
+ "percentile_contours": {
+  "name": "百分位轮廓",
+  "desc": "生成嵌套面以包围表面上最极端的像元，阈值可按数值百分位数或累积质量（体积）百分位数设定。"
+ },
+ "percentile_filter": {
+  "name": "百分位滤波",
+  "desc": "计算中心像元高程/数值在移动窗口内的局部分位数排名（0-100%）。相当于面向通用栅格数据的高程百分位。度量相对位置：输出=0 表示局部最小值，输出=100 表示局部最大值，输出=50 表示中位数。揭示与绝对值无关的局部分布位置。\n\n百分位滤波支持相对位置分析。适用于分层分析：在所有波段均排名高分位（>80）的像元指示“亮”要素；低分位（<20）指示“暗”要素。特别适合分类预处理——分离地形/纹理位置而非仅数值大小。常与统计滤波结合进行多指标特征刻画。\n\n应用：(1) 相对明暗分类；(2) 纹理特征刻画（高分位方差=粗糙，低方差=平滑）；(3) 局部对比度增强（基于分位数的归一化）；(4) 与高程百分位类似的地貌识别；(5) 多波段纹理分析（对每个波段应用百分位并比较模式）。"
+ },
+ "perimeter_area_ratio": {
+  "name": "周长面积比",
+  "desc": "计算面要素的周长/面积比并追加 P_A_RATIO 字段。"
+ },
+ "phi_coefficient": {
+  "name": "Phi 系数",
+  "desc": "使用 phi 系数执行二值分类一致性评估。"
+ },
+ "pick_from_list": {
+  "name": "按位置选取",
+  "desc": "使用从零开始编号的位置栅格，从栅格栈中逐像元选取对应栅格的值。"
+ },
+ "piecewise_contrast_stretch": {
+  "name": "分段对比度拉伸",
+  "desc": "使用用户指定的断点执行分段线性对比度拉伸。"
+ },
+ "pivot_table": {
+  "name": "透视表",
+  "desc": "将长格式属性表重塑为宽格式：标识字段的每个唯一组合对应一个输出行，透视字段的每个不同值对应一列，单元格取自值字段。类似 ArcGIS 透视表。"
+ },
+ "plan_curvature": {
+  "name": "平面曲率",
+  "desc": "计算平面（等高线）曲率，衡量水流穿越等高线时的汇聚/发散程度。正值（汇聚）表示水流向中心集中（凹形）；负值（发散）表示水流从中心散开（凸形）。用于识别水流的侧向汇聚区（谷地）与发散区（山脊），对预测土壤水分分布和滑坡易发性至关重要。"
+ },
+ "pmtiles_extract": {
+  "name": "PMTiles 提取",
+  "desc": "从 PMTiles 归档中提取 bbox/缩放级别的子集并生成新归档（例如从 Protomaps 全球构建中提取离线底图）。"
+ },
+ "point_pattern_envelope": {
+  "name": "点模式包络检验",
+  "desc": "生成用于针对完全空间随机（CSR）进行假设检验的临界带包络。"
+ },
+ "point_process_residuals": {
+  "name": "点过程残差",
+  "desc": "根据拟合的泊松点过程模型计算残差用于诊断，检测未被建模的空间结构。"
+ },
+ "point_process_residuals_comparison": {
+  "name": "点过程残差比较",
+  "desc": "计算残差诊断指标，用于模型适用性检验。"
+ },
+ "point_statistics": {
+  "name": "点统计",
+  "desc": "对点要素属性进行移动窗口统计并栅格化：对每个输出像元，由邻域（圆形或矩形）收集其内部点所选数值字段的值，并归约为平均值/众数/最大值/中位数/最小值/少数/极差/标准差/总和/种类（variety）。类似 ArcGIS 点统计；补充了仅做密度的 line_density/heat_map 以及仅面向矢量的 neighborhood_summary_statistics。"
+ },
+ "points_along_lines": {
+  "name": "沿线生成点",
+  "desc": "沿输入折线按规则间隔生成点要素，用于基础设施监测、环境采样和空间分析。"
+ },
+ "points_to_line": {
+  "name": "点转线",
+  "desc": "由点构建折线要素：每个不同的 line_field 值对应一条线，顶点按 sort_field 排序，并可选是否闭合线。"
+ },
+ "points_to_path": {
+  "name": "点转路径",
+  "desc": "将点连接为折线要素，按某字段排序并可（可选地）按值分组为每值一条路径，支持自然排序和路径闭合选项。"
+ },
+ "polygon_area": {
+  "name": "面面积",
+  "desc": "计算面要素面积并追加 AREA 属性字段。"
+ },
+ "polygon_long_axis": {
+  "name": "面长轴",
+  "desc": "将每个面要素最小外接矩形的长轴输出为线。"
+ },
+ "polygon_neighbors": {
+  "name": "面邻域",
+  "desc": "构建面邻接（相邻）关系表：列出相邻面对及其共享边界长度和点接触数量，类似 ArcGIS 面邻域工具。"
+ },
+ "polygon_perimeter": {
+  "name": "面周长",
+  "desc": "计算面要素周长并追加 PERIMETER 属性字段。"
+ },
+ "polygon_short_axis": {
+  "name": "面短轴",
+  "desc": "将每个面要素最小外接矩形的短轴输出为线。"
+ },
+ "polygon_volume": {
+  "name": "面体积",
+  "desc": "计算表面栅格相对每个要素参考平面高程之上/之下的逐面体积和三维表面积，类似 ArcGIS 面体积——是 surface_volume 的分区版本。"
+ },
+ "polygonize": {
+  "name": "多边形化",
+  "desc": "由输入线划创建面，包括可以形成封闭面的相交或未闭合线段。"
+ },
+ "polygons_to_lines": {
+  "name": "面转线",
+  "desc": "将面和多多边形要素转换为其边界线划。"
+ },
+ "polygons_to_segments": {
+  "name": "面转分割标签",
+  "desc": "将编辑后的面栅格化回分割标签栅格，保留对象 ID 或属性值，支持结合自动分割与人工精化的迭代 OBIA 工作流。"
+ },
+ "porous_puff": {
+  "name": "多孔介质烟团",
+  "desc": "对瞬时注入地下水的污染物烟团进行解析式对流-弥散计算（类似 ArcGIS 多孔介质烟团）：从释放点沿达西速度场（幅值+方向，如 darcy_flow 的输出）推进烟团中心，然后在沿路径对齐的坐标系中计算闭式二维高斯烟团浓度，并按孔隙度、厚度、阻滞系数和一级衰减进行缩放。"
+ },
+ "post_classification_change": {
+  "name": "分类后变化检测",
+  "desc": "分类后变化检测通过直接比较不同时期独立分类的地图来量化土地覆盖/土地利用（LULC）转变。逐像元的类别比较可识别显示“从”类与“到”类的转变。交叉表矩阵（混淆矩阵）量化转变频率，揭示主要变化路径。该方法要求各时点采用一致的分类体系；精度取决于每个时点的分类质量。主要特性：直接的类到类转变制图；各分类相互独立；支持异构传感器组合；量化转变频率；识别变化热点。用例：毁林监测；城市扩张制图；农业用地追踪；湿地损失检测；栖息地破碎化评估。输出解读：转变矩阵对角线为无变化值，非对角线为转变频率。变化图突出发生改变的像元；以转变编码的输出同时包含源类别和目标类别，便于解读。高精度需要高质量分类；任一时期的分类误差都会传播为变化检测误差。转变聚合可揭示主要模式（如森林→农业、草地→城市）。分类后方法无法检测亚像元级转变；细尺度变化可能被遗漏。"
+ },
+ "power": {
+  "name": "幂",
+  "desc": "逐像元计算第一个栅格以第二个栅格为幂的结果。"
+ },
+ "predict_using_trend_raster": {
+  "name": "使用趋势栅格预测",
+  "desc": "在一个或多个时间点上评估由 generate_trend_raster 拟合的斜率/截距栅格，生成预测表面，类似 ArcGIS 使用趋势栅格预测。"
+ },
+ "presence_only_prediction": {
+  "name": "仅出现点预测",
+  "desc": "MaxEnt 风格的物种/栖息地适宜性建模：将出现点与预设的背景样本对照，拟合 L1 正则化逻辑斯蒂模型（线性/二次/hinge 基函数展开），然后预测出现概率表面并输出变量重要性报告——类似 ArcGIS 的仅出现点预测（MaxEnt）。"
+ },
+ "prewitt_filter": {
+  "name": "Prewitt 滤波",
+  "desc": "Prewitt 算子执行基于梯度的边缘检测，与 Sobel 类似，但使用针对不同噪声特性优化的替代核权重。实现采用两个 3×3 卷积核计算 x 和 y 方向导数，在中心行/列与相邻行/列上采用均匀权重，不同于 Sobel 偏重中心的做法。梯度幅值通过 √(Gx² + Gy²) 组合方向分量，提供均匀的方向响应。数学基础是对所有参与像元等权重而非强调中心的离散微分近似。主要特性包括与 Sobel 略有不同的噪声响应（在极强噪声影像中有时更优）、支持精细边缘分析的真实幅值/方向分解、仅需标准卷积运算的计算高效性，以及在雷达、光学和热红外影像上经证实的有效性。Prewitt 滤波在 SAR 影像分析（均匀加权比 Sobel 更能抑制斑点伪影）、强调线性特征的热异常检测，以及需要方向无关处理的多光谱边缘提取中表现出色。输出解读与 Sobel 类似：幅值表示边缘强度（越高越锐利），方向通过 atan2(Gy, Gx) 计算，以弧度给出边缘朝向。8 位输入的典型幅值范围为 0-256；超过 80 的幅值通常表示显著边缘。方向值范围为 -π 到 +π；0 弧度表示纯水平边缘，±π/2 表示纯垂直边缘。均匀核权重通常产生比 Sobel 略平滑的梯度响应，可能更适合稀疏或精细的影像要素。可配合中值滤波以减少噪声引起的假阳性。将方向输出与阈值选择结合，可服务于分割流程中关键的边缘连接和边界提取工作流。"
+ },
+ "principal_component_analysis": {
+  "name": "主成分分析",
+  "desc": "对栅格栈执行主成分分析（PCA），返回成分影像和 JSON 报告。"
+ },
+ "principal_curvature_direction": {
+  "name": "主曲率方向",
+  "desc": "计算主曲率方向角（单位为度）。"
+ },
+ "print_geotiff_tags": {
+  "name": "打印 GeoTIFF 标签",
+  "desc": "生成文本报告，描述输入 GeoTIFF 系栅格的 TIFF/GeoTIFF 标签和关键元数据。"
+ },
+ "profile": {
+  "name": "高程剖面",
+  "desc": "基于表面栅格采样，为一条或多条输入折线要素创建 HTML 高程剖面图。"
+ },
+ "profile_curvature": {
+  "name": "剖面曲率",
+  "desc": "计算剖面（沿坡向下）曲率，衡量沿坡向的水流加速/减速。正值（凹形）表示水流加速区（侵蚀）；负值（凸形）表示水流减速区（堆积）。揭示坡形：凹形（谷底、侵蚀）、凸形（山脊、物质流失）、直线形（过渡）。"
+ },
+ "propagate_displacement": {
+  "name": "传播位移",
+  "desc": "将 resolve_road_conflicts（或任意两点位移链接图层）引入的位移传播到邻近要素上，方法是将稀疏链接插值为平滑的 IDW 场：刚性要素（建筑物、地块）获得单一平均平移，柔性线要素获得逐顶点、沿弧长平滑的弯曲，类似 ArcGIS 传播位移。"
+ },
+ "propagate_labels_across_hierarchy": {
+  "name": "跨层级传播标签",
+  "desc": "通过层级映射将粗级别的类别标签传播到细级别的子对象，支持嵌套层级的高效标注和基于继承的精化工作流。"
+ },
+ "prune_vector_streams": {
+  "name": "矢量河流修剪",
+  "desc": "基于 Shreve 级修剪矢量河网。"
+ },
+ "pycnophylactic_interpolation": {
+  "name": "密度守恒插值",
+  "desc": "Tobler 的质量守恒面积插值：将分区聚合的计数转换为平滑的密度表面，其每个分区的总和与输入完全一致（类似 ArcGIS 面插值）——是 apportion_polygon 均匀密度假设的平滑替代方案。"
+ },
+ "qin_flow_accumulation": {
+  "name": "Qin 多流向汇流累积量",
+  "desc": "基于 DEM 计算 Qin 多流向（MFD）汇流累积量。"
+ },
+ "quadrat_count_test": {
+  "name": "样方计数检验",
+  "desc": "使用样方计数对点模式随机性执行卡方检验，检验点是聚集还是离散分布。"
+ },
+ "quantiles": {
+  "name": "分位数",
+  "desc": "将栅格值转换为分位数类别。"
+ },
+ "quinn_flow_accumulation": {
+  "name": "Quinn 多流向汇流累积量",
+  "desc": "基于 DEM 计算 Quinn 多流向（MFD）汇流累积量。"
+ },
+ "radial_basis_function_interpolation": {
+  "name": "径向基函数插值",
+  "desc": "使用局部径向基相似性加权，从点样本插值生成栅格。"
+ },
+ "radiometric_terrain_flattening": {
+  "name": "辐射地形平坦化",
+  "desc": "通过将平地参考面积替换为 DEM 推导的局部受照面积，从定标后的 SAR 后向散射中去除地形亮度信号，并标记叠掩和雷达阴影（相当于 ArcGIS 应用辐射地形平坦化）。第 17 轮的 apply_radiometric_calibration 使用椭球入射角进行归一化，因此在坡地上的 sigma0/gamma0 随地形而非土地覆盖变化——偏差通常超过 6 dB，大于其本要测量的森林/裸土差异。"
+ },
+ "radius_of_gyration": {
+  "name": "回转半径",
+  "desc": "计算每个斑块的回转半径，并将数值映射回斑块像元。"
+ },
+ "raise_walls": {
+  "name": "抬升墙体",
+  "desc": "沿墙体矢量抬升 DEM 高程，并可选择破除选定的交叉处。"
+ },
+ "random_field": {
+  "name": "随机场",
+  "desc": "创建一个包含标准正态随机值的栅格。"
+ },
+ "random_forest_classification": {
+  "name": "随机森林分类",
+  "desc": "随机森林分类通过在自助采样和随机特征子集上训练的决策树集成来分配标签。每棵树独立生长且不剪枝，捕捉特征间复杂的非线性关系和交互作用。分类聚合通常 100-1000 棵树的投票；最终类别由多数投票决定。自助训练和随机特征选择在捕捉高维模式的同时降低过拟合。特征重要性可由袋外误差变化计算，识别与分类最相关的诊断性光谱波段或衍生特征。主要特性包括识别关键分类特征的变量重要性排序、来自集成树投票共识的逐像元分类置信度、对高维高光谱数据的自动处理、对光谱异常值和噪声的稳健性，以及可并行的训练与预测。该工具能高效处理训练集不平衡的多类别问题。应用包括基于多光谱和高光谱数据的土地覆盖分类、识别地图间光谱转变的变化检测、基于多时相卫星影像的作物类型分类、区分建筑类型与地表的城市材料分类，以及识别光谱异常值的异常检测。随机森林在遥感应用中以相对适中的训练数据即可持续获得高精度。输出解读：投票数提供分类置信度；全票或强多数投票（>80%）表示分类可信，而票数接近则提示混合像元的歧义。特征重要性排序可识别对分类最具诊断意义的光谱波段或衍生指数。袋外误差估计可在无留出验证的情况下评估泛化性能。特征交互是隐式的；特定波段组合带来的高精度暗示非线性光谱关系。"
+ },
+ "random_forest_classification_fit": {
+  "name": "随机森林分类拟合",
+  "desc": "拟合随机森林分类模型并返回序列化的模型字节。"
+ },
+ "random_forest_classification_predict": {
+  "name": "随机森林分类预测",
+  "desc": "将序列化的随机森林分类模型应用于多波段预测变量。"
+ },
+ "random_forest_regression": {
+  "name": "随机森林回归",
+  "desc": "对多波段输入栅格执行监督随机森林回归。"
+ },
+ "random_forest_regression_fit": {
+  "name": "随机森林回归拟合",
+  "desc": "拟合随机森林回归模型并返回序列化的模型字节。"
+ },
+ "random_forest_regression_predict": {
+  "name": "随机森林回归预测",
+  "desc": "将序列化的随机森林回归模型应用于多波段预测变量。"
+ },
+ "random_points_in_polygon": {
+  "name": "面内随机点",
+  "desc": "在输入面几何内部均匀生成随机点。"
+ },
+ "random_sample": {
+  "name": "随机采样",
+  "desc": "创建一个包含随机位置样本像元且具有唯一 ID 的栅格。"
+ },
+ "range_filter": {
+  "name": "极差滤波",
+  "desc": "计算移动窗口内的极差（最大值 - 最小值），揭示与均值水平无关的局部数值离散程度。简单的异质性指标：极差高 = 数值多样，极差低 = 数值一致。比标准差更简单，但对许多应用同样信息丰富，且对分布形状更稳健。\n\n极差计算高效（只需两次比较）。特别适合检测过渡/边界，极差峰值指示对比度区域。对分布形状的敏感性低于标准差（标准差强调异常值，极差仅使用极值）。归一化极差（极差/均值）支持跨波段比较，如同变异系数支持跨尺度比较。\n\n应用：(1) 纹理/对比度制图（易于解读：极差高=粗糙/对比强）；(2) 通过极差峰值进行边界检测；(3) 作为标准差的计算高效替代；(4) 质量控制（均匀背景极差低，要素区域极差高）；(5) 通用数据中的粗糙度/变异性。典型工作流：计算极差→设定阈值识别过渡带→将高极差边界矢量化。"
+ },
+ "raster_area": {
+  "name": "栅格面积",
+  "desc": "以格网像元或地图单位估算各类别栅格多边形的面积，并将各类别总和写入该类别的每个像元。"
+ },
+ "raster_calculator": {
+  "name": "栅格计算器",
+  "desc": "对输入栅格列表逐像元计算数学表达式。"
+ },
+ "raster_cell_assignment": {
+  "name": "栅格像元赋值",
+  "desc": "基于基础栅格创建栅格，为每个像元赋以行号、列号、x 或 y 值。"
+ },
+ "raster_domain": {
+  "name": "栅格域",
+  "desc": "将栅格有效数据区域的边界描绘为面（或闭合折线），并保留内部 NoData 洞（相当于 ArcGIS 栅格域工具）。内置的 layer_footprint_raster 返回完整的矩形范围，对于旋转场景、裁剪的流域或参差不齐的镶嵌瓦片，该矩形可能是实际覆盖范围的数倍；polygonize 虽可完成此项任务，但前提是调用者必须先构建 0/1 有效性掩膜，而这本身就是整个任务。"
+ },
+ "raster_histogram": {
+  "name": "栅格直方图",
+  "desc": "为有效栅格像元构建固定分箱的直方图。"
+ },
+ "raster_normalize": {
+  "name": "栅格归一化",
+  "desc": "将栅格波段最小-最大归一化到 [0, 1] 范围。"
+ },
+ "raster_perimeter": {
+  "name": "栅格周长",
+  "desc": "使用抗混叠查找表估算各类别栅格多边形的周长，并将各类别总和写入该类别的每个像元。"
+ },
+ "raster_streams_to_vector": {
+  "name": "栅格河流转矢量",
+  "desc": "将栅格河网转换为矢量。"
+ },
+ "raster_summary_stats": {
+  "name": "栅格汇总统计",
+  "desc": "计算有效栅格像元的基本汇总统计量。"
+ },
+ "raster_to_h3": {
+  "name": "栅格转 H3 格网",
+  "desc": "将栅格波段值聚合到 H3 离散全球格网单元（平均值、总和、最小值、最大值、计数、中位数）。"
+ },
+ "raster_to_tiles": {
+  "name": "栅格转 XYZ 瓦片",
+  "desc": "将栅格切分为用于网络地图的 Web Mercator（EPSG:3857）XYZ PNG 瓦片金字塔。"
+ },
+ "raster_to_vector_lines": {
+  "name": "栅格转矢量线",
+  "desc": "将栅格中非零、非 NoData 的线状像元转换为折线矢量要素。"
+ },
+ "raster_to_vector_points": {
+  "name": "栅格转矢量点",
+  "desc": "将栅格中非零、非 NoData 的像元转换为位于像元中心的点要素。"
+ },
+ "raster_to_vector_polygons": {
+  "name": "栅格转矢量面",
+  "desc": "将栅格中非零、非 NoData 的区域转换为带有 FID 和 VALUE 属性的面矢量要素。"
+ },
+ "raster_to_weighted_points": {
+  "name": "栅格转加权点",
+  "desc": "在栅格上分布固定数量的点，使点的密度与像元值成比例，点位可置于确定性斐波那契格点、螺旋、圆形或质心模式上（相当于 ArcGIS 栅格转加权点）。两个注册表中没有任何工具按表面加权：random_sample 和 random_points_in_polygon 是均匀分布，create_spatially_balanced_points 刻意将点均匀铺开，而 raster_to_vector_points 每个像元输出一个点、不进行抽稀或加权。分配采用最大余数法，不需要随机数生成器，因此结果在 WASM 中可复现。"
+ },
+ "rasterize_streams": {
+  "name": "河流栅格化",
+  "desc": "将矢量河网栅格化。"
+ },
+ "read_geoparquet": {
+  "name": "读取 GeoParquet",
+  "desc": "读取 GeoParquet 文件并将其转换为其他矢量格式（或存储在内存中）。"
+ },
+ "reciprocal": {
+  "name": "倒数",
+  "desc": "计算每个栅格像元的倒数（1/x）。"
+ },
+ "reclass": {
+  "name": "重分类",
+  "desc": "使用值范围或精确赋值对对栅格值进行重分类。"
+ },
+ "reclass_equal_interval": {
+  "name": "等间距重分类",
+  "desc": "在可选值范围内将栅格值重分类为等宽区间。"
+ },
+ "reclassify_field": {
+  "name": "字段重分类",
+  "desc": "将数值矢量属性分类到类别区间（类似 ArcGIS 字段重分类）：支持 equal_interval（等间距）、defined_interval（自定义间距）、quantile（分位数）、natural_breaks（Jenks 自然间断点）、std_dev（标准差）或 geometric_interval（几何间距），写入整型类别字段及可选的间断值字段。"
+ },
+ "reconstruct_tracks": {
+  "name": "重建轨迹",
+  "desc": "将带时间戳的点转换为移动轨迹折线（按 id 分组、按时间排序、按时间/距离间隔分割），并输出每条轨迹的统计信息，还可选查找移动者停留的驻留位置——类似 ArcGIS 重建轨迹/查找驻留位置。"
+ },
+ "recover_flightline_info": {
+  "name": "恢复航线信息",
+  "desc": "根据 GPS 时间间隔重建航线 ID：推断航线条带边界，并标记到点源 ID/user-data/RGB 字段。用于航线路径恢复。"
+ },
+ "rectangular_grid_from_raster_base": {
+  "name": "基于栅格的矩形格网",
+  "desc": "创建覆盖栅格范围的矩形面格网。"
+ },
+ "rectangular_grid_from_vector_base": {
+  "name": "基于矢量的矩形格网",
+  "desc": "创建覆盖矢量图层外接范围的矩形面格网。"
+ },
+ "reduce_point_density": {
+  "name": "减少点密度",
+  "desc": "对矢量点图层进行抽稀，使保留的点之间距离不小于最小间距，或每个格网像元保留一个点（相当于 ArcGIS 减少点密度）。lidar_thin 仅支持 LAS，而 find_identical 只能识别完全重复项，因此在插值前无法对密集的测深、GPS 和传感器图层进行抽稀。"
+ },
+ "refined_lee_filter": {
+  "name": "精化 Lee 滤波",
+  "desc": "精化 Lee 滤波通过增强的相干性估计和边缘保持自适应，对标准 Lee 滤波加以改进，利用精化的局部统计和方向分析实现更优的斑点抑制。实现通过检测边缘方向、应用与边界对齐的方向窗口以及计算精化的相干性估计来扩展 Lee 模型。数学上：F = μ + √(σ_p²/(σ_I²))·(I - μ)，并采用沿方向对齐的方差计算。这种改进在保持斑点抑制的同时提升了边缘保持能力。主要特性包括方向敏感性（滤波方向随影像结构自适应）、改进的相干性估计（使用各向异性窗口）、相较标准 Lee 更优的边缘保持，以及在复杂 SAR 场景上的有效性。精化 Lee 滤波在需要清晰边界的变化检测、InSAR 相干图制备、以目标保持为关键的极化 SAR 处理，以及区分树木与背景的林业 SAR 分析中表现出色。输出解读：滤波尊重边缘方向——水平边缘沿水平方向滤波，垂直边缘沿垂直方向滤波，对角边缘沿对角方向滤波。这种方向自适应最大限度减少了跨越真实边界的滤波。相干性估计通常比标准 Lee 更准确，减少了滤波伪影。输出范围与输入一致；方向自适应需通过目视检查才能显现（边缘比标准 Lee 更锐利）。统计显示高对比度区域的保留程度更高。方向分量可揭示场景结构的朝向；强烈的方向偏置表示要素朝向明显。相较标准 Lee，伪影普遍减少，尤其是在边缘和复杂要素附近。伪影包括方向估计失败时可能出现的过度自适应，以及弱边界处的方向窗口伪影。应监测相干图以验证边缘检测的准确性。在需要保留方向性结构（如森林、成行农田）的 SAR 分类中可策略性应用。"
+ },
+ "regression_kriging": {
+  "name": "回归克里金",
+  "desc": "外部漂移克里金：将样本值对完整覆盖的协变量栅格进行回归，对残差拟合变异函数，再将克里金化的残差场加回回归表面（相当于 ArcGIS EBK 回归预测）。所有随附的克里金变体要么在坐标中建模趋势，要么需要次级点样本；没有任何一个接受协变量栅格，而这恰恰是大多数应用地统计真正需要的。"
+ },
+ "regularize_adjacent_building_footprint": {
+  "name": "规则化相邻建筑物轮廓",
+  "desc": "将一组相邻的建筑物轮廓规则化为统一朝向，使共享墙体保持平行和共线（类似 ArcGIS 规则化相邻建筑物轮廓）——是逐栋规则化的 regularize_building_footprints 的群体一致版本，后者允许相邻轮廓彼此错位。"
+ },
+ "regularize_building_footprints": {
+  "name": "规则化建筑物轮廓",
+  "desc": "将带有噪声的建筑物轮廓面归一化为规则形状（直角、斜角、任意角或圆形墙体）。"
+ },
+ "reinitialize_attribute_table": {
+  "name": "重新初始化属性表",
+  "desc": "创建矢量图层的副本，仅保留重新生成的 FID 属性。"
+ },
+ "related_circumscribing_circle": {
+  "name": "相关外接圆",
+  "desc": "计算 1 -（面面积/最小外接圆面积）并追加 RC_CIRCLE 字段。"
+ },
+ "relative_aspect": {
+  "name": "相对坡向",
+  "desc": "计算相对于用户指定方位角（0 至 180 度）的地形坡向。"
+ },
+ "relative_stream_power_index": {
+  "name": "相对水流功率指数",
+  "desc": "根据比集水面积和坡度计算相对水流功率指数。"
+ },
+ "relative_topographic_position": {
+  "name": "相对地形位置",
+  "desc": "利用邻域内最小、平均和最大高程值计算相对地形位置（RTP）。"
+ },
+ "remove_duplicates": {
+  "name": "移除重复点",
+  "desc": "对点云去重：移除 x/y（可选 z）完全相同的点。可处理多航次扫描的重叠区域并提高处理效率。"
+ },
+ "remove_off_terrain_objects": {
+  "name": "移除非地形对象",
+  "desc": "使用白顶帽归一化、坡度约束区域生长和局部插值，从 DEM 中移除陡峭的非地形对象。"
+ },
+ "remove_overlap_multiple": {
+  "name": "移除重叠（多个）",
+  "desc": "将一组面之间的每一处重叠重新分配给恰好一个要素，生成无缝隙、无重叠的联合分区（中心线或泰森多边形划分），类似 ArcGIS 的移除重叠（多个）工具。"
+ },
+ "remove_polygon_holes": {
+  "name": "移除面孔洞",
+  "desc": "在保留属性的前提下移除面要素的内部环。"
+ },
+ "remove_raster_polygon_holes": {
+  "name": "移除栅格面孔洞",
+  "desc": "移除栅格面中被前景包围的内部背景孔洞（0 或 NoData 区域）。"
+ },
+ "remove_short_streams": {
+  "name": "移除短河流",
+  "desc": "移除长度小于最小长度阈值的河流链段。"
+ },
+ "remove_spurs": {
+  "name": "移除毛刺",
+  "desc": "通过迭代修剪去除二值栅格要素中的短毛刺伪影。"
+ },
+ "remove_thermal_noise": {
+  "name": "移除热噪声",
+  "desc": "从 SAR 后向散射中减去接收机的加性热噪声本底，消除横跨测绘带的条带噪声，这种噪声在平静水面、被淹没地面和雷达阴影等暗表面区域尤为突出（对应 ArcGIS Remove Thermal Noise）。两个注册表中没有任何工具实现此功能：内置的 lee/frost/kuan/refined-lee 滤波器抑制的是乘性斑点噪声，属于另一种量。若不做此处理，Otsu 水体阈值会锁定在子测绘带边界而非岸线上，且交叉极化比率的分子将主要包含噪声。"
+ },
+ "rename_field": {
+  "name": "重命名字段",
+  "desc": "重命名矢量图层中的属性字段。"
+ },
+ "render_raster_png": {
+  "name": "栅格渲染为 PNG",
+  "desc": "通过颜色映射表将单个栅格波段渲染为 PNG 图像（NoData 变为透明）。"
+ },
+ "render_vector_png": {
+  "name": "矢量渲染为 PNG",
+  "desc": "将矢量图层（点/线/面）绘制为 PNG 地图图像。"
+ },
+ "repair_geometry": {
+  "name": "修复几何",
+  "desc": "检测并修复无效的面几何——自相交（通过自联合）、环的绕向、重复顶点以及空部件——或者在 check_only 模式下报告每个要素的问题代码。类似 ArcGIS 的修复几何/检查几何工具。"
+ },
+ "repair_stream_vector_topology": {
+  "name": "修复河流矢量拓扑",
+  "desc": "修复矢量河流网络的拓扑。"
+ },
+ "representative_point_vector": {
+  "name": "矢量代表性点",
+  "desc": "使用不可达极点（pole-of-inaccessibility）算法生成保证位于每个几何内部或其边界上的内部点，非常适合在凹多边形中放置标注。"
+ },
+ "reproject_raster": {
+  "name": "栅格重投影",
+  "desc": "将栅格重投影（warp）到目标 EPSG 坐标参考系统。"
+ },
+ "reproject_vector": {
+  "name": "矢量重投影",
+  "desc": "在保持拓扑和属性的前提下将矢量几何重投影到目标 EPSG 投影，实现多源数据整合。"
+ },
+ "resample": {
+  "name": "重采样",
+  "desc": "图像重采样通过插值方法改变像元分辨率，可选方法包括最近邻（最快、平滑最少）、双线性（相邻像元之间的线性插值）、三次卷积（三次多项式拟合）和三次样条（平滑连续插值）。重采样对于几何配准、由不同分辨率的传感器构建统一分辨率的多光谱堆栈，以及整合不同尺度的辅助数据至关重要。每种方法都需要对原始像元值拟合局部插值核，在新像元位置求核值并返回插值结果。最近邻保持辐射值（适用于分类数据）；高阶方法会平滑边缘并减少锯齿，但会使尖锐边界模糊。主要特性包括：可选择插值方法以优化速度与精度的权衡；通过目标像元大小或尺寸指定输出分辨率；对输入范围之外的区域自动处理背景值；以及可选的抗混叠滤波以减少重采样伪影。应用包括将数据配准到统一网格的图像配准、统一不同原始分辨率多光谱堆栈的分辨率协调、在保持空间格局的同时缩减数据量的降采样，以及提升可视化细节的上采样。重采样输出以一致的分辨率整合影像。输出分辨率与用户指定一致；插值方法影响边缘清晰度（最近邻保持边缘；高阶方法使其平滑）；背景区域（输入范围之外）接收可配置的填充值；输出可无缝集成到多光谱分析工作流中。"
+ },
+ "rescale_by_function": {
+  "name": "按函数重缩放",
+  "desc": "通过变换函数（linear、inverse_linear、power、exponential、logarithmic、logistic、gaussian、near、small、large、symmetric_linear）将连续栅格重缩放到统一的适宜性刻度，类似 ArcGIS 的按函数重缩放工具。"
+ },
+ "rescale_value_range": {
+  "name": "重缩放值域",
+  "desc": "将栅格值线性重缩放到目标范围。"
+ },
+ "resolve_building_conflicts": {
+  "name": "解决建筑物冲突",
+  "desc": "在小比例尺制图中，对与符号化道路屏障（以及彼此之间）存在图形冲突的建筑物轮廓进行位移、缩小或隐藏，并为每个建筑物标注处理状态，类似 ArcGIS 的解决建筑物冲突工具。"
+ },
+ "resolve_road_conflicts": {
+  "name": "解决道路冲突",
+  "desc": "在目标比例尺下，对符号化（绘制宽度）表示相互重叠或过于拥挤的道路进行位移：等级较低的道路通过端点固定、平滑的顶点移动被推开，可选输出位移链接，类似 ArcGIS 的解决道路冲突/传播位移工具。"
+ },
+ "rgb_to_ihs": {
+  "name": "RGB 转 IHS",
+  "desc": "RGB 到强度-色度-饱和度（Intensity-Hue-Saturation）变换将红绿蓝色彩空间分解为与感知相关的分量：强度（亮度）、色度（色彩）和饱和度（色彩纯度）。该分解使用标准数学公式将 RGB 三刺激值转换到圆柱极坐标，其中强度表示亮度，色度编码色彩角度，饱和度衡量色彩浓度。这一色彩空间在遥感中特别有用，因为可以用高分辨率数据替换强度分量，再通过逆变换保留原始色彩特征。主要特性包括：数值稳定的公式可稳健处理边界情况（消色差像元）；完整保留动态范围而不裁剪或丢失信息；自动波段缩放以保证不同输入范围下结果一致；计算高效，适合大型多光谱堆栈。该技术用于多种应用：以全色数据替换强度分量的全色锐化工作流、色彩可视化增强、面向分类算法的光谱预处理，以及保留感知信息的彩色转灰度。RGB 到 IHS 变换是结合全色分辨率与多光谱色彩信息的融合技术的关键。输出为三个单波段文件，分别表示强度、色度和饱和度分量，可在分析工作流中独立使用。强度波段近似亮度；色度范围为 0-360 度，编码色彩信息；饱和度范围为 0-100%，表示色彩纯度。"
+ },
+ "rho8_flow_accum": {
+  "name": "Rho8 汇流累积量",
+  "desc": "根据 DEM 或 Rho8 指向栅格计算 Rho8 汇流累积量。"
+ },
+ "rho8_pointer": {
+  "name": "Rho8 指向",
+  "desc": "按坡度加权的随机单流向算法。多次运行可进行集合分析，从而减少 D8 的河道化伪影。"
+ },
+ "ridge_and_valley_vectors": {
+  "name": "山脊与山谷矢量",
+  "desc": "从 DEM 中提取山脊和山谷中心线矢量。"
+ },
+ "ring_curvature": {
+  "name": "环曲率",
+  "desc": "根据 DEM 计算环曲率（流线扭转的平方）。"
+ },
+ "ripleys_k": {
+  "name": "Ripley's K",
+  "desc": "多距离点格局分析（Ripley's K / L 函数），带蒙特卡洛完全空间随机包络，用于检测一系列距离尺度上的聚集或离散。"
+ },
+ "ripleys_k_function": {
+  "name": "Ripley's K 函数",
+  "desc": "计算 K(t) 和 L(t) 以刻画空间聚集格局。"
+ },
+ "ripleys_k_test": {
+  "name": "Ripley's K 函数",
+  "desc": "计算 Ripley's K 多尺度聚集统计量，揭示不同距离范围内随尺度变化的聚集/离散格局。"
+ },
+ "river_centerlines": {
+  "name": "河流中心线",
+  "desc": "使用中轴变换从水体栅格中提取河流中心线。"
+ },
+ "roberts_cross_filter": {
+  "name": "Roberts 交叉滤波",
+  "desc": "Roberts 交叉滤波器是最早的边缘检测算子之一，采用简单而有效的 2×2 对角交叉核模式，以极小的计算开销计算图像梯度。该算子使用两个相对水平-垂直方向旋转 45° 的正交 2×2 矩阵，形成十字形卷积掩膜来检测边缘，强调角点和斜向过渡。该滤波器对 X 和 Y 梯度分别使用独立的核，通过绝对值之和或欧几里得范数计算幅值。主要特性包括：由于 2×2 核尺寸很小，计算效率极高、内存需求极低，可在大型栅格数据集上快速处理。Roberts 交叉滤波器特别适合检测高分辨率影像中的细尺度特征和尖锐过渡。主要用例包括时间敏感应用中的快速边缘检测、实时视频流处理、高级算法之前的初步边界检测，以及资源受限环境。应用涵盖航测预处理、卫星影像质量评估、面向机器学习流水线的特征提取以及移动 GIS 实现。输出解读：边缘位置表现为 2×2 邻域内光谱变化处的高幅值像元。背景区域通常显示接近零的值；边缘表现为明亮的线状要素，指示不同土地覆盖类型之间的边界。输出本质上是稀疏的，仅包含梯度超过计算精度阈值的边缘。对于多光谱影像，可对每个波段独立应用，或先计算归一化差值指数。Roberts 处理之后通常需要进行边缘细化后处理，以便为矢量化工作流优化输出。"
+ },
+ "root_mean_square_error": {
+  "name": "均方根误差",
+  "desc": "计算两个栅格之间的 RMSE 及相关精度统计量。"
+ },
+ "rotor": {
+  "name": "旋转曲率",
+  "desc": "根据 DEM 计算旋转曲率（rotor，流线扭转量）。"
+ },
+ "round": {
+  "name": "取整",
+  "desc": "将每个栅格像元值四舍五入到最近的整数。"
+ },
+ "route_calibrate": {
+  "name": "路径校准",
+  "desc": "根据具有已知测量值（measure）的控制点校准路径的起止测量值。"
+ },
+ "route_event_lines_from_layer": {
+  "name": "从图层创建路径线事件",
+  "desc": "使用起止测量值从事件矢量图层创建路径线事件。"
+ },
+ "route_event_lines_from_table": {
+  "name": "从表格创建路径线事件",
+  "desc": "使用起止测量值从 CSV 事件表和路径图层创建路径线事件。"
+ },
+ "route_event_merge": {
+  "name": "合并路径事件",
+  "desc": "合并相邻且兼容的路径事件。"
+ },
+ "route_event_overlay": {
+  "name": "叠加路径事件",
+  "desc": "按区间重叠对两个路径事件图层进行叠加。"
+ },
+ "route_event_points_from_layer": {
+  "name": "从图层创建路径点事件",
+  "desc": "从事件矢量图层和路径图层创建路径点事件。"
+ },
+ "route_event_points_from_table": {
+  "name": "从表格创建路径点事件",
+  "desc": "从 CSV 事件表和路径图层创建路径点事件。"
+ },
+ "route_event_split": {
+  "name": "分割路径事件",
+  "desc": "按每条路径的边界测量值分割路径事件。"
+ },
+ "route_measure_qa": {
+  "name": "路径测量值质量检查",
+  "desc": "诊断路径事件的测量值间隙、重叠、非单调序列和重复测量值。"
+ },
+ "route_recalibrate": {
+  "name": "重新校准路径",
+  "desc": "在保持路径测量值连续性的前提下，根据参考路径图层重新校准编辑后的路径测量值。"
+ },
+ "rubbersheet_features": {
+  "name": "要素橡皮拉伸",
+  "desc": "使用位移链接将矢量图层扭曲对齐到目标：Delaunay-TIN 分段仿射（或 IDW）变换将控制点精确落在其目标位置并平滑变形其间的所有内容——即数据接边变换，类似 ArcGIS 的要素橡皮拉伸工具。"
+ },
+ "ruggedness_index": {
+  "name": "崎岖度指数",
+  "desc": "通过 Riley TRI（高程差平方和）度量地形粗糙度。与尺度无关的地形分类指标：低值表示平坦平原，高值表示崎岖山地。适用于生态和地貌学地形制图。"
+ },
+ "sar_coherence": {
+  "name": "SAR 相干性",
+  "desc": "在移动窗口内计算两个已配准的复数 SAR 影像之间的归一化干涉相干幅值（并可选计算干涉相位）（对应 ArcGIS Compute Coherence / Generate Interferogram）。相干性度量的是相位稳定性而非亮度，因此能检测强度差分无法发现的形变——如坍塌、植被下的洪水、收割和冰面运动——且不受天气影响。两个注册表中没有任何工具使用 SAR 相位。输入为双波段 I/Q 数据对，且必须已完成配准。"
+ },
+ "savitzky_golay_2d_filter": {
+  "name": "Savitzky-Golay 二维滤波",
+  "desc": "执行二维 Savitzky-Golay 平滑——基于多项式拟合的滤波器，保留局部多项式特征。对邻域拟合局部多项式并用拟合值替换中心值。比高斯滤波更能保留峰值/谷值。适用于特征保留重要的含噪数据。低阶多项式时模糊程度低于高斯滤波；平滑程度随多项式阶数增加而增强。Savitzky-Golay 滤波以最小二乘法对邻域拟合局部多项式（通常为二次/三次），并用多项式值替换中心值。不同于中值/高斯滤波——它能保留表现为多项式结构（峰、谷、脊）的特征。计算简单直接但比简单卷积慢。多项式阶数控制平滑/保留之间的权衡。应用：（1）在保留峰值结构的同时平滑含噪数据；（2）高程网格处理（保留山脊/山谷地形）；（3）光谱数据平滑（保留吸收特征）；（4）保特征预处理。"
+ },
+ "scharr_filter": {
+  "name": "Scharr 滤波",
+  "desc": "Scharr 滤波器是一种边缘检测算子，通过专门优化的核系数改进了 Sobel 滤波器，旨在减少方向偏差并提供更优的旋转不变性。Scharr 算子采用整数系数（3, 10, 3）的 3×3 卷积核，针对 0°、45°、90° 和 135° 边缘方向进行经验优化，比传统 Sobel 滤波器提供更精确的梯度估计，对圆形特征和旋转边缘尤其如此。该滤波器同时计算水平梯度与梯度幅值，实现稳健的边缘定位。主要优势包括：方向梯度精度更高、与 Sobel 相比旋转偏差更小、3×3 核计算高效且内存开销极小。输出包括幅值和可选的方向分量。Scharr 滤波器在特征提取、边界检测以及需要高方向精度的质量保证工作流中表现出色。用例包括从航空影像提取建筑物轮廓、检测道路网络、以最小失真勾勒水体边界，以及在卫星数据中识别地质线性构造。该滤波器在城市制图、农业边界检测和自主导航应用中表现尤为突出。输出解读需要理解幅值代表边缘强度——值越高表示不同光谱类别之间的过渡越尖锐。方向分量揭示主要的边缘朝向（水平、斜向或垂直），可用于线性构造分析。对于多波段栅格，可对每个波段分别应用或使用计算得到的指数。背景值在输出中显示为暗色；强边缘显示为亮色。与参考边缘进行 RMSE 对比可验证滤波器性能。可将输出缩放到 0-255 用于标准可视化，或保留浮点值用于定量分析。"
+ },
+ "sediment_transport_index": {
+  "name": "泥沙输移指数",
+  "desc": "根据比集水面积和坡度计算泥沙输移指数（LS 因子）。"
+ },
+ "segment_graph_felzenszwalb": {
+  "name": "Felzenszwalb 图分割",
+  "desc": "Felzenszwalb 基于图的分割将图像视为加权无向图，像元为节点，边连接相邻像元并以光谱不相似度作为权重。通过将分量内部的边权重与动态阈值比较来迭代合并片段；权重低于阈值的边触发合并，产生光谱特征局部均质的片段。这种分层方法对局部对比度变化以及自然的颜色/纹理不连续敏感，产生符合感知的分割结果。主要特性：基于图的分层分割；O(n log n) 的高效计算复杂度；对局部对比度变化敏感；产生符合感知的片段；支持多光谱/高光谱数据；生成尺寸可变的区域并保留自然边界。用例：多光谱影像分割；自然栖息地制图；城市特征提取；森林冠层勾绘；变化检测预处理；高光谱数据分割。输出解读：输出为标注栅格，每个像元被赋予片段 ID。片段大小与局部光谱对比度成反比；高对比度边界产生更小、更多的片段；均质区域合并为更大的片段。k 参数（阈值尺度）的敏感性允许生成更粗或更细的分割。片段边界对应自然的光谱不连续。"
+ },
+ "segment_multiresolution_hierarchical": {
+  "name": "多分辨率分层分割",
+  "desc": "生成多尺度分层分割（粗和细），并带有明确的父子映射关系。支持尺度相关的特征提取和多级分类工作流。"
+ },
+ "segment_scale_parameter_optimizer": {
+  "name": "分割尺度参数优化器",
+  "desc": "搜索候选分割尺度参数，以确定与目标对象数量最匹配的最优尺度。自动化尺度选择免除了手动调参，保证分割质量的一致性。"
+ },
+ "segment_slic_superpixels": {
+  "name": "SLIC 超像素分割",
+  "desc": "SLIC（简单线性迭代聚类）在结合空间坐标与颜色/光谱值的 5D 特征空间中执行迭代像元聚类，使超像素收敛到局部均质。算法初始化规则的聚类中心网格并将像元分配到最近的中心，迭代更新中心并收缩搜索区域。与分水岭或均值漂移方法相比，这产生了紧凑、形状规整的超像素，边界越界最小，对自然边缘的贴合度更高。主要特性：产生均匀、紧凑的超像素；计算高效，具有线性时间复杂度；用户可配置的紧致度参数在空间规整性与光谱一致性之间取得平衡；边界越界最小；支持多光谱影像。用例：面向对象分类预处理；分层区域分析；SAR 和光学影像分割；城市制图；植被勾绘；土地利用边界识别。输出解读：输出为标注栅格，像元值表示所分配的超像素 ID。超像素边界与主导边缘和颜色过渡对齐。较小的超像素（更高粒度）捕捉更精细的细节但增加计算负担；较大的超像素（更低粒度）合并相似区域，提高效率。边界精度取决于紧致度参数的调节和多光谱波段分离度。"
+ },
+ "segment_watershed_markers": {
+  "name": "标记分水岭分割",
+  "desc": "由标记驱动的类分水岭分割，围绕已识别的标记种子区域分离对象。在控制片段大小的同时强调边界保留，适用于分层 OBIA 工作流。"
+ },
+ "segments_merge_small_regions": {
+  "name": "合并小片段区域",
+  "desc": "片段合并通过空间邻接分析和用户定义的合并准则实现分层整合。使用大小阈值、光谱相似性度量或自定义形态学准则，将每个过小的片段与其相邻区域进行评估；按照基于合并成本的优先队列逐步将候选片段合并到吸收相邻片段中，保持片段连通性并避免拓扑违规。主要特性包括：对过分割影像进行后处理规整化；用户可配置的合并准则（最小尺寸、光谱相似性阈值、形态学属性）；合并过程中保持片段边界完整性；生成紧凑简化的片段图；以及无需完全重分割的分层细化。用例包括清理过分割的 OBIA 结果以减少破碎和噪声、简化片段以提高分类稳定性、消除初始分割中的虚假小片段、统一片段属性以实现一致的下游特征提取，以及对多尺度分割层次进行质量保证细化。输出表现为片段数量减少，反映整合效果；合并后的片段继承被吸收分量的光谱统计；边界更平滑、复杂度降低；合并区域保持空间完整性但内部光谱异质性略有增加；输出针对下游分类和特征稳定性进行了优化。"
+ },
+ "segments_split_low_cohesion": {
+  "name": "分割低内聚片段",
+  "desc": "使用更精细的尺度设置对现有的低内聚对象重新分割，以改善光谱均质性。仅对问题区域进行自适应细化，不影响形态良好的对象。"
+ },
+ "segments_to_polygons": {
+  "name": "片段转面",
+  "desc": "将栅格片段标签转换为矢量面，用于交互编辑、质量控制和 GIS 集成。实现栅格与矢量 OBIA 表示之间的无缝转换。"
+ },
+ "select_by_location": {
+  "name": "按位置选择",
+  "desc": "根据空间谓词（相交、内部、包含、接触、重叠等）相对查询要素筛选目标要素。"
+ },
+ "select_tiles_by_polygon": {
+  "name": "按面选择瓦片",
+  "desc": "批量瓦片选择：当瓦片采样点与面边界相交时，将 LAS/LAZ 瓦片从目录复制到输出。基于 AOI 的数据提取。"
+ },
+ "semivariogram_sensitivity": {
+  "name": "半变异函数敏感性",
+  "desc": "对已拟合变异函数的块金值、偏基台值和变程进行扰动，在评估位置重新进行克里金插值，并报告预测值和标准误差的移动幅度——这是对克里金模型的标准可辩护性检查（对应 ArcGIS GA Semivariogram Sensitivity）。内置的克里金工具套件覆盖面广，kriging_cross_validation 可度量拟合优度，但没有任何工具度量敏感性，且两者相互独立：一个交叉验证良好的模型，对分析者所选的参数仍可能高度脆弱。"
+ },
+ "set_nodata_value": {
+  "name": "设置 NoData 值",
+  "desc": "设置栅格的 NoData 值，并将现有的 NoData 像元映射到指定的背景值。"
+ },
+ "shadow_animation": {
+  "name": "阴影动画",
+  "desc": "创建交互式 HTML 查看器和动画 GIF，展示一天中不同时刻的地形阴影。"
+ },
+ "shadow_image": {
+  "name": "阴影图像",
+  "desc": "针对指定的日期、时间和位置生成地形阴影强度栅格。"
+ },
+ "shape_complexity_index_raster": {
+  "name": "栅格形状复杂度指数",
+  "desc": "通过以斑块跨度归一化的水平/垂直过渡频率计算栅格斑块形状复杂度。"
+ },
+ "shape_complexity_index_vector": {
+  "name": "矢量形状复杂度指数",
+  "desc": "使用归一化形状因子计算矢量面要素的形状复杂度指数。"
+ },
+ "shape_index": {
+  "name": "形状指数",
+  "desc": "根据 DEM 计算形状指数表面形态描述符。"
+ },
+ "shortest_path_network": {
+  "name": "最短路径（网络）",
+  "desc": "在线状网络上查找起点与终点坐标之间的最短路径。"
+ },
+ "shreve_stream_magnitude": {
+  "name": "Shreve 河流等级",
+  "desc": "计算 Shreve 河流等级。"
+ },
+ "sieve": {
+  "name": "筛除",
+  "desc": "移除低于像元数阈值的小型孤立图斑。"
+ },
+ "sigmoidal_contrast_stretch": {
+  "name": "S 形对比度拉伸",
+  "desc": "使用增益和截断执行 S 形（sigmoidal）对比度拉伸。"
+ },
+ "similarity_search": {
+  "name": "相似性搜索",
+  "desc": "在 z 标准化的数值字段上，根据与一个或多个参考要素的属性相似度对候选要素排序（欧氏或余弦距离），可选最相似/最不相似/两者——类似 ArcGIS 的相似性搜索工具。"
+ },
+ "simple_kriging": {
+  "name": "简单克里金法",
+  "desc": "在空间场的均值可先验获知时执行简单克里金插值。当均值可通过外部信息可靠获知时，该方法可降低克里金方差并提供更稳定的预测。"
+ },
+ "simplify_3d_line": {
+  "name": "简化 3D 折线",
+  "desc": "使用在三个维度上度量偏差的 Douglas-Peucker 拆分来减少 3D 折线的顶点数，保留垂直剖面，类似 ArcGIS 的简化 3D 线工具。"
+ },
+ "simplify_building": {
+  "name": "简化建筑物",
+  "desc": "在保护直角拐角的前提下减少建筑物轮廓顶点，并设有最小面积剔除阈值，类似 ArcGIS 的简化建筑物工具。"
+ },
+ "simplify_by_circular_arcs": {
+  "name": "按圆弧简化",
+  "desc": "通过用直线段和真圆弧替换连续顶点来简化线和面，保留工程设计的曲线而非用弦线近似（对应 ArcGIS 的按直线和圆弧简化；'tangent' 模式覆盖按切线段简化）。两个注册表中的所有简化器都仅删除顶点，这迫使在出现棱角的多面化曲线与不可接受的顶点数量之间二选一——典型如尽端路圆头、环岛和储罐轮廓。圆通过代数最小二乘拟合，但以真正的正交偏差作为接受准则，因此容差保证依然成立。"
+ },
+ "simplify_by_tangent_segments": {
+  "name": "按切线段简化",
+  "desc": "用保持在最大垂直偏移之内的最少直线段链替换加密的曲线几何，并在相邻段交点处连接，使结果与原曲线保持相切（对应 ArcGIS 的按切线段简化）。这是 simplify_by_circular_arcs 的线性对应工具：simplify_features（Douglas-Peucker）只能保留现有顶点且无法保证相切，会在工程几何上留下折角；而 smooth_line 和 smooth_natural_features 是移动顶点而非减少顶点。"
+ },
+ "simplify_features": {
+  "name": "简化要素",
+  "desc": "使用 Douglas-Peucker 算法降低几何复杂度，以减小文件体积、去除 GPS 噪声并优化渲染性能，同时保持形状。"
+ },
+ "simplify_shared_edges": {
+  "name": "简化共享边",
+  "desc": "简化面覆盖层，同时保持相邻面之间共享的边界重合（不产生缝隙或细碎面），类似 ArcGIS 的简化共享边工具。"
+ },
+ "sin": {
+  "name": "正弦",
+  "desc": "计算每个栅格像元值的正弦。"
+ },
+ "singlepart_to_multipart": {
+  "name": "单部件转多部件",
+  "desc": "将单部件要素合并为多部件要素，可按可选的分类字段分组。"
+ },
+ "sinh": {
+  "name": "双曲正弦",
+  "desc": "计算每个栅格像元的双曲正弦。"
+ },
+ "sink": {
+  "name": "洼地",
+  "desc": "识别属于 DEM 中地形洼地的像元。"
+ },
+ "sky_view_factor": {
+  "name": "天空可视因子",
+  "desc": "根据 DEM/DSM 计算可见天空比例。"
+ },
+ "skyline_analysis": {
+  "name": "天际线分析",
+  "desc": "对一个或多个观察点执行天际线分析，并输出矢量地平线轨迹和 HTML 报告。"
+ },
+ "slice_raster": {
+  "name": "栅格分级切片",
+  "desc": "将连续栅格分类为 N 个有序分区（等间距、等面积、自然间断点、几何间距或标准差）。"
+ },
+ "slope": {
+  "name": "坡度",
+  "desc": "Zevenbergen-Thorne 坡度梯度（度/弧度/百分比）。基础的地貌计量指标；是曲率、流向、晕渲和可视性等下游计算的输入。"
+ },
+ "slope_vs_aspect_plot": {
+  "name": "坡度-坡向图",
+  "desc": "为输入 DEM 创建 HTML 径向坡度-坡向分析图。"
+ },
+ "slope_vs_elev_plot": {
+  "name": "坡度-高程图",
+  "desc": "为一个或多个 DEM 创建 HTML 坡度-高程分析图。"
+ },
+ "smooth_natural_features": {
+  "name": "平滑自然要素",
+  "desc": "通过 Chaikin 切角法将像素化的面和锯齿状线（栅格转矢量输出）平滑为自然外观的曲线，并保持面的面积。"
+ },
+ "smooth_shared_edges": {
+  "name": "平滑共享边",
+  "desc": "平滑面覆盖层，同时保持相邻面之间共享的边界重合（不产生缝隙或细碎面），类似 ArcGIS 的平滑共享边工具。"
+ },
+ "smooth_vectors": {
+  "name": "平滑矢量",
+  "desc": "使用滑动平均滤波平滑折线或面几何，以减少数字化噪声和 GPS 轨迹抖动。"
+ },
+ "smooth_vegetation_residual": {
+  "name": "平滑植被残差",
+  "desc": "通过在小尺度上掩膜掉较高的局部 DEV 响应并重新插值被掩膜的高程，减少植被冠层的残余粗糙度。"
+ },
+ "snap_endnodes": {
+  "name": "捕捉端点",
+  "desc": "在容差范围内将邻近的折线端点捕捉到共享位置。"
+ },
+ "snap_events_to_routes": {
+  "name": "事件捕捉到路径",
+  "desc": "将事件点捕捉到路径线上，并报告路径测量值/偏移诊断信息。"
+ },
+ "snap_points_to_network": {
+  "name": "点捕捉到网络",
+  "desc": "将输入点要素捕捉到网络线图层上的最近位置。"
+ },
+ "snap_pour_points": {
+  "name": "捕捉倾泻点",
+  "desc": "在搜索距离内将倾泻点捕捉到汇流累积量最高的像元。"
+ },
+ "snap_tracks": {
+  "name": "轨迹捕捉",
+  "desc": "使用 Viterbi 动态规划（发射概率=捕捉距离，转移概率=路线连续性）将带时间戳的 GPS 轨迹地图匹配到道路网络，使匹配后的轨迹沿一条合理的路径行进，而不是在平行街道之间之字形跳动——类似 ArcGIS 的轨迹捕捉工具。"
+ },
+ "sobel_filter": {
+  "name": "Sobel 滤波",
+  "desc": "Sobel 算子通过在 x（水平）和 y（垂直）两个方向上进行方向梯度估计来检测边缘，将正交导数核组合成统一的幅值表示。实现中对两个 3×3 卷积核独立应用（一个强调水平边缘，一个强调垂直边缘），然后通过欧几里得范数合并结果：幅值 = √(Gx² + Gy²)。这种可分离的方法降低了计算成本，同时保持边缘检测精度。其数学基础源于图像梯度的离散近似，核权重偏向中心像元以提高噪声鲁棒性。主要特性包括：可进行方向梯度测量以确定边缘朝向、计算开销相对较低、在卫星和航空影像上久经验证、参数调节需求极小。Sobel 滤波广泛应用于地形坡度和坡向计算、面向目标检测工作流的特征边界提取、从 DEM 数据勾勒河网，以及从高分辨率影像提取基础设施（道路、建筑物、电力线）。输出解读：幅值表示边缘强度（值越高=过渡越尖锐），方向分量（Gx, Gy）可用于朝向分析。8 位影像的典型梯度幅值范围为 0-256；超过 100 的值通常表示显著边缘。Gx/Gy 的比值提供边缘朝向信息：比值接近 1 表示 45 度边缘，比值远大于 1 表示水平特征，比值远小于 1 表示垂直特征。噪声区域常出现假阳性；中值滤波或形态学运算可有效减少虚假检测。结合阈值化可生成适用于分割流水线的二值边缘掩膜。"
+ },
+ "solar_radiation": {
+  "name": "太阳辐射",
+  "desc": "计算 DEM 上某日期范围内入射太阳辐射（Wh/m²）：直射 + 散射，考虑坡度/坡向、地平线遮挡以及随时间变化的太阳位置——类似 ArcGIS 的太阳辐射栅格工具。"
+ },
+ "sort_features": {
+  "name": "要素排序",
+  "desc": "按属性字段或沿 Hilbert 空间填充曲线（空间排序）对矢量图层重新排序，类似 ArcGIS 的排序工具——Hilbert 排序使空间上相近的记录聚在一起，以改善 GeoParquet 的裁剪效率和 PMTiles 的局部性。"
+ },
+ "sort_lidar": {
+  "name": "LiDAR 排序",
+  "desc": "按多个条件对点排序：带分箱尺寸的 x/y/z，以及派生属性。优化空间连贯性以利于压缩和瓦片处理。"
+ },
+ "space_time_kernel_density": {
+  "name": "时空核密度",
+  "desc": "带时间戳点的时空核密度：由可分离的空间（Epanechnikov/四次）× 时间（三角/Epanechnikov）核为每个时间切片生成一个密度波段（多波段栅格），使每个波段聚合在空间和时间上邻近的点，类似 ArcGIS 的时空核密度工具。这是内置二维 heat_map 的考虑时间维度的对应工具。"
+ },
+ "spacetime_kriging": {
+  "name": "时空克里金法",
+  "desc": "执行时空克里金插值，联合建模点测量的空间和时间变化。适用于空间分布的时间序列数据。"
+ },
+ "spatial_association_between_zones": {
+  "name": "分区间空间关联",
+  "desc": "通过 V 度量（同质性/完整性）以及每个分区的关联得分，衡量两个分类分区栅格之间的对应程度。"
+ },
+ "spatial_eigenvector_filtering": {
+  "name": "空间特征向量滤波（MESF）",
+  "desc": "从空间权重矩阵生成 Moran 特征向量（空间滤波器），并将自相关分量追加为解释变量字段（MEV1、MEV2、……），类似 ArcGIS 的分解空间结构/创建空间分量解释变量工具。构建对称连接矩阵（邻接或对称化的 KNN），进行双重中心化（M C M），并用纯 Rust 的循环 Jacobi 求解器进行特征分解；保留 Moran's I ≥ min_autocorrelation 的特征向量，按降序排列并以 max_components 为上限。"
+ },
+ "spatial_error_regression": {
+  "name": "空间误差回归（SEM）",
+  "desc": "估计空间误差模型，处理由遗漏变量或测量误差导致的残差外生空间依赖。"
+ },
+ "spatial_error_regression_raster": {
+  "name": "空间误差回归（SEM）- 栅格输出",
+  "desc": "估计 SEM 模型并输出拟合值表面。"
+ },
+ "spatial_join": {
+  "name": "空间连接",
+  "desc": "使用空间谓词将连接图层要素的属性传递到目标要素；对多重匹配支持聚合策略（计数、求和、均值、最小值、最大值）。"
+ },
+ "spatial_lag_regression": {
+  "name": "空间滞后回归（SAR）",
+  "desc": "估计空间自回归模型，捕捉因变量受空间邻居影响的内生溢出效应。"
+ },
+ "spatial_lag_regression_raster": {
+  "name": "空间滞后回归（SAR）- 栅格输出",
+  "desc": "估计 SAR 模型并输出拟合值表面。"
+ },
+ "spatial_outlier_detection": {
+  "name": "空间异常值检测",
+  "desc": "按局部离群因子（LOF）为点评分——即每个点相对于其 k 个最近邻的局部密度的孤立程度——并标记最主要的异常值，类似 ArcGIS 的空间异常值检测工具。填补了 DBSCAN 二值噪声标签留下的空白。"
+ },
+ "spatially_constrained_multivariate_clustering": {
+  "name": "空间约束多元聚类",
+  "desc": "使用 SKATER 算法将要素划分为空间连续、属性均质的区域（在邻接图上构建最小生成树并切割以最大化组间方差），可选施加大小/均衡约束。与 multivariate_clustering 不同，每个聚类在构造上都是连通的。类似 ArcGIS 的空间约束多元聚类工具。"
+ },
+ "spectral_angle_mapper": {
+  "name": "光谱角制图",
+  "desc": "光谱角制图通过计算每个像元光谱与参考库光谱之间的光谱角对像元分类，将像元分配给角度最小的库光谱，代表与光照强度无关的最大光谱相似性。SAM 将每个像元和参考光谱视为 N 维光谱空间中的向量，使用点积运算和反余弦变换计算向量之间的夹角。这种基于光谱角的分类对整体缩放亮度但保持光谱形状的光照和地形效应不变，因此在复杂地形和不同获取条件下都很稳健。主要特性包括：自动定义光谱角阈值以实现概率化分类置信度；支持导入用户提供的来自野外样本或光谱库的参考光谱签名；光照不变性可在可变光照下保持光谱区分能力；计算快速，支持对大型影像进行实时分类。常见应用包括：使用 USGS 光谱库进行材料识别和地质制图；将多光谱卫星数据与野外采集光谱结合进行植被种类分类；在机载高光谱勘测中进行矿物勘探；以及将影像光谱与地面采集参考签名比较的精度评估。SAM 输出支持利用光谱形状签名进行可靠的材料识别。分类输出为单波段影像，其整数类别标签对应库条目；置信度栅格可选记录每个像元的最小光谱角，支持基于阈值的筛选；输出支持直接的材料识别和基于置信度的过滤。"
+ },
+ "spectral_index": {
+  "name": "光谱指数",
+  "desc": "从多波段栅格计算光谱指数（NDVI、NDWI、NDBI、NBR、EVI、SAVI）。"
+ },
+ "spectral_library_matching": {
+  "name": "光谱库匹配",
+  "desc": "光谱库匹配通过使用多种相似性度量——光谱角（光谱向量之间的夹角）、欧氏距离（幅值差）和光谱信息散度——将影像像元光谱与参考库光谱进行比较来执行分类。算法接受用户提供的包含已知材料/类别光谱的参考光谱库，计算每个影像像元与库条目之间的相似性度量，确定最佳匹配的库光谱（最小角度、最小距离或最小散度），并输出类别标签及可选的置信度/相似性得分。库匹配利用 USGS、野外调查或实验室光谱学的参考光谱，无需野外训练样本即可实现材料识别。主要特性包括：多种相似性度量可根据特定光谱特征和类别分布选择度量方式；灵活的库导入，支持多种光谱库格式；可选的置信度/不确定性量化；以及直接输出可识别的材料。应用包括：使用 USGS 光谱库进行矿物学的地质制图；使用植物光谱参考库进行植被分类；城市区域建筑材料识别；以及机载高光谱勘测分析。光谱库匹配实现自动化材料识别。输出包括以库条目 ID 为类别标签的分类图、量化匹配质量的相似性/置信度栅格，以及可选的针对每个库条目的完整光谱角/距离堆栈，支持基于阈值的筛选；元数据记录参考库来源和所用的相似性度量。"
+ },
+ "spherical_std_dev_of_normals": {
+  "name": "法向量球面标准差",
+  "desc": "计算局部表面法向量的球面标准差。"
+ },
+ "split_by_attributes": {
+  "name": "按属性分割",
+  "desc": "按给定字段（或字段组合）的唯一值将矢量图层拆分为每个值（或组合）一个输出文件，类似 ArcGIS 的按属性分割工具。"
+ },
+ "split_by_features": {
+  "name": "按要素分割",
+  "desc": "针对面分割图层的每个分区裁剪输入图层，每个不同的分割字段值输出一个文件。共享同一值的分区先被融合，空分区被跳过。类似 ArcGIS 的分割（分析）工具。"
+ },
+ "split_colour_composite": {
+  "name": "拆分彩色合成影像",
+  "desc": "将打包的 RGB 彩色合成栅格拆分为分别表示红、绿、蓝通道的三个独立单波段栅格。算法：该工具从 R、G、B 值打包在单个栅格中的合成影像（通常采用标准 24 位 RGB 或 32 位 RGBA 编码）中提取单个颜色波段。拆分通过位运算隔离每个 8 位通道分量。主要特性：保留原始辐射值（0–255）；支持标准 RGB 合成影像和扩展格式；输出三个独立的已配准栅格。用例：需要对各波段单独处理的光谱分析；为植被指数（NDVI、EVI）计算创建输入数据；为波段代数运算准备数据；实现 RGB 转 IHS 等高级颜色变换；为监督或非监督分类工作流提取特定波段。应用：遥感影像分析、卫星数据预处理、多光谱分析准备、影像增强流水线。输出解读：输出三个单波段栅格，其空间范围、投影和地理配准与输入合成影像一致。每个输出波段包含 8 位辐射值（0–255），表示该颜色分量在整个场景中的强度。波段统计（最小值、最大值、均值）反映该颜色通道的光谱特征；占主导的值表示颜色在影像中的优势。输出栅格可直接用于波段计算、光谱指数或进一步的多波段处理工作流。"
+ },
+ "split_lidar": {
+  "name": "LiDAR 分割",
+  "desc": "按属性将点划分到不同文件：按类别、来源 ID、时间窗口、空间分箱或点数分组。数据分层与分发。"
+ },
+ "split_line_at_point": {
+  "name": "在点处分割线",
+  "desc": "在落入搜索半径内的点要素位置分割折线要素，在每个捕捉点处插入节点，并为每个生成的子段输出一个要素（保留父要素属性）——类似 ArcGIS 的在点处分割线工具。"
+ },
+ "split_lines_at_intersections": {
+  "name": "在交点处分割线",
+  "desc": "在线段相交处（包括自相交）分割线网络。"
+ },
+ "split_raster": {
+  "name": "分割栅格",
+  "desc": "按瓦片数量、固定像元大小或面要素将栅格分割为独立瓦片，可选像元重叠——类似 ArcGIS 的分割栅格工具。每个瓦片保留 CRS 和地理配准。"
+ },
+ "split_vector_lines": {
+  "name": "分割矢量线",
+  "desc": "将每个折线要素分割为不超过指定最大长度的段。"
+ },
+ "split_with_lines": {
+  "name": "用线分割",
+  "desc": "使用分割线图层的交点分割输入折线。"
+ },
+ "sqrt": {
+  "name": "平方根",
+  "desc": "计算每个栅格像元的平方根。"
+ },
+ "square": {
+  "name": "平方",
+  "desc": "对每个栅格像元值求平方。"
+ },
+ "stack_profile": {
+  "name": "堆叠剖面",
+  "desc": "沿同一条折线采样多个表面栅格，并输出一个长格式表（LINE_ID、FIRST_DIST、FIRST_Z、SRC_ID、SRC_NAME），以便在共享距离轴上以横截面对比各表面。类似 ArcGIS 的堆叠剖面工具。"
+ },
+ "standard_deviation_contrast_stretch": {
+  "name": "标准差对比度拉伸",
+  "desc": "使用均值加减标准差倍数执行线性对比度拉伸。"
+ },
+ "standard_deviation_filter": {
+  "name": "标准差滤波",
+  "desc": "计算移动窗口标准差，度量局部值的变异/离散程度。标准差高=值多样（粗糙/异质），标准差低=值一致（平滑/均质）。揭示纹理、粗糙度和变异性模式。对不确定性量化和质量评估至关重要。\n\n相比极差，标准差在刻画局部变异时更稳健（不受单个异常值偏差影响）。可按纹理对区域分类：陡坡（高标准差）、缓坡（低标准差）；森林（高标准差）、草地（低标准差）。常进行归一化（变异系数=标准差/均值）以便在值域不同的数据间比较。可由直方图计算（方差=平方的均值−均值的平方）。\n\n应用：（1）纹理制图（粗糙度/异质性分析）；（2）含噪数据的不确定性量化；（3）质量评估（均匀背景=低标准差，特征丰富区域=高）；（4）分类置信度（高标准差=混合/不确定类别）；（5）多波段异质性（堆叠各波段的标准差）。典型工作流：在多个尺度上计算标准差→比较跨尺度的模式变化→识别特征尺度。"
+ },
+ "standard_deviation_of_slope": {
+  "name": "坡度标准差",
+  "desc": "计算局部坡度标准差，作为地形粗糙度指标。"
+ },
+ "standard_deviation_overlay": {
+  "name": "标准差叠加",
+  "desc": "逐像元计算栅格堆栈的标准差，若任一输入像元为 NoData 则结果传播为 NoData。"
+ },
+ "stochastic_depression_analysis": {
+  "name": "随机洼地分析",
+  "desc": "运行蒙特卡洛 DEM 扰动，估算洼地归属概率。"
+ },
+ "storage_capacity": {
+  "name": "库容计算",
+  "desc": "在 DEM 上扫掠不同水面高程，按分析分区或整个 DEM 报告各水位下的淹没面积与蓄水体积（即水位-面积-库容曲线），类似 ArcGIS 的库容分析工具。"
+ },
+ "strahler_order_basins": {
+  "name": "Strahler 级流域划分",
+  "desc": "划分流域盆地，并按其汇流河段的 Horton-Strahler 级别进行标注。"
+ },
+ "strahler_stream_order": {
+  "name": "Strahler 河流分级",
+  "desc": "为河流像元赋 Strahler 河流级别。"
+ },
+ "stream_link_class": {
+  "name": "河流链路分类",
+  "desc": "将河流链路划分为内部链路、外部链路或源头。"
+ },
+ "stream_link_identifier": {
+  "name": "河流链路标识",
+  "desc": "为每条河流链路赋唯一 ID。"
+ },
+ "stream_link_length": {
+  "name": "河流链路长度",
+  "desc": "计算每条河流链路的总长度。"
+ },
+ "stream_link_slope": {
+  "name": "河流链路坡度",
+  "desc": "计算每条河流链路的平均坡度。"
+ },
+ "stream_slope_continuous": {
+  "name": "河流连续坡度",
+  "desc": "为每个河流像元计算坡度值。"
+ },
+ "strip_map_index_features": {
+  "name": "带状地图索引要素",
+  "desc": "沿每条输入线遍历，生成一系列编号的旋转重叠页面矩形，其方向与局部线路走向一致，用于沿公路、河流、管线或步道制作带状地图册——类似 ArcGIS 的带状地图索引要素工具。"
+ },
+ "subbasins": {
+  "name": "子流域",
+  "desc": "识别 D8 河网中每条河流链路的汇水区（子流域）。"
+ },
+ "subdivide_polygon": {
+  "name": "细分面",
+  "desc": "使用给定角度的平行直线切割，将每个面分割为等面积的部分（指定数量或各部分目标面积），类似 ArcGIS 的细分面工具。"
+ },
+ "subset_features": {
+  "name": "子集要素",
+  "desc": "使用带种子的确定性随机数生成器，按百分比或绝对数量将要素图层随机拆分为训练子集及其补集（测试子集），可按分组字段分层。类似 ArcGIS 的子集要素工具。"
+ },
+ "subset_multidimensional_raster": {
+  "name": "多维栅格子集",
+  "desc": "按维度坐标范围、显式索引或步长，将多维栅格数据立方体缩小为其切片的子集（类似 ArcGIS 的多维栅格子集/按维度选择工具）。捆绑的数据立方体工具均整块读取立方体，因此此前若不重新生成输入，便无法对研究窗口进行分析。"
+ },
+ "subtract": {
+  "name": "减法",
+  "desc": "逐像元用第一个栅格减去第二个栅格。"
+ },
+ "sum_overlay": {
+  "name": "求和叠加",
+  "desc": "逐像元计算栅格堆栈的总和，若任一输入像元为 NoData 则结果传播为 NoData。"
+ },
+ "summarize_categorical_raster": {
+  "name": "分类栅格汇总",
+  "desc": "统计分类栅格中每个类别的像元数、面积和占比，多波段/多维堆栈时每个切片输出一行，可选限定感兴趣区域（类似 ArcGIS 的分类栅格汇总工具）。捆绑的 raster_area 工具将类别总计写回栅格像元而非表格，且仅支持单波段，因此无法生成土地覆盖变化分析所需的逐日期类别面积序列。对于地理坐标系栅格，像元面积按行积分计算。"
+ },
+ "summarize_nearby": {
+  "name": "邻近汇总",
+  "desc": "按一个或多个直线距离对输入要素生成缓冲区，并汇总各缓冲区内第二个图层的情况：要素数量、相交面积（面）、裁剪长度（线），以及数值字段按度量加权的总和/均值。"
+ },
+ "summarize_percent_change": {
+  "name": "百分比变化汇总",
+  "desc": "统计每个面要素内当期与前期的事件数量，报告数量差、百分比变化及变化类别。前期数量为零时百分比变化为空（类别为“new”）。类似 ArcGIS 的百分比变化汇总工具。"
+ },
+ "summarize_within": {
+  "name": "范围内汇总",
+  "desc": "汇总现有面图层内某图层的属性，部分重叠的要素按相交面积或长度加权，类似 ArcGIS 的范围内汇总工具。"
+ },
+ "summary_statistics": {
+  "name": "汇总统计",
+  "desc": "对一个或多个案例字段执行 SQL 风格的 GROUP BY：为每个唯一的案例字段组合计算一组（字段, 统计量）聚合值（计数/总和/均值/最小值/最大值/标准差/第一个/最后一个）以及分组记录数。输出为纯属性表。不指定案例字段时输出单行总计（类似 ArcGIS 的汇总统计数据；仅计数时等同于频数统计）。"
+ },
+ "sun_shadow_volume": {
+  "name": "太阳阴影体积",
+  "desc": "沿太阳矢量将三维实体拉伸至地面，生成给定日期和时间的闭合阴影体积实体（类似 ArcGIS 的太阳阴影体积工具）。shadow_image、shadow_animation 和 time_in_daylight 均基于栅格 DSM 并输出栅格，solar_radiation 计算辐照度——都无法生成阴影几何，因此诸如“这扇窗是否被遮挡”“这块地块上空有多少处于阴影中”的问题无法回答。输出可与 inside_3d、intersect_3d 和 union_3d 组合使用。"
+ },
+ "surface_area_ratio": {
+  "name": "表面面积比",
+  "desc": "三维表面积与平面投影面积之比（Jenness 法）。大于 1.0 表示地形崎岖，约等于 1.0 表示平坦。无量纲粗糙度指标，可用于跨区域地形比较。"
+ },
+ "surface_difference": {
+  "name": "表面差异",
+  "desc": "以面形式标出一个表面相对另一表面高于、低于或等高的区域，每个面携带其类别、面积、体积和差异统计（类似 ArcGIS 的表面差异工具）。cut_fill 计算相同的量但只输出区域标签栅格和 CSV，其区域没有可供叠加、裁剪或连接的几何；surface_volume 和 polygon_volume 则是相对某个平面或在已有面内量测，而非自动发现这些区域。"
+ },
+ "surface_parameters": {
+  "name": "表面参数",
+  "desc": "通过在选定邻域距离上进行局部二次/双二次最小二乘表面拟合，从 DEM 计算坡度、坡向或曲率（mean/profile/tangential/plan/gaussian/casorati/contour_geodesic_torsion），类似 ArcGIS 的表面参数工具——是捆绑的固定 3×3 地形工具的尺度自适应版本。"
+ },
+ "surface_volume": {
+  "name": "表面体积",
+  "desc": "将栅格表面对水平参考平面进行积分，报告平面上方和/或下方的二维面积、三维表面积和体积（类似 ArcGIS 的表面体积工具）。适用于土方挖填和水库库容分析。"
+ },
+ "svm_classification": {
+  "name": "SVM 分类",
+  "desc": "支持向量机（SVM）分类将机器学习支持向量机算法应用于多光谱遥感数据，通过在高维光谱特征空间中寻找最优超平面来分离训练类别。算法：通过核函数（线性、RBF、多项式）将光谱特征向量变换到高维空间，识别分离训练类别的最大间隔超平面，并依据超平面位置对新像元分类；容差参数和核选择控制泛化能力。能有效处理非线性类别分离。主要特点：对高维光谱数据稳健，训练样本有限时泛化性能优异，核函数的灵活性可适应多样的光谱分布，提供概率/置信度估计。能力：多类别分类、软间隔容差、自动类别权重平衡。用例：稀疏训练数据下的精细土地分类、光谱-空间特征融合、变化检测、精准农业、城市制图。应用：高光谱影像分类、复杂生态系统制图、作物类型划分、基础设施分类。输出解读：类别归属表示预测类别，空间连贯性反映分类质量；概率估计量化像元级置信度；误分类模式提示训练数据不足或光谱重叠问题。"
+ },
+ "svm_regression": {
+  "name": "SVM 回归",
+  "desc": "对多波段输入栅格执行有监督支持向量机回归。"
+ },
+ "symmetrical_difference": {
+  "name": "对称差",
+  "desc": "从输入图层和叠加图层计算不重叠的面区域。"
+ },
+ "table_to_geometry": {
+  "name": "表转几何",
+  "desc": "由表格字段构建折线或椭圆要素：起止坐标对（XY To Line）、起点+方位角+距离（Bearing Distance To Line），或中心点+长短轴+方位角（Table To Ellipse），支持平面、测地线和等角航线构建。"
+ },
+ "tabulate_intersection": {
+  "name": "交集制表",
+  "desc": "矢量对矢量的分区汇总：将类别图层（面按面积、线按相交长度、点按数量）分配到各分区面中，报告相交度量值、占分区的百分比以及度量加权的求和字段。"
+ },
+ "tan": {
+  "name": "正切",
+  "desc": "计算每个栅格像元值的正切。"
+ },
+ "tangential_curvature": {
+  "name": "切向曲率",
+  "desc": "计算切向曲率（东西方向分量），与平面曲率类似但具有方向性。用于全面刻画垂直于坡向的侧向流动发散特征。常与剖面曲率结合使用，以完整理解三维曲率。"
+ },
+ "tanh": {
+  "name": "双曲正切",
+  "desc": "计算每个栅格像元的双曲正切。"
+ },
+ "terrain_corrected_optical_analytics": {
+  "name": "地形校正光学预处理",
+  "desc": "使用配准的 DEM 对多光谱光学波段执行地形 C 校正。输出地表反射率堆栈、校正因子、云/阴影掩膜和质量置信度。"
+ },
+ "thicken_raster_line": {
+  "name": "栅格线加粗",
+  "desc": "加粗对角方向的栅格线段，防止对角渗漏。"
+ },
+ "thin_road_network": {
+  "name": "道路网稀疏化",
+  "desc": "面向小比例尺显示对道路网进行综合化：在保持连通性的同时隐藏短且等级低的道路，并将每条道路标记为显示/稀疏化（非破坏性），类似 ArcGIS 的道路网稀疏化工具。"
+ },
+ "tile_grid_polygons": {
+  "name": "切片网格面",
+  "desc": "为某一缩放级别（或级别范围）和范围生成 Web 地图切片边界面，每个面携带 z/x/y 及其 quadkey（类似 ArcGIS 的切片方案转面、创建矢量切片索引、生成切片缓存切片方案）。捆绑的矩形/六边形网格工具在输入 CRS 中构建任意网格，无法与 PMTiles 和 raster_to_tiles 工具使用的 WebMercator 四叉树重合。"
+ },
+ "time_in_daylight": {
+  "name": "日照时长",
+  "desc": "计算每个像元在白天被照亮（未处于地形或物体阴影中）的时间比例。"
+ },
+ "time_series_clustering": {
+  "name": "时间序列聚类",
+  "desc": "基于时间序列的相似性（数值、z 归一化剖面或相关性），使用确定性 k-medoids 对 H3 时空立方体的像元进行聚类，使演化相似的位置归为一组，类似 ArcGIS 的时间序列聚类工具。"
+ },
+ "time_series_cross_correlation": {
+  "name": "时间序列互相关",
+  "desc": "对两个对齐的时空栅格堆栈逐像元进行滞后互相关（类似 ArcGIS 的时间序列互相关/多维栅格相关）：对每个像元可选去趋势/去季节化，然后在 min_lag..=max_lag 范围内将序列 A 与序列 B 做相关，报告最佳滞后及其 Pearson 相关系数，以及可选的滞后 0 相关系数和 Pyper-Peterman 有效样本量伪 p 值。它是单序列的 generate_trend_raster / change_point_detection 立方体工具的双变量、滞后感知补充——现有工具无法建立两个变量随时间变化的关系。"
+ },
+ "time_series_forecast": {
+  "name": "时间序列预测",
+  "desc": "对 H3 时空立方体逐位置进行预测（类似 ArcGIS 的指数平滑/曲线拟合预测）：用 Holt 指数平滑或多项式曲线拟合向前预测每个像元的序列，逐像元选取留出集 RMSE 最低的模型，输出下一步/最终一步预测值和 90% 置信半宽。这是捆绑的空间 trend_surface 工具无法实现的时间维度预测。"
+ },
+ "time_series_smoothing": {
+  "name": "时间序列平滑",
+  "desc": "逐位置平滑样本内时间序列（类似 ArcGIS 的时间序列平滑工具）：按 id_field 对要素分组，按 time_field 对每组排序，通过后向/中心/前向移动平均或自适应带宽局部线性（LOESS）处理追加平滑值。保留几何和全部原始属性。与向前预测而非平滑观测序列的 time_series_forecast 互补。"
+ },
+ "tin_interpolation": {
+  "name": "TIN 插值",
+  "desc": "使用 Delaunay 三角剖分和三角形内平面插值，由点采样数据插值生成栅格。"
+ },
+ "to_degrees": {
+  "name": "弧度转角度",
+  "desc": "将每个栅格像元从弧度转换为角度。"
+ },
+ "to_radians": {
+  "name": "角度转弧度",
+  "desc": "将每个栅格像元从角度转换为弧度。"
+ },
+ "tophat_transform": {
+  "name": "Top-Hat 变换",
+  "desc": "执行白帽或黑帽形态学 Top-Hat 变换。"
+ },
+ "topo_render": {
+  "name": "地形渲染",
+  "desc": "使用调色板着色、山体阴影、阴影和衰减创建伪三维地形渲染。"
+ },
+ "topo_to_raster": {
+  "name": "地形转栅格",
+  "desc": "使用带排水强制的最小曲率（薄板）松弛法，从等高线、高程点和可选的河流线插值生成水文正确的 DEM——类似 ArcGIS 的地形转栅格（ANUDEM）。与捆绑的 IDW/TIN/样条插值器不同，它不会产生等高线阶梯化，并能去除虚假的闭合洼地。"
+ },
+ "topographic_hachures": {
+  "name": "地形晕线",
+  "desc": "使用以等高线为起点的顺坡和逆坡流线，从 DEM 生成地形晕线折线。此工具特意保留原有的作者署名。"
+ },
+ "topographic_position_animation": {
+  "name": "地形位置动画",
+  "desc": "在非线性采样的多个尺度上创建 DEV 或 DEVmax 的交互式 HTML 查看器和动画 GIF。"
+ },
+ "topological_breach_burn": {
+  "name": "拓扑破洼烧入",
+  "desc": "将河流烧入 DEM 并对表面进行条件化处理，返回河流、DEM、流向指针和汇流累积量栅格。"
+ },
+ "topological_stream_order": {
+  "name": "拓扑河流分级",
+  "desc": "基于链路数量赋拓扑河流级别。"
+ },
+ "topology_rule_autofix": {
+  "name": "拓扑规则自动修复",
+  "desc": "对 topology_rule_validate 检测到的拓扑违规自动应用安全、可审计的修复：跨要素端点捕捉、悬空端点捕捉/投影以及点到线投影。polygon_must_not_have_gaps 没有自动修复方法，报告为零更改。"
+ },
+ "topology_rule_validate": {
+  "name": "拓扑规则验证",
+  "desc": "按规则集检查（自相交、重叠、缝隙、悬挂、点覆盖、端点捕捉）验证矢量拓扑，并输出要素级违规。"
+ },
+ "topology_validation_report": {
+  "name": "拓扑验证报告",
+  "desc": "审计矢量图层的拓扑问题，并生成逐要素的 CSV 报告。"
+ },
+ "total_curvature": {
+  "name": "总曲率",
+  "desc": "计算总曲率（主曲率的均方根）。与方向无关的标量指标。高值表示高度弯曲的地形（山峰、洼坑）；低值表示平坦地形。可作为无量纲粗糙度指标，用于地形分类和异常检测。"
+ },
+ "total_filter": {
+  "name": "总和滤波",
+  "desc": "计算邻域内像元值的移动窗口总和。积分局部信号强度。应用取决于数据语义：对于计数/密度数据，总和揭示局部密度模式；对于降水数据，总和揭示流域尺度累积；对于反射率数据，总和与局部目标大小成正比。\n\n总和滤波在不同领域有不同解读。在计数/人口数据中，总和揭示聚集和热点。在高程数据中，总和很少使用（求和无地貌学意义）。在光谱分析中，总和可揭示多波段信号强度。常用作中间步骤（例如除以邻域像元数计算均值，或与相邻总和比较以检测局部异质性）。\n\n应用：(1) 计数数据中的热点检测（高总和=聚集），(2) 流域/汇水累积模型，(3) 分布式测量的积分，(4) 中间计算（总和/N=均值），(5) 多传感器镶嵌中的信号强度聚合。"
+ },
+ "trace_downslope_flowpaths": {
+  "name": "追踪顺坡流径",
+  "desc": "标记从种子点起始的 D8 流径，直至无流出处或栅格边缘。"
+ },
+ "trace_proximity_events": {
+  "name": "追踪邻近事件",
+  "desc": "查找两条移动轨迹彼此处于一定距离内且持续至少最小时长的时段（邻近事件），并可选从种子实体追踪传递性下游接触，类似 ArcGIS 的追踪邻近事件工具。"
+ },
+ "transfer_attributes": {
+  "name": "传递属性",
+  "desc": "使用空间谓词将源要素的属性传递到目标要素上。"
+ },
+ "transform_features": {
+  "name": "变换要素",
+  "desc": "对矢量图层中的每个几何应用仿射变换（平移、绕锚点旋转、逐轴缩放、镜像）。"
+ },
+ "transform_fields": {
+  "name": "变换字段",
+  "desc": "标准化、变换和编码属性字段（类似 ArcGIS 的标准化/变换/编码字段）：z 分数、min-max、稳健、log/log1p/sqrt/boxcox/倒数、等间距/分位数/标准差分箱，以及独热（one-hot）编码。"
+ },
+ "transform_route_events": {
+  "name": "变换路径事件",
+  "desc": "将基于源路径系统量测的点事件重新参照到目标路径系统：由源路径和量测值恢复每个事件的 XY，再将其重新定位到聚类容差内最近的目标路径上，输出目标路径 ID 和量测值——类似 ArcGIS 的变换路径事件工具。"
+ },
+ "transpose_fields": {
+  "name": "转置字段",
+  "desc": "将宽属性表重塑为长表：每个列出的值列变为一行，并标记其来源列（类似 ArcGIS 的转置字段工具）。pivot_table 只能由长转宽，因此每个周期一列的表无法输入到需要每个观测一行的时序工具。"
+ },
+ "travelling_salesman_problem": {
+  "name": "旅行商问题",
+  "desc": "使用 2-opt 启发式算法求解旅行商问题（TSP）的近似解。给定一组点位置，识别连接所有点的最短路线。"
+ },
+ "trend_surface": {
+  "name": "趋势面分析",
+  "desc": "使用最小二乘回归对栅格拟合多项式趋势面。"
+ },
+ "trend_surface_vector_points": {
+  "name": "趋势面分析（矢量点）",
+  "desc": "使用最小二乘回归对矢量点数据拟合多项式趋势面。"
+ },
+ "tributary_identifier": {
+  "name": "支流标识",
+  "desc": "为每条支流赋唯一 ID。"
+ },
+ "trim_line": {
+  "name": "修剪线",
+  "desc": "删除短于长度容差的短悬挂线段（过长线和短刺线），保留真实交点和长线。"
+ },
+ "truncate": {
+  "name": "截断取整",
+  "desc": "将每个栅格像元值截断为其整数部分。"
+ },
+ "turning_bands_simulation": {
+  "name": "转向带模拟",
+  "desc": "使用转向带算法创建空间自相关的随机场。"
+ },
+ "two_sample_ks_test": {
+  "name": "双样本 K-S 检验",
+  "desc": "对两个栅格值分布执行双样本 Kolmogorov-Smirnov 检验。"
+ },
+ "union": {
+  "name": "联合",
+  "desc": "将输入面与叠加面合并融合，生成统一的面覆盖层。"
+ },
+ "union_3d": {
+  "name": "三维联合",
+  "desc": "计算重叠闭合三维实体的合并体积且不重复计算相交部分，并给出每对实体的重叠体积（类似 ArcGIS 的 3D 联合工具）。两个工具库中均无三维叠加工具，因此如今对 buffer_3d 胶囊体或 minimum_bounding_volume 包围壳求和会重复计算每个重叠部分；而 polygon_volume 和 surface_volume 只能相对参考平面量测。每个实体的体积为精确值（有向四面体求和）；联合体积按报告分辨率的体素占据情况估算。"
+ },
+ "universal_kriging": {
+  "name": "泛克里金法",
+  "desc": "当空间现象存在系统性趋势或漂移时执行泛克里金插值。将克里金法与多项式趋势面估计相结合。"
+ },
+ "unnest_basins": {
+  "name": "流域去嵌套",
+  "desc": "从 D8 指针栅格为每个出水口嵌套级别生成一个流域栅格。"
+ },
+ "unsharp_masking": {
+  "name": "非锐化掩膜",
+  "desc": "非锐化掩膜通过从原图像中减去平滑（低通）版本来锐化图像，增强边缘和细节。数学变换为 I_sharp = I_original + w·(I_original - I_smooth)，其中 w 为控制增强强度的锐化权重。该过程分离出高频分量并加以放大，从而将细节与整体色调变化分离开来。主要特点包括灵活的参数控制（模糊半径和权重可控制细节）、通过复用高斯平滑获得的计算效率、可解释的增强效果（权重=0 得到原图；权重=1 得到真正的高通；权重>1 进行激进锐化），以及对多光谱数据的有效性。非锐化掩膜在以下方面表现出色：用于人工判读的卫星影像预处理（增强细微地形、植被和基础设施）、LiDAR 衍生产品增强（锐化 DEM、植被指标）、提升正射影像质量以增强要素可见性，以及考古/测量影像增强。输出解读需要理解：锐化值集中在边缘处，同质区域保持不变。权重参数控制增强幅度：w=0.5-1.0 提供轻微增强；w=1.0-2.0 提供中等锐化；w>2.0 产生激进且可能带伪影的结果。模糊半径控制要素尺度：较小半径（3-5 像元）增强细微纹理；较大半径（10-20 像元）增强中等尺度要素。输出值可能超出输入范围，通常需要进行裁剪。伪影包括强边缘周围的光晕（权重或半径越大越明显）、源图像含噪时的噪声放大，以及多光谱锐化中可能出现的假彩色。可通过差值影像验证增强效果。在可视化流程中有选择地应用；避免在对输出范围变化敏感的自动化分析之前使用。"
+ },
+ "unsphericity": {
+  "name": "非球形度",
+  "desc": "从 DEM 计算非球形度曲率（主曲率差值的一半）。"
+ },
+ "unwrap_phase": {
+  "name": "相位解缠",
+  "desc": "通过加权最小二乘（预条件共轭梯度求解）将 (-pi, pi] 内的缠绕干涉相位转换为连续的绝对相位场，支持可选的相干性加权和掩膜（类似 ArcGIS 的相位解缠工具）。两个工具库中均无相位解缠工具——raster_calculator 无法表达全局求解，捆绑的斑点滤波器只能平滑而不能解缠——因此 sar_coherence 的相位输出和 flatten_interferogram 目前没有连续相位的最终结果。"
+ },
+ "update": {
+  "name": "更新",
+  "desc": "在重叠处用更新要素替换输入要素；更新图层之外的输入要素保持不变。"
+ },
+ "update_nodata_cells": {
+  "name": "更新 NoData 像元",
+  "desc": "用 input2 中对应的有效像元为 input1 中的 NoData 像元赋值。"
+ },
+ "upslope_depression_storage": {
+  "name": "上游洼地蓄水",
+  "desc": "通过对条件化 DEM 上的洼地深度进行汇流路由，绘制平均上游洼地蓄水深度图。"
+ },
+ "user_defined_weights_filter": {
+  "name": "自定义权重滤波",
+  "desc": "自定义权重滤波通过接受邻域像元的任意加权系数，为自定义卷积分析提供最大灵活性，可在不修改工具或不使用专用软件的情况下实现专用算子、领域特定卷积核和研究级算法。用户指定卷积核尺寸（通常为 3×3 或 5×5），为每个位置分配浮点权重，并可选指定边缘处理方法（反射、环绕、常数填充）。该滤波器通过标准卷积数学将自定义卷积核应用于整个栅格：每个输出像元等于加权邻域之和，既可实现传统图像处理滤波器，也可实现自定义分析卷积核。主要特点包括面向研究应用的完全自定义、同时支持增强和分析操作、兼容归一化与非归一化卷积核，以及全程保持浮点精度。用例涵盖专用光谱指数的高级空间滤波、用于算法验证的实验算子实现、自定义纹理分析卷积核、多准则分析的加权邻域聚合，以及跨数据集的标准化卷积核应用。应用包括学术研究原型验证、行业算法评估、处理流程的区域定制和性能比较研究。输出解读完全取决于用户定义的系数；不同卷积核产生本质不同的结果。归一化卷积核（权重之和等于 1.0）保持数值范围，适用于平滑；非归一化卷积核（权重之和通常为零）突出差异，适用于边缘/导数检测。在生产应用前，用户必须验证卷积核属性——系数的符号、大小与总和。记录卷积核规格对可复现工作流至关重要。输出值范围取决于卷积核设计；文档应说明预期的输出特性和缩放要求。"
+ },
+ "validate_flow_direction": {
+  "name": "验证流向",
+  "desc": "报告导致流向栅格不可用的像元——非 D8 方向的代码、没有出水口的内部像元、流入 NoData 的流、流出栅格边缘的流以及处于环形流动路径上的像元——并以点图层形式输出问题位置（类似 ArcGIS 的验证流向工具）。捆绑的水文工具套件处处使用指针栅格（d8_flow_accumulation、watershed、basins、trace_downslope_flowpaths），却没有任何工具验证它，因此经重采样、重分类或裁剪而损坏的栅格会给出貌似合理却错误的结果，路由环路还可能导致挂起。"
+ },
+ "vector_convert": {
+  "name": "矢量格式转换",
+  "desc": "将矢量数据集转换为其他格式（由输出扩展名选择驱动程序）。"
+ },
+ "vector_hex_binning": {
+  "name": "矢量六边形分箱",
+  "desc": "将点要素聚合到六边形分箱中，统计每个六边形单元内的点数。"
+ },
+ "vector_lines_to_raster": {
+  "name": "矢量线转栅格",
+  "desc": "将折线和面边界几何栅格化为栅格网格。"
+ },
+ "vector_points_to_raster": {
+  "name": "矢量点转栅格",
+  "desc": "使用选定的赋值操作将点或多点矢量栅格化为网格。"
+ },
+ "vector_polygons_to_raster": {
+  "name": "矢量面转栅格",
+  "desc": "将面矢量栅格化为网格，支持由属性驱动的烧入值。"
+ },
+ "vector_stream_network_analysis": {
+  "name": "矢量河网分析",
+  "desc": "综合性的矢量河网分析。"
+ },
+ "vector_summary_statistics": {
+  "name": "矢量汇总统计",
+  "desc": "按分类分组计算计数、总和、均值、最小值、最大值和标准差，并导出为 CSV。"
+ },
+ "vector_to_h3": {
+  "name": "矢量转 H3 分箱",
+  "desc": "将矢量图层分箱到 H3 离散全球网格单元中，统计每个单元内的要素数。"
+ },
+ "vector_to_pmtiles": {
+  "name": "矢量转 PMTiles",
+  "desc": "将矢量图层打包为单个 PMTiles 归档（Mapbox 矢量切片金字塔）。"
+ },
+ "vehicle_routing_cvrp": {
+  "name": "车辆路径（CVRP）",
+  "desc": "构建带容量约束的多配送中心配送路线，支持异构车队控制、目标模式以及可选的局部优化。"
+ },
+ "vehicle_routing_pickup_delivery": {
+  "name": "车辆路径（取送货）",
+  "desc": "使用确定性最近邻基线，构建带先后顺序和容量约束的成对取送货路线。"
+ },
+ "vehicle_routing_vrptw": {
+  "name": "车辆路径（VRPTW）",
+  "desc": "构建带容量约束的多配送中心 VRPTW 路线，支持异构车队设置、休息时间窗和目标模式控制。"
+ },
+ "vertical_excess_curvature": {
+  "name": "垂直超额曲率",
+  "desc": "从 DEM 计算垂直超额曲率。"
+ },
+ "viewshed": {
+  "name": "视域",
+  "desc": "基于 DEM 计算各点观测站的可见性计数。"
+ },
+ "visibility_index": {
+  "name": "可见性指数",
+  "desc": "从采样的视域计算基于地形的可见性指数。"
+ },
+ "voronoi_diagram": {
+  "name": "Voronoi 图",
+  "desc": "由输入点位置创建 Voronoi（泰森）多边形。"
+ },
+ "voxel_isosurface": {
+  "name": "体素等值面",
+  "desc": "通过移动四面体算法，从三维体素场提取一个或多个阈值处的三角化等值面（类似 ArcGIS 的导出体素等值面工具）。两个工具库中的整套等值线工具都是二维的——从平面提取线；本工具是其体积对应版本，可将 idw_3d 或多维栅格的输出转化为可渲染的几何。输出采用 buffer_3d 和 minimum_bounding_volume 所使用的三角网格约定，因此结果可直接输入 inside_3d。"
+ },
+ "warp_raster": {
+  "name": "栅格校正",
+  "desc": "从地面控制点对栅格进行地理配准（类似 ArcGIS 的校正工具）：由源像元到世界坐标的 GCP 对拟合 1/2/3 阶多项式，并重采样到新的地理参考网格（最近邻/双线性），报告每个 GCP 的残差和均方根误差。这是矢量 rubbersheet_features 已覆盖功能的栅格部分。"
+ },
+ "watershed": {
+  "name": "流域",
+  "desc": "从 D8 指针和矢量出水口划分流域。"
+ },
+ "watershed_from_raster_pour_points": {
+  "name": "栅格出水口流域划分",
+  "desc": "从 D8 指针和出水口出口 ID 栅格划分流域。"
+ },
+ "weighted_overlay": {
+  "name": "加权叠加",
+  "desc": "使用归一化权重、可选的成本标志和可选的二值约束来组合因子栅格。"
+ },
+ "weighted_sum": {
+  "name": "加权总和",
+  "desc": "先将权重归一化为总和为一，再计算栅格堆栈的加权和。"
+ },
+ "weighted_voronoi": {
+  "name": "加权 Voronoi",
+  "desc": "加权 Voronoi 分配栅格（市场/势力范围区域）：将每个像元分配给加权距离最小的站点——乘法（d/w，Apollonius）、加法（d-w）或幂（d²-w²）——类似 ArcGIS 的生成加权 Voronoi 工具。是捆绑的非加权 voronoi_diagram 的不等权站点版本。"
+ },
+ "wetness_index": {
+  "name": "湿度指数",
+  "desc": "计算地形湿度指数 ln(SCA / tan(slope))。"
+ },
+ "wiener_filter": {
+  "name": "维纳滤波",
+  "desc": "维纳滤波通过最小化滤波输出与真实信号之间的均方误差来实现自适应降噪，前提是已知信号和噪声的统计特性。实现方式是在移动窗口内估计局部信号和噪声方差，计算在噪声抑制与细节保持之间取得平衡的滤波系数：F = μ + (σ² - σₙ²)/σ² · (I - μ)，其中 μ 为局部均值，σ² 为信号方差，σₙ² 为噪声方差。这种数据驱动的自适应确保滤波强度响应局部图像特征。主要特点包括对局部统计特性的自动适应（平坦区域激进平滑；细节区域保留结构）、在光学和 SAR 影像上经过验证的效果、基于噪声模型假设的可解释参数，以及通过可分离近似实现的计算可行性。维纳滤波在以下方面表现出色：噪声空间变化的卫星影像预处理、在保留点目标的同时抑制 SAR 斑点噪声、用于植被制图的去斑点多光谱数据，以及雷达-光学融合去噪。输出解读显示：高方差（细节丰富）区域滤波作用很小，低方差（噪声多）区域滤波激进。噪声方差估计影响输出：低估噪声方差导致平滑不足；高估方差导致过度平滑和细节丢失。输出范围接近输入范围；可通过差值影像（原图-滤波结果）验证降噪效果。峰值信噪比（PSNR）和结构相似性指数（SSIM）可量化滤波效果。局部方差阈值表明处理影响：检测到的方差比 > 5 的区域被大幅滤波；比值 < 1 的区域滤波作用很小。常见陷阱包括噪声方差估计不准确（可通过暗帧或同质区域分析进行估计）和影响定位效果的窗口尺寸选择。可在分类或特征提取之前应用，以减少噪声导致的类别误分类。"
+ },
+ "wilcoxon_signed_rank_test": {
+  "name": "Wilcoxon 符号秩检验",
+  "desc": "对配对栅格差值执行 Wilcoxon 符号秩检验。"
+ },
+ "wisart_iterative_clustering": {
+  "name": "Wishart 迭代聚类",
+  "desc": "Wishart 迭代聚类利用复 Wishart 统计距离度量迭代精化聚类中心，对 SAR 极化数据进行非监督分类，该度量衡量多元极化概率分布之间的相似性。算法从 H/α 分解分区初始化（提供 9 个具有明确物理意义的种子聚类），然后进入类似期望最大化的循环：(1) 计算每个像元估计相干矩阵到各聚类原型的 Wishart 距离；(2) 将像元重新分配到最近的聚类；(3) 通过对被分配像元的矩阵求平均来更新聚类原型；(4) 迭代直至收敛（像元重分配率 < convergence_threshold）或达到 max_iterations。主要特点包括：与欧氏距离不同、能正确处理极化数据结构的复值统计框架；从可解释的 H/α 分区自动初始化，降低对随机种子的依赖；逐像元收敛监测实现自适应的迭代控制；可选输入预先计算的 (H,α) 或由原始相干输入自动计算矩阵；以及通过多视处理兼容性获得的对单视斑点噪声的内在稳健性。该工具同时支持常规矩阵和紧缩矩阵格式。主要用例包括：SAR 极化影像分类，生成超越 H/α 9 分区的精细土地覆盖图；对初始非监督分类进行迭代精化以供制图；通过聚类稳定性指标自动评估极化数据质量；以及通过聚类转换分析支持时间变化检测的时序 SAR 分类。输出解读：精化聚类图（通常 3-9 类，取决于收敛情况），显示分离良好的散射机制组。收敛历史提供置信度指标——早期快速收敛表明类别分离稳定；收敛缓慢提示存在模糊像元，宜采用多视或变化检测分析。与 H/α 分区的结合有助于图例编制：尽可能保持 H/α 分区对应关系，以保留可解释性。"
+ },
+ "write_function_memory_insertion": {
+  "name": "写函数存储器插入",
+  "desc": "由两个或三个单波段时相数据创建紧凑的 RGB 变化可视化合成影像。"
+ },
+ "write_geoparquet": {
+  "name": "写出 GeoParquet",
+  "desc": "将矢量数据集（GeoJSON、Shapefile、FlatGeobuf、GeoPackage 等）转换为 GeoParquet，默认按 Hilbert 排序并使用 ZSTD 压缩。"
+ },
+ "write_pmtiles": {
+  "name": "栅格转 PMTiles",
+  "desc": "将栅格渲染为单个 PMTiles 归档（Web Mercator PNG 切片金字塔）。"
+ },
+ "yamaguchi_4component_decomposition": {
+  "name": "Yamaguchi 四分量分解",
+  "desc": "Yamaguchi 四分量 SAR 分解借助基于模型的极化分析，并可选引入 DEM，将双极化合成孔径雷达数据分解为物理可解释的分量，分别代表表面散射、二次散射、螺旋散射和体散射。该分解通过对极化协方差矩阵的特征值分析分离不同的后向散射机制，将各分量解释为表面反射（Bragg 散射）、来自角反射器的二次反射、螺旋极化旋转（较少见）以及来自植被或粗糙表面的漫射体散射。引入外部 DEM 可估计地形散射贡献，从而更好地区分真实体散射与地形效应。主要特点包括：基于模型的物理解释支持有意义的地球物理参数提取；可选的基于 DEM 的地形校正提高地形上方的分量精度；非负分量约束避免非物理的分解结果；以及自动处理数据缺口和叠掩区域。应用包括：利用体散射分量进行森林生物量估算、利用建成区二次散射优势进行城市制图、依据表面散射行为估算土壤湿度，以及通过分量比值变化进行滑坡/变化检测。Yamaguchi 分解输出支持地球物理解释。输出包括四分量影像（表面、二次、螺旋、体散射功率）、量化拟合精度的分解质量指标、便于土地覆盖表征的平均散射类型指数，以及用于数据质量评估的可选相干/熵诊断。"
+ },
+ "z_scores": {
+  "name": "Z 分数",
+  "desc": "使用全局均值和标准差将栅格值标准化为 Z 分数。"
+ },
+ "zonal_characterization": {
+  "name": "分区表征",
+  "desc": "一次遍历即可在一个分区栅格上对多个值栅格计算统计，支持每栅格统计量和任意百分位数，类似 ArcGIS 的分区表征工具。"
+ },
+ "zonal_fill": {
+  "name": "分区填充",
+  "desc": "用权重栅格沿每个分区边界找到的最小值填充分类栅格的每个分区（类似 ArcGIS 的分区填充工具）——是捆绑工具套件中缺失的受约束表面构建块（fill 基于汇流，zonal_statistics 只做汇总）。"
+ },
+ "zonal_geometry": {
+  "name": "分区几何统计",
+  "desc": "从分类分区栅格计算每个分区的几何度量（类似 ArcGIS 的分区几何统计工具）：面积、周长、厚度、质心，以及标准差椭圆的长短轴和方向——是捆绑的基于值的 zonal_statistics 和 zonal_histogram 所不具备的分区形状统计。"
+ },
+ "zonal_histogram": {
+  "name": "分区直方图",
+  "desc": "统计值栅格像元在每个分区内的分布：类别计数（分类数据）或分箱频率（连续数据），输出分区×类别的交叉表。"
+ },
+ "zonal_statistics": {
+  "name": "分区统计",
+  "desc": "汇总由要素栅格定义的各分区内数据栅格的值。"
+ },
+ "extract_cog_subset": {
+  "name": "提取 COG 子集",
+  "desc": "从本地或 HTTP 云优化 GeoTIFF（COG）提取 bbox 子集。"
+ },
+ "extract_wms_subset": {
+  "name": "提取 WMS 子集",
+  "desc": "向 WMS GetMap 端点请求 bbox 子集，并将其写为 Deflate 压缩的 COG。"
+ },
+ "extract_xyz_tile_subset": {
+  "name": "提取 XYZ 切片子集",
+  "desc": "获取 bbox 范围内的 XYZ 栅格切片，将其镶嵌，并写为 Deflate 压缩的 RGB COG。"
+ }
+}

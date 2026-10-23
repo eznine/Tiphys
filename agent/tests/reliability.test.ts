@@ -6,10 +6,29 @@ import path from "node:path";
 import { Session } from "../src/session.js";
 import { emptyWorkspace, maybeCompact, readToolOutput, spillIfLarge } from "../src/context.js";
 import { reduce, type AgentState } from "../../src/lib/agent.ts";
-import { syncDataLayers } from "../../src/lib/dataLayers.ts";
+import { syncDataLayers, defaultLayerStyle } from "../../src/lib/dataLayers.ts";
 import { readEvents } from "../../src/lib/service.ts";
+import { redact, eventLogEntries } from "../src/diagnostics.ts";
 
 const initial = (): AgentState => ({ items: [], layers: [], busy: false, connected: true, provider: "mock", focus: null });
+
+test("historical model changes cannot override the currently connected provider", () => {
+  const state = reduce({ ...initial(), provider: "openai-compatible:current-model" }, { type: "snapshot", reset: true,
+    events: [{ type: "model-config", seq: 1, provider: "mock", model: "old-model" }], cursor: 1, busy: false, workspace: emptyWorkspace(), pendingApprovals: [] });
+  assert.equal(state.provider, "openai-compatible:current-model");
+  assert.equal(reduce(state, { type: "model-config", seq: 2, provider: "openai-compatible", model: "new-model" }).provider, "openai-compatible:new-model");
+});
+
+test("diagnostics redact credentials recursively and retain actionable failures", () => {
+  const secret = "test-private-credential";
+  const scrubbed = redact({ apiKey: secret, nested: [{ text: `failed: ${secret}`, Authorization: "Bearer hidden" }],
+    raw: "Bearer abc123 sk-private-key", tool: "buffer" }, [secret]);
+  const serialized = JSON.stringify(scrubbed);
+  assert.ok(!serialized.includes(secret)); assert.ok(!serialized.includes("abc123")); assert.ok(!serialized.includes("sk-private-key"));
+  assert.equal(scrubbed.tool, "buffer");
+  const entries = eventLogEntries([{ type: "text-delta", seq: 1, text: "noise" }, { type: "tool-error", seq: 2, toolName: "buffer", error: "bad CRS" }]);
+  assert.equal(entries.length, 1); assert.equal(entries[0].level, "error"); assert.equal(entries[0].summary, "buffer");
+});
 
 test("mixed geometry always gets filtered fill, line and point representations", () => {
   const sources = new Map();
@@ -20,6 +39,7 @@ test("mixed geometry always gets filtered fill, line and point representations",
     getSource: (id: string) => sources.get(id), addSource: (id: string, value: any) => sources.set(id, value),
     getLayer: (id: string) => layers.get(id), addLayer: (value: any) => layers.set(value.id, value),
     setLayoutProperty: (id: string, key: string, value: any) => visibility.set(id, value),
+    setPaintProperty: () => {},
     removeLayer: (id: string) => layers.delete(id), removeSource: (id: string) => sources.delete(id),
   };
   const layer = { id: "lyr_test", name: "mixed", url: "http://localhost/test", geometry_types: ["LineString", "Point", "Polygon"], feature_count: 3, bounds: null };
@@ -45,6 +65,45 @@ test("refresh keeps live approval and real busy state; reconnect events are idem
   state = reduce(state, { ...snapshot, reset: false, events: [], pendingApprovals: [], busy: false });
   assert.equal((state.items[1] as any).state, "expired");
   assert.equal(state.busy, false);
+});
+
+test("changing symbols updates existing sources and labels follow layer visibility", () => {
+  const sources = new Map(); const layers = new Map(); const paint = new Map(); const layout = new Map();
+  const map: any = {
+    isStyleLoaded: () => true, getStyle: () => ({ sources: Object.fromEntries(sources), layers: [...layers.values()], glyphs: "fonts" }),
+    getSource: (id: string) => sources.get(id), addSource: (id: string, value: any) => sources.set(id, value),
+    getLayer: (id: string) => layers.get(id), addLayer: (value: any) => layers.set(value.id, value),
+    setPaintProperty: (id: string, name: string, value: unknown) => paint.set(`${id}:${name}`, value),
+    setLayoutProperty: (id: string, name: string, value: unknown) => layout.set(`${id}:${name}`, value),
+    removeLayer: (id: string) => layers.delete(id), removeSource: (id: string) => sources.delete(id),
+  };
+  const layer = { id: "lyr_style", name: "source", url: "/layer", geometry_types: ["Point"], feature_count: 1, bounds: null };
+  syncDataLayers(map, [layer]);
+  const source = sources.get("tiphys-lyr_style");
+  const style = { ...defaultLayerStyle(layer.id), color: "#123456", pointSize: 9, labelField: "name" };
+  syncDataLayers(map, [{ ...layer, style }]);
+  assert.equal(sources.get("tiphys-lyr_style"), source);
+  assert.equal(paint.get("tiphys-lyr_style-pt:circle-color"), "#123456");
+  assert.equal(paint.get("tiphys-lyr_style-pt:circle-radius"), 9);
+  assert.ok(layers.has("tiphys-lyr_style-label"));
+  syncDataLayers(map, [{ ...layer, style, visible: false }]);
+  assert.equal(layout.get("tiphys-lyr_style-label:visibility"), "none");
+  syncDataLayers(map, [{ ...layer, style: { ...style, labelField: undefined } }]);
+  assert.equal(layers.has("tiphys-lyr_style-label"), false);
+  syncDataLayers(map, []);
+  assert.equal(sources.size, 0); assert.equal(layers.size, 0);
+});
+
+test("Agent view commands preserve the transcript and reach the UI state", () => {
+  let state = reduce(initial(), { type: "view-command", seq: 1, command: { action: "zoom", layer_id: "lyr_test", bounds: [116, 40, 117, 41] } });
+  assert.equal(state.viewCommands?.[0].action, "zoom");
+  assert.deepEqual(state.viewCommands?.[0].bounds, [116, 40, 117, 41]);
+  for (const [i, action] of ["attributes", "labels", "style"].entries()) state = reduce(state, { type: "view-command", seq: i + 2, command: { action, layer_id: "lyr_test" } });
+  // React may render once for an entire SSE batch: every action must survive.
+  assert.deepEqual(state.viewCommands?.map(command => command.action), ["zoom", "attributes", "labels", "style"]);
+  state = reduce(state, { type: "view-command", seq: 4, command: { action: "style", layer_id: "lyr_test" } });
+  assert.equal(state.viewCommands?.length, 4);
+  assert.equal(state.items.length, 0);
 });
 
 test("SSE parser handles split UTF-8 and CRLF without losing or duplicating events", async () => {

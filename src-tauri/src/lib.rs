@@ -195,9 +195,26 @@ fn fail_startup(app: &tauri::App, message: &str) -> ! {
     std::process::exit(1);
 }
 
+#[tauri::command]
+async fn pick_vector_files() -> Result<Vec<String>, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        rfd::FileDialog::new()
+            .set_title("添加矢量数据")
+            .add_filter("矢量数据", &["geojson", "json", "gpkg", "shp", "zip", "fgb", "kml"])
+            .pick_files()
+            .unwrap_or_default()
+            .into_iter()
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect()
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![pick_vector_files])
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             match start_services(app) {

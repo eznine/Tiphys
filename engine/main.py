@@ -14,11 +14,12 @@ import secrets
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from security import ALLOWED_ORIGINS, service_token
+from diagnostics import record, read_entries
 
 from geo_ops import start_buffer_job
 from jobs import JobRegistry
@@ -28,6 +29,8 @@ ROOT = Path(__file__).resolve().parent
 DATA_DIR = Path(os.environ.get("TIPHYS_DATA_DIR", ROOT / "data"))
 STORE = LayerStore(DATA_DIR)
 JOBS = JobRegistry(state_path=DATA_DIR / "jobs.json")
+JOBS.on_event(lambda event: record("job", f"{event.get('job_id')} · {event.get('status', event['type'])}", event,
+                                 "error" if event.get("status") == "failed" else "info"))
 TOKEN = service_token()
 
 import contextlib
@@ -85,6 +88,11 @@ class BufferBody(BaseModel):
     async_job: bool = True
 
 
+class ToolRunBody(BaseModel):
+    name: str
+    arguments: dict[str, Any] = {}
+
+
 @app.get("/ping")
 def ping() -> dict[str, object]:
     return {"ok": True, "service": "tiphys-engine", "version": "0.2.0"}
@@ -119,6 +127,77 @@ def add_data_http(body: AddDataBody) -> dict[str, Any]:
         raise HTTPException(404, str(e)) from e
     except Exception as e:
         raise HTTPException(400, str(e)) from e
+
+
+@app.get("/layers/{layer_id}/attributes")
+def layer_attributes(layer_id: str, offset: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=500),
+                     search: str = "", sort: str | None = None, descending: bool = False) -> dict[str, Any]:
+    """Paged attributes from the analysis dataset; never the exploded display copy."""
+    frame = STORE.get_gdf(layer_id)
+    if frame is None:
+        raise HTTPException(404, "layer not found")
+    frame = frame.reset_index(drop=True)
+    columns = [c for c in frame.columns if c != frame.geometry.name]
+    fields = [{"name": c, "type": str(frame[c].dtype)} for c in columns]
+    if search:
+        mask = frame[columns].astype("string").apply(lambda s: s.str.contains(search, case=False, regex=False)).fillna(False).any(axis=1)
+        frame = frame.loc[mask]
+    if sort:
+        if sort not in columns:
+            raise HTTPException(400, "unknown sort field")
+        frame = frame.sort_values(sort, ascending=not descending, kind="stable", na_position="last")
+    total = len(frame)
+    page = frame.iloc[offset:offset + limit]
+    values = json.loads(page[columns].to_json(orient="records", date_format="iso"))
+    geometries = page.to_crs(4326).geometry
+    rows = [{"id": int(idx), "attributes": attributes,
+             "bounds": list(geom.bounds) if geom is not None and not geom.is_empty else None}
+            for (idx, geom), attributes in zip(geometries.items(), values)]
+    return {"fields": fields, "rows": rows, "total": total, "offset": offset, "limit": limit}
+
+
+@app.post("/layers/import")
+async def import_vector(request: Request, filename: str, source_crs: str | None = None) -> dict[str, Any]:
+    """Browser file picker upload; desktop uses native paths through add_data."""
+    import tempfile
+    import geopandas as gpd
+
+    suffix = Path(filename).suffix.lower()
+    if suffix not in (".geojson", ".json", ".gpkg", ".zip", ".fgb", ".kml"):
+        raise HTTPException(400, "Use GeoJSON/GPKG/FGB/KML, or a ZIP containing a shapefile")
+    try:
+        with tempfile.TemporaryDirectory(prefix="tiphys-import-") as tmp:
+            target = Path(tmp) / f"input{suffix}"
+            size = 0
+            with target.open("wb") as stream:
+                async for chunk in request.stream():
+                    size += len(chunk)
+                    if size > 128 * 1024 * 1024:
+                        raise HTTPException(413, "Browser imports are limited to 128 MiB; use the desktop file picker")
+                    stream.write(chunk)
+            frame = gpd.read_file(target)
+            if source_crs:
+                if frame.crs is not None and frame.crs != source_crs:
+                    raise ValueError("Dataset already has a different CRS; reproject rather than relabel it")
+                frame = frame.set_crs(source_crs)
+            return {"ok": True, "layer": STORE.add_gdf(frame, name=Path(filename).stem)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@app.get("/layers/{layer_id}/field-values")
+def layer_field_values(layer_id: str, field: str, limit: int = Query(20, ge=1, le=64)) -> dict[str, Any]:
+    frame = STORE.get_gdf(layer_id)
+    if frame is None:
+        raise HTTPException(404, "layer not found")
+    if field not in frame.columns or field == frame.geometry.name:
+        raise HTTPException(400, "unknown attribute field")
+    counts = frame[field].value_counts(dropna=False)
+    rows = counts.head(limit).rename_axis("value").reset_index(name="count")
+    return {"field": field, "unique_count": len(counts),
+            "values": json.loads(rows.to_json(orient="records", date_format="iso"))}
 
 
 @app.post("/tools/buffer")
@@ -158,6 +237,44 @@ def job_status_http(job_id: str) -> dict[str, Any]:
         raise HTTPException(404, str(e)) from e
 
 
+@app.get("/tools/catalog")
+async def tools_catalog() -> dict[str, Any]:
+    """Tool catalog mirrored from the MCP registration (same list the Agent sees)."""
+    m = globals().get("mcp")
+    if m is None:
+        return {"tools": []}
+    listed = await m.list_tools()
+    from tools import TOOL_GROUPS
+    return {
+        "tools": [
+            {"name": t.name, "description": t.description or "", "parameters": t.inputSchema,
+             "category": next((group for group, names in TOOL_GROUPS.items() if t.name in names), "其他工具"),
+             "annotations": t.annotations.model_dump(exclude_none=True) if t.annotations else {}}
+            for t in listed
+        ]
+    }
+
+
+@app.post("/tools/run")
+async def tools_run(body: ToolRunBody) -> dict[str, Any]:
+    """Manual calls use the same validated MCP functions as Agent calls."""
+    record("tool-call", body.name, body.arguments)
+    try:
+        if body.name not in {t.name for t in await mcp.list_tools()}:
+            raise HTTPException(404, f"unknown tool: {body.name}")
+        _, result = await mcp.call_tool(body.name, body.arguments)
+        record("tool-result", body.name, result)
+        return result
+    except HTTPException:
+        record("tool-error", body.name, "Unknown tool", "error")
+        raise
+    except KeyError as e:
+        raise HTTPException(404, str(e)) from e
+    except Exception as e:
+        record("tool-error", body.name, str(e), "error")
+        raise HTTPException(400, str(e)) from e
+
+
 @app.post("/jobs/{job_id}/cancel")
 def job_cancel_http(job_id: str) -> dict[str, Any]:
     try:
@@ -171,6 +288,11 @@ def workspace_snapshot() -> dict[str, Any]:
     snap = STORE.snapshot()
     snap["pending_jobs"] = JOBS.pending_ids()
     return snap
+
+
+@app.get("/diagnostics")
+def diagnostics() -> dict[str, Any]:
+    return {"entries": read_entries(), "pending_jobs": JOBS.pending_ids(), "layer_count": len(STORE.list())}
 
 
 # ---------------------------------------------------------------------------

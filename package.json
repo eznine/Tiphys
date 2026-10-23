@@ -12,7 +12,9 @@
     "portable:zip": "node scripts/portable-zip.mjs",
     "test:agent": "npm --prefix agent test",
     "test:engine": "node scripts/test-engine.mjs",
+    "test:browser": "node --import ./agent/node_modules/tsx/dist/loader.mjs --test tests/browser-engine.test.ts",
     "build": "tsc && vite build",
+    "import:browser-engine": "node scripts/import-browser-engine.mjs",
     "preview": "vite preview",
     "tauri": "tauri",
     "engine": "node scripts/engine.mjs",
@@ -22,11 +24,20 @@
     "agent:tools": "node scripts/agent-tools.mjs"
   },
   "dependencies": {
+    "@ai-sdk/openai-compatible": "^2.0.87",
     "@tauri-apps/api": "2.11.1",
     "@tauri-apps/plugin-opener": "^2.5.5",
+    "ai": "^6.0.312",
+    "fflate": "^0.8.3",
+    "geolibre-wasm": "^1.7.1",
+    "idb": "^8.0.3",
+    "lucide-react": "^1.61.0",
     "maplibre-gl": "^6.15.0",
+    "proj4": "^2.22.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
@@ -34,6 +45,7 @@
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^6.0.2",
     "esbuild": "^0.28.2",
+    "fake-indexeddb": "^6.2.5",
     "typescript": "~6.0.3",
     "vite": "^8.0.16"
   }

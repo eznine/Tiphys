@@ -159,6 +159,32 @@ class LayerStore:
             Path(layer.meta["dataset_path"]).unlink(missing_ok=True)
             return {"ok": True, "removed": lid, "name": layer.name}
 
+    def rename(self, layer_ref: str, name: str) -> dict[str, Any]:
+        """Rename a layer's display name; analysis data and files are untouched."""
+        name = (name or "").strip()
+        if not name:
+            raise ValueError("Layer name must not be empty")
+        with self._lock:
+            lid = self.resolve(layer_ref)
+            layer = self._layers[lid]
+            if any(v.name == name and k != lid for k, v in self._layers.items()):
+                raise ValueError(f"Another layer is already named {name}")
+            updated = {**self._layers, lid: Layer(**{**layer.__dict__, "name": name})}
+            self._save(updated)
+            self._layers = updated
+            return {"ok": True, "renamed": lid, "layer": self._public(updated[lid])}
+
+    def reorder(self, ordered_ids: list[str]) -> dict[str, Any]:
+        """Set the layer/draw order; must be a permutation of existing layer ids."""
+        with self._lock:
+            known = set(self._layers)
+            if len(ordered_ids) != len(known) or set(ordered_ids) != known:
+                raise ValueError("reorder_layers needs exactly the existing layer ids, each once")
+            updated = {lid: self._layers[lid] for lid in ordered_ids}
+            self._save(updated)
+            self._layers = updated
+            return {"ok": True, "order": ordered_ids}
+
     def resolve(self, layer_ref: str) -> str:
         with self._lock:
             if layer_ref in self._layers:

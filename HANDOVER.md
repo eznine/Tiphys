@@ -1,5 +1,11 @@
 # TIPHYS 交接文档
 
+> 2026-10-24 续作：GeoLibre 工具目录全面接入浏览器运行时（958/1065 个，含栅格/地形/水文/遥感；LiDAR 与多值参数工具未接），全部 1065 个工具名称与描述已 100% 中文化；栅格图层基础显示（色带 PNG 预览 + image source）；图层重命名/拖动排序与属性字段统计双运行时完成。记录见 `docs/GEOLIBRE_TOOLS_20261024.md`。工作台剩余项（地图点选联动、字段统计）仍按 `docs/CLIENT_PARITY.md` 顺序推进。
+
+> 2026-10-23 晚间续作：已按 ArcGIS Pro 参考图完善命令分组、内容树/图例、地图文档栏与状态栏、多行 Agent 输入，并加入 API/主题/密度/运行参数设置。禁止缺少凭据时自动回退 Mock。桌面副本已实际启动，验证 `tierflow_pro`、13 个密钥、真实查询、配置保存与重启恢复；最新产物和证据以 `docs/SETTINGS_WORKSPACE_20261023.md` 为准。Windows 桌面版是当前交付；1420 为依赖本机服务的浏览器开发预览，未部署公网网页版。
+
+> 2026-10-23 续作更新：默认对话为主，常规操作以 ArcGIS Pro 为主要参考；已补分类工具箱、图层菜单、属性表、基础符号化/标注、Agent 地图工具及运行日志。真实 API 已验收。旧里程碑表保留为历史背景；最新能力对照见 `docs/CLIENT_PARITY.md`，本轮验证与交付见 `docs/WORKSPACE_STATUS_20261023.md`。
+
 > 更新：下文保留项目背景和开发入口，里程碑经过 2026-10-23 的可靠性批次修正。当前实现、测试证据和 Windows 发布边界请以 `README.md` 与 `docs/RELIABILITY_STATUS.md` 为准。
 
 > 2026-10-23 · 从 Linux 开发盒交接到 Windows（目标目录 `F:\tiphys`）。价值主张：**From Intent to Outcome**。

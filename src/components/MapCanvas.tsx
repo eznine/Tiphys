@@ -20,6 +20,7 @@ type Props = {
   theme: "light" | "dark";
   dataLayers?: DataLayer[];
   focusBounds?: number[] | null;
+  onStatus?: (status: { lng: number; lat: number; zoom: number }) => void;
 };
 
 const TERRAIN_SRC = "tiphys-terrain-dem";
@@ -52,12 +53,14 @@ function setBuildingsVisible(map: Map, on: boolean) {
   map.setLayoutProperty("building-3d", "visibility", on ? "visible" : "none");
 }
 
-export function MapCanvas({ theme, dataLayers = [], focusBounds = null }: Props) {
+export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus }: Props) {
   const dataLayersRef = useRef(dataLayers);
   dataLayersRef.current = dataLayers;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<Map | null>(null);
   const introDone = useRef(false);
+  const statusRef = useRef(onStatus);
+  statusRef.current = onStatus;
 
   const [basemapId, setBasemapId] = useState<BasemapId>("liberty");
   const [mode3d, setMode3d] = useState(true);
@@ -119,6 +122,7 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null }: Props)
       pitch: 0,
       bearing: 0,
       attributionControl: { compact: true },
+      locale: { "NavigationControl.ZoomIn": "放大", "NavigationControl.ZoomOut": "缩小", "NavigationControl.ResetBearing": "拖动旋转，点击恢复正北", "AttributionControl.ToggleAttribution": "显示地图来源" },
       maxPitch: 85,
       transformRequest: (url) => ({ url, headers: engineHeaders(url) }),
     });
@@ -128,6 +132,8 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null }: Props)
       "top-right",
     );
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 100 }), "bottom-left");
+    map.on("mousemove", e => statusRef.current?.({ lng: e.lngLat.wrap().lng, lat: e.lngLat.lat, zoom: map.getZoom() }));
+    map.on("moveend", () => { const center = map.getCenter().wrap(); statusRef.current?.({ lng: center.lng, lat: center.lat, zoom: map.getZoom() }); });
 
     map.on("style.load", () => {
       applyStyleExtras(map);
@@ -148,8 +154,11 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null }: Props)
     });
 
     mapRef.current = map;
+    const observer = new ResizeObserver(() => map.resize());
+    observer.observe(containerRef.current);
     (window as unknown as { __tiphysMap?: Map }).__tiphysMap = map;
     return () => {
+      observer.disconnect();
       map.remove();
       mapRef.current = null;
     };
@@ -249,7 +258,7 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null }: Props)
             onClick={() => setTerrain((v) => !v)}
             title="Terrain DEM"
           >
-            Terrain
+            地形
           </button>
           <button
             type="button"
@@ -259,7 +268,7 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null }: Props)
             onClick={() => setBuildings((v) => !v)}
             title="3D buildings (Streets style)"
           >
-            Buildings
+            建筑
           </button>
         </div>
         <div className="map-ctrl-group basemap-switcher">

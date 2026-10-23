@@ -53,3 +53,19 @@ engine/dist/
 *.spec
 .mimosa/
 reference/clone_log.txt
+
+# Extra secret / credential patterns (never commit)
+*_keys.txt
+*_keys.json
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+secrets.json
+**/secrets/
+.tiphys/*_keys*
+.tiphys/*.token
+
+# Build artifacts (broad)
+target/
