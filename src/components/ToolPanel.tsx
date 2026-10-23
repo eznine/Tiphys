@@ -3,6 +3,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "re
 import type { DataLayer } from "../lib/dataLayers";
 import { zhParam, zhTool, zhToolL1, zhToolL2 } from "../lib/i18n/tools";
 import { engineRequest } from "../lib/service";
+import { geeExecutionAllowed, type GeeAuthStatus } from "../lib/gee";
 
 type Schema = { type?: string; enum?: string[]; default?: unknown; anyOf?: Schema[]; description?: string; "x-layer"?: boolean; "x-layer-kind"?: string };
 type CatalogTool = {
@@ -65,6 +66,8 @@ const FIELDS: Record<string, string> = {
   color: "颜色（#RRGGBB）", opacity: "不透明度（0–1）", point_size: "点半径（像素）", line_width: "线宽（像素）", size: "文字大小（像素）",
   keep_fields: "保留连接字段", format_group: "格式类别", resistance: "阻力栅格",
   barriers: "障碍图层（可选）", corridor_width: "廊道宽度（地图单位）", neighbor_option: "连接方式",
+  dem: "输入 DEM 栅格", depression_method: "洼地处理方式", stream_threshold: "河网阈值",
+  extract_streams: "提取河网", pour_points: "汇水点（可选）", snap_distance: "汇水点吸附距离",
 };
 const STATUS: Record<string, string> = {
   submitting: "提交中", queued: "排队中", running: "运行中", cancelling: "正在取消",
@@ -90,6 +93,8 @@ function toolDesc(item: CatalogTool): string {
 
 export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers: DataLayer[]; onResult: (result: Record<string, any>) => void; request?: { id: number; tool?: string }; selectedLayer?: DataLayer }) {
   const [catalog, setCatalog] = useState<CatalogTool[] | null>(null);
+  const [catalogHydrated, setCatalogHydrated] = useState(false);
+  const [geeStatus, setGeeStatus] = useState<GeeAuthStatus | null>(null);
   const [loadError, setLoadError] = useState("");
   const [toolName, setToolName] = useState("");
   const [values, setValues] = useState<Record<string, string | boolean>>({});
@@ -111,10 +116,18 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoadError("");
     try {
-      const data = await (await engineRequest("/tools/catalog", { signal })).json();
-      const tools: CatalogTool[] = data.tools.filter((t: CatalogTool) => !SKIP.has(t.name));
-      setCatalog(tools);
-      setToolName(cur => tools.some(t => t.name === cur) ? cur : "");
+      const shell = await (await engineRequest("/tools/catalog?hydrate=0", { signal })).json();
+      const shellTools: CatalogTool[] = shell.tools.filter((t: CatalogTool) => !SKIP.has(t.name));
+      setCatalog(shellTools);
+      setCatalogHydrated(Boolean(shell.catalog?.hydrated));
+      if (!shell.catalog?.hydrated) {
+        const full = await (await engineRequest("/tools/catalog", { signal })).json();
+        const tools: CatalogTool[] = full.tools.filter((t: CatalogTool) => !SKIP.has(t.name));
+        if (signal?.aborted) return;
+        setCatalog(tools);
+        setCatalogHydrated(full.catalog?.hydrated !== false);
+      }
+      setToolName("");
     } catch (err) { if (!signal?.aborted) setLoadError(String(err)); }
   }, []);
   useEffect(() => {
@@ -146,6 +159,15 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
   }, [catalog, search]);
   const props = useMemo(() => Object.entries(tool?.parameters.properties ?? {}).map(([name, s]) =>
     [name, s.anyOf?.find(part => part.type !== "null") ?? s] as const), [tool]);
+  useEffect(() => {
+    if (!tool?.name.startsWith("gee_")) { setGeeStatus(null); return; }
+    const controller = new AbortController();
+    void engineRequest("/tools/run", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "gee_auth_status", arguments: {} }), signal: controller.signal,
+    }).then(response => response.json()).then(status => { if (!controller.signal.aborted) setGeeStatus(status); }).catch(() => {});
+    return () => controller.abort();
+  }, [tool?.name]);
   const needsColumns = props.some(([name]) => name === "field" || name === "by_field");
   useEffect(() => {
     setColumns([]);
@@ -213,8 +235,8 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
     {loadError && <><p className="chat-notice">工具目录加载失败：{loadError}</p><button type="button" className="icon-btn" onClick={() => void load()}>重试</button></>}
     {!catalog && !loadError && <p className="chat-notice">正在加载工具…</p>}
     {!tool ? <>
-      <div className="toolbox-heading"><h2>地理处理</h2><span>已加载 {catalog?.length ?? 0} 个工具</span></div>
-      {catalog && catalog.length < 900 && <p className="toolbox-health" role="alert">工具目录不完整：仅加载 {catalog.length} 个工具（预期不少于 900 个）。请检查引擎与 WASM 目录。</p>}
+      <div className="toolbox-heading"><h2>地理处理</h2><span>已加载 {catalog?.length ?? 0} 个工具{catalogHydrated ? "" : " · 正在补全 WASM"}</span></div>
+      {catalogHydrated && catalog && catalog.length < 900 && <p className="toolbox-health" role="alert">工具目录不完整：仅加载 {catalog.length} 个工具（预期不少于 900 个）。请检查引擎与 WASM 目录。</p>}
       <label className="tool-field toolbox-search"><span className="sr-only">搜索工具</span>
         <input type="search" aria-label="搜索工具" value={search} onChange={e => setSearch(e.target.value)} placeholder="搜索工具、类别或子类，如 缓冲、SAR…" /></label>
       <div className="toolbox-groups" aria-label="工具箱">
@@ -256,7 +278,15 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
     </> : <>
     <nav className="toolbox-breadcrumb" aria-label="工具位置"><button type="button" onClick={() => setToolName("")}>‹ 工具箱</button><span>/ {zhToolL1(tool)} · {zhToolL2(tool)}</span></nav>
     <div className="toolbox-heading"><h2>{toolTitle(tool)}</h2></div>
-    {tool.name.startsWith("gee_") && <p className="toolbox-stub" role="status">Google Earth Engine 尚未连接。认证与检索会返回结构化状态；导出会创建本地任务但不会下载真实影像。设置 TIPHYS_GEE_DEMO=1 可验证演示任务流程。</p>}
+    {tool.name.startsWith("gee_") && <p className="toolbox-stub" role="status">
+      {geeStatus?.demo
+        ? "演示模式：表单与任务流程可运行，但不会检索或下载真实 Earth Engine 影像。"
+        : geeStatus?.connected
+          ? `Google Earth Engine 已连接${geeStatus.project ? `（项目 ${geeStatus.project}）` : ""}。`
+          : geeStatus?.status === "configured_unverified"
+            ? "已检测到 GEE 配置，但尚未验证服务端会话；搜索与导出保持禁用。"
+            : "Google Earth Engine 未配置或未连接；认证状态与任务状态仍可查看，搜索与导出保持禁用。"}
+    </p>}
     {tool.name.startsWith("wasm_") && <p className="tool-desc">在浏览器本机计算。矢量、栅格和表格图层都可作为输入；栅格结果按波段自动拉伸成图，表格与文件结果在下方下载。距离、面积等参数使用输入数据的坐标系单位。</p>}
     <p className="tool-desc">{toolDesc(tool)}</p>
     <h3 className="toolbox-section-label">参数</h3>
@@ -286,7 +316,7 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
     {tool?.annotations?.destructiveHint && <label className="tool-field tool-check">
       <input type="checkbox" checked={confirmed} disabled={busy} onChange={e => setConfirmed(e.target.checked)} />
       <span>{tool.name === "remove_layer" ? "确认移除此图层及其工作副本" : "确认写入上述路径；勾选覆盖时将替换已有文件"}</span></label>}
-    <button type="submit" className="primary-btn" disabled={!tool || busy || (!!tool.annotations?.destructiveHint && !confirmed)}>运行</button>
+    <button type="submit" className="primary-btn" disabled={!tool || busy || !geeExecutionAllowed(tool.name, geeStatus) || (!!tool.annotations?.destructiveHint && !confirmed)}>运行</button>
     </>}
     {job?.result?.download_url && <a className="primary-btn" href={job.result.download_url} download={job.result.path}>下载 {job.result.path}</a>}
     {Array.isArray(job?.result?.attachments) && job.result.attachments.map((file: { name: string; url: string }, index: number) =>

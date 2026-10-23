@@ -1,7 +1,7 @@
 import { runWasmToolInBackground } from "./wasm-tool-runner";
-import manifests from "./wasm-catalog.json";
+import { loadWasmManifests } from "./wasm-catalog-loader";
 
-export const wasmManifests = manifests;
+export { loadWasmManifests };
 export async function wasmTool(tool: string, input: Record<string, Uint8Array>, parameters: Record<string, string | number | boolean>, signal?: AbortSignal) {
   const result = await runWasmToolInBackground({ tool, input,
     args: Object.entries(parameters).map(([name, value]) => `--${name}=${value}`) }, { signal });

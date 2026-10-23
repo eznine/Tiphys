@@ -36,6 +36,7 @@ Tool schemas use the same catalog contract as Python MCP and GeoLibre WASM tools
 | Tool | Category | Behavior |
 | --- | --- | --- |
 | `linkage_mapper_corridor` | 扩展 / 插件 | Runs a real least-cost corridor network from core habitat polygons + resistance raster |
+| `hydrology_flow_pipeline` | 扩展 / 插件 | Runs DEM depression conditioning, D8 flow routing, accumulation, optional stream extraction and watersheds inline |
 | `whitebox_extra` | 扩展 / 插件 | Explains that GeoLibre WASM already provides raster, terrain, hydrology, and remote-sensing tools |
 
 The explanatory `whitebox_extra` tool returns `{ ok: false, available: false, ... }` rather than fabricating a layer. Both tools are discoverable in the catalog and by `search_browser_tools`.
@@ -56,6 +57,18 @@ The runner chains two bundled WASM tools inline:
 2. `wasm_optimal_corridor_connections` computes least-cost corridor polygons and centerlines across the resistance surface.
 
 The result includes `source_raster`, `layers`, `tools`, and a limitations note. This is a directional-neutral corridor network; LinkageMapper pinch-point, barrier, and post-processing analyses are not claimed.
+
+## Hydrology pipeline
+
+`hydrology_flow_pipeline` accepts a DEM raster plus optional stream threshold, depression method (`fill` or `breach`), stream extraction toggle, pour points, and pour-point snap distance. It chains bundled WASM tools inline through `context.runTool`:
+
+1. `wasm_fill_depressions` (default) or `wasm_breach_depressions_least_cost`.
+2. `wasm_d8_pointer` from the conditioned DEM.
+3. `wasm_d8_flow_accum` from the D8 pointer (`input_is_pointer: true`, cell counts).
+4. `wasm_extract_streams` from the accumulation grid, unless disabled.
+5. Optional `wasm_snap_pour_points` and `wasm_watershed` when a point layer is supplied.
+
+The result contains `{ layers, tools, steps, limitations }`. Every intermediate raster is persisted as a normal workspace layer. The runner fails instead of fabricating output if any upstream tool returns no layer. It does not claim rainfall-runoff simulation or calibrated channel thresholds; D8 is a single-flow-direction model and NoData remains NoData.
 
 ## Adding an extension
 

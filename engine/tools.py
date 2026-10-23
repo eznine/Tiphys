@@ -376,19 +376,47 @@ def register_tools(mcp: FastMCP, store: LayerStore, jobs: JobRegistry) -> None:
             "hint": "在 ArcGIS 中使用“导出要素/转换地理数据库”，或运行“支持的格式”查看完整列表。",
         }
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
-    def gee_auth_status() -> dict[str, Any]:
-        """Return structured Google Earth Engine connection status."""
+    def gee_status() -> dict[str, Any]:
+        """Report configuration presence only; never expose token or service-account contents."""
         demo = os.environ.get("TIPHYS_GEE_DEMO") == "1"
+        project = os.environ.get("TIPHYS_GEE_PROJECT", "").strip() or None
+        token = os.environ.get("TIPHYS_GEE_TOKEN", "").strip()
+        service_account = os.environ.get("TIPHYS_GEE_SA_PATH", "").strip()
+        has_token = bool(token)
+        has_service_account = bool(service_account)
+        configured = has_token or has_service_account
+        status = "demo" if demo else "configured_unverified" if configured else "not_configured"
+        hint = (
+            "演示模式已启用：可验证表单与任务流程，但不会检索或下载真实 Earth Engine 影像。"
+            if demo else
+            "已检测到 GEE 凭据配置，但当前版本尚未执行服务端会话验证，因此不声称已连接。下一步是在受信任的桌面引擎中完成认证验证。"
+            if configured else
+            "未配置 GEE 项目或凭据。设置 TIPHYS_GEE_PROJECT 与 TIPHYS_GEE_SA_PATH（或 TIPHYS_GEE_TOKEN）后仍需服务端验证；当前可使用本地 GeoTIFF 与 GeoLibre WASM 遥感工具。"
+        )
         return {
             "ok": False,
             "connected": False,
+            "status": status,
+            "project": project,
+            "hasToken": has_token,
+            "hasServiceAccount": has_service_account,
             "demo": demo,
-            "status": "not_connected",
-            "message": "Google Earth Engine 尚未连接。当前运行时没有 GEE 凭据或网络会话。",
-            "hint": "配置 GEE 服务账号后可接入真实集合；现在可先使用本地 GeoTIFF 或 GeoLibre WASM 遥感工具。",
-            "auth_methods": ["服务账号（桌面版配置）", "用户 OAuth（后续接入）"],
+            "auth_method": "token" if has_token else "service_account" if has_service_account else None,
+            "verified": False,
+            "message": (
+                "GEE 处于演示模式；没有真实影像会话。"
+                if demo else
+                "已识别 GEE 配置，但尚未验证连接；未检索、上传或导出任何影像。"
+                if configured else
+                "Google Earth Engine 未配置。未检索、上传或导出任何影像。"
+            ),
+            "hint": hint,
         }
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    def gee_auth_status() -> dict[str, Any]:
+        """Return structured Google Earth Engine connection status."""
+        return gee_status()
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     def gee_search_collection(
@@ -399,18 +427,20 @@ def register_tools(mcp: FastMCP, store: LayerStore, jobs: JobRegistry) -> None:
         bbox: str | None = None,
     ) -> dict[str, Any]:
         """Search a GEE collection; disconnected runtimes return an empty honest result."""
+        auth = gee_status()
         return {
-            "ok": False,
-            "connected": False,
-            "status": "not_connected",
+            **auth,
             "collection": collection,
             "items": [],
             "start_date": start_date,
             "end_date": end_date,
             "max_cloud": max_cloud,
             "bbox": bbox,
-            "message": "GEE 未连接，未检索影像集合。返回空列表，不代表该集合不存在。",
-            "hint": "配置 GEE 服务账号后重试。",
+            "message": (
+                "演示模式不检索真实影像集合；返回空列表。"
+                if auth["demo"] else
+                "GEE 尚未验证连接，未检索影像集合。返回空列表，不代表该集合不存在。"
+            ),
         }
 
     @mcp.tool(annotations=ToolAnnotations(destructiveHint=True, readOnlyHint=False))
@@ -425,7 +455,7 @@ def register_tools(mcp: FastMCP, store: LayerStore, jobs: JobRegistry) -> None:
         """Create a GEE export job; real export requires configured credentials."""
         def worker(job, report):
             report(0.2, "检查 GEE 连接")
-            demo = os.environ.get("TIPHYS_GEE_DEMO") == "1"
+            demo = gee_status()["demo"]
             output = path or f"{collection.rsplit('/', 1)[-1]}_{band}.tif"
             if not demo:
                 raise RuntimeError("GEE 导出任务未执行：未连接 Earth Engine，因此没有下载或写入栅格文件。")
@@ -434,7 +464,7 @@ def register_tools(mcp: FastMCP, store: LayerStore, jobs: JobRegistry) -> None:
                 "ok": True,
                 "demo": True,
                 "connected": False,
-                "status": "completed",
+                "status": "demo_completed",
                 "collection": collection,
                 "band": band,
                 "start_date": start_date,
@@ -451,19 +481,24 @@ def register_tools(mcp: FastMCP, store: LayerStore, jobs: JobRegistry) -> None:
         try:
             status = jobs.status(job_id)
         except KeyError:
+            auth = gee_status()
             return {
-                "ok": False,
-                "connected": False,
-                "status": "not_connected",
+                **auth,
                 "job_id": job_id,
                 "job_status": "unknown",
                 "message": "找不到该 GEE 任务。当前引擎没有已连接的 GEE 任务记录。",
             }
         result = status.get("result") or {}
+        auth = gee_status()
         return {
             "ok": status.get("status") == "completed" and result.get("ok") is not False,
             "connected": False,
-            "demo": bool(result.get("demo")),
+            "status": auth["status"],
+            "demo": bool(result.get("demo")) or bool(auth["demo"]),
+            "project": auth["project"],
+            "hasToken": auth["hasToken"],
+            "hasServiceAccount": auth["hasServiceAccount"],
+            "hint": auth["hint"],
             "job": status,
         }
 

@@ -60,10 +60,12 @@ export async function engineRequest(path: string, init: RequestInit = {}) {
   if (pathname === "/tools/catalog") {
     const response = await pythonEngineRequest(path, init);
     const data = await response.json();
-    const { desktopToolCatalog, wasmToolSchemas } = await import("./browser/catalog-schema");
+    const { browserCatalogState, desktopToolCatalog, hydrateWasmCatalog } = await import("./browser/catalog-schema");
+    const hydrate = new URL(path, "https://engine.invalid").searchParams.get("hydrate") !== "0";
+    if (hydrate) await hydrateWasmCatalog();
     const pythonTools: CatalogTool[] = Array.isArray(data.tools) ? data.tools : [];
     const tools = desktopToolCatalog(pythonTools);
-    return Response.json({ ...data, tools, catalog: { python: pythonTools.length, wasm: wasmToolSchemas.length, total: tools.length } });
+    return Response.json({ ...data, tools, catalog: { runtime: "python-mcp", python: pythonTools.length, ...browserCatalogState(), total: tools.length } });
   }
   return pythonEngineRequest(path, init);
 }

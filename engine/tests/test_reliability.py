@@ -64,6 +64,11 @@ class SpatialReliability(unittest.TestCase):
         # GEE and ArcGIS stubs return explicit structured limitations, not fake data.
         _, auth = asyncio.run(mcp.call_tool("gee_auth_status", {}))
         self.assertFalse(auth["connected"])
+        self.assertIn(auth["status"], {"not_configured", "configured_unverified", "demo"})
+        self.assertIn("hasToken", auth)
+        self.assertIn("hasServiceAccount", auth)
+        self.assertIn("project", auth)
+        self.assertIn("hint", auth)
         _, search = asyncio.run(mcp.call_tool("gee_search_collection", {"collection": "COPERNICUS/S2_SR_HARMONIZED"}))
         self.assertEqual(search["items"], [])
         _, formats = asyncio.run(mcp.call_tool("list_supported_formats", {}))

@@ -4,9 +4,10 @@ import type { DataLayer } from "../dataLayers";
 import { assertGeojson, boundsOf, metricCrs } from "./geometry";
 import { rasterRenderer, type RasterRenderer } from "./raster-display";
 import { deleteRecord, readRecord, records, writeRecord } from "./storage";
-import { fileInfo, originalGeojson, wasmManifests, wasmTool } from "./wasm";
-import { browserToolCatalog } from "./catalog-schema";
+import { fileInfo, loadWasmManifests, originalGeojson, wasmTool } from "./wasm";
+import { browserCatalogState, browserToolCatalog, ensureBrowserCatalog, hydrateWasmCatalog } from "./catalog-schema";
 import { pluginToolNames, runPluginTool } from "../plugins/registry";
+import type { GeeAuthStatus } from "../gee";
 
 type LayerRecord = {
   info: Omit<DataLayer, "url">;
@@ -68,19 +69,50 @@ async function resolve(value: unknown): Promise<LayerRecord> {
 }
 function fields(record: LayerRecord) { return [...new Set((record.geojson?.features ?? []).flatMap(f => Object.keys(f.properties ?? {})))]; }
 function kindLabel(kind: string) { return { vector: "矢量", raster: "栅格", table: "表格" }[kind] ?? kind; }
-function geeDemoMode() {
-  const meta = (import.meta.env ?? {}) as Record<string, string | undefined>;
-  const processEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env;
-  return meta.TIPHYS_GEE_DEMO === "1" || meta.VITE_TIPHYS_GEE_DEMO === "1" || processEnv?.TIPHYS_GEE_DEMO === "1";
-}
-function geeUnavailable(message = "Google Earth Engine 尚未连接。当前运行时没有 GEE 凭据或网络会话，未读取、上传或导出任何影像。") {
+function geeEnvironment() {
+  const vite = ((import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env ?? {});
+  const processEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {};
+  const read = (...names: string[]) => names.map(name => (vite[name] ?? processEnv[name] ?? "").trim()).find(Boolean);
   return {
-    ok: false,
-    connected: false,
-    status: "not_connected",
-    message,
-    hint: "在桌面版配置 GEE 凭据后可接入真实集合；现在可先使用本地 GeoTIFF 或 GeoLibre WASM 遥感工具。",
+    demo: read("TIPHYS_GEE_DEMO", "VITE_TIPHYS_GEE_DEMO") === "1",
+    project: read("TIPHYS_GEE_PROJECT", "VITE_TIPHYS_GEE_PROJECT") ?? null,
+    token: read("TIPHYS_GEE_TOKEN", "VITE_TIPHYS_GEE_TOKEN"),
+    serviceAccount: read("TIPHYS_GEE_SA_PATH", "VITE_TIPHYS_GEE_SA_PATH"),
   };
+}
+
+/** Report only configuration presence. Never return token values or read service-account files. */
+export function geeAuthStatus(): GeeAuthStatus {
+  const env = geeEnvironment();
+  const hasToken = Boolean(env.token);
+  const hasServiceAccount = Boolean(env.serviceAccount);
+  const configured = hasToken || hasServiceAccount;
+  const status = env.demo ? "demo" : configured ? "configured_unverified" : "not_configured";
+  const hint = env.demo
+    ? "演示模式已启用：可验证表单与任务流程，但不会检索或下载真实 Earth Engine 影像。"
+    : configured
+      ? "已检测到 GEE 凭据配置，但当前版本尚未执行服务端会话验证，因此不声称已连接。下一步是在受信任的桌面引擎中完成认证验证。"
+      : "未配置 GEE 项目或凭据。设置 TIPHYS_GEE_PROJECT 与 TIPHYS_GEE_SA_PATH（或 TIPHYS_GEE_TOKEN）后仍需服务端验证；当前可使用本地 GeoTIFF 与 GeoLibre WASM 遥感工具。";
+  return {
+    connected: false,
+    status,
+    project: env.project,
+    hasToken,
+    hasServiceAccount,
+    hint,
+    demo: env.demo,
+    auth_method: hasToken ? "token" : hasServiceAccount ? "service_account" : null,
+    verified: false,
+    message: env.demo
+      ? "GEE 处于演示模式；没有真实影像会话。"
+      : configured
+        ? "已识别 GEE 配置，但尚未验证连接；未检索、上传或导出任何影像。"
+        : "Google Earth Engine 未配置。未检索、上传或导出任何影像。",
+  };
+}
+
+function geeUnavailable(message = "Google Earth Engine 尚未连接。当前运行时没有已验证的 GEE 会话，未读取、上传或导出任何影像。") {
+  return { ok: false, ...geeAuthStatus(), message };
 }
 function csvCell(value: unknown) {
   if (value == null) return "";
@@ -223,7 +255,7 @@ const SUPPORTED_EXT: Record<string, string[]> = {
 };
 const ATTACHMENT_KINDS = new Set(["file", "text", "json"]);
 async function runNative(id: string, args: Record<string, any>, signal?: AbortSignal) {
-  const manifest = wasmManifests.find(t => t.id === id);
+  const manifest = (await loadWasmManifests()).find(t => t.id === id);
   if (!manifest) throw new Error("未知 WASM 工具。");
   // Format-defining tools read the extension from the output path, so prefer the
   // extension used in the tool's own example when we have one.
@@ -362,34 +394,37 @@ async function execute(name: string, args: Record<string, any>, signal?: AbortSi
       hint: "在 ArcGIS 中使用“导出要素/转换地理数据库”，或运行“支持的格式”查看完整列表。" };
   }
   if (name === "gee_auth_status") {
-    const demo = geeDemoMode();
-    return {
-      ...geeUnavailable(demo ? "GEE 未连接；演示环境可用 TIPHYS_GEE_DEMO=1 生成模拟导出任务，但不会下载真实影像。" : undefined),
-      demo,
-      auth_methods: ["服务账号（桌面版配置）", "用户 OAuth（后续接入）"],
-    };
+    return geeAuthStatus();
   }
   if (name === "gee_search_collection") {
     const collection = String(args.collection ?? "COPERNICUS/S2_SR_HARMONIZED");
+    const auth = geeAuthStatus();
     return {
-      ...geeUnavailable(),
+      ok: false,
+      ...auth,
       collection,
       items: [],
       start_date: args.start_date ?? null,
       end_date: args.end_date ?? null,
       max_cloud: args.max_cloud ?? null,
       bbox: args.bbox ?? null,
-      message: "GEE 未连接，未检索影像集合。返回空列表，不代表该集合不存在。",
+      message: auth.connected
+        ? "GEE 已连接。"
+        : auth.demo
+          ? "演示模式不检索真实影像集合；返回空列表。"
+          : "GEE 尚未验证连接，未检索影像集合。返回空列表，不代表该集合不存在。",
     };
   }
   if (name === "gee_export_raster") {
-    const demo = geeDemoMode();
+    const auth = geeAuthStatus();
     const collection = String(args.collection ?? "COPERNICUS/S2_SR_HARMONIZED");
     const band = String(args.band ?? "B4");
     const output = String(args.path || `${collection.split("/").pop() ?? "gee"}_${band}.tif`);
-    if (!demo) {
+    if (!auth.demo && !auth.connected) {
       return {
-        ...geeUnavailable("GEE 导出任务未执行：未连接 Earth Engine，因此没有下载或写入栅格文件。"),
+        ok: false,
+        ...auth,
+        message: "GEE 导出任务未执行：未连接已验证的 Earth Engine 会话，因此没有下载或写入栅格文件。",
         collection,
         band,
         requested_path: output,
@@ -397,24 +432,33 @@ async function execute(name: string, args: Record<string, any>, signal?: AbortSi
     }
     return {
       ok: true,
-      demo: true,
-      connected: false,
-      status: "completed",
+      demo: auth.demo,
+      connected: auth.connected,
+      status: auth.demo ? "demo_completed" : "completed",
       collection,
       band,
       path: output,
-      message: "演示任务已完成。这是本地模拟结果，没有下载真实 GEE 影像。",
-      hint: "设置 TIPHYS_GEE_DEMO=1 仅用于验证任务流程；连接真实 GEE 后才会生成 GeoTIFF。",
+      hasToken: auth.hasToken,
+      hasServiceAccount: auth.hasServiceAccount,
+      project: auth.project,
+      message: auth.demo ? "演示任务已完成。这是本地模拟结果，没有下载真实 GEE 影像。" : "GEE 导出已完成。",
+      hint: auth.demo ? "TIPHYS_GEE_DEMO=1 仅用于验证任务流程；连接真实 GEE 后才会生成 GeoTIFF。" : auth.hint,
     };
   }
   if (name === "gee_job_status") {
     const jobId = String(args.job_id ?? "");
+    const auth = geeAuthStatus();
     try {
       const job = await readBrowserJob(jobId);
       return {
         ok: job.status === "completed" && job.result?.ok !== false,
-        connected: geeDemoMode(),
-        demo: Boolean(job.result?.demo),
+        connected: false,
+        status: auth.status,
+        demo: Boolean(job.result?.demo) || auth.demo,
+        project: auth.project,
+        hasToken: auth.hasToken,
+        hasServiceAccount: auth.hasServiceAccount,
+        hint: auth.hint,
         job: { job_id: job.job_id, status: job.status, progress: job.progress, message: job.message, result: job.result, error: job.error },
       };
     } catch {
@@ -565,6 +609,7 @@ async function importShapefileZip(bytes: Uint8Array, filename: string, sourceCrs
   return adopt(data, "fgb", filename.replace(/\.zip$/i, ""));
 }
 export async function runBrowserTool(name: string, args: Record<string, any> = {}): Promise<Record<string, any>> {
+  if (name.startsWith("wasm_")) await hydrateWasmCatalog();
   validate(name, args); recordLog("tool-call", name, args);
   if (name === "ping") return { ok: true, service: "tiphys-engine", runtime: "browser-wasm" };
   if (name === "list_layers") return { layers: await browserLayers() };
@@ -670,7 +715,11 @@ export async function browserEngineRequest(path: string, init: RequestInit = {})
   const url = new URL(path, "https://browser.invalid"); const p = url.pathname;
   let result: any;
   if (p === "/ping") result = { ok: true, service: "tiphys-engine", runtime: "browser-wasm" };
-  else if (p === "/tools/catalog") result = { tools: browserCatalog };
+  else if (p === "/tools/catalog") {
+    const hydrate = url.searchParams.get("hydrate") !== "0";
+    if (hydrate) await ensureBrowserCatalog();
+    result = { tools: browserCatalog, catalog: { runtime: "browser-wasm", ...browserCatalogState() } };
+  }
   else if (p === "/tools/run") { const body = JSON.parse(String(init.body)); result = await runBrowserTool(body.name, body.arguments); }
   else if (p === "/layers/import") { if (!(init.body instanceof Blob)) throw new Error("请通过文件选择器添加数据。"); result = await importBrowserFile(init.body, url.searchParams.get("filename") ?? "data.geojson", url.searchParams.get("source_crs") ?? undefined); }
   else if (p.startsWith("/jobs/")) { const [, , id, action] = p.split("/"); result = action === "cancel" ? await cancelBrowserJob(id) : await readBrowserJob(id); }

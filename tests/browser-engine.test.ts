@@ -8,11 +8,12 @@ import initLibrary from "geolibre-wasm";
 import { browserCatalog, browserEngineRequest, browserLayers, cancelBrowserJob, importBrowserFile, readBrowserJob, runBrowserTool } from "../src/lib/browser/engine.ts";
 import { readRecord, writeRecord } from "../src/lib/browser/storage.ts";
 import { metricCrs } from "../src/lib/browser/geometry.ts";
-import { desktopToolCatalog } from "../src/lib/browser/catalog-schema.ts";
+import { browserCatalogState, desktopToolCatalog, ensureBrowserCatalog, shellToolCatalog } from "../src/lib/browser/catalog-schema.ts";
 import { zhToolL1, zhToolL2 } from "../src/lib/i18n/tools.ts";
 import { searchBrowserTools } from "../src/lib/browser/search.ts";
 import { compactBrowserMessages, estimateBrowserTokens, readBrowserContextRecord } from "../src/lib/browser/context.ts";
 import { mapExportFilename, mapPngDataUrl } from "../src/lib/map-export.ts";
+import { geeExecutionAllowed } from "../src/lib/gee.ts";
 import type { ModelMessage } from "ai";
 
 before(async () => {
@@ -165,13 +166,15 @@ test("CSV export writes original-CRS WKT and safely quotes spreadsheet text", as
   assert.match(text, /"天安门, 北京","'=SUM\(1,2\)","say ""hello""",POINT\(12958676\.337 4850689\.762\)/);
 });
 
-test("metric admission rejects unsuitable extents; WASM catalog contains real parameter contracts", () => {
+test("metric admission rejects unsuitable extents; WASM catalog contains real parameter contracts", async () => {
+  await ensureBrowserCatalog();
   assert.throws(() => metricCrs({ type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: { type: "MultiPoint", coordinates: [[0,0],[120,0]] } }] }), /范围/);
   assert.ok(browserCatalog.some(t => t.name === "wasm_centroid_vector"));
   assert.ok(browserCatalog.filter(t => t.name.startsWith("wasm_")).every(t => (t.parameters as any).additionalProperties === false));
 });
 
-test("widened catalog exposes the vector, raster and table toolbox", () => {
+test("widened catalog exposes the vector, raster and table toolbox", async () => {
+  await ensureBrowserCatalog();
   const native = browserCatalog.filter(t => t.name.startsWith("wasm_"));
   assert.ok(native.length > 900, `expected the widened GeoLibre catalog, got ${native.length}`);
   for (const name of ["wasm_reproject_raster", "wasm_hillshade", "wasm_zonal_statistics", "wasm_vector_points_to_raster", "wasm_idw_interpolation"]) {
@@ -236,6 +239,51 @@ test("linkage mapper helper chains core rasterization and a least-cost corridor 
   await assert.rejects(finished("linkage_mapper_corridor", { layer: habitats.id }), /缺少参数：resistance/);
 });
 
+test("hydrology helper chains depression fill, D8 flow and stream extraction on a synthetic DEM", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const cell = 100;
+  const features: any[] = [];
+  for (let row = 0; row < 12; row++) {
+    for (let col = 0; col < 12; col++) {
+      const x = 500000 + col * cell, y = 4400000 + row * cell;
+      const elevation = 1200 - row * 4 - col + (row === 5 && col === 5 ? -15 : 0);
+      features.push({ type: "Feature", properties: { elev: elevation },
+        geometry: { type: "Polygon", coordinates: [[[x, y], [x + cell, y], [x + cell, y + cell], [x, y + cell], [x, y]]] } });
+    }
+  }
+  const source = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features })]), "synthetic_dem_source.geojson")).layer;
+  const dem = await finished("wasm_vector_polygons_to_raster", {
+    input: source.id, field: "elev", cell_size: cell, output_name: "synthetic_dem",
+  });
+  const demLayer = dem.layer ?? dem.layers?.[0]?.layer;
+  assert.equal(demLayer.kind, "raster");
+
+  const result = await finished("hydrology_flow_pipeline", {
+    dem: demLayer.id, stream_threshold: 20, output_name: "synthetic_hydrology",
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.plugin, "hydrology-flow");
+  assert.deepEqual(result.tools, ["wasm_fill_depressions", "wasm_d8_pointer", "wasm_d8_flow_accum", "wasm_extract_streams"]);
+  assert.deepEqual(result.steps.map((step: any) => step.status), ["completed", "completed", "completed", "completed"]);
+  const outputs = result.layers.map((item: any) => item.layer);
+  assert.equal(outputs.length, 4);
+  assert.ok(outputs.every((layer: any) => layer.kind === "raster"));
+  assert.match(result.limitations, /D8/);
+  const stored = await browserLayers();
+  for (const layer of outputs) assert.ok(stored.some(item => item.id === layer.id));
+
+  const pourPoint = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [{
+    type: "Feature", properties: { id: 1 }, geometry: { type: "Point", coordinates: [500650, 4400050] },
+  }] })]), "synthetic_pour_points.geojson")).layer;
+  const watershed = await finished("hydrology_flow_pipeline", {
+    dem: demLayer.id, pour_points: pourPoint.id, extract_streams: false, output_name: "synthetic_watershed",
+  });
+  assert.deepEqual(watershed.tools, ["wasm_fill_depressions", "wasm_d8_pointer", "wasm_d8_flow_accum", "wasm_watershed"]);
+  const watershedLayer = watershed.layers.at(-1).layer;
+  assert.equal(watershedLayer.kind, "raster");
+  assert.equal(watershedLayer.raster.width, outputs[0].raster.width);
+});
+
 test("map export produces a PNG data URL and timestamped filename", () => {
   let requestedType = "";
   const canvas = { toDataURL: (type?: string) => { requestedType = type ?? ""; return "data:image/png;base64,AAAA"; } };
@@ -261,9 +309,17 @@ test("rename_layer updates the display name in place and reorder_layers sets the
 });
 
 test("GEE slice, ArcGIS adapters and explanatory plugin return honest structured results", async () => {
+  const saved = Object.fromEntries(["TIPHYS_GEE_PROJECT", "TIPHYS_GEE_TOKEN", "TIPHYS_GEE_SA_PATH", "TIPHYS_GEE_DEMO"].map(key => [key, process.env[key]]));
+  for (const key of Object.keys(saved)) delete process.env[key];
   const auth = await runBrowserTool("gee_auth_status", {});
   assert.equal(auth.connected, false);
-  assert.equal(auth.status, "not_connected");
+  assert.equal(auth.status, "not_configured");
+  assert.equal(auth.project, null);
+  assert.equal(auth.hasToken, false);
+  assert.equal(auth.hasServiceAccount, false);
+  assert.equal(auth.demo, false);
+  assert.equal(geeExecutionAllowed("gee_export_raster", auth), false);
+  assert.equal(geeExecutionAllowed("gee_auth_status", auth), true);
   const search = await runBrowserTool("gee_search_collection", { collection: "COPERNICUS/S2_SR_HARMONIZED" });
   assert.deepEqual(search.items, []);
   assert.ok(search.hint);
@@ -272,14 +328,39 @@ test("GEE slice, ArcGIS adapters and explanatory plugin return honest structured
   assert.equal(exported.path ?? exported.requested_path, "demo.tif");
   const geeStatus = await runBrowserTool("gee_job_status", { job_id: "missing" });
   assert.equal(geeStatus.job_status, "unknown");
+  process.env.TIPHYS_GEE_PROJECT = "tiphy-test-project";
+  process.env.TIPHYS_GEE_TOKEN = "do-not-leak-this-token";
+  const configured = await runBrowserTool("gee_auth_status", {});
+  assert.equal(configured.connected, false);
+  assert.equal(configured.status, "configured_unverified");
+  assert.equal(configured.project, "tiphy-test-project");
+  assert.equal(configured.hasToken, true);
+  assert.equal(configured.hasServiceAccount, false);
+  assert.ok(!JSON.stringify(configured).includes("do-not-leak-this-token"));
+  assert.equal(geeExecutionAllowed("gee_search_collection", configured), false);
+  delete process.env.TIPHYS_GEE_TOKEN;
+  process.env.TIPHYS_GEE_SA_PATH = "/tmp/not-read-service-account.json";
+  const serviceAccount = await runBrowserTool("gee_auth_status", {});
+  assert.equal(serviceAccount.status, "configured_unverified");
+  assert.equal(serviceAccount.hasToken, false);
+  assert.equal(serviceAccount.hasServiceAccount, true);
+  assert.ok(!JSON.stringify(serviceAccount).includes("/tmp/not-read-service-account.json"));
+  delete process.env.TIPHYS_GEE_PROJECT;
+  delete process.env.TIPHYS_GEE_SA_PATH;
   process.env.TIPHYS_GEE_DEMO = "1";
   try {
+    const demoAuth = await runBrowserTool("gee_auth_status", {});
+    assert.equal(demoAuth.status, "demo");
+    assert.equal(demoAuth.demo, true);
+    assert.equal(demoAuth.connected, false);
+    assert.equal(geeExecutionAllowed("gee_export_raster", demoAuth), true);
     const demo = await finished("gee_export_raster", { collection: "COPERNICUS/S2_SR_HARMONIZED", band: "B4", path: "demo.tif" });
     assert.equal(demo.demo, true);
     assert.equal(demo.path, "demo.tif");
     assert.match(demo.message, /演示/);
   } finally {
     delete process.env.TIPHYS_GEE_DEMO;
+    for (const [key, value] of Object.entries(saved)) if (value !== undefined) process.env[key] = value;
   }
 
   const formats = await runBrowserTool("list_supported_formats", {});
@@ -304,11 +385,12 @@ test("field_statistics reports numeric moments or top values with null counts", 
 });
 
 
-test("catalog union, dedupe, L1 folders and every WASM L2 translation", () => {
-  assert.equal(browserCatalog.length, 994, "34 shell/common tools + 958 WASM schemas + 2 plugin stubs");
+test("catalog union, dedupe, L1 folders and every WASM L2 translation", async () => {
+  await ensureBrowserCatalog();
+  assert.equal(browserCatalog.length, 995, "34 shell/common tools + 958 WASM schemas + 3 plugin tools");
   assert.equal(new Set(browserCatalog.map(t => t.name)).size, browserCatalog.length);
   const desktop = desktopToolCatalog([{ name: "buffer", category: "邻近分析", parameters: { properties: {} } }]);
-  assert.equal(desktop.length, 994, "desktop Python + WASM + shell-only stubs");
+  assert.equal(desktop.length, 995, "desktop Python + WASM + shell-only stubs");
   assert.equal(new Set(desktop.map(t => t.name)).size, desktop.length);
   assert.ok(desktop.some(t => t.name === "gee_search_collection"));
   const l1 = new Set(browserCatalog.map(zhToolL1));
@@ -321,7 +403,8 @@ test("catalog union, dedupe, L1 folders and every WASM L2 translation", () => {
   }
 });
 
-test("browser tool search ranks Chinese names and taxonomy, not only descriptions", () => {
+test("browser tool search ranks Chinese names and taxonomy, not only descriptions", async () => {
+  await ensureBrowserCatalog();
   const weighted = searchBrowserTools(browserCatalog, "加权叠加");
   assert.equal(weighted[0]?.name, "wasm_weighted_overlay");
   const nearest = searchBrowserTools(browserCatalog, "最近设施");
@@ -331,6 +414,19 @@ test("browser tool search ranks Chinese names and taxonomy, not only description
   assert.ok(network.some(t => t.name === "wasm_closest_facility_network"));
   const rasterOverlay = searchBrowserTools(browserCatalog, "栅格 叠加", { limit: 12 });
   assert.ok(rasterOverlay.some(t => t.name === "wasm_weighted_overlay"));
+});
+
+test("catalog shell is immediately usable and async hydration reaches the honest full count", async () => {
+  await ensureBrowserCatalog();
+  const state = browserCatalogState();
+  assert.ok(state.initial < 900, `shell should not preload the WASM catalog (${state.initial})`);
+  assert.equal(state.shell, shellToolCatalog.length);
+  assert.ok(shellToolCatalog.some(tool => tool.name === "hydrology_flow_pipeline"));
+  assert.ok(shellToolCatalog.some(tool => tool.name === "gee_auth_status"));
+  assert.ok(!shellToolCatalog.some(tool => tool.name.startsWith("wasm_")));
+  assert.equal(state.wasm, 958);
+  assert.equal(state.total, 995);
+  assert.equal(state.hydrated, true);
 });
 
 test("browser context trims old tool output, then compacts with GIS state and a retrievable archive", async () => {

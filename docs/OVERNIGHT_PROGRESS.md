@@ -43,4 +43,12 @@
   - Browser tests cover the real corridor chain (raster alignment, corridor polygon/line outputs, persistence) and PNG data-URL/filename validation. Plugin/engine docs updated.
   - Verification: `npm run test:browser` 20/20 passed; `npx tsc --noEmit` passed; production build run before commit.
 
-- 2026-10-24 ~02:41 Asia/Shanghai — Overnight executor interrupted; tf-codex batch04 still alive on box. Supervisor re-dispatched; no user ping.
+
+- 2026-10-24 02:47 Asia/Shanghai — P3 pushed to origin/main (`c9d8282`). Overnight supervisor confirmed batch04 exit=0, worktree clean, tests 20/20. Starting batch05 (catalog lazy-load perf, GEE auth path honesty, hydrology pipeline plugin, notices).
+
+- 2026-10-24 — Batch05 implemented on Linux box:
+  - Catalog startup: `wasm-catalog.json` is no longer imported by the initial module graph. `wasm-catalog-loader.ts` dynamically imports it; `catalog-schema.ts` keeps the same mutable `browserToolCatalog`/`browserCatalog` reference for consumers, exposes shell tools first, and converts 958 schemas in 48-item chunks yielding through `requestIdleCallback` (Node: `setImmediate`) between chunks. `/tools/catalog?hydrate=0` returns 37 common/plugin tools immediately; the default request hydrates and returns 995. ToolPanel renders the shell first and only shows the below-900 health warning after hydration has completed. Agent search awaits hydration; `wasm_*` execution awaits the manifest loader.
+  - GEE: browser and Python status now distinguish `not_configured`, `configured_unverified`, and `demo` without claiming a session. They expose `connected`, `status`, `project`, `hasToken`, `hasServiceAccount`, `hint`, and `demo`; token/path values are never returned and service-account files are never read. Search/export remain honest no-ops unless verified or demo. ToolPanel disables live search/export unless connected or demo while auth/job status stay available. Exact verified-client work is documented in `docs/GEE.md`.
+  - Hydrology: new `hydrology_flow_pipeline` extension chains fill/breach depressions -> D8 pointer -> D8 flow accumulation -> optional stream extraction -> optional snap pour points/watershed via inline `context.runTool`, returning `{layers, tools, steps, limitations}`. The synthetic-DEM browser test covers both the four-step stream chain and the watershed branch with same-grid raster outputs.
+  - Docs/notices: added `docs/GEE.md`, updated `docs/PLUGINS.md` and `THIRD_PARTY_NOTICES.md`; no new npm dependency or third-party source was added.
+  - Verification: `npm run test:browser` 22/22 passed; `npm run test:engine` 30/30 passed; `npx tsc --noEmit` passed; `npm run build` passed with `wasm-catalog` emitted as a separate 1,946 kB lazy chunk.

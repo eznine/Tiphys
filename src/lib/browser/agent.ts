@@ -1,6 +1,7 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, jsonSchema, stepCountIs, streamText, tool, type ModelMessage, type ToolSet } from "ai";
 import { browserCatalog, browserLayers, browserLogs, cancelBrowserJob, engineEvents, readBrowserJob, recordLog, runBrowserTool } from "./engine";
+import { ensureBrowserCatalog } from "./catalog-schema";
 import { readRecord, writeRecord } from "./storage";
 import { pluginToolNames } from "../plugins/registry";
 import { compactBrowserMessages, readBrowserContextRecord } from "./context";
@@ -161,7 +162,7 @@ async function runTurn(s: Session, text: string) {
     const searchable = (name: string) => isBrowserSearchable(name) || pluginToolNames.has(name);
     tools.search_browser_tools = tool({ description: "Find additional local GeoLibre WASM, GEE stub and extension tools. Inspect their schemas before running.",
       inputSchema: jsonSchema<{ query: string }>({ type: "object", properties: { query: { type: "string" } }, required: ["query"], additionalProperties: false }),
-      execute: async ({ query }) => searchBrowserTools(browserCatalog, query, { searchable }) });
+      execute: async ({ query }) => searchBrowserTools(await ensureBrowserCatalog(), query, { searchable }) });
     tools.run_browser_tool = tool({ description: "Run an additional browser tool found by search_browser_tools. Arguments must follow that tool's schema. Metric parameters use the source CRS units; reproject when needed. Raster layers are inputs like vector layers; raster results render automatically. GEE tools report connection status honestly.",
       inputSchema: jsonSchema<{ name: string; arguments: Record<string, any> }>({ type: "object", properties: { name: { type: "string" }, arguments: { type: "object", additionalProperties: true } }, required: ["name", "arguments"], additionalProperties: false }),
       execute: async (input, options) => { if (!searchable(input.name)) throw new Error("仅接受浏览器 WASM、GEE 或扩展工具名称。"); return callTool(s, input.name, input.arguments, options.toolCallId, signal); } });

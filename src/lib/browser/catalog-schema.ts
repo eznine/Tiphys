@@ -1,6 +1,6 @@
 /** Shared catalog contracts for the Python-MCP and bundled GeoLibre WASM tools. */
 import commonCatalog from "./catalog.json";
-import manifests from "./wasm-catalog.json";
+import { loadWasmManifests, yieldToMainThread, type WasmManifest } from "./wasm-catalog-loader";
 import { pluginToolSchemas } from "../plugins/registry";
 
 export type CatalogSchema = {
@@ -13,8 +13,6 @@ export type CatalogTool = {
   parameters: { type?: string; title?: string; properties?: Record<string, CatalogSchema>; required?: string[]; additionalProperties?: boolean };
   annotations?: { destructiveHint?: boolean; readOnlyHint?: boolean };
 };
-
-type WasmManifest = (typeof manifests)[number];
 
 /** Convert an upstream WASM manifest into the MCP-style schema ToolPanel expects. */
 export function schemaForWasm(manifest: WasmManifest): CatalogTool {
@@ -35,8 +33,8 @@ export function schemaForWasm(manifest: WasmManifest): CatalogTool {
     name: `wasm_${manifest.id}`,
     label: manifest.display_name,
     description: manifest.summary,
-    category: (manifest as any).taxonomy?.category ?? manifest.category,
-    subcategory: (manifest as any).taxonomy?.subcategory,
+    category: manifest.taxonomy?.category ?? manifest.category,
+    subcategory: manifest.taxonomy?.subcategory,
     parameters: {
       type: "object", properties,
       required: manifest.params.filter(p => p.required && p.io_role !== "output").map(p => p.name),
@@ -45,8 +43,18 @@ export function schemaForWasm(manifest: WasmManifest): CatalogTool {
   };
 }
 
-export const wasmToolSchemas: CatalogTool[] = manifests.map(schemaForWasm);
+/** Shell-visible tools: common MCP operations and local extensions. */
 export const commonToolSchemas = commonCatalog as unknown as CatalogTool[];
+export const shellToolCatalog = mergeCatalogTools(commonToolSchemas, pluginToolSchemas);
+
+/** Hydrated in place so existing `browserCatalog` references stay valid. */
+export const wasmToolSchemas: CatalogTool[] = [];
+export const browserToolCatalog = [...shellToolCatalog];
+
+const SHELL_COUNT = shellToolCatalog.length;
+let hydration: Promise<CatalogTool[]> | undefined;
+let hydrated = false;
+let hydrationError = "";
 
 /** Deduplicate by MCP tool name; earlier sources win. */
 export function mergeCatalogTools(...sources: CatalogTool[][]): CatalogTool[] {
@@ -55,8 +63,49 @@ export function mergeCatalogTools(...sources: CatalogTool[][]): CatalogTool[] {
   return [...merged.values()];
 }
 
-/** Web runtime catalog: shell/common tools plus every bundled WASM tool. */
-export const browserToolCatalog = mergeCatalogTools(commonToolSchemas, wasmToolSchemas, pluginToolSchemas);
+/**
+ * Append the 958 WASM schemas in small chunks. The manifest import is dynamic
+ * and schema conversion yields between chunks, keeping the shell responsive.
+ */
+export function hydrateWasmCatalog(): Promise<CatalogTool[]> {
+  if (hydrated) return Promise.resolve(wasmToolSchemas);
+  if (hydration) return hydration;
+  hydration = (async () => {
+    try {
+      const manifests = await loadWasmManifests();
+      const chunkSize = 48;
+      for (let offset = 0; offset < manifests.length; offset += chunkSize) {
+        for (const manifest of manifests.slice(offset, offset + chunkSize)) wasmToolSchemas.push(schemaForWasm(manifest));
+        await yieldToMainThread();
+      }
+      // Canonical order: common tools, every WASM schema, then plugin tools.
+      browserToolCatalog.splice(0, browserToolCatalog.length, ...mergeCatalogTools(commonToolSchemas, wasmToolSchemas, pluginToolSchemas));
+      hydrated = true;
+      hydrationError = "";
+      return wasmToolSchemas;
+    } catch (error) {
+      hydrationError = String(error);
+      hydration = undefined;
+      throw error;
+    }
+  })();
+  return hydration;
+}
+
+export function ensureBrowserCatalog(): Promise<CatalogTool[]> {
+  return hydrateWasmCatalog().then(() => browserToolCatalog);
+}
+
+export function browserCatalogState() {
+  return {
+    shell: SHELL_COUNT,
+    initial: SHELL_COUNT,
+    wasm: wasmToolSchemas.length,
+    total: browserToolCatalog.length,
+    hydrated,
+    error: hydrationError || undefined,
+  };
+}
 
 /** Desktop catalog: Python MCP tools plus every WASM schema and shell-only stubs. */
 export function desktopToolCatalog(pythonTools: CatalogTool[]): CatalogTool[] {
