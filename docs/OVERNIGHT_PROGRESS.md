@@ -27,3 +27,5 @@
   - Files: `src/App.tsx`, `src/components/{MapCanvas,AttributeTable,ToolPanel,CommandRibbon}.tsx`, `src/lib/dataLayers.ts`, `src/lib/browser/{engine,agent,catalog-schema,catalog.json}`, `src/lib/plugins/*`, `src/styles/app.css`, `engine/{geo_ops,tools}.py`, `engine/tests/test_reliability.py`, `tests/browser-engine.test.ts`, `docs/{ARCGIS_IO,PLUGINS}.md`.
   - Verification: `npm run test:browser` 16/16 passed; `npx tsc --noEmit` passed; Python engine tests 30/30 passed; `npm run build` rerun before commit.
   - Next P2: agent memory/recovery, real LinkageMapper corridor model, optional FileGDB/GDAL adapter, real GEE auth, restrained beauty pass on empty states and symbology defaults.
+
+- 2026-10-24 02:24 Asia/Shanghai — P1 committed+pushed as `db655aa` (batch02 had left tree dirty; verified 16/16 browser tests + tsc, then committed).
