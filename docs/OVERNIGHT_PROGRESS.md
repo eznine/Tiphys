@@ -193,3 +193,7 @@
   - Agent: added restrained 矢量差集 and 地形崎岖度 recipe cards that only open forms. Chinese aliases now rank 差集, 同一性, 双边滤波, 保边均值, 高斯滤波, 普通克里金, 趋势面, 欧氏方向, 成本连通, 点转线, 最小外包, 崎岖度, 地形位置 and 湿润指数 to their intended tools. Recovery/compaction remains state-only.
   - Perf/beauty: no risky perf refactor (no obvious remaining hot path); controls and recipe cards reuse the existing blue-family styling. No teal or mythology.
   - Verification: 50/50 browser tests passed (`npm run test:browser`), `npx tsc --noEmit` passed, `npm run build` passed. `dist/` remains ~36 MB with unchanged payload shape (app 1.92 MB, lazy catalog 1.95 MB, CLI WASM 24.11 MB), so no deploy-doc size change and no live deploy. GEE remains docs/demo only; no credentials read or created. No Python changes.
+
+- 2026-10-24 06:14 Asia/Shanghai — Overnight supervisor: batch16 pushed itself as `f2f06ef` (50/50). Tree clean. Launching batch17 (filter/geom/hydro densify, agent recipes).
+
+- 2026-10-24 06:14 Asia/Shanghai — Overnight watch: batch16 already on origin/main (`f2f06ef`, 50/50). No tf-codex alive after ship. Direction OK (blue `#2563eb`, light default, logo-temp, no teal). Box-only. Restarting batch17 (hydro/filters/geometry densify, agent recipes).
