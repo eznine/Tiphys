@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { DataLayer, LayerSelection, LayerStyle } from "./dataLayers";
 import { agentHealth, agentRequest, bootstrap, readEvents } from "./service";
+import type { AgentSessionStub, WorkspaceRecovery } from "./workspace";
 
 export type TimelineItem =
   | { kind: "msg"; id: string; role: "user" | "agent"; text: string }
@@ -11,7 +12,14 @@ export type TimelineItem =
   | { kind: "notice"; id: string; text: string };
 
 export type ViewCommand = { id: string | number; action: "zoom" | "attributes" | "style" | "labels"; layer_id: string; bounds?: number[]; style?: Partial<LayerStyle> };
-export type AgentWorkspaceContext = { aoi?: number[] | null; selectedLayerId?: string | null; selectedLayerName?: string | null; selection?: LayerSelection | null };
+export type AgentWorkspaceContext = {
+  aoi?: number[] | null;
+  selectedLayerId?: string | null;
+  selectedLayerName?: string | null;
+  selection?: LayerSelection | null;
+  recovery?: WorkspaceRecovery | null;
+  agentSession?: AgentSessionStub | null;
+};
 export type AgentState = {
   viewCommands?: ViewCommand[];
   items: TimelineItem[];

@@ -8,7 +8,7 @@ import { pingEngine, PingResult } from "./lib/engine";
 import { Map as MapIcon, Layers, Crosshair, X } from "lucide-react";
 import { SettingsDialog, type ThemeMode } from "./components/SettingsDialog";
 import { CommandRibbon } from "./components/CommandRibbon";
-import { useAgent } from "./lib/agent";
+import { useAgent, type TimelineItem } from "./lib/agent";
 import { defaultLayerStyle, type DataLayer, type LayerSelection, type LayerStyle } from "./lib/dataLayers";
 import { engineRequest } from "./lib/service";
 import { AttributeTable } from "./components/AttributeTable";
@@ -18,7 +18,7 @@ import { LogPanel } from "./components/LogPanel";
 import { browserRuntime } from "./lib/runtime";
 import { warmWasmToolRunner } from "./lib/browser/wasm-tool-runner";
 import { scheduleIdle } from "./lib/idle";
-import { buildWorkspaceSnapshot, loadWorkspaceSnapshot, saveWorkspaceSnapshot } from "./lib/workspace";
+import { buildAgentSessionStub, buildWorkspaceSnapshot, loadWorkspaceSnapshot, saveWorkspaceSnapshot, type WorkspaceRecovery } from "./lib/workspace";
 import "./styles/app.css";
 
 function loadTheme(): ThemeMode {
@@ -34,6 +34,12 @@ function loadLayerStyles(): Record<string, LayerStyle> {
 function loadAppliedViews(): Set<string | number> {
   try { return new Set(JSON.parse(localStorage.getItem("tiphys-applied-view-commands") ?? "[]")); }
   catch { return new Set(); }
+}
+
+function sessionStubFromItems(items: TimelineItem[]) {
+  const goals = items.flatMap(item => item.kind === "msg" && item.role === "user" ? [item.text] : []);
+  const tools = items.flatMap(item => item.kind === "tool" ? [item.name] : []);
+  return buildAgentSessionStub(goals, tools);
 }
 
 export default function App() {
@@ -66,6 +72,25 @@ export default function App() {
   const propertyLayer = layers.find(l => l.id === properties?.id);
   const activeLayer = layers.find(l => l.id === selectedId) ?? layers[0];
   const selectionLayer = layers.find(l => l.id === selection?.layerId);
+  const agentSession = useMemo(() => sessionStubFromItems(agent.state.items) ?? restoredWorkspace?.agent, [agent.state.items, restoredWorkspace]);
+  const recoveredLayerCount = useMemo(() => {
+    if (!restoredWorkspace) return 0;
+    const live = new Set(agent.state.layers.map(layer => layer.id));
+    return restoredWorkspace.layers.filter(layer => live.has(layer.id)).length;
+  }, [agent.state.layers, restoredWorkspace]);
+  const recoveryNote = useMemo<WorkspaceRecovery | null>(() => {
+    if (!restoredWorkspace || !agent.state.hydrated) return null;
+    if (!restoredWorkspace.layers.length && !restoredWorkspace.aoi && !restoredWorkspace.selection && !restoredWorkspace.agent) return null;
+    return {
+      layerCount: recoveredLayerCount,
+      selectedLayerName: agent.state.layers.find(layer => layer.id === restoredWorkspace.selectedLayerId)?.name ?? null,
+      selectionCount: restoredWorkspace.selection?.featureIds.length ?? 0,
+      hasAoi: Boolean(restoredWorkspace.aoi),
+      transcriptAvailable: agent.state.items.length > 0,
+      goals: restoredWorkspace.agent?.goals ?? [],
+      tools: restoredWorkspace.agent?.tools ?? [],
+    };
+  }, [agent.state.hydrated, agent.state.items.length, agent.state.layers, recoveredLayerCount, restoredWorkspace]);
   const toggleTheme = () => setThemeMode(theme === "dark" ? "light" : "dark");
   const openDock = (tab: "chat" | "tools", tool?: string) => setDockRequest({ id: Date.now(), tab, tool });
   const zoomAll = () => {
@@ -77,7 +102,14 @@ export default function App() {
   useEffect(() => {
     if (!agent.state.hydrated) return;
     const ids = new Set(layers.map(layer => layer.id));
-    if (selection && !ids.has(selection.layerId)) setSelection(null);
+    if (selection) {
+      const selected = layers.find(layer => layer.id === selection.layerId);
+      if (!selected) setSelection(null);
+      else {
+        const featureIds = selection.featureIds.filter(id => Number.isInteger(id) && id >= 0 && id < selected.feature_count);
+        if (featureIds.length !== selection.featureIds.length) setSelection(featureIds.length ? { layerId: selected.id, featureIds } : null);
+      }
+    }
     if (tableId && !ids.has(tableId)) setTableId(null);
     if (!layers.length) { if (selectedId) setSelectedId(null); return; }
     if (selectedId && !ids.has(selectedId)) setSelectedId(layers[0].id);
@@ -91,10 +123,10 @@ export default function App() {
   useEffect(() => {
     if (!agent.state.hydrated) return;
     const timer = window.setTimeout(() => {
-      saveWorkspaceSnapshot(buildWorkspaceSnapshot(layers, { selectedLayerId: selectedId, aoi, selection, tableLayerId: tableId }));
+      saveWorkspaceSnapshot(buildWorkspaceSnapshot(layers, { selectedLayerId: selectedId, aoi, selection, tableLayerId: tableId, agent: agentSession }));
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [agent.state.hydrated, layers, selectedId, aoi, selection, tableId]);
+  }, [agent.state.hydrated, layers, selectedId, aoi, selection, tableId, agentSession]);
   useEffect(() => { if (agent.state.focus) setFocus([...agent.state.focus]); }, [agent.state.focus]);
   useEffect(() => {
     let changed = false;
@@ -182,7 +214,8 @@ export default function App() {
   useEffect(() => {
     const escape = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      if (event.key === "Escape" && !target?.closest("input, textarea, select, [contenteditable='true']")) clearSelection();
+      const textInput = target instanceof HTMLInputElement && !["checkbox", "radio", "range", "color", "button", "submit", "reset", "file"].includes(target.type);
+      if (event.key === "Escape" && !textInput && !target?.closest("textarea, select, [contenteditable='true']")) clearSelection();
     };
     window.addEventListener("keydown", escape);
     return () => window.removeEventListener("keydown", escape);
@@ -264,7 +297,7 @@ export default function App() {
           {!layers.length && <div className="map-empty-state" role="status">
             <span className="map-empty-icon"><Layers size={20} /></span>
             <strong>地图还没有图层</strong>
-            <span>添加 GeoJSON、Shapefile、GeoPackage 或栅格开始工作。</span>
+            <span className="map-empty-copy">添加 GeoJSON、GeoPackage 或 GeoTIFF，开始本机空间分析。</span>
             <button type="button" className="primary-btn" onClick={() => void addData()}>添加数据</button>
           </div>}
           {(selection?.featureIds.length || aoi) && <div className="map-status-stack">
@@ -304,9 +337,10 @@ export default function App() {
           connected={agent.state.connected}
           provider={agent.state.provider}
           layers={layers}
+          recovery={recoveryNote}
           selectedLayer={activeLayer} request={dockRequest} onAdd={() => void addData()} onSettings={() => setSettingsOpen(true)}
           onOpenTool={tool => openDock("tools", tool)}
-          onSend={text => agent.send(text, { aoi, selectedLayerId: activeLayer?.id ?? null, selectedLayerName: activeLayer?.name ?? null, selection })}
+          onSend={text => agent.send(text, { aoi, selectedLayerId: activeLayer?.id ?? null, selectedLayerName: activeLayer?.name ?? null, selection, recovery: recoveryNote, agentSession })}
           onApprove={agent.approve}
           onCancelJob={agent.cancelJob}
           onCancelTurn={agent.cancelTurn}

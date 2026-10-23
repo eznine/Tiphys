@@ -284,8 +284,8 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
           </section>;
         })}
         {catalog && groups.length === 0 && <div className="toolbox-empty" role="status">
-          <strong>没有匹配的工具</strong>
-          <span>试试“缓冲”“网络分析”或“加权叠加”。</span>
+          <strong>{search.trim() ? `没有匹配“${search.trim()}”的工具` : "没有可显示的工具"}</strong>
+          <span>可搜索工具名、中文类别或用途，例如“缓冲”“网络分析”“加权叠加”。</span>
           <button type="button" className="icon-btn" onClick={() => setSearch("")}>清除搜索</button>
         </div>}
       </div>

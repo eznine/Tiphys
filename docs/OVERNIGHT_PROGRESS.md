@@ -87,3 +87,17 @@
   - Verification: `npm run test:browser` 30/30; `npx tsc --noEmit`; `npm run build` (36 MB `dist/`, 1.90 MB app chunk, 1.95 MB lazy catalog, 24.1 MB CLI WASM); `git diff --check`.
 
 - 2026-10-24 04:11 Asia/Shanghai — Overnight watch: batch08 complete but builder exited (sandbox blocked commit). Supervisor committed+pushed as `ad54e47` (30/30 browser tests per batch log). Direction OK (blue `#2563eb`, light default, logo-temp, catalog health <900). Restarting batch09 (agent recovery, RS/terrain ribbon densify, beauty polish).
+
+- 2026-10-24 ~04:22 Asia/Shanghai — Overnight supervisor interrupted; batch09 tf-codex still alive (dirty tree mid-flight). Re-dispatching supervisor only; no user ping.
+
+- 2026-10-24 04:25 Asia/Shanghai — Batch09 implemented and verified on the Linux box:
+  - Agent recovery: workspace v1 now optionally carries a capped session stub (last 3 user goals, last 8 distinct tool names) alongside layer/AOI/selection metadata. Reload shows a restrained UI-only recovery note stating what actually loaded; it is not inserted as a fake assistant/user turn. Browser Agent prompts include a “restored, not replayed” system section and explicitly forbid inventing missing history. Compaction handoffs retain AOI, selected layer, selection, layer summary, recent tools and the persisted stub.
+  - Ribbon: added eight working catalog actions — 全色锐化, 栅格重采样, 超像元分割, 多尺度分割, 光谱角制图, 视域分析, 可见性指数, 天空开阔度. A test extracts every `wasm_*` ribbon action and verifies it resolves in the hydrated catalog.
+  - Selection/table: added row checkboxes, Ctrl/Cmd toggle, Shift range selection, table/map feature-state sync, Escape clear (including when a checkbox has focus), stale-ID pruning so HUD counts stay accurate after layer/style changes, “复制已选 ID”, and an honest current-page attribute CSV export without geometry.
+  - Beauty/overlay: tightened map, toolbox-search and Agent empty states in the blue family; moved selection/AOI, legend and symbology panels clear of MapLibre attribution/scale. No teal or mythology chrome.
+  - Build/deploy: `dist/` remains 36 MB with the same payload shape (1.90 MB app chunk, 1.95 MB lazy catalog, 24.1 MB CLI WASM), so `docs/DEPLOY_TIPHYS_XYZ.md` needs no size edit. GEE remains docs/demo only; no credentials were read or created. No Python files changed, so engine tests were not rerun.
+  - Verification: 32/32 browser test cases passed (direct `node:test` output), `npx tsc --noEmit` passed, `npm run build` passed, `git diff --check` clean.
+
+- 2026-10-24 04:27 Asia/Shanghai — Batch09 worktree is stable but this sandbox cannot write `.git` (`index.lock: Read-only file system`). Commit/push remains for the overnight supervisor; suggested message: `P2/P4: agent recovery, RS/terrain ribbon, beauty polish`.
+
+- 2026-10-24 04:32 Asia/Shanghai — Overnight supervisor: batch09 exited (sandbox blocked commit). Re-verified `npm run test:browser` 32/32 + `npx tsc --noEmit`. Committing+pushing as `P2/P4: agent recovery, RS/terrain ribbon, beauty polish`, then starting batch10 (more GIS/agent power, perf, restrained beauty, deploy notes).

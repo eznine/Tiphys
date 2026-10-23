@@ -5,6 +5,23 @@ export const WORKSPACE_STORAGE_KEY = "tiphys-workspace-v1";
 export const WORKSPACE_SCHEMA = "tiphys.workspace";
 export const WORKSPACE_VERSION = 1;
 export const WORKSPACE_SELECTION_LIMIT = 2500;
+export const AGENT_GOAL_LIMIT = 3;
+export const AGENT_TOOL_LIMIT = 8;
+export const AGENT_TEXT_CHAR_LIMIT = 280;
+
+/** A deliberately small recovery aid; never a transcript replay. */
+export type AgentSessionStub = { goals: string[]; tools: string[] };
+
+/** UI-safe summary of what was actually restored after a page reload. */
+export type WorkspaceRecovery = {
+  layerCount: number;
+  selectedLayerName: string | null;
+  selectionCount: number;
+  hasAoi: boolean;
+  transcriptAvailable: boolean;
+  goals: string[];
+  tools: string[];
+};
 
 export type WorkspaceLayerMeta = {
   id: string;
@@ -27,6 +44,7 @@ export type WorkspaceSnapshot = {
   selection: LayerSelection | null;
   selectionTruncated: boolean;
   tableLayerId: string | null;
+  agent?: AgentSessionStub;
 };
 
 export type WorkspaceState = {
@@ -34,10 +52,52 @@ export type WorkspaceState = {
   aoi: number[] | null;
   selection: LayerSelection | null;
   tableLayerId: string | null;
+  agent?: AgentSessionStub;
 };
 
 function text(value: unknown, max: number): string | undefined {
   return typeof value === "string" && value.trim() ? value.slice(0, max) : undefined;
+}
+
+function stringList(value: unknown, maxItems: number, maxChars: number): string[] {
+  if (!Array.isArray(value)) return [];
+  const recent = new Map<string, true>();
+  for (const item of value) {
+    const normalized = text(item, maxChars);
+    if (!normalized) continue;
+    recent.delete(normalized);
+    recent.set(normalized, true);
+  }
+  return [...recent.keys()].slice(-maxItems);
+}
+
+export function normalizeAgentSessionStub(value: unknown): AgentSessionStub | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const item = value as Record<string, unknown>;
+  const goals = stringList(item.goals, AGENT_GOAL_LIMIT, AGENT_TEXT_CHAR_LIMIT);
+  const tools = stringList(item.tools, AGENT_TOOL_LIMIT, 120);
+  return goals.length || tools.length ? { goals, tools } : undefined;
+}
+
+/** Keep only recent user goals and tool names, in chronological order. */
+export function buildAgentSessionStub(goals: unknown[], tools: unknown[]): AgentSessionStub | undefined {
+  return normalizeAgentSessionStub({ goals, tools });
+}
+
+export function normalizeWorkspaceRecovery(value: unknown): WorkspaceRecovery | null {
+  if (!value || typeof value !== "object") return null;
+  const item = value as Record<string, unknown>;
+  const layerCount = Math.max(0, Math.trunc(Number(item.layerCount) || 0));
+  const selectionCount = Math.max(0, Math.trunc(Number(item.selectionCount) || 0));
+  return {
+    layerCount,
+    selectedLayerName: text(item.selectedLayerName, 240) ?? null,
+    selectionCount,
+    hasAoi: item.hasAoi === true,
+    transcriptAvailable: item.transcriptAvailable === true,
+    goals: stringList(item.goals, AGENT_GOAL_LIMIT, AGENT_TEXT_CHAR_LIMIT),
+    tools: stringList(item.tools, AGENT_TOOL_LIMIT, 120),
+  };
 }
 
 export function validAoi(value: unknown): number[] | null {
@@ -83,6 +143,7 @@ export function normalizeWorkspaceSnapshot(value: unknown): WorkspaceSnapshot | 
   const selectedLayerId = text(item.selectedLayerId, 160);
   const tableLayerId = text(item.tableLayerId, 160);
   const { selection: savedSelection, truncated } = selectionMeta(item.selection);
+  const agent = normalizeAgentSessionStub(item.agent);
   return {
     schema: WORKSPACE_SCHEMA,
     version: WORKSPACE_VERSION,
@@ -94,6 +155,7 @@ export function normalizeWorkspaceSnapshot(value: unknown): WorkspaceSnapshot | 
     selection: savedSelection && known.has(savedSelection.layerId) ? savedSelection : null,
     selectionTruncated: truncated,
     tableLayerId: tableLayerId && known.has(tableLayerId) ? tableLayerId : null,
+    ...(agent ? { agent } : {}),
   };
 }
 
@@ -110,6 +172,7 @@ export function buildWorkspaceSnapshot(layers: DataLayer[], state: WorkspaceStat
   const ids = new Set(meta.map(layer => layer.id));
   const uniqueSelection = [...new Set(state.selection?.featureIds ?? [])];
   const selectionIds = uniqueSelection.slice(0, WORKSPACE_SELECTION_LIMIT);
+  const agent = normalizeAgentSessionStub(state.agent);
   return {
     schema: WORKSPACE_SCHEMA,
     version: WORKSPACE_VERSION,
@@ -122,6 +185,7 @@ export function buildWorkspaceSnapshot(layers: DataLayer[], state: WorkspaceStat
       ? { layerId: state.selection.layerId, featureIds: selectionIds } : null,
     selectionTruncated: uniqueSelection.length > WORKSPACE_SELECTION_LIMIT,
     tableLayerId: state.tableLayerId && ids.has(state.tableLayerId) ? state.tableLayerId : null,
+    ...(agent ? { agent } : {}),
   };
 }
 

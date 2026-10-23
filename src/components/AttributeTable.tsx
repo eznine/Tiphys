@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { DataLayer } from "../lib/dataLayers";
 import { engineRequest } from "../lib/service";
+import { tableExportFilename, tablePageCsv } from "../lib/table-export";
 
 type Row = { id: number; attributes: Record<string, unknown>; bounds: number[] | null };
 type Page = { fields: { name: string; type: string }[]; rows: Row[]; total: number };
@@ -19,7 +20,9 @@ export function AttributeTable({ layer, selectedIds, onSelectionChange, onClearS
   const [statsField, setStatsField] = useState("");
   const [stats, setStats] = useState<Record<string, any> | null>(null);
   const [statsError, setStatsError] = useState("");
+  const [actionNotice, setActionNotice] = useState("");
   const rowRefs = useRef(new Map<number, HTMLTableRowElement>());
+  const anchorRef = useRef<number | null>(null);
   const selectionKey = selectedIds.join(",");
   useEffect(() => {
     const controller = new AbortController();
@@ -58,6 +61,43 @@ export function AttributeTable({ layer, selectedIds, onSelectionChange, onClearS
   const number = (value: unknown) => typeof value === "number" ? (Math.abs(value) >= 1e6 || (Math.abs(value) < 1e-4 && value !== 0) ? value.toExponential(4) : String(Math.round(value * 1e6) / 1e6)) : String(value ?? "—");
   const selectedSet = new Set(selectedIds);
   const selectedRow = page?.rows.find(row => selectedSet.has(row.id));
+  const selectRow = (rowId: number, event: { shiftKey: boolean; metaKey: boolean; ctrlKey: boolean }) => {
+    if (event.shiftKey && anchorRef.current != null && page) {
+      const ordered = page.rows.map(row => row.id);
+      const from = ordered.indexOf(anchorRef.current), to = ordered.indexOf(rowId);
+      if (from >= 0 && to >= 0) {
+        const merged = new Set(selectedIds);
+        for (const id of ordered.slice(Math.min(from, to), Math.max(from, to) + 1)) merged.add(id);
+        onSelectionChange([...merged].sort((a, b) => a - b), false);
+        return;
+      }
+    }
+    anchorRef.current = rowId;
+    onSelectionChange([rowId], event.shiftKey || event.metaKey || event.ctrlKey);
+  };
+  const downloadPage = () => {
+    if (!page?.rows.length) return;
+    const blob = new Blob(["\uFEFF", tablePageCsv(page)], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url; link.download = tableExportFilename(layer.name);
+    document.body.append(link); link.click(); link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 500);
+    setActionNotice(`已导出本页 ${page.rows.length} 条记录`);
+  };
+  const copySelectedIds = async () => {
+    if (!selectedIds.length) return;
+    const text = selectedIds.join(",");
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+      else {
+        const input = document.createElement("textarea");
+        input.value = text; input.style.position = "fixed"; input.style.opacity = "0";
+        document.body.append(input); input.select(); document.execCommand("copy"); input.remove();
+      }
+      setActionNotice(`已复制 ${selectedIds.length} 个要素 ID`);
+    } catch { setActionNotice("复制失败，请检查浏览器剪贴板权限"); }
+  };
   return <section className="attribute-table" aria-label={`${layer.name} 属性表`}>
     <header className="attribute-header"><strong>{layer.name} · 属性表</strong>
       <button type="button" className="icon-btn" onClick={onClose} aria-label="关闭属性表">×</button></header>
@@ -81,16 +121,21 @@ export function AttributeTable({ layer, selectedIds, onSelectionChange, onClearS
     </div>}
     {error && <p role="alert" className="chat-notice">{error}</p>}
     <div className="attribute-scroll" aria-busy={loading}>
-      <table><thead><tr><th>记录</th>{page?.fields.map(field => <th key={field.name} aria-sort={sort === field.name ? descending ? "descending" : "ascending" : "none"}>
+      <table><thead><tr><th className="attribute-select-cell"><span className="sr-only">选择</span></th><th>记录</th>{page?.fields.map(field => <th key={field.name} aria-sort={sort === field.name ? descending ? "descending" : "ascending" : "none"}>
         <button type="button" title={`${field.name} · ${field.type}`} onClick={() => { setSort(field.name); setDescending(sort === field.name ? !descending : false); setOffset(0); }}>{field.name} {sort === field.name ? descending ? "↓" : "↑" : ""}</button>
       </th>)}</tr></thead>
       <tbody>{page?.rows.map(row => <tr key={row.id} ref={element => { if (element) rowRefs.current.set(row.id, element); else rowRefs.current.delete(row.id); }}
-        data-selected={selectedSet.has(row.id)} onClick={event => onSelectionChange([row.id], event.shiftKey || event.metaKey || event.ctrlKey)} onDoubleClick={() => row.bounds && onZoom(row.bounds)}>
+        data-selected={selectedSet.has(row.id)} aria-selected={selectedSet.has(row.id)} onClick={event => selectRow(row.id, event)} onDoubleClick={() => row.bounds && onZoom(row.bounds)}>
+        <td className="attribute-select-cell"><input type="checkbox" aria-label={`选择第 ${row.id + 1} 条记录`} checked={selectedSet.has(row.id)}
+          onChange={() => { anchorRef.current = row.id; onSelectionChange([row.id], true); }} onClick={event => event.stopPropagation()} /></td>
         <td>{row.id + 1}</td>{page.fields.map(field => <td key={field.name} title={format(row.attributes[field.name])}>{format(row.attributes[field.name])}</td>)}
       </tr>)}</tbody></table>
       {!loading && !page?.rows.length && <p className="chat-notice">没有匹配的记录。</p>}
     </div>
-    <footer className="attribute-footer"><span>只读 · 双击记录定位</span><div>
+    <footer className="attribute-footer"><div className="attribute-footer-meta"><span>只读 · 双击记录定位 · Shift 连选</span>{actionNotice && <span role="status">{actionNotice}</span>}</div>
+      <div className="attribute-actions"><button type="button" className="icon-btn" disabled={!selectedIds.length || loading} onClick={() => void copySelectedIds()}>复制已选 ID</button>
+        <button type="button" className="icon-btn" title="导出当前可见页的属性 CSV（不含几何）" disabled={!page?.rows.length || loading} onClick={downloadPage}>导出本页属性 CSV</button></div>
+      <div>
       <button type="button" className="icon-btn" disabled={offset === 0 || loading} onClick={() => setOffset(offset - 100)}>上一页</button>
       <span>{Math.floor(offset / 100) + 1} / {Math.max(1, Math.ceil((page?.total ?? 0) / 100))}</span>
       <button type="button" className="icon-btn" disabled={loading || offset + 100 >= (page?.total ?? 0)} onClick={() => setOffset(offset + 100)}>下一页</button>

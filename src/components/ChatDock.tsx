@@ -1,11 +1,12 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import type { TimelineItem } from "../lib/agent";
 import type { DataLayer } from "../lib/dataLayers";
+import type { WorkspaceRecovery } from "../lib/workspace";
 import { ToolPanel } from "./ToolPanel";
 import { PipelineResultDetails, pipelineResult } from "./ToolResultDetails";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Settings2, FolderPlus, ArrowUp, Square, Layers, Network, Waves, Route, Scissors, Sparkles } from "lucide-react";
+import { Settings2, FolderPlus, ArrowUp, Square, Layers, Network, Waves, Route, Scissors, Sparkles, History } from "lucide-react";
 
 type Props = {
   items: TimelineItem[];
@@ -13,6 +14,7 @@ type Props = {
   connected: boolean;
   provider: string;
   layers: DataLayer[];
+  recovery?: WorkspaceRecovery | null;
   onSend: (text: string) => Promise<boolean>;
   onApprove: (toolCallId: string, ok: boolean) => void;
   onCancelJob: (jobId: string) => void;
@@ -40,7 +42,7 @@ const RECIPES = [
   { title: "按 AOI 裁剪", detail: "先在地图绘制 AOI，再插入提示词", prompt: "用当前 AOI 范围裁剪所选图层。", Icon: Scissors },
 ] as const;
 
-export function ChatDock({ items, busy, connected, provider, layers, onSend, onApprove, onCancelJob, onCancelTurn, onToolResult, selectedLayer, request, onOpenTool, onAdd, onSettings }: Props) {
+export function ChatDock({ items, busy, connected, provider, layers, recovery, onSend, onApprove, onCancelJob, onCancelTurn, onToolResult, selectedLayer, request, onOpenTool, onAdd, onSettings }: Props) {
   const [draft, setDraft] = useState("");
   const [tab, setTab] = useState<"chat" | "tools">("chat");
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -86,7 +88,18 @@ export function ChatDock({ items, busy, connected, provider, layers, onSend, onA
       {tab === "chat" && (
         <>
       <div className="chat-messages">
-        {!items.length && <div className="agent-welcome"><h2>从一个空间问题开始</h2><p>{layers.length ? "图层已就绪。描述目标，我会选择工具、执行分析并显示结果。" : "添加本地数据，或让我加载样例，然后描述分析目标。"}</p><p className="tool-desc">也可以打开工具箱逐项运行；右键图层可查看属性与符号。</p>
+        {recovery && <div className="agent-recovery-note" role="status" aria-label="工作区恢复说明">
+          <History size={14} strokeWidth={1.7} aria-hidden="true" />
+          <div>
+            <strong>已恢复本机工作区</strong>
+            <span>
+              {recovery.layerCount} 个图层{recovery.selectedLayerName ? ` · 当前 ${recovery.selectedLayerName}` : ""}
+              {recovery.selectionCount ? ` · 已选 ${recovery.selectionCount} 个要素` : ""}{recovery.hasAoi ? " · AOI 已恢复" : ""}
+            </span>
+            <small>{recovery.transcriptAvailable ? "聊天记录按本机实际保存内容显示。" : recovery.goals.length ? `没有可回放的完整对话；上次目标：${recovery.goals[recovery.goals.length - 1]}` : "没有可回放的完整对话，不会补造历史记录。"}</small>
+          </div>
+        </div>}
+        {!items.length && <div className="agent-welcome"><span className="agent-welcome-kicker">本机 GIS Agent</span><h2>从一个空间问题开始</h2><p className="agent-welcome-lead">{layers.length ? "图层已就绪。描述目标，我会选择工具、执行分析并显示结果。" : "添加本地数据，或让我加载样例，然后描述分析目标。"}</p><p className="agent-welcome-note">也可以打开工具箱逐项运行；右键图层可查看属性与符号。</p>
           <section className="workflow-recipes" aria-label="推荐工作流">
             <div className="workflow-heading"><span><Sparkles size={13} />推荐工作流</span><small>只打开表单或插入提示词，不自动执行</small></div>
             <div className="workflow-grid">

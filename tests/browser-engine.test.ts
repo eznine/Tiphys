@@ -17,7 +17,8 @@ import { mapExportFilename, mapPngDataUrl } from "../src/lib/map-export.ts";
 import { geeExecutionAllowed } from "../src/lib/gee.ts";
 import { defaultLayerStyle, PALETTE } from "../src/lib/dataLayers.ts";
 import { releaseIdleWasmToolWorkers, warmWasmToolRunner } from "../src/lib/browser/wasm-tool-runner.ts";
-import { buildWorkspaceSnapshot, normalizeWorkspaceSnapshot, WORKSPACE_SCHEMA, WORKSPACE_VERSION } from "../src/lib/workspace.ts";
+import { AGENT_GOAL_LIMIT, buildAgentSessionStub, buildWorkspaceSnapshot, normalizeWorkspaceRecovery, normalizeWorkspaceSnapshot, WORKSPACE_SCHEMA, WORKSPACE_VERSION } from "../src/lib/workspace.ts";
+import { tableExportFilename, tablePageCsv } from "../src/lib/table-export.ts";
 import { pipelineResult } from "../src/components/ToolResultDetails.tsx";
 import type { ModelMessage } from "ai";
 
@@ -171,6 +172,18 @@ test("CSV export writes original-CRS WKT and safely quotes spreadsheet text", as
   assert.match(text, /"天安门, 北京","'=SUM\(1,2\)","say ""hello""",POINT\(12958676\.337 4850689\.762\)/);
 });
 
+test("attribute table page export is scoped to visible rows and escapes spreadsheet formulas", () => {
+  const csv = tablePageCsv({
+    fields: [{ name: "name" }, { name: "formula" }],
+    rows: [{ id: 2, attributes: { name: "天安门, 北京", formula: "=SUM(1,2)" } },
+      { id: 3, attributes: { name: "钟楼", formula: null } }],
+  });
+  assert.equal(csv.split("\r\n")[0], "记录,name,formula");
+  assert.match(csv, /3,"天安门, 北京","'=SUM\(1,2\)"/);
+  assert.match(csv, /\r\n4,钟楼,$/);
+  assert.equal(tableExportFilename("道路/网络:测试"), "道路_网络_测试_本页.csv");
+});
+
 test("metric admission rejects unsuitable extents; WASM catalog contains real parameter contracts", async () => {
   await ensureBrowserCatalog();
   assert.throws(() => metricCrs({ type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: { type: "MultiPoint", coordinates: [[0,0],[120,0]] } }] }), /范围/);
@@ -187,6 +200,18 @@ test("widened catalog exposes the vector, raster and table toolbox", async () =>
   }
   const rasterInput = native.find(t => t.name === "wasm_hillshade")!;
   assert.equal((rasterInput.parameters as any).properties.input["x-layer-kind"], "raster");
+});
+
+test("ribbon quick actions resolve to real catalog tools", async () => {
+  await ensureBrowserCatalog();
+  const source = fs.readFileSync(new URL("../src/components/CommandRibbon.tsx", import.meta.url), "utf8");
+  const names = [...source.matchAll(/props\.onTool\("(wasm_[^"]+)"\)/g)].map(match => match[1]);
+  assert.ok(names.length >= 35, `expected a dense ribbon, got ${names.length} WASM actions`);
+  for (const name of names) assert.ok(browserCatalog.some(tool => tool.name === name), `${name} must resolve to a catalog tool`);
+  for (const name of ["wasm_panchromatic_sharpening", "wasm_resample", "wasm_segment_slic_superpixels",
+    "wasm_spectral_angle_mapper", "wasm_viewshed", "wasm_visibility_index", "wasm_sky_view_factor"]) {
+    assert.ok(names.includes(name), `${name} should be exposed in the ribbon`);
+  }
 });
 
 test("vector points rasterize into a displayed raster layer and feed raster tools", async () => {
@@ -571,6 +596,15 @@ test("browser tool search ranks Chinese names and taxonomy, not only description
   assert.match(prompt, /lyr_prompt/);
   assert.match(prompt, /当前要素选择.*"feature_ids":\[7,9\]/);
   for (const name of ["linkage_mapper_corridor", "hydrology_flow_pipeline", "least_cost_path_pipeline", "clip_layers_to_aoi"]) assert.match(prompt, new RegExp(name));
+  const recovered = buildBrowserSystemPrompt([{ id: "lyr_prompt", name: "道路", kind: "vector" }], {
+    aoi: [116.1, 39.1, 116.4, 39.4], selectedLayerId: "lyr_prompt", selectedLayerName: "道路",
+    recovery: { layerCount: 1, selectedLayerName: "道路", selectionCount: 2, hasAoi: true, transcriptAvailable: false,
+      goals: ["检查道路连通性"], tools: ["describe_layer"] },
+    agentSession: { goals: ["检查道路连通性"], tools: ["describe_layer"] },
+  });
+  assert.match(recovered, /页面恢复说明/);
+  assert.match(recovered, /不得补造、概括或声称发生过未显示的旧对话/);
+  assert.match(recovered, /检查道路连通性/);
 });
 
 test("weighted stack schemas expose multi-raster inputs and execute weighted overlay/sum", async () => {
@@ -607,10 +641,11 @@ test("weighted stack schemas expose multi-raster inputs and execute weighted ove
   assert.equal((summed.layer ?? summed.layers?.[0]?.layer).kind, "raster");
 });
 
-test("workspace snapshots validate AOI, selection and layer metadata without storing raster bytes", () => {
+test("workspace snapshots validate AOI, selection, layer metadata and capped agent recovery", () => {
   const layer = { id: "lyr_test", name: "测试栅格", url: "blob:preview", geometry_types: [], feature_count: 0, bounds: [116, 39, 117, 40], crs: "EPSG:4326", kind: "raster" as const };
   const snapshot = buildWorkspaceSnapshot([layer], {
     selectedLayerId: layer.id, aoi: [116, 39, 116.5, 39.5], selection: { layerId: layer.id, featureIds: [1, 2, 2] }, tableLayerId: null,
+    agent: { goals: ["目标一", "目标二", "目标三", "目标四"], tools: ["a", "b", "a", "c", "d", "e", "f", "g", "h", "i"] },
   }, 1234);
   assert.equal(snapshot.schema, WORKSPACE_SCHEMA);
   assert.equal(snapshot.version, WORKSPACE_VERSION);
@@ -620,6 +655,16 @@ test("workspace snapshots validate AOI, selection and layer metadata without sto
   const restored = normalizeWorkspaceSnapshot(JSON.parse(JSON.stringify(snapshot)));
   assert.equal(restored?.selectedLayerId, layer.id);
   assert.equal(restored?.layers[0].kind, "raster");
+  assert.equal(restored?.agent?.goals.length, AGENT_GOAL_LIMIT);
+  assert.deepEqual(restored?.agent?.goals, ["目标二", "目标三", "目标四"]);
+  assert.deepEqual(restored?.agent?.tools, ["a", "c", "d", "e", "f", "g", "h", "i"]);
+  assert.equal(buildAgentSessionStub(["x", "y", "z", "latest"], [])?.goals[0], "y");
+  assert.deepEqual(buildAgentSessionStub(["甲", "乙", "甲"], ["describe_layer", "run_tool", "describe_layer"]), {
+    goals: ["乙", "甲"], tools: ["run_tool", "describe_layer"],
+  });
+  assert.deepEqual(normalizeWorkspaceRecovery({ layerCount: 2, selectionCount: 3, hasAoi: true, goals: ["g"], tools: ["t"] }), {
+    layerCount: 2, selectedLayerName: null, selectionCount: 3, hasAoi: true, transcriptAvailable: false, goals: ["g"], tools: ["t"],
+  });
   assert.equal(normalizeWorkspaceSnapshot({ ...snapshot, version: 2 }), null);
   assert.equal(normalizeWorkspaceSnapshot({ ...snapshot, selectedLayerId: "missing" })?.selectedLayerId, null);
   assert.equal(normalizeWorkspaceSnapshot({ ...snapshot, aoi: [117, 39, 116, 40] })?.aoi, null);
@@ -706,7 +751,8 @@ test("browser context trims old tool output, then compacts with GIS state and a 
 
   const workspace = { layers: [{ id: "lyr_1", name: "道路", kind: "vector", crs: "EPSG:4326", feature_count: 12, geometry_types: ["LineString"], bounds: [1, 2, 3, 4] }],
     aoi_bbox: [116.1, 39.1, 116.4, 39.4], selectedLayerId: "lyr_1", selectedLayerName: "道路",
-    selection: { layerId: "lyr_1", featureIds: [2, 5] }, outputs: ["/work/path.fgb"], pendingJobs: ["job_demo"] };
+    selection: { layerId: "lyr_1", featureIds: [2, 5] }, agentSession: { goals: ["检查道路网络"], tools: ["describe_layer", "least_cost_path_pipeline"] },
+    outputs: ["/work/path.fgb"], pendingJobs: ["job_demo"] };
   const longSession: ModelMessage[] = Array.from({ length: 10 }, (_, index) => ({
     role: index % 2 ? "assistant" : "user",
     content: `第 ${index} 轮决策：保留道路图层，检查网络连通性，准备加权叠加。`.repeat(60),
@@ -725,6 +771,8 @@ test("browser context trims old tool output, then compacts with GIS state and a 
   assert.match(handoff, /"selected_features":\{"layer_id":"lyr_1","layer_name":"道路","count":2,"feature_ids":\[2,5\],"truncated":false\}/);
   assert.match(handoff, /least_cost_path_pipeline/);
   assert.match(handoff, /"selected_layer":\{"id":"lyr_1","name":"道路"\}/);
+  assert.match(handoff, /Persisted session stub/);
+  assert.match(handoff, /检查道路网络/);
   const archiveId = /read_browser_output with id=([a-f0-9]{32})/.exec(handoff)?.[1];
   assert.ok(archiveId);
   const archive = await readBrowserContextRecord("compact-test", archiveId, 0, 120);

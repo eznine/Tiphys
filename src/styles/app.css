@@ -938,3 +938,47 @@ textarea {
 .workflow-card:hover:not(:disabled) { border-color: color-mix(in srgb, var(--tiphys-accent) 42%, var(--tiphys-border)); background: color-mix(in srgb, var(--tiphys-accent-muted) 48%, var(--tiphys-surface)); }
 .workflow-card:disabled { cursor: not-allowed; opacity: .55; }
 .toolbox-loading { border: 1px dashed var(--tiphys-border); border-radius: 7px; background: var(--tiphys-bg); padding: 14px; }
+
+/* Recovery note is UI state, never a synthetic assistant message. */
+.agent-recovery-note { align-self: stretch; display: grid; grid-template-columns: 17px minmax(0, 1fr); gap: 3px 8px; padding: 9px 10px; border: 1px solid color-mix(in srgb, var(--tiphys-accent) 22%, var(--tiphys-border)); border-radius: 8px; background: color-mix(in srgb, var(--tiphys-accent-muted) 55%, var(--tiphys-surface)); color: var(--tiphys-text-secondary); font-size: 11px; line-height: 1.45; }
+.agent-recovery-note > svg { margin-top: 1px; color: var(--tiphys-accent); }
+.agent-recovery-note > div { display: grid; gap: 2px; min-width: 0; }
+.agent-recovery-note strong { color: var(--tiphys-text); font-size: 11px; font-weight: 600; }
+.agent-recovery-note span, .agent-recovery-note small { overflow-wrap: anywhere; }
+.agent-recovery-note small { color: var(--tiphys-text-muted); font-size: 10px; }
+
+/* Attribute selection shortcuts and honest page-level export. */
+.attribute-select-cell { width: 30px; min-width: 30px; padding-right: 4px !important; padding-left: 8px !important; text-align: center !important; }
+.attribute-select-cell input { width: 13px; height: 13px; accent-color: var(--tiphys-accent); cursor: pointer; }
+.attribute-scroll tr[data-selected="true"] td:first-child { box-shadow: none; color: inherit; font-weight: inherit; }
+.attribute-scroll tr[data-selected="true"] td:nth-child(2) { box-shadow: inset 2px 0 0 var(--tiphys-accent); color: var(--tiphys-accent); font-weight: 600; }
+.attribute-footer { flex-wrap: wrap; gap: 5px 10px; }
+.attribute-footer-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
+.attribute-footer-meta [role="status"] { color: var(--tiphys-accent); }
+.attribute-actions { margin-left: auto; }
+
+/* Empty states: quieter type, tighter rhythm, blue-only details. */
+.toolbox-empty { gap: 4px; margin-top: 6px; padding: 14px 15px; font-size: 11.5px; line-height: 1.55; }
+.toolbox-empty strong { font-size: 12.5px; font-weight: 550; }
+.toolbox-empty .icon-btn { margin-top: 4px; }
+.map-empty-state { width: min(296px, calc(100% - 40px)); gap: 7px; padding: 16px 18px; font-size: 11.5px; line-height: 1.55; }
+.map-empty-state strong { font-size: 14px; font-weight: 550; letter-spacing: -.1px; }
+.map-empty-copy { max-width: 248px; }
+.map-empty-icon { width: 34px; height: 34px; border-radius: 9px; }
+.map-empty-state .primary-btn { height: 30px; margin-top: 2px; font-size: 11.5px; }
+.agent-welcome { max-width: 304px; padding: 18px 8px; line-height: 1.62; }
+.agent-welcome-kicker { display: inline-block; margin-bottom: 5px; color: var(--tiphys-accent); font-size: 9.5px; font-weight: 650; letter-spacing: .055em; text-transform: uppercase; }
+.agent-welcome h2 { margin: 0 0 7px; font-size: 17.5px; letter-spacing: -.2px; }
+.agent-welcome-lead { margin: 0 0 5px; color: var(--tiphys-text-secondary); }
+.agent-welcome-note { margin: 0; color: var(--tiphys-text-muted); font-size: 10.5px; }
+
+/* Keep map overlays above MapLibre attribution/scale without hard collisions. */
+.map-status-stack { bottom: 36px; }
+.map-legend-dock { bottom: 48px; }
+.map-legend-body { max-height: min(220px, 34vh); }
+.layer-properties { bottom: 42px; }
+
+@media (max-width: 780px) {
+  .attribute-footer-meta { display: none; }
+  .attribute-actions { margin-left: 0; }
+}

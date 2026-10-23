@@ -5,6 +5,7 @@
  */
 import type { ModelMessage } from "ai";
 import { readRecord, writeRecord } from "./storage";
+import type { AgentSessionStub, WorkspaceRecovery } from "../workspace";
 
 export const BROWSER_COMPACT_THRESHOLD_RATIO = 0.8;
 export const BROWSER_COMPACT_RETAIN_RATIO = 0.16;
@@ -17,6 +18,8 @@ export type BrowserWorkspace = {
   selectedLayerId?: string | null;
   selectedLayerName?: string | null;
   selection?: { layerId: string; featureIds: number[] } | null;
+  recovery?: WorkspaceRecovery | null;
+  agentSession?: AgentSessionStub | null;
   outputs?: string[];
   pendingJobs?: string[];
 };
@@ -168,6 +171,11 @@ function buildHandoff(old: ModelMessage[], archiveId: string, workspace: Browser
     ...(layerLines.length ? layerLines : ["- None."]),
     "## Recent tool names",
     ...(toolNames.length ? [`- ${toolNames.join(", ")}`] : ["- None recorded."]),
+    ...(workspace.agentSession?.goals.length || workspace.agentSession?.tools.length ? [
+      "## Persisted session stub",
+      `- Last goals: ${workspace.agentSession.goals.length ? workspace.agentSession.goals.join(" | ") : "none"}`,
+      `- Last tools: ${workspace.agentSession.tools.length ? workspace.agentSession.tools.join(", ") : "none"}`,
+    ] : []),
     "## Recent decisions",
     ...(decisions.slice(-8).length ? decisions.slice(-8) : ["- None recorded."]),
     "## Earlier tool results (summarized)",
@@ -179,6 +187,7 @@ function buildHandoff(old: ModelMessage[], archiveId: string, workspace: Browser
       aoi_bbox: aoi,
       selected_layer: workspace.selectedLayerId ? { id: workspace.selectedLayerId, name: workspace.selectedLayerName ?? null } : null,
       selected_features: selection,
+      agent_session: workspace.agentSession ?? null,
       output_paths: workspace.outputs ?? [],
       pending_job_ids: workspace.pendingJobs ?? [],
     }),

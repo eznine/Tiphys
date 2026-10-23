@@ -8,6 +8,7 @@ import { compactBrowserMessages, readBrowserContextRecord, type BrowserWorkspace
 import { browserProjectMemory } from "./memory";
 import { buildBrowserSystemPrompt } from "./prompt";
 import { isBrowserSearchable, searchBrowserTools } from "./search";
+import { normalizeAgentSessionStub, normalizeWorkspaceRecovery } from "../workspace";
 
 type Event = { type: string; seq?: number; ts?: number; [key: string]: any };
 type Session = { id: string; seq: number; events: Event[]; messages: ModelMessage[]; busy: boolean; workspace?: Partial<BrowserWorkspace>; controller?: AbortController; listeners: Set<(event: Event) => void> };
@@ -265,6 +266,8 @@ export async function browserAgentRequest(path: string, init: RequestInit = {}):
         selectedLayerId: typeof body.workspace.selectedLayerId === "string" ? body.workspace.selectedLayerId.slice(0, 160) : null,
         selectedLayerName: typeof body.workspace.selectedLayerName === "string" ? body.workspace.selectedLayerName.slice(0, 240) : null,
         selection: validSelection(body.workspace.selection),
+        recovery: normalizeWorkspaceRecovery(body.workspace.recovery),
+        agentSession: normalizeAgentSessionStub(body.workspace.agentSession),
       };
     }
     s.busy = true; void runTurn(s, body.text); return Response.json({ ok: true });
