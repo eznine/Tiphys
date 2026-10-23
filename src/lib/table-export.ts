@@ -23,3 +23,21 @@ export function tableExportFilename(layerName: string): string {
   const stem = layerName.trim().replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, "_").slice(0, 80) || "attributes";
   return `${stem}_本页.csv`;
 }
+
+type FeatureCollectionLike = { type: "FeatureCollection"; features: unknown[]; bbox?: unknown; [key: string]: unknown };
+
+/** Keep only the selected feature indices; never invent geometry or retain a stale bbox. */
+export function selectedFeaturesGeoJson<T extends FeatureCollectionLike>(source: T, featureIds: number[]): T {
+  if (source?.type !== "FeatureCollection" || !Array.isArray(source.features)) throw new Error("图层没有可导出的 GeoJSON 要素集合。");
+  const selected = new Set(featureIds.filter(id => Number.isInteger(id) && id >= 0 && id < source.features.length));
+  const features = source.features.filter((_, index) => selected.has(index));
+  if (!features.length) throw new Error("没有可导出的已选要素。");
+  const collection = { ...source, features } as T;
+  delete collection.bbox;
+  return collection;
+}
+
+export function selectedGeoJsonFilename(layerName: string): string {
+  const stem = layerName.trim().replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, "_").slice(0, 80) || "features";
+  return `${stem}_已选.geojson`;
+}

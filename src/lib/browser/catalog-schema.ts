@@ -22,7 +22,14 @@ export function isOutputLikeParam(param: { name: string; io_role?: string; descr
 /** Upstream manifests occasionally mark real inputs as outputs. */
 const WASM_INPUT_OVERRIDES = new Set(["cost_pathway.destination"]);
 
+/** Upstream occasionally marks numeric scalars as raster/vector inputs. */
+const WASM_SCALAR_INPUT_OVERRIDES = new Set([
+  "idw_interpolation.cell_size",
+  "tin_interpolation.cell_size",
+]);
+
 export function isWasmInputParam(toolId: string, param: { name: string; io_role?: string; description?: string }): boolean {
+  if (WASM_SCALAR_INPUT_OVERRIDES.has(`${toolId}.${param.name}`)) return false;
   return WASM_INPUT_OVERRIDES.has(`${toolId}.${param.name}`) || param.io_role === "input" && !isOutputLikeParam(param);
 }
 
@@ -32,6 +39,17 @@ export function isWasmOutputParam(toolId: string, param: { name: string; io_role
 
 /** Upstream stack tools describe ordered layers as scalar inputs; the UI needs explicit arrays. */
 const WASM_SCHEMA_OVERRIDES: Record<string, Record<string, CatalogSchema>> = {
+  idw_interpolation: {
+    cell_size: { type: "number", default: 1, description: "输出像元大小；未提供基准栅格时使用。单位与输入点图层坐标系一致。" },
+  },
+  tin_interpolation: {
+    cell_size: { type: "number", default: 1, description: "输出像元大小；未提供基准栅格时使用。单位与输入点图层坐标系一致。" },
+    max_triangle_edge_length: { type: "number", description: "可选的最大三角网边长，单位与输入点图层坐标系一致。" },
+  },
+  merge_vectors: {
+    inputs: { type: "array", "x-layer": true, "x-layer-kind": "vector", "x-layer-multiple": true,
+      description: "按顺序选择两个或更多同几何类型的矢量图层。" },
+  },
   build_network_topology: {
     snap_tolerance: { type: "number", default: 0.000001,
       description: "交叉点吸附容差；默认 0.000001。使用投影坐标时可适当增大。" },

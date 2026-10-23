@@ -299,6 +299,9 @@ const OUTPUT_EXT: Record<string, string> = { vector: "fgb", raster: "tif", table
 const RAW_INPUT_PARAMETERS: Record<string, Set<string>> = {
   weighted_overlay: new Set(["weights"]),
   weighted_sum: new Set(["weights"]),
+  // Upstream marks cell_size as raster input; it is a numeric scalar.
+  idw_interpolation: new Set(["cell_size"]),
+  tin_interpolation: new Set(["cell_size"]),
 };
 /** Formats the WASI build can actually read/write; example paths sometimes name others (e.g. shp). */
 const SUPPORTED_EXT: Record<string, string[]> = {
@@ -823,6 +826,12 @@ export async function browserEngineRequest(path: string, init: RequestInit = {})
   else if (p === "/layers/import") { if (!(init.body instanceof Blob)) throw new Error("请通过文件选择器添加数据。"); result = await importBrowserFile(init.body, url.searchParams.get("filename") ?? "data.geojson", url.searchParams.get("source_crs") ?? undefined); }
   else if (p.startsWith("/jobs/")) { const [, , id, action] = p.split("/"); result = action === "cancel" ? await cancelBrowserJob(id) : await readBrowserJob(id); }
   else if (p === "/layers") result = { layers: await browserLayers() };
+  else if (p.startsWith("/layers/") && p.endsWith(".geojson")) {
+    const id = decodeURIComponent(p.slice("/layers/".length, -".geojson".length));
+    const record = await resolve(id);
+    if ((record.info.kind ?? "vector") !== "vector" || !record.geojson) throw new Error("该图层没有可导出的真实矢量几何。");
+    result = record.geojson;
+  }
   else if (p.startsWith("/layers/")) {
     const [, , id, action] = p.split("/"); const record = await resolve(decodeURIComponent(id));
     if (action === "describe") result = describe(record);

@@ -6,7 +6,7 @@ import { ToolPanel } from "./ToolPanel";
 import { PipelineResultDetails, pipelineResult } from "./ToolResultDetails";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Settings2, FolderPlus, ArrowUp, Square, Layers, Network, Waves, Route, Scissors, Sparkles, History, Mountain } from "lucide-react";
+import { Settings2, FolderPlus, ArrowUp, Square, Layers, Network, Waves, Route, Scissors, Sparkles, History, Mountain, Shapes } from "lucide-react";
 
 type Props = {
   items: TimelineItem[];
@@ -36,6 +36,8 @@ const JOB_STEPS: Record<string, string> = {
   gee_export_raster: "GEE 导出",
 };
 const RECIPES = [
+  { title: "栅格转矢量", detail: "把分类栅格转为面，打开表单", tool: "wasm_raster_to_vector_polygons", Icon: Shapes },
+  { title: "IDW 插值", detail: "从点采样生成连续栅格，打开表单", tool: "wasm_idw_interpolation", Icon: Sparkles },
   { title: "等值线提取", detail: "选择 DEM，打开等值线表单", tool: "wasm_contours_from_raster", Icon: Mountain },
   { title: "成本距离", detail: "源栅格 + 成本栅格，打开表单", tool: "wasm_cost_distance", Icon: Route },
   { title: "廊道连通", detail: "核心生境 + 阻力栅格，打开工具表单", tool: "linkage_mapper_corridor", Icon: Network },

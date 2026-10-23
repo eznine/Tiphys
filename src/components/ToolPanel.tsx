@@ -20,6 +20,7 @@ type PanelJob = {
   message: string; result?: Record<string, any>; error?: string;
 };
 const SKIP = new Set(["ping", "list_layers", "job_status", "job_cancel"]);
+const FIELD_PARAMS = new Set(["field", "by_field", "field_name"]);
 const L1_ORDER = ["矢量", "栅格", "地形", "水文", "遥感", "转换", "投影", "激光雷达", "数据管理", "查询", "图层", "GEE", "扩展", "其他工具"];
 const ACTIVE = new Set(["submitting", "queued", "running", "cancelling"]);
 const LABELS: Record<string, string> = {
@@ -117,8 +118,18 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
   useEffect(() => {
     if (!request || !catalog || busy || appliedRequest.current === request.id) return;
     appliedRequest.current = request.id;
-    setToolName(request.tool && catalog.some(t => t.name === request.tool) ? request.tool : "");
-    setValues(selectedLayer ? { layer: selectedLayer.id } : {});
+    const requested = catalog.find(t => t.name === request.tool);
+    setToolName(requested?.name ?? "");
+    const initial: Record<string, string | boolean | string[]> = selectedLayer ? { layer: selectedLayer.id } : {};
+    if (selectedLayer && requested) {
+      const layerKind = selectedLayer.kind ?? "vector";
+      const match = Object.entries(requested.parameters.properties ?? {}).find(([, raw]) => {
+        const schema = raw.anyOf?.find(part => part.type !== "null") ?? raw;
+        return schema["x-layer-kind"] === layerKind && !schema["x-layer-multiple"];
+      });
+      if (match) initial[match[0]] = selectedLayer.id;
+    }
+    setValues(initial);
     setConfirmed(false);
   }, [request, catalog, busy, selectedLayer]);
   const load = useCallback(async (signal?: AbortSignal) => {
@@ -181,15 +192,17 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
     }).then(response => response.json()).then(status => { if (!controller.signal.aborted) setGeeStatus(status); }).catch(() => {});
     return () => controller.abort();
   }, [tool?.name]);
-  const needsColumns = props.some(([name]) => name === "field" || name === "by_field");
+  const needsColumns = props.some(([name]) => FIELD_PARAMS.has(name));
+  const fieldSource = props.find(([, schema]) => schema["x-layer-kind"] === "vector" && !schema["x-layer-multiple"])?.[0];
+  const fieldLayerId = values.layer ?? (fieldSource ? values[fieldSource] : undefined);
   useEffect(() => {
     setColumns([]);
-    if (!needsColumns || !values.layer) return;
+    if (!needsColumns || !fieldLayerId) return;
     const controller = new AbortController();
-    void engineRequest(`/layers/${encodeURIComponent(String(values.layer))}/describe`, { signal: controller.signal })
+    void engineRequest(`/layers/${encodeURIComponent(String(fieldLayerId))}/describe`, { signal: controller.signal })
       .then(r => r.json()).then(data => { if (!controller.signal.aborted) setColumns(data.columns ?? []); }).catch(() => {});
     return () => controller.abort();
-  }, [values.layer, needsColumns]);
+  }, [fieldLayerId, needsColumns]);
   useEffect(() => {
     if (!job?.jobId) return;
     const jobId = job.jobId;
@@ -309,7 +322,7 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
         const required = tool?.parameters.required?.includes(name);
         const label = `${FIELDS[name] ?? zhParam(name)}${required ? " *" : ""}`;
         const layerKind = schema["x-layer-kind"] ?? ((schema["x-layer"] || name === "layer" || name.endsWith("_layer")) ? "vector" : undefined);
-        const fieldParam = (name === "field" || name === "by_field") && columns.length > 0;
+        const fieldParam = FIELD_PARAMS.has(name) && columns.length > 0;
         const kindLayers = layerKind ? layers.filter(l => (l.kind ?? "vector") === layerKind) : [];
         const options = layerKind ? kindLayers.map(l => ({ value: l.id, label: l.kind === "raster" ? `${l.name}（栅格 ${l.raster?.width}×${l.raster?.height}）` : l.kind === "table" ? `${l.name}（表格 ${l.feature_count} 行）` : `${l.name} (${l.feature_count})` }))
           : fieldParam ? columns.map(c => ({ value: c, label: c })) : schema.enum?.map(v => ({ value: v, label: v }));

@@ -18,7 +18,7 @@ import { geeExecutionAllowed } from "../src/lib/gee.ts";
 import { defaultLayerStyle, PALETTE } from "../src/lib/dataLayers.ts";
 import { releaseIdleWasmToolWorkers, warmWasmToolRunner } from "../src/lib/browser/wasm-tool-runner.ts";
 import { AGENT_GOAL_LIMIT, buildAgentSessionStub, buildWorkspaceSnapshot, normalizeWorkspaceRecovery, normalizeWorkspaceSnapshot, WORKSPACE_SCHEMA, WORKSPACE_VERSION } from "../src/lib/workspace.ts";
-import { tableExportFilename, tablePageCsv } from "../src/lib/table-export.ts";
+import { selectedFeaturesGeoJson, selectedGeoJsonFilename, tableExportFilename, tablePageCsv } from "../src/lib/table-export.ts";
 import { pipelineResult } from "../src/components/ToolResultDetails.tsx";
 import type { ModelMessage } from "ai";
 
@@ -148,6 +148,8 @@ test("browser routes paginate/sort actual attributes and exports produce valid i
   const input = await sample("routes");
   const response = await browserEngineRequest(`/layers/${input.id}/attributes?sort=id&descending=true&limit=2&offset=1`);
   const page = await response.json(); assert.equal(page.total, 5); assert.equal(page.rows.length, 2); assert.equal(page.rows[0].attributes.id, 4);
+  const geojson = await (await browserEngineRequest(`/layers/${input.id}.geojson`)).json();
+  assert.equal(geojson.type, "FeatureCollection"); assert.equal(geojson.features.length, 5);
   const exported = await finished("export_features", { layer: input.id, path: "browser.gpkg", fmt: "gpkg" });
   assert.ok(exported.bytes > 0);
   const file: any = await readRecord("download:browser.gpkg");
@@ -184,6 +186,23 @@ test("attribute table page export is scoped to visible rows and escapes spreadsh
   assert.equal(tableExportFilename("道路/网络:测试"), "道路_网络_测试_本页.csv");
 });
 
+test("selected-feature GeoJSON keeps real geometry and drops stale collection bounds", () => {
+  const source = { type: "FeatureCollection" as const, name: "roads", bbox: [0, 0, 10, 10],
+    crs: { type: "name", properties: { name: "EPSG:4326" } },
+    features: [
+      { type: "Feature", properties: { id: 1 }, geometry: { type: "Point", coordinates: [1, 2] } },
+      { type: "Feature", properties: { id: 2 }, geometry: { type: "LineString", coordinates: [[1, 2], [3, 4]] } },
+      { type: "Feature", properties: { id: 3 }, geometry: { type: "Point", coordinates: [5, 6] } },
+    ] };
+  const selected = selectedFeaturesGeoJson(source, [0, 2]);
+  assert.deepEqual(selected.features.map((feature: any) => feature.properties.id), [1, 3]);
+  assert.deepEqual((selected.features[0] as any).geometry, { type: "Point", coordinates: [1, 2] });
+  assert.equal("bbox" in selected, false);
+  assert.deepEqual(selected.crs, source.crs);
+  assert.equal(selectedGeoJsonFilename("道路/网络:测试"), "道路_网络_测试_已选.geojson");
+  assert.throws(() => selectedFeaturesGeoJson(source, [9]), /没有可导出/);
+});
+
 test("metric admission rejects unsuitable extents; WASM catalog contains real parameter contracts", async () => {
   await ensureBrowserCatalog();
   assert.throws(() => metricCrs({ type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: { type: "MultiPoint", coordinates: [[0,0],[120,0]] } }] }), /范围/);
@@ -195,7 +214,10 @@ test("widened catalog exposes the vector, raster and table toolbox", async () =>
   await ensureBrowserCatalog();
   const native = browserCatalog.filter(t => t.name.startsWith("wasm_"));
   assert.ok(native.length > 900, `expected the widened GeoLibre catalog, got ${native.length}`);
-  for (const name of ["wasm_reproject_raster", "wasm_hillshade", "wasm_zonal_statistics", "wasm_vector_points_to_raster", "wasm_idw_interpolation"]) {
+  for (const name of ["wasm_reproject_raster", "wasm_hillshade", "wasm_zonal_statistics", "wasm_vector_points_to_raster",
+    "wasm_vector_polygons_to_raster", "wasm_raster_to_vector_polygons", "wasm_raster_to_vector_lines",
+    "wasm_raster_to_vector_points", "wasm_idw_interpolation", "wasm_tin_interpolation", "wasm_buffer_raster",
+    "wasm_merge_vectors", "wasm_smooth_vectors"]) {
     assert.ok(native.some(t => t.name === name), `${name} should be exposed`);
   }
   const rasterInput = native.find(t => t.name === "wasm_hillshade")!;
@@ -206,18 +228,21 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
   await ensureBrowserCatalog();
   const source = fs.readFileSync(new URL("../src/components/CommandRibbon.tsx", import.meta.url), "utf8");
   const names = [...source.matchAll(/props\.onTool\("(wasm_[^"]+)"\)/g)].map(match => match[1]);
-  assert.ok(names.length >= 44, `expected a dense ribbon, got ${names.length} WASM actions`);
+  assert.ok(names.length >= 54, `expected a dense ribbon, got ${names.length} WASM actions`);
   for (const name of names) assert.ok(browserCatalog.some(tool => tool.name === name), `${name} must resolve to a catalog tool`);
   for (const name of ["wasm_panchromatic_sharpening", "wasm_resample", "wasm_segment_slic_superpixels",
     "wasm_spectral_angle_mapper", "wasm_viewshed", "wasm_visibility_index", "wasm_sky_view_factor",
     "wasm_contours_from_raster", "wasm_create_colour_composite", "wasm_cost_distance", "wasm_cost_pathway",
     "wasm_euclidean_distance", "wasm_extract_raster_values_at_points", "wasm_deviation_from_mean_elevation",
-    "wasm_sobel_filter", "wasm_mosaic"]) {
+    "wasm_sobel_filter", "wasm_mosaic", "wasm_raster_to_vector_polygons", "wasm_raster_to_vector_lines",
+    "wasm_raster_to_vector_points", "wasm_vector_points_to_raster", "wasm_vector_polygons_to_raster",
+    "wasm_idw_interpolation", "wasm_tin_interpolation", "wasm_buffer_raster", "wasm_merge_vectors",
+    "wasm_smooth_vectors"]) {
     assert.ok(names.includes(name), `${name} should be exposed in the ribbon`);
   }
   const dock = fs.readFileSync(new URL("../src/components/ChatDock.tsx", import.meta.url), "utf8");
   const recipeTools = [...dock.matchAll(/tool: "(wasm_[^"]+)"/g)].map(match => match[1]);
-  for (const name of ["wasm_contours_from_raster", "wasm_cost_distance"]) {
+  for (const name of ["wasm_contours_from_raster", "wasm_cost_distance", "wasm_raster_to_vector_polygons", "wasm_idw_interpolation"]) {
     assert.ok(recipeTools.includes(name), `${name} should be available as an agent recipe`);
     assert.ok(browserCatalog.some(tool => tool.name === name), `${name} recipe must resolve to a catalog tool`);
   }
@@ -234,6 +259,23 @@ test("new raster ribbon forms expose executable multi-input contracts", async ()
   const extract = browserCatalog.find(tool => tool.name === "wasm_extract_raster_values_at_points")!;
   assert.equal((extract.parameters.properties as any).rasters.type, "array");
   assert.equal((extract.parameters.properties as any).rasters["x-layer-kind"], "raster");
+  for (const name of ["wasm_idw_interpolation", "wasm_tin_interpolation"]) {
+    const interpolation = browserCatalog.find(tool => tool.name === name)!;
+    assert.equal((interpolation.parameters.properties as any).cell_size.type, "number", `${name} cell_size must be numeric`);
+    assert.equal((interpolation.parameters.properties as any).points["x-layer-kind"], "vector");
+  }
+  const merge = browserCatalog.find(tool => tool.name === "wasm_merge_vectors")!;
+  assert.equal((merge.parameters.properties as any).inputs.type, "array");
+  assert.equal((merge.parameters.properties as any).inputs["x-layer-multiple"], true);
+});
+
+test("Chinese GIS aliases rank conversion, interpolation and service-area tools", async () => {
+  await ensureBrowserCatalog();
+  const rasterToVector = searchBrowserTools(browserCatalog, "栅格转矢量", { limit: 6 }).map(tool => tool.name);
+  for (const name of ["wasm_raster_to_vector_polygons", "wasm_raster_to_vector_lines", "wasm_raster_to_vector_points"])
+    assert.ok(rasterToVector.includes(name), `${name} should rank for 栅格转矢量`);
+  assert.equal(searchBrowserTools(browserCatalog, "IDW", { limit: 3 })[0]?.name, "wasm_idw_interpolation");
+  assert.equal(searchBrowserTools(browserCatalog, "服务区", { limit: 3 })[0]?.name, "wasm_network_service_area");
 });
 
 test("vector points rasterize into a displayed raster layer and feed raster tools", async () => {
@@ -257,6 +299,35 @@ test("vector points rasterize into a displayed raster layer and feed raster tool
   const shade = await finished("wasm_hillshade", { input: reimported.id });
   const shadeLayer = shade.layers?.[0]?.layer ?? shade.layer;
   assert.equal(shadeLayer.kind, "raster");
+});
+
+test("real raster/vector conversion and IDW/TIN interpolation produce displayed layers", async () => {
+  const square = { type: "Feature", properties: { id: 1 },
+    geometry: { type: "Polygon", coordinates: [[[116, 39], [116.05, 39], [116.05, 39.05], [116, 39.05], [116, 39]]] } };
+  const polygons = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", features: [square] })]), "convert-source.geojson")).layer;
+  const raster = await finished("wasm_vector_polygons_to_raster", { input: polygons.id, field: "id", cell_size: 0.0025, output_name: "convert-raster" });
+  const rasterLayer = raster.layer ?? raster.layers?.[0]?.layer;
+  assert.equal(rasterLayer.kind, "raster");
+
+  const vector = await finished("wasm_raster_to_vector_polygons", { input: rasterLayer.id, output_name: "polygonized" });
+  const vectorLayer = vector.layer ?? vector.layers?.[0]?.layer;
+  assert.ok(vectorLayer.feature_count > 0, "raster-to-polygon must emit real polygons");
+  assert.ok(vectorLayer.geometry_types.every((type: string) => ["Polygon", "MultiPolygon"].includes(type)));
+
+  const points = await sample("interpolation-points");
+  const pointRaster = await finished("wasm_vector_points_to_raster", { input: points.id, field: "id", cell_size: 0.001, output_name: "sampled-points" });
+  const pointRasterLayer = pointRaster.layer ?? pointRaster.layers?.[0]?.layer;
+  const extracted = await finished("wasm_raster_to_vector_points", { input: pointRasterLayer.id, output_name: "pointized" });
+  const extractedLayer = extracted.layer ?? extracted.layers?.[0]?.layer;
+  assert.ok(extractedLayer.feature_count > 0, "raster-to-point must emit real point cells");
+  assert.ok(extractedLayer.geometry_types.every((type: string) => type === "Point"));
+
+  for (const [tool, output] of [["wasm_idw_interpolation", "idw-surface"], ["wasm_tin_interpolation", "tin-surface"]]) {
+    const result = await finished(tool, { points: points.id, field_name: "id", cell_size: 0.001, output_name: output });
+    const layer = result.layer ?? result.layers?.[0]?.layer;
+    assert.equal(layer.kind, "raster", `${tool} must create a raster layer`);
+    assert.ok(layer.raster?.width > 1 && layer.raster?.height > 1, `${tool} must create a real grid`);
+  }
 });
 
 test("linkage mapper helper chains core rasterization and a least-cost corridor network", async () => {

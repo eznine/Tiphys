@@ -114,3 +114,13 @@
 
 - 2026-10-24 04:47 Asia/Shanghai — Overnight supervisor: batch10 exited (sandbox blocked commit). Re-verified `npm run test:browser` 33/33 + `npx tsc --noEmit`. Committing+pushing as `P3/P4: GIS ribbon densify, agent recipes, perf/beauty`, then starting batch11.
 - 2026-10-24 04:48 Asia/Shanghai — Batch10 pushed as `6299af7` (33/33). Launching batch11 tf-codex (raster↔vector convert, IDW/TIN, agent recipes, thin export).
+
+- 2026-10-24 ~05:10 Asia/Shanghai — Batch11 implemented on the Linux box (tf-codex exited mid e2e debug; supervisor finished):
+  - Ribbon: 栅格转面/线/点, IDW/TIN 插值, 合并矢量, 平滑矢量 (catalog-backed forms only).
+  - Agent: recipes for 栅格转矢量 + IDW; Chinese aliases for 栅格转矢量/IDW/服务区.
+  - Export: selected-feature GeoJSON download via `/layers/:id.geojson` (real geometry only) + attribute CSV retained.
+  - Contract fix: upstream marks `idw_interpolation.cell_size` / `tin_interpolation.cell_size` as raster inputs; treated as numeric scalars in `catalog-schema` + `RAW_INPUT_PARAMETERS` so forms/tests do not resolve `0.001` as a layer id.
+  - Beauty: small ToolPanel/recipe spacing polish in blue family.
+  - Verification: `npm run test:browser` 36/36; `npx tsc --noEmit`; `npm run build` (dist ~36 MB, app ~1.91 MB, catalog ~1.95 MB, CLI WASM 24.1 MB). No GEE creds; no Python changes.
+
+- 2026-10-24 05:12 Asia/Shanghai — Overnight supervisor committing+pushing batch11, then starting batch12 (network/service-area densify, agent plan clarity, perf/beauty).

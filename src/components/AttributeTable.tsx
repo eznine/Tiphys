@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { DataLayer } from "../lib/dataLayers";
 import { engineRequest } from "../lib/service";
-import { tableExportFilename, tablePageCsv } from "../lib/table-export";
+import { selectedFeaturesGeoJson, selectedGeoJsonFilename, tableExportFilename, tablePageCsv } from "../lib/table-export";
 
 type Row = { id: number; attributes: Record<string, unknown>; bounds: number[] | null };
 type Page = { fields: { name: string; type: string }[]; rows: Row[]; total: number };
@@ -21,6 +21,7 @@ export function AttributeTable({ layer, selectedIds, onSelectionChange, onClearS
   const [stats, setStats] = useState<Record<string, any> | null>(null);
   const [statsError, setStatsError] = useState("");
   const [actionNotice, setActionNotice] = useState("");
+  const [exportingGeoJson, setExportingGeoJson] = useState(false);
   const rowRefs = useRef(new Map<number, HTMLTableRowElement>());
   const anchorRef = useRef<number | null>(null);
   const selectionKey = selectedIds.join(",");
@@ -98,6 +99,24 @@ export function AttributeTable({ layer, selectedIds, onSelectionChange, onClearS
       setActionNotice(`已复制 ${selectedIds.length} 个要素 ID`);
     } catch { setActionNotice("复制失败，请检查浏览器剪贴板权限"); }
   };
+  const downloadSelectedGeoJson = async () => {
+    if (!selectedIds.length || exportingGeoJson) return;
+    setExportingGeoJson(true);
+    try {
+      const response = await engineRequest(`/layers/${encodeURIComponent(layer.id)}.geojson`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const collection = selectedFeaturesGeoJson(await response.json(), selectedIds);
+      const blob = new Blob([JSON.stringify(collection, null, 2)], { type: "application/geo+json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url; link.download = selectedGeoJsonFilename(layer.name);
+      document.body.append(link); link.click(); link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 500);
+      setActionNotice(`已导出 ${collection.features.length} 个已选要素的 GeoJSON`);
+    } catch (err) {
+      setActionNotice(`导出失败：${err instanceof Error ? err.message : String(err)}`);
+    } finally { setExportingGeoJson(false); }
+  };
   return <section className="attribute-table" aria-label={`${layer.name} 属性表`}>
     <header className="attribute-header"><strong>{layer.name} · 属性表</strong>
       <button type="button" className="icon-btn" onClick={onClose} aria-label="关闭属性表">×</button></header>
@@ -134,6 +153,7 @@ export function AttributeTable({ layer, selectedIds, onSelectionChange, onClearS
     </div>
     <footer className="attribute-footer"><div className="attribute-footer-meta"><span>只读 · 双击记录定位 · Shift 连选</span>{actionNotice && <span role="status">{actionNotice}</span>}</div>
       <div className="attribute-actions"><button type="button" className="icon-btn" disabled={!selectedIds.length || loading} onClick={() => void copySelectedIds()}>复制已选 ID</button>
+        {(layer.kind ?? "vector") === "vector" && <button type="button" className="icon-btn" title="导出已选要素的 GeoJSON（保留真实几何）" disabled={!selectedIds.length || loading || exportingGeoJson} onClick={() => void downloadSelectedGeoJson()}>{exportingGeoJson ? "导出中…" : "导出已选 GeoJSON"}</button>}
         <button type="button" className="icon-btn" title="导出当前可见页的属性 CSV（不含几何）" disabled={!page?.rows.length || loading} onClick={downloadPage}>导出本页属性 CSV</button></div>
       <div>
       <button type="button" className="icon-btn" disabled={offset === 0 || loading} onClick={() => setOffset(offset - 100)}>上一页</button>

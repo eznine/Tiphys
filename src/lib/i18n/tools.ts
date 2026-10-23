@@ -148,6 +148,10 @@ export const PARAM_ZH: Record<string, string> = {
   extent: "范围", bbox: "范围", crs: "坐标系", vertices: "顶点数", precision: "精度",
   multiplier: "倍率", offset: "偏移", replacement: "替换值", constant: "常量",
   variable: "变量", expression: "表达式", position: "位置", index: "索引",
+  base_raster: "基准栅格", field_name: "数值字段", use_z: "使用 Z 值",
+  buffer_size: "缓冲距离", grid_cell_units: "按像元单位计算", assign: "像元赋值方式",
+  zero_background: "背景设为 0", filter_size_x: "窗口宽度", filter_size_y: "窗口高度",
+  max_triangle_edge_length: "最大三角网边长", inputs: "输入图层",
 };
 
 /** Chinese label for a parameter, falling back to the raw name. */

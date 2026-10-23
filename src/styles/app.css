@@ -84,9 +84,9 @@
 .property-tabs { display: flex; gap: 4px; padding: 8px 10px; border-bottom: 1px solid var(--tiphys-border-subtle); }
 .property-tabs button { flex: 1; border: 0; background: transparent; color: var(--tiphys-text-secondary); border-radius: 5px; padding: 7px 5px; font-size: 12px; cursor: pointer; }
 .property-tabs button[aria-selected="true"] { background: var(--tiphys-accent-muted); color: var(--tiphys-accent); }
-.property-content { padding: 12px; display: flex; flex-direction: column; gap: 14px; overflow: auto; font-size: 12px; }
+.property-content { padding: 12px; display: flex; flex-direction: column; gap: 12px; overflow: auto; font-size: 12px; }
 .property-content input[type="color"] { width: 100%; height: 32px; padding: 2px; }
-.property-color-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.property-color-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .property-note { color: var(--tiphys-text-muted); font-size: 11px; line-height: 1.6; }
 .category-legend { display: grid; gap: 5px; }
 .category-legend label { display: flex; align-items: center; gap: 8px; overflow-wrap: anywhere; }
@@ -932,8 +932,8 @@ textarea {
 .workflow-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; color: var(--tiphys-text-secondary); }
 .workflow-heading > span { display: inline-flex; align-items: center; gap: 5px; color: var(--tiphys-text); font-size: 12px; font-weight: 600; letter-spacing: .01em; }
 .workflow-heading small { color: var(--tiphys-text-muted); font-size: 9px; line-height: 1.35; text-align: right; }
-.workflow-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
-.workflow-card { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 2px 7px; align-items: start; padding: 9px; border: 1px solid var(--tiphys-border); border-radius: 8px; background: color-mix(in srgb, var(--tiphys-bg) 58%, var(--tiphys-surface)); color: var(--tiphys-text-secondary); text-align: left; font: inherit; cursor: pointer; }
+.workflow-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.workflow-card { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 3px 7px; align-items: start; min-height: 62px; padding: 10px; border: 1px solid var(--tiphys-border); border-radius: 9px; background: color-mix(in srgb, var(--tiphys-bg) 58%, var(--tiphys-surface)); color: var(--tiphys-text-secondary); text-align: left; font: inherit; cursor: pointer; }
 .workflow-card svg { grid-row: span 2; margin-top: 1px; color: var(--tiphys-accent); }
 .workflow-card strong { overflow: hidden; color: var(--tiphys-text); font-size: 11px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .workflow-card small { color: var(--tiphys-text-muted); font-size: 9px; line-height: 1.4; }
