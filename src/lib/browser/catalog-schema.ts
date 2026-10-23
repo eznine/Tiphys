@@ -37,6 +37,12 @@ const WASM_SCALAR_INPUT_OVERRIDES = new Set([
   "split_vector_lines.segment_length",
 ]);
 
+/** Upstream omits required flags on some scalar options and one DEM input. */
+const WASM_REQUIRED_OVERRIDES: Record<string, Set<string>> = {
+  directional_distribution: new Set(["statistic"]),
+  extract_valleys: new Set(["dem"]),
+};
+
 export function isWasmInputParam(toolId: string, param: { name: string; io_role?: string; description?: string }): boolean {
   if (WASM_SCALAR_INPUT_OVERRIDES.has(`${toolId}.${param.name}`)) return false;
   return WASM_INPUT_OVERRIDES.has(`${toolId}.${param.name}`) || param.io_role === "input" && !isOutputLikeParam(param);
@@ -87,6 +93,36 @@ const WASM_SCHEMA_OVERRIDES: Record<string, Record<string, CatalogSchema>> = {
     cell_size: { type: "number", default: 1, description: "输出像元大小，单位与输入点图层坐标系一致；也可选择基准栅格。" },
     k_neighbors: { type: "integer", default: 10, description: "参与局部估计的最近邻点数。" },
     value_field: { type: "string", description: "用于插值的数值字段。" },
+  },
+  central_feature: {
+    statistic: { type: "string", enum: ["central_feature", "linear_directional_mean"], default: "central_feature",
+      description: "central_feature 计算总距离最小的中心要素；linear_directional_mean 用于线要素的方向均值。" },
+    distance: { type: "string", enum: ["euclidean", "manhattan"], default: "euclidean",
+      description: "中心要素的距离度量。" },
+    orientation_only: { type: "boolean", default: false,
+      description: "线性方向均值是否忽略线的起止方向（按 0–180° 处理）。" },
+  },
+  directional_distribution: {
+    statistic: { type: "string", enum: ["mean_center", "median_center", "central_feature", "standard_distance", "standard_deviational_ellipse"],
+      default: "standard_deviational_ellipse", description: "选择中心、标准距离圆或标准差椭圆。" },
+    n_std: { type: "integer", default: 1, description: "标准距离圆与标准差椭圆的标准差倍数（1、2 或 3）。" },
+  },
+  extract_valleys: {
+    dem: { type: "string", "x-layer": true, "x-layer-kind": "raster", description: "输入无洼地 DEM 栅格。" },
+    filter_size: { type: "integer", description: "谷线检测窗口大小（奇数像元）。" },
+    line_thin: { type: "boolean", default: false, description: "是否细化输出谷线为单像元宽。" },
+    variant: { type: "string", enum: ["lq", "jandr", "pandd"], default: "lq",
+      description: "谷线检测算法：lq、jandr 或 pandd。" },
+  },
+  path_distance: {
+    source: { type: "string", "x-layer": true, "x-layer-kind": "raster",
+      description: "源栅格；正值且非 NoData 的像元为起点。" },
+    vertical_factor: { type: "string", enum: ["tobler", "linear", "sym_linear", "inverse_linear", "binary"],
+      default: "tobler", description: "坡度垂直因子：Tobler 徒步函数、线性、对称线性、反线性或二值阈值。" },
+    slope_factor: { type: "number", default: 1, description: "线性垂直因子的坡度惩罚系数。" },
+    zero_factor: { type: "number", default: 0.1, description: "线性/反线性因子的下坡最小值。" },
+    max_slope: { type: "number", default: 30, description: "binary 因子允许通过的最大坡度（度）。" },
+    band: { type: "integer", default: 1, description: "所有输入栅格使用的 1 基波段。" },
   },
   bilateral_filter: {
     sigma_int: { type: "number", default: 1, description: "强度核阈值；越大保留的强度差异越多，边缘保持越明显。" },
@@ -231,7 +267,8 @@ export function schemaForWasm(manifest: WasmManifest): CatalogTool {
     subcategory: manifest.taxonomy?.subcategory,
     parameters: {
       type: "object", properties,
-      required: manifest.params.filter(p => p.required && isWasmInputParam(manifest.id, p)).map(p => p.name),
+      required: manifest.params.filter(p => WASM_REQUIRED_OVERRIDES[manifest.id]?.has(p.name) ||
+        p.required && isWasmInputParam(manifest.id, p)).map(p => p.name),
       additionalProperties: false,
     },
   };

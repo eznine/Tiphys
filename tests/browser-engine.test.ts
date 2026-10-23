@@ -255,7 +255,9 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_laplacian_filter", "wasm_euclidean_direction", "wasm_update", "wasm_vector_lines_to_raster",
     "wasm_simple_kriging", "wasm_wetness_index", "wasm_change_vector_analysis",
     "wasm_near", "wasm_extend_vector_lines", "wasm_split_vector_lines", "wasm_find_identical",
-    "wasm_integrate", "wasm_median_center", "wasm_lee_filter", "wasm_downslope_index"]) {
+    "wasm_integrate", "wasm_median_center", "wasm_lee_filter", "wasm_downslope_index",
+    "wasm_central_feature", "wasm_directional_distribution", "wasm_corridor", "wasm_path_distance",
+    "wasm_prewitt_filter", "wasm_conservative_smoothing_filter", "wasm_extract_valleys", "wasm_local_kriging"]) {
     assert.ok(names.includes(name), `${name} should be exposed in the ribbon`);
   }
   const dock = fs.readFileSync(new URL("../src/components/ChatDock.tsx", import.meta.url), "utf8");
@@ -265,7 +267,8 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_line_density", "wasm_concave_hull", "wasm_empirical_bayesian_kriging", "wasm_basins",
     "wasm_opening", "wasm_symmetrical_difference", "wasm_difference", "wasm_ruggedness_index",
     "wasm_strahler_stream_order", "wasm_cost_connectivity", "wasm_mean_filter",
-    "wasm_change_vector_analysis", "wasm_near", "wasm_extend_vector_lines"]) {
+    "wasm_change_vector_analysis", "wasm_near", "wasm_extend_vector_lines",
+    "wasm_central_feature", "wasm_directional_distribution"]) {
     assert.ok(recipeTools.includes(name), `${name} should be available as an agent recipe`);
     assert.ok(browserCatalog.some(tool => tool.name === name), `${name} recipe must resolve to a catalog tool`);
   }
@@ -604,6 +607,67 @@ test("vector QA, statistics, Lee filter and downslope forms expose honest contra
   assert.ok(!("output" in backLink) && !("out_distance" in backLink), "back-link outputs must stay internal");
 });
 
+test("batch20 statistics, corridor, filter and interpolation forms expose honest contracts", async () => {
+  await ensureBrowserCatalog();
+  const props = (name: string) => browserCatalog.find(tool => tool.name === name)!.parameters.properties as any;
+  const required = (name: string) => browserCatalog.find(tool => tool.name === name)!.parameters.required ?? [];
+
+  const central = props("wasm_central_feature");
+  assert.equal(central.input["x-layer-kind"], "vector");
+  assert.deepEqual(central.statistic.enum, ["central_feature", "linear_directional_mean"]);
+  assert.equal(central.statistic.default, "central_feature");
+  assert.equal(central.distance.default, "euclidean");
+  assert.equal(central.orientation_only.type, "boolean");
+  assert.ok(!("output" in central), "central-feature output path must stay internal");
+
+  const directional = props("wasm_directional_distribution");
+  assert.equal(directional.input["x-layer-kind"], "vector");
+  assert.equal(directional.statistic.type, "string");
+  assert.equal(directional.statistic.default, "standard_deviational_ellipse");
+  assert.ok(directional.statistic.enum.includes("standard_deviational_ellipse"));
+  assert.equal(directional.n_std.type, "integer");
+  assert.ok(required("wasm_directional_distribution").includes("statistic"), "direction statistic must be required");
+  assert.ok(!("output" in directional), "directional-distribution output path must stay internal");
+
+  const corridor = props("wasm_corridor");
+  for (const name of ["cost1", "cost2", "cost", "source1", "source2"])
+    assert.equal(corridor[name]["x-layer-kind"], "raster", `${name} must be a raster`);
+  assert.equal(corridor.threshold.type, "number");
+  assert.equal(corridor.percent.type, "number");
+  assert.ok(!("output" in corridor), "corridor output path must stay internal");
+
+  const path = props("wasm_path_distance");
+  assert.equal(path.source["x-layer-kind"], "raster", "path-distance source must be an honest raster input");
+  assert.equal(path.surface["x-layer-kind"], "raster");
+  assert.deepEqual(path.vertical_factor.enum, ["tobler", "linear", "sym_linear", "inverse_linear", "binary"]);
+  assert.equal(path.vertical_factor.default, "tobler");
+  assert.equal(path.slope_factor.type, "number");
+  assert.equal(path.band.type, "integer");
+  assert.ok(!("output" in path), "path-distance output path must stay internal");
+
+  for (const name of ["wasm_prewitt_filter", "wasm_conservative_smoothing_filter"]) {
+    const filter = props(name);
+    assert.equal(filter.input["x-layer-kind"], "raster", `${name} input must be raster`);
+    assert.ok(!("output" in filter), `${name} output path must stay internal`);
+  }
+  assert.equal(props("wasm_prewitt_filter").clip_tails.type, "number");
+  assert.equal(props("wasm_conservative_smoothing_filter").filter_size_x.type, "integer");
+  assert.equal(props("wasm_conservative_smoothing_filter").filter_size_y.type, "integer");
+
+  const kriging = props("wasm_local_kriging");
+  assert.equal(kriging.points["x-layer-kind"], "vector");
+  assert.equal(kriging.cell_size.type, "number");
+  assert.equal(kriging.k_neighbors.type, "integer");
+  assert.ok(!("output" in kriging), "local-kriging output path must stay internal");
+
+  const valleys = props("wasm_extract_valleys");
+  assert.equal(valleys.dem["x-layer-kind"], "raster");
+  assert.ok(required("wasm_extract_valleys").includes("dem"), "valley extraction must require a DEM");
+  assert.deepEqual(valleys.variant.enum, ["lq", "jandr", "pandd"]);
+  assert.equal(valleys.line_thin.type, "boolean");
+  assert.ok(!("output" in valleys), "valley output path must stay internal");
+});
+
 test("Chinese GIS aliases rank conversion, interpolation and service-area tools", async () => {
   await ensureBrowserCatalog();
   const rasterToVector = searchBrowserTools(browserCatalog, "栅格转矢量", { limit: 6 }).map(tool => tool.name);
@@ -665,7 +729,10 @@ test("Chinese GIS aliases rank conversion, interpolation and service-area tools"
     ["Prewitt", "wasm_prewitt_filter"], ["保守平滑", "wasm_conservative_smoothing_filter"],
     ["坡向圆方差", "wasm_circular_variance_of_aspect"], ["平均流路坡度", "wasm_average_flowpath_slope"],
     ["成本回溯", "wasm_cost_back_link"], ["填挖方", "wasm_cut_fill"],
-    ["局部克里金", "wasm_local_kriging"], ["对比度均衡", "wasm_balance_contrast_enhancement"]]) {
+    ["局部克里金", "wasm_local_kriging"], ["对比度均衡", "wasm_balance_contrast_enhancement"],
+    ["Frost", "wasm_frost_filter"], ["NoData掩膜", "wasm_is_nodata"],
+    ["焦点统计", "wasm_focal_statistics"], ["指定等值线", "wasm_contour_list"],
+    ["主成分分析", "wasm_principal_component_analysis"], ["K均值", "wasm_k_means_clustering"]]) {
     assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
   }
   const streamOrders = searchBrowserTools(browserCatalog, "河网分级", { limit: 4 }).map(tool => tool.name);
@@ -826,6 +893,89 @@ test("Lee, downslope and cost-back-link raster tools publish real result layers"
   assert.ok(backLinkLayers.every((layer: any) => layer.kind === "raster"));
   assert.ok(backLinkLayers.some((layer: any) => /output/.test(layer.name)));
   assert.ok(backLinkLayers.some((layer: any) => /out_distance/.test(layer.name)));
+});
+
+test("batch20 statistics, corridor, filters, valleys and local kriging publish real layers", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const ring = (x: number, y: number, width: number, height: number) => [[x, y], [x + width, y], [x + width, y + height], [x, y + height], [x, y]];
+  const pointFeatures = [
+    { type: "Feature", properties: { id: 1, value: 10 }, geometry: { type: "Point", coordinates: [500000, 4400000] } },
+    { type: "Feature", properties: { id: 2, value: 20 }, geometry: { type: "Point", coordinates: [500300, 4400000] } },
+    { type: "Feature", properties: { id: 3, value: 30 }, geometry: { type: "Point", coordinates: [500150, 4400250] } },
+    { type: "Feature", properties: { id: 4, value: 40 }, geometry: { type: "Point", coordinates: [500450, 4400250] } },
+  ];
+  const points = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: pointFeatures })]), "batch20_points.geojson")).layer;
+  const cell = 100, cells: any[] = [];
+  for (let row = 0; row < 6; row++) for (let col = 0; col < 6; col++) {
+    const x = 500000 + col * cell, y = 4400000 + row * cell;
+    cells.push({ type: "Feature", properties: {
+      elev: 100 + row * 4 + col * 2 + Math.abs(col - 2) * 6,
+      cost: 1,
+      src1: row === 0 && col === 0 ? 1 : 0,
+      src2: row === 5 && col === 5 ? 1 : 0,
+    }, geometry: { type: "Polygon", coordinates: [ring(x, y, cell, cell)] } });
+  }
+  const grid = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: cells })]), "batch20_grid.geojson")).layer;
+  const raster = async (field: string, name: string) => (await finished("wasm_vector_polygons_to_raster", {
+    input: grid.id, field, cell_size: cell, output_name: name,
+  })).layer;
+  const dem = await raster("elev", "batch20_dem");
+  const cost = await raster("cost", "batch20_cost");
+  const source1 = await raster("src1", "batch20_source1");
+  const source2 = await raster("src2", "batch20_source2");
+
+  const central = await finished("wasm_central_feature", {
+    input: points.id, statistic: "central_feature", distance: "euclidean", output_name: "batch20_central",
+  });
+  const centralLayer = central.layer ?? central.layers?.[0]?.layer;
+  assert.equal(centralLayer.feature_count, 1);
+  assert.deepEqual(centralLayer.geometry_types, ["Point"]);
+
+  const directional = await finished("wasm_directional_distribution", {
+    input: points.id, statistic: "standard_deviational_ellipse", n_std: 1, output_name: "batch20_ellipse",
+  });
+  const directionalLayer = directional.layer ?? directional.layers?.[0]?.layer;
+  assert.equal(directionalLayer.feature_count, 1);
+  assert.ok(directionalLayer.geometry_types.every((kind: string) => kind === "Polygon" || kind === "MultiPolygon"));
+
+  const corridor = await finished("wasm_corridor", {
+    cost: cost.id, source1: source1.id, source2: source2.id, output_name: "batch20_corridor",
+  });
+  const corridorLayer = corridor.layer ?? corridor.layers?.[0]?.layer;
+  assert.equal(corridorLayer.kind, "raster", "corridor must publish a raster layer");
+  assert.equal(corridorLayer.raster?.width, dem.raster?.width);
+
+  const path = await finished("wasm_path_distance", {
+    source: source1.id, cost: cost.id, surface: dem.id, vertical_factor: "tobler", output_name: "batch20_path_distance",
+  });
+  const pathLayer = path.layer ?? path.layers?.[0]?.layer;
+  assert.equal(pathLayer.kind, "raster", "path distance must publish a raster layer");
+  assert.equal(pathLayer.raster?.width, dem.raster?.width);
+
+  for (const [tool, args, name] of [
+    ["wasm_prewitt_filter", { input: dem.id, clip_tails: 0 }, "batch20_prewitt"],
+    ["wasm_conservative_smoothing_filter", { input: dem.id, filter_size_x: 3, filter_size_y: 3 }, "batch20_conservative"],
+  ] as const) {
+    const result = await finished(tool, { ...args, output_name: name });
+    const layer = result.layer ?? result.layers?.[0]?.layer;
+    assert.equal(layer.kind, "raster", `${tool} must publish a raster`);
+    assert.equal(layer.raster?.width, dem.raster?.width);
+    assert.equal(result.attachments, undefined);
+  }
+
+  const kriging = await finished("wasm_local_kriging", {
+    points: points.id, value_field: "value", cell_size: cell, k_neighbors: 3, output_name: "batch20_local_kriging",
+  });
+  const krigingLayer = kriging.layer ?? kriging.layers?.[0]?.layer;
+  assert.equal(krigingLayer.kind, "raster", "local kriging must publish a raster");
+  assert.ok(krigingLayer.raster?.width > 1 && krigingLayer.raster?.height > 1);
+
+  const valleys = await finished("wasm_extract_valleys", {
+    dem: dem.id, filter_size: 3, line_thin: true, variant: "lq", output_name: "batch20_valleys",
+  });
+  const valleyLayer = valleys.layer ?? valleys.layers?.[0]?.layer;
+  assert.equal(valleyLayer.kind, "raster", "valley extraction must publish a raster");
+  assert.equal(valleyLayer.raster?.width, dem.raster?.width);
 });
 
 test("morphology and vector cleanup ribbon tools publish displayed result layers", async () => {

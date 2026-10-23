@@ -49,7 +49,7 @@ const TOOL_ALIASES: Record<string, string[]> = {
   find_identical: ["查重", "重复要素", "查找相同", "删除重复"],
   focal_statistics: ["焦点统计", "邻域统计", "局部统计"],
   integrate: ["整合", "顶点整合", "拓扑整合", "吸附整合"],
-  is_nodata: ["无数据", "空值检测", "NoData"],
+  is_nodata: ["无数据", "空值检测", "NoData", "NoData掩膜", "无数据掩膜", "空值掩膜"],
   lee_filter: ["Lee滤波", "Lee 滤波", "李滤波", "SAR 滤波"],
   line_density: ["线密度", "线要素密度", "道路密度", "河流密度", "line density"],
   local_kriging: ["局部克里金", "局部普通克里金", "局部插值", "LKO 克里金"],
@@ -102,6 +102,11 @@ const TOOL_ALIASES: Record<string, string[]> = {
   cut_fill: ["填挖方", "挖填方", "土方量", "挖填体积"],
   circular_variance_of_aspect: ["坡向环状方差", "坡向圆方差", "圆形方差", "坡向方差"],
   conservative_smoothing_filter: ["保守平滑", "保守平滑滤波", "保边平滑滤波"],
+  frost_filter: ["Frost", "Frost滤波", "弗罗斯特滤波", "SAR Frost"],
+  contour_list: ["指定等值线", "等值线列表", "自定义等值线", "等值线值"],
+  contours_from_points: ["点等值线", "点生成等值线", "TIN 等值线"],
+  principal_component_analysis: ["主成分分析", "PCA", "主成分"],
+  k_means_clustering: ["K均值", "K-means", "K 均值聚类", "非监督分类"],
 };
 
 function aliasesFor(toolName: string): string[] {
