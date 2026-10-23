@@ -85,3 +85,5 @@
   - Whitebox: replaced the explanatory stub with a real breach → fill → D8 pointer chain (`whitebox_extra` 0.2.0), retaining all three rasters and failing honestly on missing outputs.
   - Agent UX/docs: pipeline tool results render readable step lists in chat and toolbox; recipes still only open forms or insert prompts, never auto-run. Runtime/plugin/deployment docs now cover the workspace schema, real Whitebox chain, exact `dist/` artifact, current chunk sizes and Cloudflare Pages limits. GEE remains docs/demo only with no credentials created or read.
   - Verification: `npm run test:browser` 30/30; `npx tsc --noEmit`; `npm run build` (36 MB `dist/`, 1.90 MB app chunk, 1.95 MB lazy catalog, 24.1 MB CLI WASM); `git diff --check`.
+
+- 2026-10-24 04:11 Asia/Shanghai — Overnight watch: batch08 complete but builder exited (sandbox blocked commit). Supervisor committed+pushed as `ad54e47` (30/30 browser tests per batch log). Direction OK (blue `#2563eb`, light default, logo-temp, catalog health <900). Restarting batch09 (agent recovery, RS/terrain ribbon densify, beauty polish).
