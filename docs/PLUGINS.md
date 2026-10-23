@@ -47,9 +47,9 @@ Tool schemas use the same catalog contract as Python MCP and GeoLibre WASM tools
 | `hydrology_flow_pipeline` | 扩展 / 插件 | Runs DEM depression conditioning, D8 flow routing, accumulation, optional stream extraction and watersheds inline |
 | `least_cost_path_pipeline` | 扩展 / 插件 | Connects source and destination points or polygons over a resistance raster and returns path polylines, a corridor network and an accumulated-cost surface |
 | `clip_layers_to_aoi` | 扩展 / 插件 | Builds a transient AOI polygon from the map bbox, clips the active vector or raster layer, then removes the temporary AOI layers |
-| `whitebox_extra` | 扩展 / 插件 | Explains that GeoLibre WASM already provides raster, terrain, hydrology, and remote-sensing tools |
+| `whitebox_extra` | 扩展 / 插件 | Runs a real breach → fill → D8 pointer conditioning chain over a DEM |
 
-The explanatory `whitebox_extra` tool returns `{ ok: false, available: false, ... }` rather than fabricating a layer. All extension tools are discoverable in the catalog and by `search_browser_tools`, including Chinese queries such as 走廊、水文、最小成本 and 廊道.
+All extension tools are discoverable in the catalog and by `search_browser_tools`, including Chinese queries such as 走廊、水文、最小成本、廊道、网络、最近设施 and 加权叠加.
 
 ## Corridor pipeline
 
@@ -79,6 +79,16 @@ The result includes `source_raster`, `layers`, `tools`, and a limitations note. 
 5. Optional `wasm_snap_pour_points` and `wasm_watershed` when a point layer is supplied.
 
 The result contains `{ layers, tools, steps, limitations }`. Every intermediate raster is persisted as a normal workspace layer. The runner fails instead of fabricating output if any upstream tool returns no layer. It does not claim rainfall-runoff simulation or calibrated channel thresholds; D8 is a single-flow-direction model and NoData remains NoData.
+
+## Whitebox depression chain
+
+`whitebox_extra` is a short conditioning chain distinct from the full hydrology pipeline. It accepts a DEM plus optional `max_dist`, `max_cost`, `minimize_dist` and `fill_flat_increment` values, then runs:
+
+1. `wasm_breach_depressions_least_cost`.
+2. `wasm_fill_depressions` on the breached DEM.
+3. `wasm_d8_pointer` on the filled DEM.
+
+The breached, filled and pointer rasters are all retained. It does not compute flow accumulation, streams or watersheds; use `hydrology_flow_pipeline` for those steps. The prior explanatory-only placeholder was removed.
 
 ## Least-cost path pipeline
 

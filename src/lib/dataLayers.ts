@@ -2,11 +2,16 @@
 import type { Map, ExpressionSpecification } from "maplibre-gl";
 
 export type LayerStyle = {
-  color: string; opacity: number; pointSize: number; lineWidth: number;
+  color: string; strokeColor?: string; opacity: number; fillOpacity?: number; strokeOpacity?: number; pointSize: number; lineWidth: number;
+  ramp?: VectorRamp;
   categoryField?: string;
   categories?: { value: string | number | boolean | null; color: string }[];
   labelField?: string; labelSize: number; labelColor: string;
+  rasterStretch?: RasterStretch;
 };
+
+export type VectorRamp = "blue" | "slate" | "earth";
+export type RasterStretch = "auto" | "soft" | "high";
 
 export type DataLayer = {
   id: string;
@@ -32,6 +37,16 @@ export const SELECTION_COLOR = "#2563eb";
 /** Cool defaults stay in the blue/indigo accent family; IDs produce stable variation. */
 export const PALETTE = ["#2563eb", "#0284c7", "#0369a1", "#4f46e5", "#3b82f6", "#1d4ed8", "#0ea5e9", "#6366f1"];
 const BLUE_HELPER_PALETTE = ["#2563eb", "#1d4ed8", "#0284c7", "#3b82f6", "#0369a1", "#4f46e5"];
+export const RAMP_PRESETS: Record<VectorRamp, string[]> = {
+  blue: PALETTE,
+  slate: ["#334155", "#475569", "#64748b", "#0f172a", "#94a3b8", "#1e293b", "#cbd5e1", "#334155"],
+  earth: ["#92400e", "#b45309", "#a16207", "#4d7c0f", "#9a3412", "#365314", "#ca8a04", "#78350f"],
+};
+
+export function categoryColors(count: number, ramp: VectorRamp = "blue"): string[] {
+  const colors = RAMP_PRESETS[ramp] ?? PALETTE;
+  return Array.from({ length: Math.max(0, count) }, (_, index) => colors[index % colors.length]);
+}
 
 /** Helper outputs get a predictable blue treatment so AOI/corridor/LCP do not drift teal. */
 function paletteFor(name = ""): string[] {
@@ -44,7 +59,8 @@ export function defaultLayerStyle(id: string, name = ""): LayerStyle {
   const accent = typeof document === "undefined" ? "" : getComputedStyle(document.documentElement).getPropertyValue("--tiphys-accent").trim();
   const fallback = paletteFor(name);
   const palette = accent && /^#[0-9a-f]{6}$/i.test(accent) ? [accent, ...fallback.filter(color => color !== accent)] : fallback;
-  return { color: palette[hash % palette.length], opacity: .65, pointSize: 5, lineWidth: 1.6, labelSize: 13, labelColor: "#172033" };
+  return { color: palette[hash % palette.length], opacity: .65, fillOpacity: .55, strokeOpacity: 1, pointSize: 5, lineWidth: 1.6,
+    ramp: "blue", labelSize: 13, labelColor: "#172033", rasterStretch: "auto" };
 }
 
 export function layerColor(style: LayerStyle): string | ExpressionSpecification {
@@ -74,38 +90,49 @@ export function syncDataLayers(map: Map, layers: DataLayer[]) {
       if (!map.getSource(sid) && l.image_coords?.length === 4 && l.url)
         map.addSource(sid, { type: "image", url: l.url, coordinates: l.image_coords as [[number, number], [number, number], [number, number], [number, number]] });
       if (map.getSource(sid)) {
+        const stretch = rasterStretch(style.rasterStretch);
         if (!map.getLayer(`${sid}-raster`))
-          map.addLayer({ id: `${sid}-raster`, type: "raster", source: sid, paint: { "raster-opacity": style.opacity, "raster-fade-duration": 0 } });
+          map.addLayer({ id: `${sid}-raster`, type: "raster", source: sid, paint: { "raster-opacity": style.opacity, "raster-fade-duration": 0,
+            "raster-brightness-min": stretch.brightnessMin, "raster-brightness-max": stretch.brightnessMax,
+            "raster-contrast": stretch.contrast, "raster-saturation": stretch.saturation, "raster-resampling": "linear" } });
         map.setPaintProperty(`${sid}-raster`, "raster-opacity", style.opacity);
+        map.setPaintProperty(`${sid}-raster`, "raster-brightness-min", stretch.brightnessMin);
+        map.setPaintProperty(`${sid}-raster`, "raster-brightness-max", stretch.brightnessMax);
+        map.setPaintProperty(`${sid}-raster`, "raster-contrast", stretch.contrast);
+        map.setPaintProperty(`${sid}-raster`, "raster-saturation", stretch.saturation);
+        map.setPaintProperty(`${sid}-raster`, "raster-resampling", "linear");
         map.setLayoutProperty(`${sid}-raster`, "visibility", vis);
       }
       return;
     }
     const color = layerColor(style);
+    const strokeColor = style.strokeColor ?? style.color;
     if (!map.getSource(sid)) map.addSource(sid, { type: "geojson", data: l.url, generateId: true });
     // Geometry filters adapted from GeoLibre map-controller.ts (MIT, Qiusheng Wu).
     // Always provide all three representations: mixed datasets must not lose features.
       if (!map.getLayer(`${sid}-fill`))
         map.addLayer({ id: `${sid}-fill`, type: "fill", source: sid,
           filter: ["match", ["geometry-type"], ["Polygon", "MultiPolygon"], true, false],
-          paint: { "fill-color": selectedColor(color), "fill-opacity": selectedOpacity(style.opacity * .55) } });
+          paint: { "fill-color": selectedColor(color), "fill-opacity": selectedOpacity(style.opacity * (style.fillOpacity ?? .55)) } });
       if (!map.getLayer(`${sid}-line`))
         map.addLayer({ id: `${sid}-line`, type: "line", source: sid,
           filter: ["match", ["geometry-type"], ["LineString", "MultiLineString", "Polygon", "MultiPolygon"], true, false],
-          paint: { "line-color": selectedColor(color), "line-width": selectedWidth(style.lineWidth, false), "line-opacity": style.opacity } });
+          paint: { "line-color": selectedColor(strokeColor), "line-width": selectedWidth(style.lineWidth, false), "line-opacity": strokeOpacity(style) } });
     if (!map.getLayer(`${sid}-pt`)) {
       map.addLayer({
         id: `${sid}-pt`,
         type: "circle",
         source: sid,
         filter: ["match", ["geometry-type"], ["Point", "MultiPoint"], true, false],
-        paint: { "circle-radius": selectedWidth(style.pointSize, true), "circle-color": selectedColor(color), "circle-opacity": style.opacity, "circle-stroke-color": selectedColor("#ffffff"), "circle-stroke-width": selectedWidth(1.5, true), "circle-stroke-opacity": style.opacity },
+        paint: { "circle-radius": selectedWidth(style.pointSize, true), "circle-color": selectedColor(color), "circle-opacity": style.opacity,
+          "circle-stroke-color": selectedColor(style.strokeColor ?? "#ffffff"), "circle-stroke-width": selectedWidth(1.5, true), "circle-stroke-opacity": strokeOpacity(style) },
       });
     }
     for (const [suffix, paint] of Object.entries({
-      "-fill": { "fill-color": selectedColor(color), "fill-opacity": selectedOpacity(style.opacity * .55) },
-      "-line": { "line-color": selectedColor(color), "line-width": selectedWidth(style.lineWidth, false), "line-opacity": style.opacity },
-      "-pt": { "circle-radius": selectedWidth(style.pointSize, true), "circle-color": selectedColor(color), "circle-opacity": style.opacity, "circle-stroke-color": selectedColor("#ffffff"), "circle-stroke-width": selectedWidth(1.5, true), "circle-stroke-opacity": style.opacity },
+      "-fill": { "fill-color": selectedColor(color), "fill-opacity": selectedOpacity(style.opacity * (style.fillOpacity ?? .55)) },
+      "-line": { "line-color": selectedColor(strokeColor), "line-width": selectedWidth(style.lineWidth, false), "line-opacity": strokeOpacity(style) },
+      "-pt": { "circle-radius": selectedWidth(style.pointSize, true), "circle-color": selectedColor(color), "circle-opacity": style.opacity,
+        "circle-stroke-color": selectedColor(style.strokeColor ?? "#ffffff"), "circle-stroke-width": selectedWidth(1.5, true), "circle-stroke-opacity": strokeOpacity(style) },
     })) {
       for (const [name, value] of Object.entries(paint)) map.setPaintProperty(sid + suffix, name as Parameters<Map["setPaintProperty"]>[1], value);
       map.setLayoutProperty(sid + suffix, "visibility", vis);
@@ -135,4 +162,14 @@ function selectedOpacity(base: number): ExpressionSpecification {
 
 function selectedWidth(base: number, point: boolean): ExpressionSpecification {
   return ["case", ["boolean", ["feature-state", "selected"], false], base + (point ? 3 : 2), base] as ExpressionSpecification;
+}
+
+function strokeOpacity(style: LayerStyle): number {
+  return Math.max(0, Math.min(1, style.opacity * (style.strokeOpacity ?? 1)));
+}
+
+export function rasterStretch(value: RasterStretch = "auto") {
+  if (value === "soft") return { brightnessMin: .06, brightnessMax: .94, contrast: -.08, saturation: -.12 };
+  if (value === "high") return { brightnessMin: .12, brightnessMax: .84, contrast: .12, saturation: .08 };
+  return { brightnessMin: 0, brightnessMax: 1, contrast: 0, saturation: 0 };
 }

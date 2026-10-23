@@ -67,6 +67,14 @@ function validAoi(value: unknown): number[] | null {
   if (bbox[0] < -180 || bbox[2] > 180 || bbox[1] < -90 || bbox[3] > 90 || bbox[0] >= bbox[2] || bbox[1] >= bbox[3]) return null;
   return bbox;
 }
+function validSelection(value: unknown): { layerId: string; featureIds: number[] } | null {
+  if (!value || typeof value !== "object") return null;
+  const item = value as Record<string, unknown>;
+  const layerId = typeof item.layerId === "string" && item.layerId.trim() ? item.layerId.slice(0, 160) : "";
+  if (!layerId || !Array.isArray(item.featureIds)) return null;
+  const featureIds = [...new Set(item.featureIds.map(Number).filter(id => Number.isInteger(id) && id >= 0))].slice(0, 2500);
+  return featureIds.length ? { layerId, featureIds } : null;
+}
 
 export const systemPrompt = (layers: Array<Record<string, unknown>>, workspace: Parameters<typeof buildBrowserSystemPrompt>[1] = {}) =>
   buildBrowserSystemPrompt(layers, workspace, browserProjectMemory());
@@ -106,7 +114,8 @@ async function emit(s: Session, event: Event) {
 async function snapshot(s: Session, after: number) {
   const layers = await browserLayers();
   return { type: "snapshot", reset: after === 0, events: s.events.filter(e => e.seq! > after), cursor: s.seq, busy: s.busy,
-    workspace: { layers, pendingJobs: [], outputs: [], aoi: s.workspace?.aoi ?? null, aoi_bbox: s.workspace?.aoi_bbox ?? s.workspace?.aoi ?? null, selectedLayerId: s.workspace?.selectedLayerId ?? null, selectedLayerName: s.workspace?.selectedLayerName ?? null },
+    workspace: { layers, pendingJobs: [], outputs: [], aoi: s.workspace?.aoi ?? null, aoi_bbox: s.workspace?.aoi_bbox ?? s.workspace?.aoi ?? null,
+      selectedLayerId: s.workspace?.selectedLayerId ?? null, selectedLayerName: s.workspace?.selectedLayerName ?? null, selection: s.workspace?.selection ?? null },
     pendingApprovals: [...approvals.keys()].filter(k => k.startsWith(`${s.id}:`)).map(k => k.slice(s.id.length + 1)) };
 }
 engineEvents.addEventListener("workspace", () => { for (const pending of sessions.values()) void pending.then(async s => { const event = await snapshot(s, s.seq); for (const listener of s.listeners) listener(event); }); });
@@ -182,7 +191,8 @@ async function runTurn(s: Session, text: string) {
     const workspace = s.workspace ?? {};
     const system = systemPrompt(layers, workspace);
     const context = await compactBrowserMessages(s.messages, system, config.contextWindow,
-      { layers, pendingJobs: [], outputs: [], aoi: workspace.aoi ?? null, aoi_bbox: workspace.aoi_bbox ?? workspace.aoi ?? null, selectedLayerId: workspace.selectedLayerId ?? null, selectedLayerName: workspace.selectedLayerName ?? null }, s.id, config.maxToolOutputChars);
+      { layers, pendingJobs: [], outputs: [], aoi: workspace.aoi ?? null, aoi_bbox: workspace.aoi_bbox ?? workspace.aoi ?? null,
+        selectedLayerId: workspace.selectedLayerId ?? null, selectedLayerName: workspace.selectedLayerName ?? null, selection: workspace.selection ?? null }, s.id, config.maxToolOutputChars);
     s.messages = context.messages;
     if (context.compacted) await emit(s, { type: "compaction", before: context.before, after: context.after, summary: context.summary });
     else if (context.trimmed) recordLog("context-trim", "旧工具输出已精简", { before: context.before, after: context.after });
@@ -254,6 +264,7 @@ export async function browserAgentRequest(path: string, init: RequestInit = {}):
         aoi_bbox: validAoi(body.workspace.aoi_bbox ?? body.workspace.aoi),
         selectedLayerId: typeof body.workspace.selectedLayerId === "string" ? body.workspace.selectedLayerId.slice(0, 160) : null,
         selectedLayerName: typeof body.workspace.selectedLayerName === "string" ? body.workspace.selectedLayerName.slice(0, 240) : null,
+        selection: validSelection(body.workspace.selection),
       };
     }
     s.busy = true; void runTurn(s, body.text); return Response.json({ ok: true });

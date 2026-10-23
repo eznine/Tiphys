@@ -5,7 +5,7 @@ import { assertGeojson, boundsOf, metricCrs } from "./geometry";
 import { rasterRenderer, type RasterRenderer } from "./raster-display";
 import { deleteRecord, readRecord, records, writeRecord } from "./storage";
 import { fileInfo, loadWasmManifests, originalGeojson, wasmTool } from "./wasm";
-import { browserCatalogState, browserToolCatalog, ensureBrowserCatalog, hydrateWasmCatalog } from "./catalog-schema";
+import { browserCatalogState, browserToolCatalog, ensureBrowserCatalog, hydrateWasmCatalog, isOutputLikeParam } from "./catalog-schema";
 import { pluginToolNames, runPluginTool } from "../plugins/registry";
 import type { GeeAuthStatus } from "../gee";
 
@@ -278,7 +278,10 @@ function validate(name: string, args: Record<string, any>) {
   const t = browserCatalog.find(t => t.name === name);
   if (!t) throw new Error(`当前浏览器引擎不支持工具：${name}`);
   const schema = t.parameters as { properties: Record<string, any>; required?: string[] };
-  for (const key of schema.required ?? []) if (args[key] === undefined || args[key] === null || args[key] === "") throw new Error(`缺少参数：${key}`);
+  for (const key of schema.required ?? []) {
+    const value = args[key];
+    if (value === undefined || value === null || value === "" || Array.isArray(value) && value.length === 0) throw new Error(`缺少参数：${key}`);
+  }
   for (const [key, value] of Object.entries(args)) {
     if (!(key in schema.properties)) throw new Error(`未知参数：${key}`);
     const s = schema.properties[key].anyOf?.find((v: any) => v.type !== "null") ?? schema.properties[key];
@@ -292,6 +295,11 @@ function validate(name: string, args: Record<string, any>) {
 }
 /** Output file extension per tool output data kind; file outputs keep the tool's own choice. */
 const OUTPUT_EXT: Record<string, string> = { vector: "fgb", raster: "tif", table: "csv", text: "txt", json: "json" };
+/** Stack weights are scalar lists even though the upstream manifest labels them as raster inputs. */
+const RAW_INPUT_PARAMETERS: Record<string, Set<string>> = {
+  weighted_overlay: new Set(["weights"]),
+  weighted_sum: new Set(["weights"]),
+};
 /** Formats the WASI build can actually read/write; example paths sometimes name others (e.g. shp). */
 const SUPPORTED_EXT: Record<string, string[]> = {
   vector: ["geojson", "topojson", "gml", "gpx", "kml", "fgb", "gpkg", "kmz", "geoparquet"],
@@ -301,6 +309,7 @@ const ATTACHMENT_KINDS = new Set(["file", "text", "json"]);
 async function runNative(id: string, args: Record<string, any>, signal?: AbortSignal) {
   const manifest = (await loadWasmManifests()).find(t => t.id === id);
   if (!manifest) throw new Error("未知 WASM 工具。");
+  const defaults: Record<string, unknown> = { ...(manifest.defaults ?? {}), ...(id === "build_network_topology" ? { snap_tolerance: 0.000001 } : {}) };
   // Format-defining tools read the extension from the output path, so prefer the
   // extension used in the tool's own example when we have one.
   const outputExt = (p: { name: string; data_kind: string }) => {
@@ -313,21 +322,32 @@ async function runNative(id: string, args: Record<string, any>, signal?: AbortSi
   const input: Record<string, Uint8Array> = {}, parameters: Record<string, any> = {};
   let vectorCrs: string | undefined;
   for (const p of manifest.params) {
-    if (p.io_role === "input") {
+    if (p.io_role === "input" && !isOutputLikeParam(p)) {
       if (!args[p.name]) continue;
-      const record = await resolve(args[p.name]);
-      const kind = record.info.kind ?? "vector";
-      if (kind !== p.data_kind) throw new Error(`参数 ${p.name} 需要${kindLabel(String(p.data_kind))}输入，但「${record.info.name}」是${kindLabel(kind)}图层。`);
-      if (kind === "vector") {
-        if (vectorCrs && record.info.crs !== vectorCrs) throw new Error("高级工具的输入图层坐标系不同，请先重投影到同一坐标系。");
-        vectorCrs = record.info.crs;
+      if (RAW_INPUT_PARAMETERS[id]?.has(p.name)) { parameters[p.name] = String(args[p.name]); continue; }
+      const values = (Array.isArray(args[p.name]) ? args[p.name] : [args[p.name]]).map(String).filter(Boolean);
+      const paths: string[] = [];
+      for (const [index, value] of values.entries()) {
+        const record = await resolve(value);
+        const kind = record.info.kind ?? "vector";
+        if (kind !== p.data_kind) throw new Error(`参数 ${p.name} 需要${kindLabel(String(p.data_kind))}输入，但「${record.info.name}」是${kindLabel(kind)}图层。`);
+        if (kind === "vector") {
+          if (vectorCrs && record.info.crs !== vectorCrs) throw new Error("高级工具的输入图层坐标系不同，请先重投影到同一坐标系。");
+          vectorCrs = record.info.crs;
+        }
+        const file = `${p.name}${values.length > 1 ? `_${index + 1}` : ""}.${record.extension}`;
+        input[file] = record.bytes;
+        paths.push(`/work/${file}`);
       }
-      const file = `${p.name}.${record.extension}`; input[file] = record.bytes; parameters[p.name] = `/work/${file}`;
-    } else if (p.io_role === "output") parameters[p.name] = `/work/${p.name}.${outputExt(p)}`;
-    else if (args[p.name] !== undefined && args[p.name] !== "") parameters[p.name] = args[p.name];
+      if (paths.length) parameters[p.name] = paths.join(",");
+    } else if (isOutputLikeParam(p)) parameters[p.name] = `/work/${p.name}.${outputExt(p)}`;
+    else {
+      const value = args[p.name] ?? defaults[p.name];
+      if (value !== undefined && value !== null && value !== "") parameters[p.name] = value;
+    }
   }
   const result = await wasmTool(id, input, parameters, signal);
-  const outputs = manifest.params.filter(p => p.io_role === "output");
+  const outputs = manifest.params.filter(isOutputLikeParam);
   const published = { layers: [] as Record<string, any>[], attachments: [] as Record<string, any>[] };
   let firstName = "";
   for (const p of outputs) {

@@ -9,7 +9,21 @@ npm ci
 npm run build
 ```
 
-Upload the contents of `dist/` to the web root. Keep the generated `assets/` filenames unchanged; Vite hashes them for cache busting. The map worker URL is emitted by `?url` import in `MapCanvas.tsx`, so do not rewrite files inside `assets/`.
+The artifact is the **`dist/` directory in the repository root**. Upload its contents (not the parent directory) to the web root:
+
+```text
+dist/
+  index.html                  # SPA entry, never cache during rollout
+  logo-temp.png               # copied from public/
+  samples/beijing_points.geojson
+  licenses/frontend.md        # generated dependency notices
+  assets/*.js
+  assets/*.css
+  assets/*.wasm
+  assets/maplibre-gl-worker-*.mjs
+```
+
+Keep the generated `assets/` filenames unchanged; Vite hashes them for cache busting. The map worker URL is emitted by a `?url` import in `MapCanvas.tsx`, so do not rewrite files inside `assets/`. The app must be served from the site root (`/`). If it is deployed under a subpath, set Vite's `base` and rebuild rather than moving hashed assets after the build.
 
 Minimum server behavior:
 
@@ -23,10 +37,53 @@ Minimum server behavior:
 
 ## Current payload shape
 
-- `wasm-catalog.json` is a lazy chunk of roughly 1.9 MB in the current build. It contains tool schemas, not cartographic tiles.
-- `geolibre-cli.wasm` is about 24 MB and `geolibre_wasm_bg.wasm` about 6.6 MB in the current dependency. They are fetched for local WASM tools and are not part of the initial HTML.
+- The lazy catalog chunk is about 1.95 MB uncompressed / 327 kB gzip in the current build. It contains tool schemas, not cartographic tiles.
+- The main app chunk is about 1.90 MB uncompressed / 577 kB gzip. It includes MapLibre and the workspace shell; the 500 kB Vite warning is expected and does not mean the page fails to load.
+- `geolibre-cli.wasm` is about 24.1 MB uncompressed / 8.2 MB gzip and `geolibre_wasm_bg.wasm` is about 6.66 MB / 2.13 MB gzip. They are fetched only for local WASM tools and are not part of the initial HTML.
 - The map starts before tool catalog hydration finishes. The toolbox shows a 39-tool shell first and reaches 997 merged tools after hydration (993 visible after hiding four engine-only controls).
 - Enable Brotli/gzip for HTML, JS, CSS and JSON. The host may also compress `.wasm`; always preserve the `application/wasm` type.
+- Cloudflare Pages has a 25 MiB per-asset limit. The current 24.1 MB CLI WASM fits, but a dependency upgrade could cross the limit. If that happens, host the WASM from R2/another static origin with CORS and update the explicit worker/fetch URL; do not silently ship a truncated file.
+
+## Cloudflare Pages
+
+Use these project settings for a static Pages deployment:
+
+| Setting | Value |
+| --- | --- |
+| Framework preset | None / Vite |
+| Build command | `npm ci && npm run build` |
+| Build output directory | `dist` |
+| Root directory | repository root |
+| Node version | `20.19.2` (or Node 22 LTS; pin one in the Pages project) |
+| Environment variables | none for the normal static build |
+
+The browser build does not require a Worker, Functions, Python, Node at runtime, or an API key. `VITE_TIPHYS_GEE_DEMO=1` is optional and only enables the labelled demo path; it is not a GEE credential and does not make Earth Engine connected.
+
+Pages handles unknown paths with a static fallback only if configured. TIPHYS is currently a single `/` view, but if direct deep links are added, create `public/_redirects`:
+
+```text
+/* /index.html 200
+```
+
+For cache headers, keep the entry document fresh and hashed assets immutable. A `public/_headers` template is:
+
+```text
+/index.html
+  Cache-Control: no-cache
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+```
+
+Do not enable the generic "Always Online" or HTML minification transforms if they rewrite worker/WASM URLs. After upload, verify the response headers and the exact MIME type with `curl -I https://tiphys.xyz/assets/geolibre-cli-*.wasm`; it must be `application/wasm`, not `application/octet-stream`.
+
+An optional CLI deploy (after the project exists and Cloudflare credentials are configured outside this repository) is:
+
+```bash
+npx wrangler pages deploy dist --project-name tiphys
+```
+
+No deploy is performed by `npm run build`; the build is fully static and credential-free.
 
 ## COOP/COEP
 

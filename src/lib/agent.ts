@@ -1,17 +1,17 @@
 /** Client for the TIPHYS agent sidecar (HTTP + SSE on 127.0.0.1:8972). */
 import { useCallback, useEffect, useState } from "react";
-import type { DataLayer, LayerStyle } from "./dataLayers";
+import type { DataLayer, LayerSelection, LayerStyle } from "./dataLayers";
 import { agentHealth, agentRequest, bootstrap, readEvents } from "./service";
 
 export type TimelineItem =
   | { kind: "msg"; id: string; role: "user" | "agent"; text: string }
-  | { kind: "tool"; id: string; name: string; status: "running" | "done" | "error" | "rejected"; input?: unknown; summary?: string }
+  | { kind: "tool"; id: string; name: string; status: "running" | "done" | "error" | "rejected"; input?: unknown; output?: unknown; summary?: string }
   | { kind: "job"; id: string; toolName?: string; label: string; status: string; progress: number; message: string }
   | { kind: "approval"; id: string; toolName: string; input: unknown; state: "pending" | "approved" | "rejected" | "expired" }
   | { kind: "notice"; id: string; text: string };
 
 export type ViewCommand = { id: string | number; action: "zoom" | "attributes" | "style" | "labels"; layer_id: string; bounds?: number[]; style?: Partial<LayerStyle> };
-export type AgentWorkspaceContext = { aoi?: number[] | null; selectedLayerId?: string | null; selectedLayerName?: string | null };
+export type AgentWorkspaceContext = { aoi?: number[] | null; selectedLayerId?: string | null; selectedLayerName?: string | null; selection?: LayerSelection | null };
 export type AgentState = {
   viewCommands?: ViewCommand[];
   items: TimelineItem[];
@@ -21,6 +21,7 @@ export type AgentState = {
   provider: string;
   focus: number[] | null;
   cursor?: number;
+  hydrated: boolean;
 };
 
 type Ev = { type: string; [k: string]: any };
@@ -57,7 +58,7 @@ export function reduce(s: AgentState, e: Ev): AgentState {
     // Health describes the current provider. Historical settings events must not
     // relabel a restarted Agent after its startup configuration has changed.
     for (const event of e.events) if (event.type !== "model-config") st = reduce(st, event);
-    return { ...st, cursor: e.cursor, busy: e.busy, layers: (e.workspace.layers as DataLayer[]).map(l => ({ ...l,
+    return { ...st, cursor: e.cursor, busy: e.busy, hydrated: true, layers: (e.workspace.layers as DataLayer[]).map(l => ({ ...l,
       visible: s.layers.find(old => old.id === l.id)?.visible ?? true })),
       items: st.items.map(item => item.kind === "approval" && item.state === "pending" && !e.pendingApprovals.includes(item.id)
         ? { ...item, state: "expired" } : item) };
@@ -95,7 +96,7 @@ export function reduce(s: AgentState, e: Ev): AgentState {
     case "tool-call":
       return { ...s, items: upsert(s.items, { kind: "tool", id: e.toolCallId, name: e.toolName, status: "running", input: e.input }) };
     case "tool-result":
-      return { ...s, items: upsert(s.items, { kind: "tool", id: e.toolCallId, name: e.toolName, status: e.output?.denied ? "rejected" : "done", summary: summarize(e.output) }) };
+      return { ...s, items: upsert(s.items, { kind: "tool", id: e.toolCallId, name: e.toolName, status: e.output?.denied ? "rejected" : "done", output: e.output, summary: summarize(e.output) }) };
     case "tool-error":
       return { ...s, items: upsert(s.items, { kind: "tool", id: e.toolCallId, name: e.toolName, status: "error", summary: e.error }) };
     case "approval-request":
@@ -145,11 +146,11 @@ export function reduce(s: AgentState, e: Ev): AgentState {
 }
 
 export function useAgent(session = "default") {
-  const [state, setState] = useState<AgentState>({ items: [], layers: [], busy: false, connected: false, provider: "?", focus: null });
+  const [state, setState] = useState<AgentState>({ items: [], layers: [], busy: false, connected: false, provider: "?", focus: null, hydrated: false });
   useEffect(() => {
     const controller = new AbortController();
     let cursor = 0;
-    setState(s => ({ ...s, items: [], layers: [], busy: false, connected: false, cursor: 0, viewCommands: [] }));
+    setState(s => ({ ...s, items: [], layers: [], busy: false, connected: false, cursor: 0, viewCommands: [], hydrated: false }));
     (async () => {
       while (!controller.signal.aborted) {
         try {
@@ -198,6 +199,10 @@ export function useAgent(session = "default") {
     cancelTurn: useCallback(() => { void post("/turn/cancel", {}); }, [post]),
     toggleLayer: useCallback(
       (id: string) => setState((s) => ({ ...s, layers: s.layers.map((l) => (l.id === id ? { ...l, visible: l.visible === false } : l)) })),
+      [],
+    ),
+    setLayerVisibility: useCallback(
+      (id: string, visible: boolean) => setState((s) => ({ ...s, layers: s.layers.map((l) => (l.id === id ? { ...l, visible } : l)) })),
       [],
     ),
     /** Apply manual results through the same layer events used by Agent calls. */

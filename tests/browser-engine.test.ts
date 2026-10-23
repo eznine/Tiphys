@@ -17,6 +17,8 @@ import { mapExportFilename, mapPngDataUrl } from "../src/lib/map-export.ts";
 import { geeExecutionAllowed } from "../src/lib/gee.ts";
 import { defaultLayerStyle, PALETTE } from "../src/lib/dataLayers.ts";
 import { releaseIdleWasmToolWorkers, warmWasmToolRunner } from "../src/lib/browser/wasm-tool-runner.ts";
+import { buildWorkspaceSnapshot, normalizeWorkspaceSnapshot, WORKSPACE_SCHEMA, WORKSPACE_VERSION } from "../src/lib/workspace.ts";
+import { pipelineResult } from "../src/components/ToolResultDetails.tsx";
 import type { ModelMessage } from "ai";
 
 before(async () => {
@@ -287,6 +289,40 @@ test("hydrology helper chains depression fill, D8 flow and stream extraction on 
   assert.equal(watershedLayer.raster.width, outputs[0].raster.width);
 });
 
+test("Whitebox extension is a real breach, fill and D8 chain", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const cell = 100, features: any[] = [];
+  for (let row = 0; row < 10; row++) for (let col = 0; col < 10; col++) {
+    const x = 500000 + col * cell, y = 4400000 + row * cell;
+    features.push({ type: "Feature", properties: { elev: 1000 - row * 3 - col + (row === 4 && col === 4 ? -12 : 0) },
+      geometry: { type: "Polygon", coordinates: [[[x, y], [x + cell, y], [x + cell, y + cell], [x, y + cell], [x, y]]] } });
+  }
+  const source = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features })]), "whitebox_dem_source.geojson")).layer;
+  const dem = (await finished("wasm_vector_polygons_to_raster", { input: source.id, field: "elev", cell_size: cell, output_name: "whitebox_dem" })).layer;
+  const result = await finished("whitebox_extra", { dem: dem.id, max_dist: 20, fill_flat_increment: 0.001, output_name: "whitebox_conditioned" });
+  assert.equal(result.ok, true);
+  assert.equal(result.plugin, "whitebox-extra");
+  assert.deepEqual(result.tools, ["wasm_breach_depressions_least_cost", "wasm_fill_depressions", "wasm_d8_pointer"]);
+  assert.deepEqual(result.steps.map((step: any) => step.status), ["completed", "completed", "completed"]);
+  const layers = result.layers.map((item: any) => item.layer);
+  assert.equal(layers.length, 3);
+  assert.ok(layers.every((layer: any) => layer.kind === "raster" && layer.raster.width === dem.raster.width));
+  assert.match(result.limitations, /不计算汇流累积/);
+});
+
+test("network topology form publishes optional node output instead of requesting it as input", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const network = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [
+    { type: "Feature", properties: { id: 1 }, geometry: { type: "LineString", coordinates: [[500000, 4400050], [5001000, 4400050]] } },
+    { type: "Feature", properties: { id: 2 }, geometry: { type: "LineString", coordinates: [[5000500, 4400000], [5000500, 4401000]] } },
+  ] })]), "network_lines.geojson")).layer;
+  const result = await finished("wasm_build_network_topology", { input: network.id, output_name: "noded_network" });
+  const layers = Array.isArray(result.layers) ? result.layers.map((item: any) => item.layer).filter(Boolean) : (result.layer ? [result.layer] : []);
+  assert.equal(layers.length, 2);
+  assert.ok(layers.some((layer: any) => layer.geometry_types.some((type: string) => type.includes("Line"))));
+  assert.ok(layers.some((layer: any) => layer.geometry_types.some((type: string) => type.includes("Point"))));
+});
+
 test("least-cost path helper produces point paths, polygon centerlines and a real cost surface", async () => {
   const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
   const cell = 100;
@@ -472,8 +508,9 @@ test("GEE slice, ArcGIS adapters and explanatory plugin return honest structured
   assert.equal(arcgis.supported, false);
   assert.ok(arcgis.alternatives.length > 0);
 
-  const whitebox = await finished("whitebox_extra", {});
-  assert.equal(whitebox.available, false);
+  const whitebox = browserCatalog.find(tool => tool.name === "whitebox_extra");
+  assert.ok(whitebox);
+  assert.equal(whitebox.parameters.required?.[0], "dem");
   assert.ok(browserCatalog.some(t => t.name === "linkage_mapper_corridor"));
 });
 
@@ -517,6 +554,10 @@ test("browser tool search ranks Chinese names and taxonomy, not only description
   assert.ok(network.some(t => t.name === "wasm_closest_facility_network"));
   const rasterOverlay = searchBrowserTools(browserCatalog, "栅格 叠加", { limit: 12 });
   assert.ok(rasterOverlay.some(t => t.name === "wasm_weighted_overlay"));
+  for (const [query, expected] of [["网络", "wasm_build_network_topology"], ["最近设施", "wasm_closest_facility_network"], ["加权叠加", "wasm_weighted_overlay"]]) {
+    const matches = searchBrowserTools(browserCatalog, query, { limit: 20 });
+    assert.ok(matches.some(t => t.name === expected), `${query} should discover ${expected}`);
+  }
   for (const [query, expected] of [["走廊", "linkage_mapper_corridor"], ["廊道", "linkage_mapper_corridor"],
     ["水文", "hydrology_flow_pipeline"], ["最小成本", "least_cost_path_pipeline"]]) {
     const matches = searchBrowserTools(browserCatalog, query, { limit: 20 });
@@ -524,10 +565,66 @@ test("browser tool search ranks Chinese names and taxonomy, not only description
   }
   const prompt = buildBrowserSystemPrompt([{ id: "lyr_prompt", name: "道路", kind: "vector" }], {
     aoi: [116.1, 39.1, 116.4, 39.4], selectedLayerId: "lyr_prompt", selectedLayerName: "道路",
+    selection: { layerId: "lyr_prompt", featureIds: [7, 9] },
   });
   assert.match(prompt, /116\.1,39\.1,116\.4,39\.4/);
   assert.match(prompt, /lyr_prompt/);
+  assert.match(prompt, /当前要素选择.*"feature_ids":\[7,9\]/);
   for (const name of ["linkage_mapper_corridor", "hydrology_flow_pipeline", "least_cost_path_pipeline", "clip_layers_to_aoi"]) assert.match(prompt, new RegExp(name));
+});
+
+test("weighted stack schemas expose multi-raster inputs and execute weighted overlay/sum", async () => {
+  await ensureBrowserCatalog();
+  const overlay = browserCatalog.find(tool => tool.name === "wasm_weighted_overlay")!;
+  const sum = browserCatalog.find(tool => tool.name === "wasm_weighted_sum")!;
+  assert.equal((overlay.parameters.properties as any).factors.type, "array");
+  assert.equal((overlay.parameters.properties as any).factors["x-layer-multiple"], true);
+  assert.equal((overlay.parameters.properties as any).weights.type, "string");
+  assert.equal((sum.parameters.properties as any).input_rasters.type, "array");
+  assert.equal((sum.parameters.properties as any).weights.type, "string");
+  const topology = browserCatalog.find(tool => tool.name === "wasm_build_network_topology")!;
+  assert.ok(!("nodes_output" in topology.parameters.properties), "optional node output must not be requested as a layer input");
+
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const features = [] as any[];
+  for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++) {
+    const x = 500000 + col * 100, y = 4400000 + row * 100;
+    features.push({ type: "Feature", properties: { a: row + col + 1, b: 10 - row - col },
+      geometry: { type: "Polygon", coordinates: [[[x, y], [x + 100, y], [x + 100, y + 100], [x, y + 100], [x, y]]] } });
+  }
+  const source = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features })]), "weighted_factors.geojson")).layer;
+  const factorA = (await finished("wasm_vector_polygons_to_raster", { input: source.id, field: "a", cell_size: 100, output_name: "factor_a" })).layer;
+  const factorB = (await finished("wasm_vector_polygons_to_raster", { input: source.id, field: "b", cell_size: 100, output_name: "factor_b" })).layer;
+  const weighted = await finished("wasm_weighted_overlay", {
+    factors: [factorA.id, factorB.id], weights: "0.6,0.4", scale_max: 1, output_name: "weighted_result",
+  });
+  const weightedLayer = weighted.layer ?? weighted.layers?.[0]?.layer;
+  assert.equal(weightedLayer.kind, "raster");
+  assert.equal(weightedLayer.raster.width, factorA.raster.width);
+  const summed = await finished("wasm_weighted_sum", {
+    input_rasters: [factorA.id, factorB.id], weights: "1,1", output_name: "weighted_sum_result",
+  });
+  assert.equal((summed.layer ?? summed.layers?.[0]?.layer).kind, "raster");
+});
+
+test("workspace snapshots validate AOI, selection and layer metadata without storing raster bytes", () => {
+  const layer = { id: "lyr_test", name: "测试栅格", url: "blob:preview", geometry_types: [], feature_count: 0, bounds: [116, 39, 117, 40], crs: "EPSG:4326", kind: "raster" as const };
+  const snapshot = buildWorkspaceSnapshot([layer], {
+    selectedLayerId: layer.id, aoi: [116, 39, 116.5, 39.5], selection: { layerId: layer.id, featureIds: [1, 2, 2] }, tableLayerId: null,
+  }, 1234);
+  assert.equal(snapshot.schema, WORKSPACE_SCHEMA);
+  assert.equal(snapshot.version, WORKSPACE_VERSION);
+  assert.deepEqual(snapshot.aoi, [116, 39, 116.5, 39.5]);
+  assert.deepEqual(snapshot.selection?.featureIds, [1, 2]);
+  assert.ok(!("url" in snapshot.layers[0]));
+  const restored = normalizeWorkspaceSnapshot(JSON.parse(JSON.stringify(snapshot)));
+  assert.equal(restored?.selectedLayerId, layer.id);
+  assert.equal(restored?.layers[0].kind, "raster");
+  assert.equal(normalizeWorkspaceSnapshot({ ...snapshot, version: 2 }), null);
+  assert.equal(normalizeWorkspaceSnapshot({ ...snapshot, selectedLayerId: "missing" })?.selectedLayerId, null);
+  assert.equal(normalizeWorkspaceSnapshot({ ...snapshot, aoi: [117, 39, 116, 40] })?.aoi, null);
+  assert.ok(pipelineResult({ steps: [{ tool: "step", status: "completed" }] }));
+  assert.equal(pipelineResult({ ok: true }), null);
 });
 
 test("catalog shell is immediately usable and async hydration reaches the honest full count", async () => {
@@ -608,7 +705,8 @@ test("browser context trims old tool output, then compacts with GIS state and a 
   assert.match(spill.text, /旧工具输出/);
 
   const workspace = { layers: [{ id: "lyr_1", name: "道路", kind: "vector", crs: "EPSG:4326", feature_count: 12, geometry_types: ["LineString"], bounds: [1, 2, 3, 4] }],
-    aoi_bbox: [116.1, 39.1, 116.4, 39.4], selectedLayerId: "lyr_1", selectedLayerName: "道路", outputs: ["/work/path.fgb"], pendingJobs: ["job_demo"] };
+    aoi_bbox: [116.1, 39.1, 116.4, 39.4], selectedLayerId: "lyr_1", selectedLayerName: "道路",
+    selection: { layerId: "lyr_1", featureIds: [2, 5] }, outputs: ["/work/path.fgb"], pendingJobs: ["job_demo"] };
   const longSession: ModelMessage[] = Array.from({ length: 10 }, (_, index) => ({
     role: index % 2 ? "assistant" : "user",
     content: `第 ${index} 轮决策：保留道路图层，检查网络连通性，准备加权叠加。`.repeat(60),
@@ -623,6 +721,8 @@ test("browser context trims old tool output, then compacts with GIS state and a 
   assert.match(handoff, /"aoi_bbox":\[116\.1,39\.1,116\.4,39\.4\]/);
   assert.match(handoff, /AOI bbox \(WGS84\): 116\.1,39\.1,116\.4,39\.4/);
   assert.match(handoff, /Selected layer: 道路 \(lyr_1\)/);
+  assert.match(handoff, /Selected features: 2 in 道路 \(lyr_1\)/);
+  assert.match(handoff, /"selected_features":\{"layer_id":"lyr_1","layer_name":"道路","count":2,"feature_ids":\[2,5\],"truncated":false\}/);
   assert.match(handoff, /least_cost_path_pipeline/);
   assert.match(handoff, /"selected_layer":\{"id":"lyr_1","name":"道路"\}/);
   const archiveId = /read_browser_output with id=([a-f0-9]{32})/.exec(handoff)?.[1];

@@ -16,9 +16,12 @@ export type BrowserWorkspace = {
   aoi_bbox?: number[] | null;
   selectedLayerId?: string | null;
   selectedLayerName?: string | null;
+  selection?: { layerId: string; featureIds: number[] } | null;
   outputs?: string[];
   pendingJobs?: string[];
 };
+
+const HANDOFF_SELECTION_LIMIT = 120;
 
 function outputText(output: unknown): string {
   if (typeof output === "string") return output;
@@ -139,6 +142,15 @@ function buildHandoff(old: ModelMessage[], archiveId: string, workspace: Browser
     id: layer.id, name: layer.name, kind: layer.kind, crs: layer.crs, n: layer.feature_count, geometry: layer.geometry_types, bbox: layer.bounds,
   }));
   const aoi = workspace.aoi_bbox ?? workspace.aoi ?? null;
+  const selection = workspace.selection?.layerId && workspace.selection.featureIds?.length
+    ? {
+        layer_id: workspace.selection.layerId,
+        layer_name: layers.find(layer => layer.id === workspace.selection?.layerId)?.name ?? null,
+        count: workspace.selection.featureIds.length,
+        feature_ids: workspace.selection.featureIds.slice(0, HANDOFF_SELECTION_LIMIT),
+        truncated: workspace.selection.featureIds.length > HANDOFF_SELECTION_LIMIT,
+      }
+    : null;
   const toolNames = recentToolNames(old);
   const layerLines = layers.slice(0, 40).map(layer => {
     const geometry = Array.isArray(layer.geometry) && layer.geometry.length ? ` · ${layer.geometry.join("/")}` : "";
@@ -151,6 +163,7 @@ function buildHandoff(old: ModelMessage[], archiveId: string, workspace: Browser
     "## GIS context (authoritative current workspace)",
     `- AOI bbox (WGS84): ${aoi ? aoi.join(",") : "not set"}`,
     `- Selected layer: ${workspace.selectedLayerId ? `${workspace.selectedLayerName ?? workspace.selectedLayerId} (${workspace.selectedLayerId})` : "none"}`,
+    `- Selected features: ${selection ? `${selection.count} in ${selection.layer_name ?? selection.layer_id} (${selection.layer_id}); feature_ids listed up to ${HANDOFF_SELECTION_LIMIT}` : "none"}`,
     `- Layers (${layers.length}):`,
     ...(layerLines.length ? layerLines : ["- None."]),
     "## Recent tool names",
@@ -165,6 +178,7 @@ function buildHandoff(old: ModelMessage[], archiveId: string, workspace: Browser
       layers,
       aoi_bbox: aoi,
       selected_layer: workspace.selectedLayerId ? { id: workspace.selectedLayerId, name: workspace.selectedLayerName ?? null } : null,
+      selected_features: selection,
       output_paths: workspace.outputs ?? [],
       pending_job_ids: workspace.pendingJobs ?? [],
     }),

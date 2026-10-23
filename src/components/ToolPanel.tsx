@@ -4,8 +4,9 @@ import type { DataLayer } from "../lib/dataLayers";
 import { zhParam, zhTool, zhToolL1, zhToolL2 } from "../lib/i18n/tools";
 import { engineRequest } from "../lib/service";
 import { geeExecutionAllowed, type GeeAuthStatus } from "../lib/gee";
+import { PipelineResultDetails, pipelineResult } from "./ToolResultDetails";
 
-type Schema = { type?: string; enum?: string[]; default?: unknown; anyOf?: Schema[]; description?: string; "x-layer"?: boolean; "x-layer-kind"?: string };
+type Schema = { type?: string; enum?: string[]; default?: unknown; anyOf?: Schema[]; description?: string; "x-layer"?: boolean; "x-layer-kind"?: string; "x-layer-multiple"?: boolean };
 type CatalogTool = {
   name: string; description?: string;
   label?: string;
@@ -71,6 +72,10 @@ const FIELDS: Record<string, string> = {
   source: "源端图层", destination: "目的地图层", connections: "连接方式", include_cost_surface: "输出成本距离表面",
   aoi_west: "AOI 西边界（WGS84）", aoi_south: "AOI 南边界（WGS84）", aoi_east: "AOI 东边界（WGS84）", aoi_north: "AOI 北边界（WGS84）",
   maintain_dimensions: "保留原栅格尺寸",
+  factors: "因子栅格（多选，按选择顺序）", input_rasters: "输入栅格（多选，按选择顺序）",
+  weights: "权重（逗号分隔）", scale_max: "归一化上限", max_dist: "最大搜索距离（像元）",
+  max_cost: "最大开裂成本", minimize_dist: "按距离加权开裂成本", flat_increment: "平地增量",
+  fill_flat_increment: "填平增量", breach_distance: "开裂搜索距离",
 };
 const STATUS: Record<string, string> = {
   submitting: "提交中", queued: "排队中", running: "运行中", cancelling: "正在取消",
@@ -100,7 +105,7 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
   const [geeStatus, setGeeStatus] = useState<GeeAuthStatus | null>(null);
   const [loadError, setLoadError] = useState("");
   const [toolName, setToolName] = useState("");
-  const [values, setValues] = useState<Record<string, string | boolean>>({});
+  const [values, setValues] = useState<Record<string, string | boolean | string[]>>({});
   const [job, setJob] = useState<PanelJob | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [columns, setColumns] = useState<string[]>([]);
@@ -213,8 +218,9 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
     if (!tool || busy || (tool.annotations?.destructiveHint && !confirmed)) return;
     const args: Record<string, unknown> = {};
     for (const [name, schema] of props) {
-      const value = values[name];
-      if (value === undefined || value === "") continue;
+      const value = values[name] ?? schema.default;
+      if (value === undefined || value === null || value === "") continue;
+      if (Array.isArray(value)) { if (value.length) args[name] = value; continue; }
       args[name] = schema.type === "number" || schema.type === "integer" ? Number(value) : value;
     }
     const pending: PanelJob = { jobId: "", label: toolTitle(tool), status: "submitting", progress: 0, message: "提交中…" };
@@ -307,6 +313,16 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
         const kindLayers = layerKind ? layers.filter(l => (l.kind ?? "vector") === layerKind) : [];
         const options = layerKind ? kindLayers.map(l => ({ value: l.id, label: l.kind === "raster" ? `${l.name}（栅格 ${l.raster?.width}×${l.raster?.height}）` : l.kind === "table" ? `${l.name}（表格 ${l.feature_count} 行）` : `${l.name} (${l.feature_count})` }))
           : fieldParam ? columns.map(c => ({ value: c, label: c })) : schema.enum?.map(v => ({ value: v, label: v }));
+        if (layerKind && schema["x-layer-multiple"]) {
+          const selected = Array.isArray(values[name]) ? values[name] as string[] : [];
+          return <label key={name} className="tool-field"><span>{label}</span>
+            <select multiple required={required && kindLayers.length > 0} aria-label={label} title={schema.description} size={Math.min(6, Math.max(3, kindLayers.length))}
+              value={selected} onChange={e => setValues(v => ({ ...v, [name]: Array.from(e.target.selectedOptions, option => option.value) }))}>
+              {kindLayers.map(layer => <option key={layer.id} value={layer.id}>{layer.name}{layer.kind === "raster" ? `（${layer.raster?.width}×${layer.raster?.height}）` : ""}</option>)}
+            </select>
+            {!kindLayers.length && <small className="tool-desc">尚无{ KIND_ZH[layerKind] }图层，请先导入或生成。</small>}
+          </label>;
+        }
         if (options) return <label key={name} className="tool-field"><span>{label}</span>
           <select title={schema.description} aria-label={label} required={required && options.length > 0} value={String(values[name] ?? schema.default ?? "")} onChange={e => setValues(v => ({ ...v, [name]: e.target.value }))}>
             <option value="">— {layerKind ? (kindLayers.length ? `选择${KIND_ZH[layerKind]}图层` : `尚无${KIND_ZH[layerKind] ?? ""}图层，请先导入或生成`) : "选择"} —</option>
@@ -334,7 +350,8 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
       <div className="route-progress job-route"><span style={{ ["--progress" as string]: `${Math.round(job.progress * 100)}%` }} /></div>
       <div className="job-foot"><span>{job.error || detailOf(job.result) || job.message}</span>
         {job.jobId && busy && <button type="button" className="icon-btn" disabled={job.status === "cancelling"} onClick={() => void cancel()}>取消任务</button>}</div>
-      {job.result && !job.result.layer && !job.result.layers && !job.result.path && !job.result.removed && <pre className="tool-result">{JSON.stringify(job.result, null, 2)}</pre>}
+      <PipelineResultDetails output={job.result} />
+      {job.result && !pipelineResult(job.result) && !job.result.layer && !job.result.layers && !job.result.path && !job.result.removed && <pre className="tool-result">{JSON.stringify(job.result, null, 2)}</pre>}
     </div>}
   </form>;
 }

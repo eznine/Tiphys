@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import type { TimelineItem } from "../lib/agent";
 import type { DataLayer } from "../lib/dataLayers";
 import { ToolPanel } from "./ToolPanel";
+import { PipelineResultDetails, pipelineResult } from "./ToolResultDetails";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Settings2, FolderPlus, ArrowUp, Square, Layers, Network, Waves, Route, Scissors, Sparkles } from "lucide-react";
@@ -105,13 +106,19 @@ export function ChatDock({ items, busy, connected, provider, layers, onSend, onA
                 {it.role === "agent" ? <div className="agent-markdown"><Markdown remarkPlugins={[remarkGfm]}>{it.text}</Markdown></div> : it.text}
               </div>
             );
-          if (it.kind === "tool")
+          if (it.kind === "tool") {
+            const pipeline = pipelineResult(it.output);
+            if (pipeline) return <div key={`tool:${it.id}`} className="tool-result-card" data-status={it.status}>
+              <div className="tool-result-card-head"><span className="tool-dot" /><code>{it.name}</code><span className="tool-sum">{it.summary}</span></div>
+              <PipelineResultDetails output={it.output} />
+            </div>;
             return (
               <div key={`tool:${it.id}`} className="tool-chip" data-status={it.status}>
                 <span className="tool-dot" /> <code>{it.name}</code>
                 <span className="tool-sum">{it.status === "running" ? "执行中…" : it.summary}</span>
               </div>
             );
+          }
           if (it.kind === "job") {
             const active = it.status === "running" || it.status === "queued";
             const cancelling = it.status === "cancelling";

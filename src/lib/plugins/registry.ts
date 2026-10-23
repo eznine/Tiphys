@@ -96,23 +96,80 @@ const linkageMapper: ExtensionManifest = {
 const whiteboxExtra: ExtensionManifest = {
   id: "whitebox-extra",
   name: "Whitebox Extra",
-  version: "0.1.0-stub",
+  version: "0.2.0",
   tools: [{
     name: "whitebox_extra",
-    label: "Whitebox 扩展包（占位）",
+    label: "Whitebox 洼地预处理链",
     category: EXTENSION_CATEGORY,
     subcategory: EXTENSION_SUBCATEGORY,
-    description: "说明入口：GeoLibre/WASM 已覆盖的 Whitebox 栅格、地形与水文工具无需重复安装。",
-    parameters: { type: "object", properties: {}, required: [], additionalProperties: false },
-    annotations: { readOnlyHint: true },
+    description: "对 DEM 串联最小成本开裂、填洼和 D8 流向指针，保留三个真实中间栅格；不复用完整水文链的汇流与河网步骤。",
+    parameters: {
+      type: "object",
+      properties: {
+        dem: { type: "string", "x-layer": true, "x-layer-kind": "raster", description: "输入 DEM 栅格" },
+        max_dist: { type: "number", default: 100, description: "开裂搜索的最大像元距离" },
+        max_cost: { type: "number", description: "可选的最大开裂成本" },
+        minimize_dist: { type: "boolean", default: false, description: "按距离加权开裂成本" },
+        fill_flat_increment: { type: "number", description: "可选填平增量；留空使用工具默认值" },
+        output_name: { type: "string", description: "结果图层名称前缀" },
+      },
+      required: ["dem"],
+      additionalProperties: false,
+    },
+    annotations: {},
   }],
-  run: () => ({
-    ok: false,
-    available: false,
-    plugin: "whitebox-extra",
-    message: "无需额外 Whitebox 扩展：栅格、地形、水文和遥感工具已通过 GeoLibre WASM 内置在工具箱中，可用搜索栏查找。",
-    examples: ["wasm_hillshade", "wasm_watershed", "wasm_extract_streams", "wasm_slope"],
-  }),
+  run: async (toolName, args, context) => {
+    if (toolName !== "whitebox_extra") throw new Error(`未知 Whitebox 工具：${toolName}`);
+    const base = String(args.output_name || "Whitebox洼地");
+    const maxDist = args.max_dist == null || args.max_dist === "" ? undefined : Number(args.max_dist);
+    if (maxDist !== undefined && (!Number.isInteger(maxDist) || maxDist <= 0)) throw new Error("开裂搜索距离必须为正整数。");
+    const maxCost = args.max_cost == null || args.max_cost === "" ? undefined : Number(args.max_cost);
+    if (maxCost !== undefined && (!Number.isFinite(maxCost) || maxCost <= 0)) throw new Error("最大开裂成本必须为正数。");
+    const flatIncrement = args.fill_flat_increment == null || args.fill_flat_increment === "" ? undefined : Number(args.fill_flat_increment);
+    if (flatIncrement !== undefined && (!Number.isFinite(flatIncrement) || flatIncrement <= 0)) throw new Error("填平增量必须为正数。");
+    const tools: string[] = [];
+    const steps: Array<Record<string, unknown>> = [];
+    const layers: Array<Record<string, any>> = [];
+    const record = (tool: string, step: string, result: Record<string, any>) => {
+      const layer = result.layer ?? result.layers?.[0]?.layer;
+      if (!layer) throw new Error(`${step}未生成结果图层。`);
+      tools.push(tool); layers.push(result); steps.push({ tool, step, layer: layer.id, status: "completed" });
+      return layer;
+    };
+
+    const breach = await context.runTool("wasm_breach_depressions_least_cost", {
+      dem: args.dem,
+      ...(maxDist !== undefined ? { max_dist: maxDist } : {}),
+      ...(maxCost !== undefined ? { max_cost: maxCost } : {}),
+      ...(args.minimize_dist === true ? { minimize_dist: true } : {}),
+      output_name: `${base}_开裂`,
+    });
+    const breached = record("wasm_breach_depressions_least_cost", "最小成本开裂", breach);
+
+    const filled = await context.runTool("wasm_fill_depressions", {
+      dem: breached.id,
+      ...(flatIncrement !== undefined ? { flat_increment: flatIncrement } : {}),
+      output_name: `${base}_填洼`,
+    });
+    const conditioned = record("wasm_fill_depressions", "填洼", filled);
+
+    const pointer = await context.runTool("wasm_d8_pointer", {
+      dem: conditioned.id,
+      output_name: `${base}_D8流向`,
+    });
+    record("wasm_d8_pointer", "D8 流向", pointer);
+
+    return {
+      ok: true,
+      plugin: "whitebox-extra",
+      model: "breach_fill_d8",
+      layers,
+      tools,
+      steps,
+      message: `Whitebox 洼地预处理链已完成，共执行 ${tools.length} 个 WASM 工具；开裂、填洼和 D8 指针结果均保留。`,
+      limitations: "该链只做洼地条件化与 D8 流向，不计算汇流累积、河网或流域。开裂参数决定可跨越的洼地范围；结果栅格网格与输入 DEM 一致。",
+    };
+  },
 };
 
 const hydrologyFlow: ExtensionManifest = {

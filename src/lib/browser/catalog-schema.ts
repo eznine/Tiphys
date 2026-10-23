@@ -5,7 +5,7 @@ import { pluginToolSchemas } from "../plugins/registry";
 
 export type CatalogSchema = {
   type?: string; enum?: string[]; default?: unknown; anyOf?: CatalogSchema[]; items?: CatalogSchema;
-  description?: string; "x-layer"?: boolean; "x-layer-kind"?: string;
+  description?: string; "x-layer"?: boolean; "x-layer-kind"?: string; "x-layer-multiple"?: boolean;
 };
 export type CatalogTool = {
   name: string; description?: string; label?: string;
@@ -14,11 +14,34 @@ export type CatalogTool = {
   annotations?: { destructiveHint?: boolean; readOnlyHint?: boolean };
 };
 
+/** Some upstream manifests mark optional output paths as inputs. */
+export function isOutputLikeParam(param: { name: string; io_role?: string; description?: string }): boolean {
+  return param.io_role === "output" || (param.io_role === "input" && /_output$/.test(param.name) && /output .*path/i.test(param.description ?? ""));
+}
+
+/** Upstream stack tools describe ordered layers as scalar inputs; the UI needs explicit arrays. */
+const WASM_SCHEMA_OVERRIDES: Record<string, Record<string, CatalogSchema>> = {
+  build_network_topology: {
+    snap_tolerance: { type: "number", default: 0.000001,
+      description: "交叉点吸附容差；默认 0.000001。使用投影坐标时可适当增大。" },
+  },
+  weighted_overlay: {
+    factors: { type: "array", "x-layer": true, "x-layer-kind": "raster", "x-layer-multiple": true,
+      description: "按顺序选择 2 个或更多因子栅格。" },
+    weights: { type: "string", default: "1,1", description: "与因子顺序对应的逗号分隔权重，例如 0.6,0.4。" },
+  },
+  weighted_sum: {
+    input_rasters: { type: "array", "x-layer": true, "x-layer-kind": "raster", "x-layer-multiple": true,
+      description: "按顺序选择 2 个或更多输入栅格。" },
+    weights: { type: "string", default: "1,1", description: "与输入栅格顺序对应的逗号分隔权重，例如 1,1。" },
+  },
+};
+
 /** Convert an upstream WASM manifest into the MCP-style schema ToolPanel expects. */
 export function schemaForWasm(manifest: WasmManifest): CatalogTool {
   const properties: Record<string, CatalogSchema> = {};
   for (const p of manifest.params) {
-    if (p.io_role === "output") continue;
+    if (isOutputLikeParam(p)) continue;
     const schema = p.schema as Record<string, any>;
     properties[p.name] = p.io_role === "input"
       ? { type: "string", "x-layer": true, "x-layer-kind": p.data_kind, description: p.description }
@@ -28,6 +51,7 @@ export function schemaForWasm(manifest: WasmManifest): CatalogTool {
     if (!p.io_role && !p.required && Object.prototype.hasOwnProperty.call(manifest.defaults ?? {}, p.name))
       properties[p.name].default = (manifest.defaults as Record<string, unknown>)[p.name];
   }
+  Object.assign(properties, WASM_SCHEMA_OVERRIDES[manifest.id] ?? {});
   properties.output_name = { type: "string", description: "结果图层名称" };
   return {
     name: `wasm_${manifest.id}`,
@@ -37,7 +61,7 @@ export function schemaForWasm(manifest: WasmManifest): CatalogTool {
     subcategory: manifest.taxonomy?.subcategory,
     parameters: {
       type: "object", properties,
-      required: manifest.params.filter(p => p.required && p.io_role !== "output").map(p => p.name),
+      required: manifest.params.filter(p => p.required && !isOutputLikeParam(p)).map(p => p.name),
       additionalProperties: false,
     },
   };

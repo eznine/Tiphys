@@ -13,10 +13,12 @@ import { defaultLayerStyle, type DataLayer, type LayerSelection, type LayerStyle
 import { engineRequest } from "./lib/service";
 import { AttributeTable } from "./components/AttributeTable";
 import { LayerProperties } from "./components/LayerProperties";
+import { MapLegend } from "./components/MapLegend";
 import { LogPanel } from "./components/LogPanel";
 import { browserRuntime } from "./lib/runtime";
 import { warmWasmToolRunner } from "./lib/browser/wasm-tool-runner";
 import { scheduleIdle } from "./lib/idle";
+import { buildWorkspaceSnapshot, loadWorkspaceSnapshot, saveWorkspaceSnapshot } from "./lib/workspace";
 import "./styles/app.css";
 
 function loadTheme(): ThemeMode {
@@ -35,21 +37,22 @@ function loadAppliedViews(): Set<string | number> {
 }
 
 export default function App() {
+  const [restoredWorkspace] = useState(loadWorkspaceSnapshot);
   const [themeMode, setThemeMode] = useState<ThemeMode>(loadTheme);
   const [systemDark, setSystemDark] = useState(() => matchMedia("(prefers-color-scheme: dark)").matches);
   const theme = themeMode === "system" ? (systemDark ? "dark" : "light") : themeMode;
   const [density, setDensity] = useState<"standard" | "compact">(() => localStorage.getItem("tiphys-density") === "compact" ? "compact" : "standard");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(restoredWorkspace?.selectedLayerId ?? null);
   const [dockRequest, setDockRequest] = useState<{ id: number; tool?: string; tab: "chat" | "tools" }>();
   const [mapStatus, setMapStatus] = useState({ lng: 20, lat: 20, zoom: 1.6 });
   const [ping, setPing] = useState<PingResult>({ state: "pending" });
   const agent = useAgent("default");
   const [styles, setStyles] = useState(loadLayerStyles);
   const [focus, setFocus] = useState<number[] | null>(null);
-  const [tableId, setTableId] = useState<string | null>(null);
-  const [selection, setSelection] = useState<LayerSelection | null>(null);
-  const [aoi, setAoi] = useState<number[] | null>(null);
+  const [tableId, setTableId] = useState<string | null>(restoredWorkspace?.tableLayerId ?? null);
+  const [selection, setSelection] = useState<LayerSelection | null>(restoredWorkspace?.selection ?? null);
+  const [aoi, setAoi] = useState<number[] | null>(restoredWorkspace?.aoi ?? null);
   const [properties, setProperties] = useState<{ id: string; tab: "style" | "labels" | "info" } | null>(null);
   const [importing, setImporting] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
@@ -57,6 +60,7 @@ export default function App() {
   const [sourceCrs, setSourceCrs] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const appliedViews = useRef(loadAppliedViews());
+  const restoredVisibility = useRef(false);
   const layers = useMemo(() => agent.state.layers.map(l => ({ ...l, style: { ...defaultLayerStyle(l.id, l.name), ...styles[l.id] } })), [agent.state.layers, styles]);
   const tableLayer = layers.find(l => l.id === tableId);
   const propertyLayer = layers.find(l => l.id === properties?.id);
@@ -71,8 +75,26 @@ export default function App() {
   };
   useEffect(() => { localStorage.setItem("tiphys-layer-styles", JSON.stringify(styles)); }, [styles]);
   useEffect(() => {
-    if (selection && !layers.some(layer => layer.id === selection.layerId)) setSelection(null);
-  }, [layers, selection]);
+    if (!agent.state.hydrated) return;
+    const ids = new Set(layers.map(layer => layer.id));
+    if (selection && !ids.has(selection.layerId)) setSelection(null);
+    if (tableId && !ids.has(tableId)) setTableId(null);
+    if (!layers.length) { if (selectedId) setSelectedId(null); return; }
+    if (selectedId && !ids.has(selectedId)) setSelectedId(layers[0].id);
+  }, [agent.state.hydrated, layers, selection, tableId, selectedId]);
+  useEffect(() => {
+    if (!agent.state.hydrated || restoredVisibility.current) return;
+    restoredVisibility.current = true;
+    const saved = restoredWorkspace?.layers ?? [];
+    for (const layer of saved) if (layer.visible === false) agent.setLayerVisibility(layer.id, false);
+  }, [agent, restoredWorkspace, agent.state.hydrated]);
+  useEffect(() => {
+    if (!agent.state.hydrated) return;
+    const timer = window.setTimeout(() => {
+      saveWorkspaceSnapshot(buildWorkspaceSnapshot(layers, { selectedLayerId: selectedId, aoi, selection, tableLayerId: tableId }));
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [agent.state.hydrated, layers, selectedId, aoi, selection, tableId]);
   useEffect(() => { if (agent.state.focus) setFocus([...agent.state.focus]); }, [agent.state.focus]);
   useEffect(() => {
     let changed = false;
@@ -238,6 +260,7 @@ export default function App() {
           <div className="map-viewport">
           <MapCanvas theme={theme} dataLayers={layers} focusBounds={focus} onStatus={setMapStatus} selection={selection} onSelect={handleMapSelection}
             aoi={aoi} onAoiChange={setAoi} />
+          <MapLegend layers={layers} onStyle={id => setProperties({ id, tab: "style" })} />
           {!layers.length && <div className="map-empty-state" role="status">
             <span className="map-empty-icon"><Layers size={20} /></span>
             <strong>地图还没有图层</strong>
@@ -283,7 +306,7 @@ export default function App() {
           layers={layers}
           selectedLayer={activeLayer} request={dockRequest} onAdd={() => void addData()} onSettings={() => setSettingsOpen(true)}
           onOpenTool={tool => openDock("tools", tool)}
-          onSend={text => agent.send(text, { aoi, selectedLayerId: activeLayer?.id ?? null, selectedLayerName: activeLayer?.name ?? null })}
+          onSend={text => agent.send(text, { aoi, selectedLayerId: activeLayer?.id ?? null, selectedLayerName: activeLayer?.name ?? null, selection })}
           onApprove={agent.approve}
           onCancelJob={agent.cancelJob}
           onCancelTurn={agent.cancelTurn}
