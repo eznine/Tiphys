@@ -181,3 +181,5 @@
   - Verification: 48/48 browser tests passed (`npm run test:browser`), `npx tsc --noEmit` passed, `npm run build` passed. `dist/` remains ~36 MB with unchanged payload shape (app 1.92 MB, lazy catalog 1.95 MB, CLI WASM 24.11 MB), so no deploy-doc size change and no live deploy. GEE remains docs/demo only; no credentials read or created. No Python changes.
 
 - 2026-10-24 05:58 Asia/Shanghai — Batch15 is stable and fully verified, but this sandbox cannot write `.git` (`index.lock: Read-only file system`). Patch saved at `/tmp/tiphys-batch15-overlay-filter.patch`; verification at `/tmp/tiphys-batch15-verification.txt`; commit message at `/tmp/tiphys-batch15-commit-message.txt`. Supervisor should apply, commit and push with `P3/P4: overlay/filter densify, agent recipes`. No deploy.
+
+- 2026-10-24 ~06:03 Asia/Shanghai — Overnight supervisor interrupted after batch15. Committed+pushed batch15 as `fa49115`. No tf-codex alive; re-dispatching for batch16+. No user ping.
