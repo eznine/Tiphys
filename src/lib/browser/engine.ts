@@ -5,7 +5,7 @@ import { assertGeojson, boundsOf, metricCrs } from "./geometry";
 import { rasterRenderer, type RasterRenderer } from "./raster-display";
 import { deleteRecord, readRecord, records, writeRecord } from "./storage";
 import { fileInfo, loadWasmManifests, originalGeojson, wasmTool } from "./wasm";
-import { browserCatalogState, browserToolCatalog, ensureBrowserCatalog, hydrateWasmCatalog, isOutputLikeParam } from "./catalog-schema";
+import { browserCatalogState, browserToolCatalog, ensureBrowserCatalog, hydrateWasmCatalog, isWasmInputParam, isWasmOutputParam } from "./catalog-schema";
 import { pluginToolNames, runPluginTool } from "../plugins/registry";
 import type { GeeAuthStatus } from "../gee";
 
@@ -322,7 +322,7 @@ async function runNative(id: string, args: Record<string, any>, signal?: AbortSi
   const input: Record<string, Uint8Array> = {}, parameters: Record<string, any> = {};
   let vectorCrs: string | undefined;
   for (const p of manifest.params) {
-    if (p.io_role === "input" && !isOutputLikeParam(p)) {
+    if (isWasmInputParam(id, p)) {
       if (!args[p.name]) continue;
       if (RAW_INPUT_PARAMETERS[id]?.has(p.name)) { parameters[p.name] = String(args[p.name]); continue; }
       const values = (Array.isArray(args[p.name]) ? args[p.name] : [args[p.name]]).map(String).filter(Boolean);
@@ -340,14 +340,14 @@ async function runNative(id: string, args: Record<string, any>, signal?: AbortSi
         paths.push(`/work/${file}`);
       }
       if (paths.length) parameters[p.name] = paths.join(",");
-    } else if (isOutputLikeParam(p)) parameters[p.name] = `/work/${p.name}.${outputExt(p)}`;
+    } else if (isWasmOutputParam(id, p)) parameters[p.name] = `/work/${p.name}.${outputExt(p)}`;
     else {
       const value = args[p.name] ?? defaults[p.name];
       if (value !== undefined && value !== null && value !== "") parameters[p.name] = value;
     }
   }
   const result = await wasmTool(id, input, parameters, signal);
-  const outputs = manifest.params.filter(isOutputLikeParam);
+  const outputs = manifest.params.filter(p => isWasmOutputParam(id, p));
   const published = { layers: [] as Record<string, any>[], attachments: [] as Record<string, any>[] };
   let firstName = "";
   for (const p of outputs) {

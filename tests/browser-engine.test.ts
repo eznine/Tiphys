@@ -206,12 +206,34 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
   await ensureBrowserCatalog();
   const source = fs.readFileSync(new URL("../src/components/CommandRibbon.tsx", import.meta.url), "utf8");
   const names = [...source.matchAll(/props\.onTool\("(wasm_[^"]+)"\)/g)].map(match => match[1]);
-  assert.ok(names.length >= 35, `expected a dense ribbon, got ${names.length} WASM actions`);
+  assert.ok(names.length >= 44, `expected a dense ribbon, got ${names.length} WASM actions`);
   for (const name of names) assert.ok(browserCatalog.some(tool => tool.name === name), `${name} must resolve to a catalog tool`);
   for (const name of ["wasm_panchromatic_sharpening", "wasm_resample", "wasm_segment_slic_superpixels",
-    "wasm_spectral_angle_mapper", "wasm_viewshed", "wasm_visibility_index", "wasm_sky_view_factor"]) {
+    "wasm_spectral_angle_mapper", "wasm_viewshed", "wasm_visibility_index", "wasm_sky_view_factor",
+    "wasm_contours_from_raster", "wasm_create_colour_composite", "wasm_cost_distance", "wasm_cost_pathway",
+    "wasm_euclidean_distance", "wasm_extract_raster_values_at_points", "wasm_deviation_from_mean_elevation",
+    "wasm_sobel_filter", "wasm_mosaic"]) {
     assert.ok(names.includes(name), `${name} should be exposed in the ribbon`);
   }
+  const dock = fs.readFileSync(new URL("../src/components/ChatDock.tsx", import.meta.url), "utf8");
+  const recipeTools = [...dock.matchAll(/tool: "(wasm_[^"]+)"/g)].map(match => match[1]);
+  for (const name of ["wasm_contours_from_raster", "wasm_cost_distance"]) {
+    assert.ok(recipeTools.includes(name), `${name} should be available as an agent recipe`);
+    assert.ok(browserCatalog.some(tool => tool.name === name), `${name} recipe must resolve to a catalog tool`);
+  }
+});
+
+test("new raster ribbon forms expose executable multi-input contracts", async () => {
+  await ensureBrowserCatalog();
+  const pathway = browserCatalog.find(tool => tool.name === "wasm_cost_pathway")!;
+  assert.equal((pathway.parameters.properties as any).destination["x-layer-kind"], "raster");
+  assert.ok(pathway.parameters.required?.includes("destination"));
+  const mosaic = browserCatalog.find(tool => tool.name === "wasm_mosaic")!;
+  assert.equal((mosaic.parameters.properties as any).inputs.type, "array");
+  assert.equal((mosaic.parameters.properties as any).inputs["x-layer-multiple"], true);
+  const extract = browserCatalog.find(tool => tool.name === "wasm_extract_raster_values_at_points")!;
+  assert.equal((extract.parameters.properties as any).rasters.type, "array");
+  assert.equal((extract.parameters.properties as any).rasters["x-layer-kind"], "raster");
 });
 
 test("vector points rasterize into a displayed raster layer and feed raster tools", async () => {
@@ -582,6 +604,10 @@ test("browser tool search ranks Chinese names and taxonomy, not only description
   for (const [query, expected] of [["网络", "wasm_build_network_topology"], ["最近设施", "wasm_closest_facility_network"], ["加权叠加", "wasm_weighted_overlay"]]) {
     const matches = searchBrowserTools(browserCatalog, query, { limit: 20 });
     assert.ok(matches.some(t => t.name === expected), `${query} should discover ${expected}`);
+  }
+  for (const [query, expected] of [["等值线", "wasm_contours_from_raster"], ["成本距离", "wasm_cost_distance"],
+    ["点提取", "wasm_extract_raster_values_at_points"], ["色彩合成", "wasm_create_colour_composite"]]) {
+    assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
   }
   for (const [query, expected] of [["走廊", "linkage_mapper_corridor"], ["廊道", "linkage_mapper_corridor"],
     ["水文", "hydrology_flow_pipeline"], ["最小成本", "least_cost_path_pipeline"]]) {

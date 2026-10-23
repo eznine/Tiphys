@@ -17,7 +17,7 @@
 
 - 浏览器：首屏先显示 39 个公共/扩展工具壳层；动态加载 958 个 GeoLibre WASM schema 后，合并目录为 997 个。工具箱隐藏 `ping`、`list_layers`、`job_status`、`job_cancel` 四个引擎控制项，因此正常可见 993 个。
 - Tauri：`/tools/catalog` 先读取 Python MCP 工具，再合并同一批 WASM schema、公共工具和扩展；当前联合目录同样是 997 个，工具箱可见 993 个。
-- 两端的搜索都按工具名、中文名、类别/子类和说明排序；分类和子类命中会加权，避免只靠英文描述命中。
+- 两端的搜索都按工具名、中文名、类别/子类和说明排序；分类和子类命中会加权，避免只靠英文描述命中。常用短语（等值线、成本距离、点提取、色彩合成）另设工具别名，可直接命中对应 WASM 工具。
 
 ## 首屏与 Worker 预热
 
@@ -25,6 +25,7 @@
 - 地图创建、点击选择、AOI 渲染和已有数据图层在首屏完成；导航/比例尺控件、地形源和空地图引导动画延迟到首个 idle/`requestAnimationFrame` 之后，避免和第一次绘制抢主线程。
 - 浏览器会在首次指针/键盘交互或首个 idle 窗口调用 `warmWasmToolRunner()`。它在后台 worker 中预编译 `geolibre-cli.wasm`，成功后进入最多 1 个 worker 的空闲池；`releaseIdleWasmToolWorkers()` 会终止空闲或正在预热的 worker。
 - 工具目录先渲染壳层，再在下一帧开始分块 hydrate；转换期间每 48 个 schema 让出主线程。工具箱只显示骨架/加载文案，不在首开时同步解析整份清单。
+- 符号化滑块的多帧更新会合并为每个 animation frame 一次 MapLibre 图层同步；图层样式持久化改在 idle 窗口写入 localStorage，避免连续拖动时阻塞输入。
 
 ## 执行路径
 

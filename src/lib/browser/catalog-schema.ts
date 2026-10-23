@@ -19,6 +19,17 @@ export function isOutputLikeParam(param: { name: string; io_role?: string; descr
   return param.io_role === "output" || (param.io_role === "input" && /_output$/.test(param.name) && /output .*path/i.test(param.description ?? ""));
 }
 
+/** Upstream manifests occasionally mark real inputs as outputs. */
+const WASM_INPUT_OVERRIDES = new Set(["cost_pathway.destination"]);
+
+export function isWasmInputParam(toolId: string, param: { name: string; io_role?: string; description?: string }): boolean {
+  return WASM_INPUT_OVERRIDES.has(`${toolId}.${param.name}`) || param.io_role === "input" && !isOutputLikeParam(param);
+}
+
+export function isWasmOutputParam(toolId: string, param: { name: string; io_role?: string; description?: string }): boolean {
+  return isOutputLikeParam(param) && !WASM_INPUT_OVERRIDES.has(`${toolId}.${param.name}`);
+}
+
 /** Upstream stack tools describe ordered layers as scalar inputs; the UI needs explicit arrays. */
 const WASM_SCHEMA_OVERRIDES: Record<string, Record<string, CatalogSchema>> = {
   build_network_topology: {
@@ -35,15 +46,23 @@ const WASM_SCHEMA_OVERRIDES: Record<string, Record<string, CatalogSchema>> = {
       description: "按顺序选择 2 个或更多输入栅格。" },
     weights: { type: "string", default: "1,1", description: "与输入栅格顺序对应的逗号分隔权重，例如 1,1。" },
   },
+  extract_raster_values_at_points: {
+    rasters: { type: "array", "x-layer": true, "x-layer-kind": "raster", "x-layer-multiple": true,
+      description: "选择一个或多个栅格；点图层会追加每个栅格的采样值字段。" },
+  },
+  mosaic: {
+    inputs: { type: "array", "x-layer": true, "x-layer-kind": "raster", "x-layer-multiple": true,
+      description: "按顺序选择要镶嵌的栅格；输出使用第一个输入的投影与分辨率。" },
+  },
 };
 
 /** Convert an upstream WASM manifest into the MCP-style schema ToolPanel expects. */
 export function schemaForWasm(manifest: WasmManifest): CatalogTool {
   const properties: Record<string, CatalogSchema> = {};
   for (const p of manifest.params) {
-    if (isOutputLikeParam(p)) continue;
+    if (isWasmOutputParam(manifest.id, p)) continue;
     const schema = p.schema as Record<string, any>;
-    properties[p.name] = p.io_role === "input"
+    properties[p.name] = isWasmInputParam(manifest.id, p)
       ? { type: "string", "x-layer": true, "x-layer-kind": p.data_kind, description: p.description }
       : { type: schema.kind === "bool" ? "boolean" : schema.kind === "scalar" ? schema.scalar === "integer" ? "integer" : "number" : "string",
           description: p.description, ...(schema.options ? { enum: schema.options.map((o: any) => String(o.value)) } : {}) };
@@ -61,7 +80,7 @@ export function schemaForWasm(manifest: WasmManifest): CatalogTool {
     subcategory: manifest.taxonomy?.subcategory,
     parameters: {
       type: "object", properties,
-      required: manifest.params.filter(p => p.required && !isOutputLikeParam(p)).map(p => p.name),
+      required: manifest.params.filter(p => p.required && isWasmInputParam(manifest.id, p)).map(p => p.name),
       additionalProperties: false,
     },
   };

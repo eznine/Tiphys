@@ -297,8 +297,23 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    if (map.isStyleLoaded()) syncDataLayers(map, dataLayers);
-    else map.once("idle", () => syncDataLayers(map, dataLayersRef.current));
+    let cancelled = false;
+    let frame = 0;
+    // Style sliders can emit several updates in one frame. Coalesce them and
+    // paint with the latest layer props instead of synchronously walking every
+    // source for each pointer event.
+    const apply = () => {
+      frame = 0;
+      if (cancelled) return;
+      if (!map.isStyleLoaded()) { map.once("idle", apply); return; }
+      syncDataLayers(map, dataLayersRef.current);
+    };
+    frame = requestAnimationFrame(apply);
+    return () => {
+      cancelled = true;
+      if (frame) cancelAnimationFrame(frame);
+      map.off("idle", apply);
+    };
   }, [dataLayers]);
 
   useEffect(() => {

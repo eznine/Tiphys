@@ -3,6 +3,23 @@ import { zhTool, zhToolL1, zhToolL2 } from "../i18n/tools";
 
 const SEARCHABLE_PREFIXES = ["wasm_", "gee_"];
 
+/** Common user phrasing that differs from the upstream Chinese tool name. */
+const TOOL_ALIASES: Record<string, string[]> = {
+  contours_from_raster: ["等值线", "等高线", "contour"],
+  create_colour_composite: ["色彩合成", "彩色合成", "RGB 合成", "真彩色"],
+  cost_distance: ["成本距离", "阻力距离", "累积成本"],
+  cost_pathway: ["成本路径", "最小成本路径"],
+  euclidean_distance: ["欧氏距离", "直线距离"],
+  extract_raster_values_at_points: ["点提取", "提取点值", "点采样", "栅格点值"],
+  deviation_from_mean_elevation: ["地形 z 分数", "TPI", "局部高程偏差"],
+  mosaic: ["栅格镶嵌", "影像镶嵌", "拼接"],
+  sobel_filter: ["边缘检测", "边缘提取"],
+};
+
+function aliasesFor(toolName: string): string[] {
+  return TOOL_ALIASES[toolName.startsWith("wasm_") ? toolName.slice(5) : toolName] ?? [];
+}
+
 export function isBrowserSearchable(name: string, tool?: CatalogTool): boolean {
   return SEARCHABLE_PREFIXES.some(prefix => name.startsWith(prefix)) || tool?.category === "扩展";
 }
@@ -25,6 +42,7 @@ export function scoreBrowserTool(tool: CatalogTool, query: string): number {
   const subcategory = normalized(tool.subcategory);
   const zhSubcategory = normalized(zhToolL2(tool));
   const description = normalized(`${tool.description ?? ""} ${zh?.desc ?? ""}`);
+  const aliases = aliasesFor(tool.name).map(normalized).filter(Boolean);
   const phrase = normalized(query);
   if (!phrase) return 0;
   const tokens = [...new Set(phrase.split(" ").filter(Boolean))];
@@ -37,6 +55,8 @@ export function scoreBrowserTool(tool: CatalogTool, query: string): number {
   else if (zhName.includes(phrase)) score += 75;
   if (label === phrase) score += 140;
   else if (label.includes(phrase)) score += 65;
+  if (aliases.some(alias => alias === phrase)) score += 150;
+  else if (aliases.some(alias => alias.includes(phrase))) score += 60;
   if (zhCategory === phrase) score += 55;
   else if (zhCategory.includes(phrase)) score += 28;
   if (zhSubcategory === phrase) score += 65;
@@ -48,6 +68,8 @@ export function scoreBrowserTool(tool: CatalogTool, query: string): number {
     if (name === token || zhName === token) tokenScore += 80;
     else if (name.startsWith(token) || zhName.startsWith(token)) tokenScore += 45;
     else if (name.includes(token) || zhName.includes(token) || label.includes(token)) tokenScore += 30;
+    if (aliases.some(alias => alias === token)) tokenScore += 70;
+    else if (aliases.some(alias => alias.includes(token))) tokenScore += 35;
     if (zhCategory === token || zhSubcategory === token || category === token || subcategory === token) tokenScore += 24;
     else if (zhCategory.includes(token) || zhSubcategory.includes(token) || category.includes(token) || subcategory.includes(token)) tokenScore += 13;
     if (description.includes(token)) tokenScore += 7;

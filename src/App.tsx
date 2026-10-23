@@ -98,7 +98,10 @@ export default function App() {
     if (bounds.length) setFocus([Math.min(...bounds.map(b => b[0])), Math.min(...bounds.map(b => b[1])), Math.max(...bounds.map(b => b[2])), Math.max(...bounds.map(b => b[3]))]);
     else setFocus([-160, -60, 160, 75]);
   };
-  useEffect(() => { localStorage.setItem("tiphys-layer-styles", JSON.stringify(styles)); }, [styles]);
+  useEffect(() => scheduleIdle(() => {
+    try { localStorage.setItem("tiphys-layer-styles", JSON.stringify(styles)); }
+    catch { /* Storage can be full or disabled; map styling still works for this session. */ }
+  }, { timeout: 1800, fallbackDelay: 180 }), [styles]);
   useEffect(() => {
     if (!agent.state.hydrated) return;
     const ids = new Set(layers.map(layer => layer.id));

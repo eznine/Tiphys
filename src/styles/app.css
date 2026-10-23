@@ -753,8 +753,9 @@ textarea {
 .contents-map { display: flex; align-items: center; gap: 6px; padding: 12px 9px 8px; color: var(--tiphys-text-secondary); }
 .contents-map strong { font-weight: 500; color: var(--tiphys-text); }
 .contents-tree { padding: 0 4px; flex: 1; min-height: 0; overflow-y: auto; }
-.contents-layer { border-radius: 3px; padding: 2px 2px 4px; border: 1px solid transparent; }
-.contents-layer[data-selected="true"] { border-color: color-mix(in srgb, var(--tiphys-accent) 30%, transparent); background: color-mix(in srgb, var(--tiphys-accent) 6%, transparent); }
+.contents-layer { border-radius: 5px; padding: 3px 3px 5px; border: 1px solid transparent; }
+.contents-layer + .contents-layer { margin-top: 1px; }
+.contents-layer[data-selected="true"] { border-color: color-mix(in srgb, var(--tiphys-accent) 34%, transparent); background: color-mix(in srgb, var(--tiphys-accent) 7%, transparent); box-shadow: inset 2px 0 0 color-mix(in srgb, var(--tiphys-accent) 72%, transparent); }
 .contents-layer .layer-row { gap: 5px; padding: 2px 0; }
 .legend-toggle { width: 15px; height: 22px; padding: 0; }
 .layer-row input[type="checkbox"] { accent-color: var(--tiphys-accent); margin: 0 2px; width: 13px; height: 13px; }
@@ -876,7 +877,7 @@ textarea {
 .map-empty-icon { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid color-mix(in srgb, var(--tiphys-accent) 25%, var(--tiphys-border)); border-radius: 10px; color: var(--tiphys-accent); background: var(--tiphys-accent-muted); }
 
 /* Selection and AOI share one quiet bottom-right stack. */
-.map-status-stack { position: absolute; z-index: 16; right: 12px; bottom: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.map-status-stack { position: absolute; z-index: 16; right: 12px; bottom: 40px; display: flex; flex-direction: column; align-items: flex-end; gap: 7px; }
 .map-legend-dock { position: absolute; z-index: 15; left: 12px; bottom: 44px; max-width: min(280px, calc(100% - 24px)); }
 .map-legend-toggle { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 9px; border: 1px solid var(--tiphys-border); border-radius: 7px; background: color-mix(in srgb, var(--tiphys-surface) 92%, transparent); color: var(--tiphys-text-secondary); box-shadow: 0 3px 12px color-mix(in srgb, var(--tiphys-text) 8%, transparent); backdrop-filter: blur(8px); font: inherit; font-size: 11px; cursor: pointer; }
 .map-legend-toggle:hover { color: var(--tiphys-accent); border-color: color-mix(in srgb, var(--tiphys-accent) 38%, var(--tiphys-border)); }
@@ -893,7 +894,7 @@ textarea {
 .map-legend-ramp { display: flex; margin-left: auto; flex-shrink: 0; overflow: hidden; border-radius: 3px; }
 .map-legend-ramp i { display: block; width: 6px; height: 11px; }
 .map-legend-more { padding: 4px 6px; color: var(--tiphys-text-muted); font-size: 9px; }
-.selection-hud { position: static; }
+.selection-hud { position: static; border-radius: 8px; }
 .aoi-hud { display: flex; align-items: center; gap: 7px; max-width: min(430px, calc(100vw - 36px)); padding: 6px 7px 6px 9px; border: 1px solid color-mix(in srgb, var(--tiphys-accent) 28%, var(--tiphys-border)); border-radius: 7px; background: color-mix(in srgb, var(--tiphys-surface-elevated) 94%, transparent); color: var(--tiphys-text-secondary); box-shadow: 0 3px 12px color-mix(in srgb, var(--tiphys-text) 9%, transparent); font-size: 11px; backdrop-filter: blur(8px); }
 .aoi-hud-label { color: var(--tiphys-accent); font-size: 10px; font-weight: 700; letter-spacing: .04em; }
 .aoi-hud code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--tiphys-font-mono); font-size: 10px; color: var(--tiphys-text-secondary); }
@@ -911,7 +912,8 @@ textarea {
 .chat-composer textarea { min-height: 76px; }
 
 /* Long-job card: status, percent and cancel remain obvious */
-.job-card { gap: 7px; padding: 10px 11px; background: color-mix(in srgb, var(--tiphys-bg) 55%, var(--tiphys-surface)); }
+.job-card { gap: 8px; padding: 10px 12px; border-color: color-mix(in srgb, var(--tiphys-accent) 14%, var(--tiphys-border)); background: color-mix(in srgb, var(--tiphys-bg) 55%, var(--tiphys-surface)); }
+.job-card[data-status="running"], .job-card[data-status="queued"] { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--tiphys-accent) 62%, transparent); }
 .job-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .job-title strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--tiphys-text); font-weight: 500; }
 .job-state { flex-shrink: 0; padding: 1px 6px; border-radius: 999px; background: var(--tiphys-accent-muted); color: var(--tiphys-accent); font-size: 9px; font-weight: 600; }
@@ -973,7 +975,7 @@ textarea {
 .agent-welcome-note { margin: 0; color: var(--tiphys-text-muted); font-size: 10.5px; }
 
 /* Keep map overlays above MapLibre attribution/scale without hard collisions. */
-.map-status-stack { bottom: 36px; }
+.map-status-stack { bottom: 46px; }
 .map-legend-dock { bottom: 48px; }
 .map-legend-body { max-height: min(220px, 34vh); }
 .layer-properties { bottom: 42px; }

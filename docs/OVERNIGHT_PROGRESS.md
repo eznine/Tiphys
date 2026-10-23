@@ -102,3 +102,14 @@
 
 - 2026-10-24 04:32 Asia/Shanghai — Overnight supervisor: batch09 exited (sandbox blocked commit). Re-verified `npm run test:browser` 32/32 + `npx tsc --noEmit`. Committing+pushing as `P2/P4: agent recovery, RS/terrain ribbon, beauty polish`, then starting batch10 (more GIS/agent power, perf, restrained beauty, deploy notes).
 - 2026-10-24 04:33 Asia/Shanghai — Batch09 pushed as `e4b55bd` (32/32). Launching batch10 tf-codex (GIS ribbon densify, agent recipes, perf/beauty, deploy notes).
+
+- 2026-10-24 Asia/Shanghai — Batch10 implemented and verified on the Linux box:
+  - GIS ribbon: added nine catalog-backed actions under 分析/遥感 — 等值线, 地形 z 分数, 点提取栅格值, 成本距离, 成本路径, 欧氏距离, 彩色合成, 边缘检测, 栅格镶嵌. Every action resolves to a hydrated `wasm_*` form; the ribbon↔catalog test now checks all nine.
+  - Catalog contracts: normalized upstream quirks so `cost_pathway.destination` is an input raster, and `mosaic.inputs` / `extract_raster_values_at_points.rasters` use real multi-select raster arrays. No new stub tools or fake execution paths.
+  - Agent: added restrained 等值线提取 and 成本距离 recipe cards that only open forms (never auto-run). Chinese search now ranks 等值线, 成本距离, 点提取 and 色彩合成 directly to the intended catalog tools while retaining existing taxonomy/description scoring. Recovery/compaction behavior is unchanged and still state-only, not transcript replay.
+  - Perf: MapLibre data/style sync now coalesces multiple symbology updates into one animation frame with latest layer props; layer-style persistence writes to `localStorage` from an idle callback instead of on every slider event. The existing 1-worker warm pool and termination contract are unchanged.
+  - Beauty: tightened layer-rail row rhythm and blue selected state, HUD spacing above MapLibre attribution/scale, and queued/running job-card spacing with a restrained blue edge. No teal or mythology chrome.
+  - Verification: 33/33 browser tests passed (direct `node:test` output; added ribbon/recipe/schema/search coverage), `npx tsc --noEmit` passed, `npm run build` passed. `dist/` remains ~36 MB with essentially unchanged chunks (1.91 MB app, 1.95 MB lazy catalog, 24.1 MB CLI WASM), so no deploy-size edit was needed. GEE stays docs/demo only; no credentials were read or created. No Python files changed, so engine tests were not rerun.
+- 2026-10-24 Asia/Shanghai — Batch10 worktree is stable and fully verified, but this sandbox cannot write `.git` (`index.lock: Read-only file system`). Patch saved at `/tmp/tiphys-batch10-gis-agent-perf-beauty.patch`; supervisor should commit+push with `P3/P4: GIS ribbon densify, agent recipes, perf/beauty`.
+
+- 2026-10-24 04:47 Asia/Shanghai — Overnight supervisor: batch10 exited (sandbox blocked commit). Re-verified `npm run test:browser` 33/33 + `npx tsc --noEmit`. Committing+pushing as `P3/P4: GIS ribbon densify, agent recipes, perf/beauty`, then starting batch11.
