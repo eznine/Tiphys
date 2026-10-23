@@ -18,6 +18,10 @@ type ExtensionManifest = {
 
 type ExtensionRunContext = {
   runTool: (toolName: string, args: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  inspectLayer: (layer: string) => Promise<ExtensionLayerInfo>;
+  createLayer: (geojson: FeatureCollection, name: string) => Promise<Record<string, unknown>>;
+  reprojectLayer: (layer: string, epsg: number, name: string) => Promise<Record<string, unknown>>;
+  mergeLayers: (layers: string[], name: string) => Promise<Record<string, unknown>>;
 };
 ```
 
@@ -30,6 +34,10 @@ Tool schemas use the same catalog contract as Python MCP and GeoLibre WASM tools
 - `pluginToolNames` lets the browser engine route a tool to its extension runner.
 - `runPluginTool(name, args, context)` finds the manifest and invokes `run`.
 - `context.runTool` executes another catalog tool inline, sharing the parent job's cancellation signal. Extensions must use this instead of starting a nested browser job, which would deadlock on the GIS CPU lock.
+- `context.inspectLayer` returns read-only layer metadata and display GeoJSON without exposing the stored file handle.
+- `context.createLayer` adopts a transient GeoJSON layer, used by the AOI helper.
+- `context.reprojectLayer` operates on the original layer bytes, avoiding display-GeoJSON round trips, and creates a persisted result layer.
+- `context.mergeLayers` runs the bundled `merge_vectors` WASM tool on native layer bytes to build a combined endpoint layer.
 
 ## Current extensions
 
@@ -37,9 +45,11 @@ Tool schemas use the same catalog contract as Python MCP and GeoLibre WASM tools
 | --- | --- | --- |
 | `linkage_mapper_corridor` | 扩展 / 插件 | Runs a real least-cost corridor network from core habitat polygons + resistance raster |
 | `hydrology_flow_pipeline` | 扩展 / 插件 | Runs DEM depression conditioning, D8 flow routing, accumulation, optional stream extraction and watersheds inline |
+| `least_cost_path_pipeline` | 扩展 / 插件 | Connects source and destination points or polygons over a resistance raster and returns path polylines, a corridor network and an accumulated-cost surface |
+| `clip_layers_to_aoi` | 扩展 / 插件 | Builds a transient AOI polygon from the map bbox, clips the active vector or raster layer, then removes the temporary AOI layers |
 | `whitebox_extra` | 扩展 / 插件 | Explains that GeoLibre WASM already provides raster, terrain, hydrology, and remote-sensing tools |
 
-The explanatory `whitebox_extra` tool returns `{ ok: false, available: false, ... }` rather than fabricating a layer. Both tools are discoverable in the catalog and by `search_browser_tools`.
+The explanatory `whitebox_extra` tool returns `{ ok: false, available: false, ... }` rather than fabricating a layer. All extension tools are discoverable in the catalog and by `search_browser_tools`, including Chinese queries such as 走廊、水文、最小成本 and 廊道.
 
 ## Corridor pipeline
 
@@ -70,6 +80,25 @@ The result includes `source_raster`, `layers`, `tools`, and a limitations note. 
 
 The result contains `{ layers, tools, steps, limitations }`. Every intermediate raster is persisted as a normal workspace layer. The runner fails instead of fabricating output if any upstream tool returns no layer. It does not claim rainfall-runoff simulation or calibrated channel thresholds; D8 is a single-flow-direction model and NoData remains NoData.
 
+## Least-cost path pipeline
+
+`least_cost_path_pipeline` accepts a cost/friction raster, a source layer and a destination layer. Source and destination must both be point/multipoint or both be polygon/multipolygon. The runner aligns them to the resistance raster's EPSG from their original bytes, then merges the two endpoint layers with `merge_vectors` when they differ.
+
+- Point mode rasterizes only the source endpoints, computes `wasm_cost_distance`, then runs `wasm_cost_connectivity` (`mst` or `all_neighbors`) for real path polylines.
+- Polygon mode rasterizes the source polygons and runs `wasm_optimal_corridor_connections` for corridor polygons plus centerlines.
+- `include_cost_surface` controls whether the accumulated cost-distance raster is retained.
+
+The result returns `{ layers, tools, steps, limitations, endpoints, source_raster, cost_surface, path_layers }`. It fails if the upstream tool returns no polyline geometry, and NoData cells are reported as impassable rather than bridged or invented.
+
+## AOI clip helper
+
+`clip_layers_to_aoi` accepts the active layer ID plus `aoi_west`, `aoi_south`, `aoi_east` and `aoi_north` from the map's WGS84 rectangle. It creates a temporary polygon named `AOI`, reprojects that polygon when needed, and then:
+
+1. Calls `wasm_clip_raster_to_polygon` for rasters with `maintain_dimensions: false` by default.
+2. Calls the standard vector `clip` tool for point or polygon layers.
+
+The helper returns `{ layers, tools, steps, limitations, aoi_bbox, target_epsg }` and removes all temporary `AOI`/`AOI_*` layers in a `finally` block. Line and mixed-geometry vector clipping is not claimed yet; the limitation is returned instead of silently dropping features.
+
 ## Adding an extension
 
 1. Create a manifest with a stable ID and version.
@@ -82,6 +111,6 @@ Extensions must not store credentials in the workspace, must not claim unavailab
 
 ## Next
 
-- LinkageMapper resistance-surface and corridor extraction behind the existing manifest.
+- Optional path corridor thresholding and source/destination role labels where upstream tools expose them.
 - Optional external plugin discovery for the desktop build.
 - Agent memory and recovery work remains a later P2 item, separate from this interface.

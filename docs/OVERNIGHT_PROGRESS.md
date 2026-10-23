@@ -52,3 +52,13 @@
   - Hydrology: new `hydrology_flow_pipeline` extension chains fill/breach depressions -> D8 pointer -> D8 flow accumulation -> optional stream extraction -> optional snap pour points/watershed via inline `context.runTool`, returning `{layers, tools, steps, limitations}`. The synthetic-DEM browser test covers both the four-step stream chain and the watershed branch with same-grid raster outputs.
   - Docs/notices: added `docs/GEE.md`, updated `docs/PLUGINS.md` and `THIRD_PARTY_NOTICES.md`; no new npm dependency or third-party source was added.
   - Verification: `npm run test:browser` 22/22 passed; `npm run test:engine` 30/30 passed; `npx tsc --noEmit` passed; `npm run build` passed with `wasm-catalog` emitted as a separate 1,946 kB lazy chunk.
+
+- 2026-10-24 03:03 Asia/Shanghai — Batch05 pushed to origin/main (`f327fb1`). Overnight supervisor confirmed clean tree, 22/22 browser + 30/30 engine tests. Starting batch06 (LCP pipeline, AOI-aware tools, agent plugin discovery, restrained polish).
+
+- 2026-10-24 03:27 Asia/Shanghai — Batch06 implemented on the Linux box:
+  - `least_cost_path_pipeline` is a real extension chain over bundled WASM tools. Point inputs align to the resistance raster CRS, merge with `merge_vectors`, rasterize the source with `vector_points_to_raster`, compute `cost_distance` and trace polylines with `cost_connectivity`. Polygon inputs use the same alignment/merge path, then `optimal_corridor_connections` for corridor polygons + centerlines. `include_cost_surface` controls the retained accumulated-cost raster; no upstream output is invented.
+  - Endpoint projection/merge operates on original layer bytes. The helpers write GeoPackage to avoid a FlatGeobuf read-back panic observed with tiny projected features.
+  - `clip_layers_to_aoi` builds a transient `AOI` polygon from the map bbox, aligns it to the target CRS, clips rasters with `wasm_clip_raster_to_polygon` or point/polygon vectors with `clip`, and removes `AOI`/`AOI_*` layers in `finally`. The 分析 ribbon has a restrained 裁剪到 AOI action.
+  - Browser Agent chat now receives the AOI bbox, selected layer and names; the system prompt and compaction handoff preserve `aoi_bbox`. The prompt lists the corridor, hydrology, LCP and AOI workflows by name without claiming results. Extension tools are searchable for 走廊/水文/最小成本, while existing safety constraints are unchanged.
+  - Ribbon adds 廊道连通 / 水文流程 / 最小成本路径 under 分析 · 扩展工作流. ToolPanel continues to render shell tools during hydration and only evaluates the below-900 warning after `catalogHydrated`.
+  - Verification: `npm run test:browser` 24/24; `npx tsc --noEmit`; `npm run build`; `git diff --check`. No Python/engine files were changed for this batch.

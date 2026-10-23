@@ -68,6 +68,9 @@ const FIELDS: Record<string, string> = {
   barriers: "障碍图层（可选）", corridor_width: "廊道宽度（地图单位）", neighbor_option: "连接方式",
   dem: "输入 DEM 栅格", depression_method: "洼地处理方式", stream_threshold: "河网阈值",
   extract_streams: "提取河网", pour_points: "汇水点（可选）", snap_distance: "汇水点吸附距离",
+  source: "源端图层", destination: "目的地图层", connections: "连接方式", include_cost_surface: "输出成本距离表面",
+  aoi_west: "AOI 西边界（WGS84）", aoi_south: "AOI 南边界（WGS84）", aoi_east: "AOI 东边界（WGS84）", aoi_north: "AOI 北边界（WGS84）",
+  maintain_dimensions: "保留原栅格尺寸",
 };
 const STATUS: Record<string, string> = {
   submitting: "提交中", queued: "排队中", running: "运行中", cancelling: "正在取消",

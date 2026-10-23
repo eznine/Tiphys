@@ -10,9 +10,12 @@ export const BROWSER_COMPACT_THRESHOLD_RATIO = 0.8;
 export const BROWSER_COMPACT_RETAIN_RATIO = 0.16;
 export const BROWSER_TRIM_THRESHOLD_RATIO = 0.65;
 
-type BrowserWorkspace = {
+export type BrowserWorkspace = {
   layers: Array<Record<string, unknown>>;
   aoi?: number[] | null;
+  aoi_bbox?: number[] | null;
+  selectedLayerId?: string | null;
+  selectedLayerName?: string | null;
   outputs?: string[];
   pendingJobs?: string[];
 };
@@ -122,7 +125,8 @@ function buildHandoff(old: ModelMessage[], archiveId: string, workspace: Browser
     "## GIS workspace state (preserved verbatim)",
     JSON.stringify({
       layers,
-      aoi_bbox: workspace.aoi ?? null,
+      aoi_bbox: workspace.aoi_bbox ?? workspace.aoi ?? null,
+      selected_layer: workspace.selectedLayerId ? { id: workspace.selectedLayerId, name: workspace.selectedLayerName ?? null } : null,
       output_paths: workspace.outputs ?? [],
       pending_job_ids: workspace.pendingJobs ?? [],
     }),

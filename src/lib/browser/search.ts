@@ -3,8 +3,8 @@ import { zhTool, zhToolL1, zhToolL2 } from "../i18n/tools";
 
 const SEARCHABLE_PREFIXES = ["wasm_", "gee_"];
 
-export function isBrowserSearchable(name: string): boolean {
-  return SEARCHABLE_PREFIXES.some(prefix => name.startsWith(prefix));
+export function isBrowserSearchable(name: string, tool?: CatalogTool): boolean {
+  return SEARCHABLE_PREFIXES.some(prefix => name.startsWith(prefix)) || tool?.category === "扩展";
 }
 
 function normalized(value: unknown): string {
@@ -59,12 +59,12 @@ export function scoreBrowserTool(tool: CatalogTool, query: string): number {
 export function searchBrowserTools(
   tools: CatalogTool[],
   query: string,
-  options: { limit?: number; searchable?: (name: string) => boolean } = {},
+  options: { limit?: number; searchable?: (name: string, tool?: CatalogTool) => boolean } = {},
 ): CatalogTool[] {
   const limit = options.limit ?? 8;
   const searchable = options.searchable ?? isBrowserSearchable;
   return tools
-    .filter(tool => searchable(tool.name))
+    .filter(tool => searchable(tool.name, tool))
     .map(tool => ({ tool, score: scoreBrowserTool(tool, query) }))
     .filter(item => item.score > 0)
     .sort((a, b) => b.score - a.score || a.tool.name.localeCompare(b.tool.name))

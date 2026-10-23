@@ -12,6 +12,7 @@ import { browserCatalogState, desktopToolCatalog, ensureBrowserCatalog, shellToo
 import { zhToolL1, zhToolL2 } from "../src/lib/i18n/tools.ts";
 import { searchBrowserTools } from "../src/lib/browser/search.ts";
 import { compactBrowserMessages, estimateBrowserTokens, readBrowserContextRecord } from "../src/lib/browser/context.ts";
+import { buildBrowserSystemPrompt } from "../src/lib/browser/prompt.ts";
 import { mapExportFilename, mapPngDataUrl } from "../src/lib/map-export.ts";
 import { geeExecutionAllowed } from "../src/lib/gee.ts";
 import type { ModelMessage } from "ai";
@@ -284,6 +285,98 @@ test("hydrology helper chains depression fill, D8 flow and stream extraction on 
   assert.equal(watershedLayer.raster.width, outputs[0].raster.width);
 });
 
+test("least-cost path helper produces point paths, polygon centerlines and a real cost surface", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const cell = 100;
+  const costFeatures: any[] = [];
+  for (let row = 0; row < 6; row++) for (let col = 0; col < 8; col++) {
+    const x = 500000 + col * cell, y = 4400000 + row * cell;
+    costFeatures.push({ type: "Feature", properties: { cost: 1 },
+      geometry: { type: "Polygon", coordinates: [[[x, y], [x + cell, y], [x + cell, y + cell], [x, y + cell], [x, y]]] } });
+  }
+  const costSource = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: costFeatures })]), "lcp_cost_source.geojson")).layer;
+  const resistance = (await finished("wasm_vector_polygons_to_raster", { input: costSource.id, field: "cost", cell_size: cell, output_name: "lcp_resistance" })).layer;
+
+  const points = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [
+    { type: "Feature", properties: { id: 1 }, geometry: { type: "Point", coordinates: [500100, 4400100] } },
+    { type: "Feature", properties: { id: 2 }, geometry: { type: "Point", coordinates: [500700, 4400500] } },
+  ] })]), "lcp_points.geojson")).layer;
+  const pointPath = await finished("least_cost_path_pipeline", {
+    source: points.id, destination: points.id, resistance: resistance.id, output_name: "point_lcp",
+  });
+  assert.equal(pointPath.ok, true);
+  assert.equal(pointPath.plugin, "least-cost-path");
+  assert.equal(pointPath.model, "cost_connectivity");
+  assert.deepEqual(pointPath.tools, ["wasm_vector_points_to_raster", "wasm_cost_distance", "wasm_cost_connectivity"]);
+  assert.equal(pointPath.source_raster.kind, "raster");
+  assert.equal(pointPath.source_raster.raster.width, resistance.raster.width);
+  assert.equal(pointPath.cost_surface.kind, "raster");
+  assert.ok(pointPath.path_layers.some((layer: any) => layer.geometry_types.includes("LineString") && layer.feature_count > 0));
+  assert.match(pointPath.limitations, /NoData/);
+
+  const wgsDestination = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection",
+    crs: { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::4326" } }, features: [
+      { type: "Feature", properties: { id: 9 }, geometry: { type: "Point", coordinates: [117.00700395977505, 39.75351138287242] } },
+    ] })]), "lcp_wgs_destination.geojson")).layer;
+  const mixedCrsPath = await finished("least_cost_path_pipeline", {
+    source: points.id, destination: wgsDestination.id, resistance: resistance.id, output_name: "mixed_crs_lcp",
+  });
+  assert.deepEqual(mixedCrsPath.tools, ["wasm_reproject_vector", "merge_vectors", "wasm_vector_points_to_raster", "wasm_cost_distance", "wasm_cost_connectivity"]);
+  assert.equal(mixedCrsPath.endpoints.crs, "EPSG:32650");
+  assert.ok(mixedCrsPath.path_layers.some((layer: any) => layer.geometry_types.includes("LineString") && layer.feature_count > 0));
+
+  const square = (x: number, y: number, id: number) => ({ type: "Feature", properties: { id },
+    geometry: { type: "Polygon", coordinates: [[[x, y], [x + cell, y], [x + cell, y + cell], [x, y + cell], [x, y]]] } });
+  const polygonSource = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [square(500100, 4400100, 1)] })]), "lcp_source_polygon.geojson")).layer;
+  const polygonDestination = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [square(500600, 4400400, 2)] })]), "lcp_destination_polygon.geojson")).layer;
+  const polygonPath = await finished("least_cost_path_pipeline", {
+    source: polygonSource.id, destination: polygonDestination.id, resistance: resistance.id, corridor_width: 200, output_name: "polygon_lcp",
+  });
+  assert.equal(polygonPath.model, "optimal_corridor_connections");
+  assert.deepEqual(polygonPath.tools, ["merge_vectors", "wasm_vector_polygons_to_raster", "wasm_cost_distance", "wasm_optimal_corridor_connections"]);
+  assert.ok(polygonPath.path_layers.some((layer: any) => layer.geometry_types.includes("LineString") && layer.feature_count > 0));
+  assert.ok(polygonPath.path_layers.some((layer: any) => layer.geometry_types.includes("Polygon") && layer.feature_count > 0));
+  const stored = await browserLayers();
+  for (const item of [...pointPath.layers, ...polygonPath.layers]) if (item.layer) assert.ok(stored.some(layer => layer.id === item.layer.id));
+  for (const layer of [...pointPath.path_layers, ...polygonPath.path_layers]) assert.ok(stored.some(item => item.id === layer.id));
+  await assert.rejects(finished("least_cost_path_pipeline", { source: points.id, resistance: resistance.id }), /缺少参数：destination/);
+});
+
+test("AOI clip helper clips vectors, reprojects for rasters and removes the temporary AOI layers", async () => {
+  const crs4326 = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::4326" } };
+  const points = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs: crs4326, features: [
+    [116.01, 39.01], [116.02, 39.02], [116.03, 39.03], [116.05, 39.05],
+  ].map(([x, y], index) => ({ type: "Feature", properties: { id: index + 1 }, geometry: { type: "Point", coordinates: [x, y] } })) })]), "aoi_points.geojson")).layer;
+  const vectorClip = await finished("clip_layers_to_aoi", {
+    layer: points.id, aoi_west: 116, aoi_south: 39, aoi_east: 116.035, aoi_north: 39.035, output_name: "aoi_vector_clip",
+  });
+  assert.equal(vectorClip.plugin, "aoi-clip");
+  assert.equal(vectorClip.layers[0].layer.feature_count, 3);
+  assert.deepEqual(vectorClip.tools, ["clip"]);
+  assert.deepEqual(vectorClip.aoi_bbox, [116, 39, 116.035, 39.035]);
+
+  const crs32650 = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const cell = 100, squares: any[] = [];
+  for (let row = 0; row < 4; row++) for (let col = 0; col < 4; col++) {
+    const x = 500000 + col * cell, y = 4400000 + row * cell;
+    squares.push({ type: "Feature", properties: { value: 1 },
+      geometry: { type: "Polygon", coordinates: [[[x, y], [x + cell, y], [x + cell, y + cell], [x, y + cell], [x, y]]] } });
+  }
+  const rasterSource = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs: crs32650, features: squares })]), "aoi_raster_source.geojson")).layer;
+  const raster = (await finished("wasm_vector_polygons_to_raster", { input: rasterSource.id, field: "value", cell_size: cell, output_name: "aoi_raster" })).layer;
+  const [minx, miny, maxx, maxy] = raster.bounds;
+  const dx = (maxx - minx) * 0.2, dy = (maxy - miny) * 0.2;
+  const rasterClip = await finished("clip_layers_to_aoi", {
+    layer: raster.id, aoi_west: minx + dx, aoi_south: miny + dy, aoi_east: maxx - dx, aoi_north: maxy - dy, output_name: "aoi_raster_clip",
+  });
+  assert.equal(rasterClip.target_epsg, 32650);
+  assert.deepEqual(rasterClip.tools, ["wasm_reproject_vector", "wasm_clip_raster_to_polygon"]);
+  assert.equal(rasterClip.layers[0].layer.kind, "raster");
+  assert.ok(rasterClip.layers[0].layer.raster.width <= raster.raster.width);
+  const stored = await browserLayers();
+  assert.ok(!stored.some(layer => layer.name === "AOI" || layer.name.startsWith("AOI_")));
+});
+
 test("map export produces a PNG data URL and timestamped filename", () => {
   let requestedType = "";
   const canvas = { toDataURL: (type?: string) => { requestedType = type ?? ""; return "data:image/png;base64,AAAA"; } };
@@ -387,10 +480,10 @@ test("field_statistics reports numeric moments or top values with null counts", 
 
 test("catalog union, dedupe, L1 folders and every WASM L2 translation", async () => {
   await ensureBrowserCatalog();
-  assert.equal(browserCatalog.length, 995, "34 shell/common tools + 958 WASM schemas + 3 plugin tools");
+  assert.equal(browserCatalog.length, 997, "34 shell/common tools + 958 WASM schemas + 5 plugin tools");
   assert.equal(new Set(browserCatalog.map(t => t.name)).size, browserCatalog.length);
   const desktop = desktopToolCatalog([{ name: "buffer", category: "邻近分析", parameters: { properties: {} } }]);
-  assert.equal(desktop.length, 995, "desktop Python + WASM + shell-only stubs");
+  assert.equal(desktop.length, 997, "desktop Python + WASM + shell-only stubs");
   assert.equal(new Set(desktop.map(t => t.name)).size, desktop.length);
   assert.ok(desktop.some(t => t.name === "gee_search_collection"));
   const l1 = new Set(browserCatalog.map(zhToolL1));
@@ -414,6 +507,17 @@ test("browser tool search ranks Chinese names and taxonomy, not only description
   assert.ok(network.some(t => t.name === "wasm_closest_facility_network"));
   const rasterOverlay = searchBrowserTools(browserCatalog, "栅格 叠加", { limit: 12 });
   assert.ok(rasterOverlay.some(t => t.name === "wasm_weighted_overlay"));
+  for (const [query, expected] of [["走廊", "linkage_mapper_corridor"], ["廊道", "linkage_mapper_corridor"],
+    ["水文", "hydrology_flow_pipeline"], ["最小成本", "least_cost_path_pipeline"]]) {
+    const matches = searchBrowserTools(browserCatalog, query, { limit: 20 });
+    assert.ok(matches.some(t => t.name === expected), `${query} should discover ${expected}`);
+  }
+  const prompt = buildBrowserSystemPrompt([{ id: "lyr_prompt", name: "道路", kind: "vector" }], {
+    aoi: [116.1, 39.1, 116.4, 39.4], selectedLayerId: "lyr_prompt", selectedLayerName: "道路",
+  });
+  assert.match(prompt, /116\.1,39\.1,116\.4,39\.4/);
+  assert.match(prompt, /lyr_prompt/);
+  for (const name of ["linkage_mapper_corridor", "hydrology_flow_pipeline", "least_cost_path_pipeline", "clip_layers_to_aoi"]) assert.match(prompt, new RegExp(name));
 });
 
 test("catalog shell is immediately usable and async hydration reaches the honest full count", async () => {
@@ -422,10 +526,12 @@ test("catalog shell is immediately usable and async hydration reaches the honest
   assert.ok(state.initial < 900, `shell should not preload the WASM catalog (${state.initial})`);
   assert.equal(state.shell, shellToolCatalog.length);
   assert.ok(shellToolCatalog.some(tool => tool.name === "hydrology_flow_pipeline"));
+  assert.ok(shellToolCatalog.some(tool => tool.name === "least_cost_path_pipeline"));
+  assert.ok(shellToolCatalog.some(tool => tool.name === "clip_layers_to_aoi"));
   assert.ok(shellToolCatalog.some(tool => tool.name === "gee_auth_status"));
   assert.ok(!shellToolCatalog.some(tool => tool.name.startsWith("wasm_")));
   assert.equal(state.wasm, 958);
-  assert.equal(state.total, 995);
+  assert.equal(state.total, 997);
   assert.equal(state.hydrated, true);
 });
 
@@ -448,7 +554,8 @@ test("browser context trims old tool output, then compacts with GIS state and a 
   assert.equal(spill.kind, "tool-output");
   assert.match(spill.text, /旧工具输出/);
 
-  const workspace = { layers: [{ id: "lyr_1", name: "道路", crs: "EPSG:4326", feature_count: 12, geometry_types: ["LineString"], bounds: [1, 2, 3, 4] }] };
+  const workspace = { layers: [{ id: "lyr_1", name: "道路", crs: "EPSG:4326", feature_count: 12, geometry_types: ["LineString"], bounds: [1, 2, 3, 4] }],
+    aoi_bbox: [116.1, 39.1, 116.4, 39.4] };
   const longSession: ModelMessage[] = Array.from({ length: 10 }, (_, index) => ({
     role: index % 2 ? "assistant" : "user",
     content: `第 ${index} 轮决策：保留道路图层，检查网络连通性，准备加权叠加。`.repeat(60),
@@ -459,6 +566,7 @@ test("browser context trims old tool output, then compacts with GIS state and a 
   const handoff = String((compacted.messages[0] as { content: unknown }).content);
   assert.match(handoff, /GIS workspace state/);
   assert.match(handoff, /道路/);
+  assert.match(handoff, /"aoi_bbox":\[116\.1,39\.1,116\.4,39\.4\]/);
   const archiveId = /read_browser_output with id=([a-f0-9]{32})/.exec(handoff)?.[1];
   assert.ok(archiveId);
   const archive = await readBrowserContextRecord("compact-test", archiveId, 0, 120);

@@ -67,6 +67,50 @@ async function resolve(value: unknown): Promise<LayerRecord> {
   if (!matches.length) throw new Error(`找不到图层：${value}`);
   return matches[0];
 }
+async function removeLayer(value: unknown) {
+  const record = await resolve(value);
+  await deleteRecord(`layer:${record.info.id}`);
+  const url = urls.get(record.info.id);
+  if (url) URL.revokeObjectURL(url);
+  urls.delete(record.info.id);
+  const order = await readRecord<string[]>("workspace:layer-order");
+  if (order?.length) await writeRecord("workspace:layer-order", order.filter(id => id !== record.info.id));
+  notify();
+  return { ok: true, removed: record.info.id, name: record.info.name };
+}
+function epsgValue(crs: string | undefined): number | undefined {
+  const match = /^EPSG:(\d+)$/i.exec(crs ?? "");
+  return match ? Number(match[1]) : undefined;
+}
+async function reprojectLayerRecord(value: unknown, epsg: number, name: string, signal?: AbortSignal) {
+  const record = await resolve(value);
+  if ((record.info.kind ?? "vector") !== "vector") throw new Error("仅矢量图层可以重投影。");
+  if (!Number.isInteger(epsg) || epsg < 1) throw new Error("目标 EPSG 无效。");
+  if (epsgValue(record.info.crs) === epsg) return { ok: true, layer: publicLayer(record), engine: "GeoLibre WASM · 浏览器计算" };
+  const result = await wasmTool("reproject_vector", { [`input.${record.extension}`]: record.bytes }, {
+    input: `/work/input.${record.extension}`, epsg, output: "/work/reprojected.gpkg",
+  }, signal);
+  const bytes = result.files["reprojected.gpkg"];
+  if (!bytes?.length) throw new Error("重投影未生成矢量文件。");
+  return adopt(bytes, "gpkg", name, signal);
+}
+async function mergeLayerRecords(values: unknown[], name: string, signal?: AbortSignal) {
+  if (!Array.isArray(values) || values.length < 2) throw new Error("合并图层至少需要两个矢量图层。");
+  const records = await Promise.all(values.map(resolve));
+  if (records.some(record => (record.info.kind ?? "vector") !== "vector")) throw new Error("仅矢量图层可以合并。");
+  const crs = records[0].info.crs;
+  if (records.some(record => record.info.crs !== crs)) throw new Error("合并图层必须使用同一坐标系。");
+  const input: Record<string, Uint8Array> = {};
+  const paths = records.map((record, index) => {
+    const file = `input_${index}.${record.extension}`;
+    input[file] = record.bytes;
+    return `/work/${file}`;
+  });
+  const result = await wasmTool("merge_vectors", input, { inputs: paths.join(","), output: "/work/merged.gpkg" }, signal);
+  const bytes = result.files["merged.gpkg"];
+  if (!bytes?.length) throw new Error("图层合并未生成矢量文件。");
+  return adopt(bytes, "gpkg", name, signal);
+}
 function fields(record: LayerRecord) { return [...new Set((record.geojson?.features ?? []).flatMap(f => Object.keys(f.properties ?? {})))]; }
 function kindLabel(kind: string) { return { vector: "矢量", raster: "栅格", table: "表格" }[kind] ?? kind; }
 function geeEnvironment() {
@@ -369,8 +413,28 @@ async function spatialJoin(record: LayerRecord, other: LayerRecord, args: Record
 }
 async function execute(name: string, args: Record<string, any>, signal?: AbortSignal): Promise<Record<string, any>> {
   if (name.startsWith("wasm_")) return runNative(name.slice(5), args, signal);
+  if (name === "remove_layer") return removeLayer(args.layer);
   if (pluginToolNames.has(name)) return runPluginTool(name, args, {
     runTool: (toolName, toolArgs) => execute(toolName, toolArgs, signal),
+    inspectLayer: async value => {
+      const record = await resolve(value);
+      return {
+        id: record.info.id,
+        name: record.info.name,
+        kind: record.info.kind ?? "vector",
+        crs: record.info.crs ?? "未定义坐标系",
+        feature_count: record.info.feature_count,
+        bounds: record.info.bounds ?? null,
+        geometry_types: [...record.info.geometry_types],
+        geojson: record.geojson,
+      };
+    },
+    createLayer: async (geojson, layerName) => {
+      if (geojson?.type !== "FeatureCollection" || !Array.isArray(geojson.features)) throw new Error("扩展生成的 GeoJSON 无效。");
+      return adopt(encoder.encode(JSON.stringify(geojson)), "geojson", layerName, signal);
+    },
+    reprojectLayer: (layer, epsg, layerName) => reprojectLayerRecord(layer, epsg, layerName, signal),
+    mergeLayers: (layers, layerName) => mergeLayerRecords(layers, layerName, signal),
   });
   if (name === "list_supported_formats") return {
     ok: true,
@@ -618,14 +682,7 @@ export async function runBrowserTool(name: string, args: Record<string, any> = {
   if (name === "describe_layer") return describe(await resolve(args.layer));
   if (["list_supported_formats", "import_arcgis_project", "gee_auth_status", "gee_search_collection", "gee_job_status"].includes(name))
     return execute(name, args);
-  if (name === "remove_layer") {
-    const record = await resolve(args.layer); await deleteRecord(`layer:${record.info.id}`);
-    const url = urls.get(record.info.id); if (url) URL.revokeObjectURL(url); urls.delete(record.info.id);
-    const order = await readRecord<string[]>("workspace:layer-order");
-    if (order?.length) await writeRecord("workspace:layer-order", order.filter(id => id !== record.info.id));
-    notify();
-    return { ok: true, removed: record.info.id, name: record.info.name };
-  }
+  if (name === "remove_layer") return removeLayer(args.layer);
   if (name === "rename_layer") {
     const record = await resolve(args.layer);
     const next = String(args.name ?? "").trim();

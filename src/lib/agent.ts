@@ -11,6 +11,7 @@ export type TimelineItem =
   | { kind: "notice"; id: string; text: string };
 
 export type ViewCommand = { id: string | number; action: "zoom" | "attributes" | "style" | "labels"; layer_id: string; bounds?: number[]; style?: Partial<LayerStyle> };
+export type AgentWorkspaceContext = { aoi?: number[] | null; selectedLayerId?: string | null; selectedLayerName?: string | null };
 export type AgentState = {
   viewCommands?: ViewCommand[];
   items: TimelineItem[];
@@ -191,7 +192,7 @@ export function useAgent(session = "default") {
       const health = await agentHealth();
       setState(s => ({ ...s, provider: `${health.provider}:${health.model}` }));
     }, []),
-    send: useCallback((text: string) => post("/chat", { text }), [post]),
+    send: useCallback((text: string, workspace?: AgentWorkspaceContext) => post("/chat", { text, ...(workspace ? { workspace } : {}) }), [post]),
     approve: useCallback((toolCallId: string, approved: boolean) => { void post("/approve", { toolCallId, approved }); }, [post]),
     cancelJob: useCallback((jobId: string) => { void post("/jobs/cancel", { jobId }); }, [post]),
     cancelTurn: useCallback(() => { void post("/turn/cancel", {}); }, [post]),

@@ -8,7 +8,8 @@ import {
 } from "lucide-react";
 
 type Props = { hasLayer: boolean; onAdd: () => void; onZoomAll: () => void; onZoomLayer: () => void; onTable: () => void;
-  onStyle: () => void; onLabels: () => void; onTool: (name?: string) => void; onChat: () => void; onLogs: () => void; onSettings: () => void; onTheme: () => void };
+  onStyle: () => void; onLabels: () => void; onTool: (name?: string) => void; onChat: () => void; onLogs: () => void; onSettings: () => void; onTheme: () => void;
+  hasAoi: boolean; onClipAoi: () => void };
 
 const TABS = [["data", "数据"], ["map", "地图"], ["analysis", "分析"], ["rs", "遥感"], ["gee", "GEE"], ["view", "视图"]] as const;
 
@@ -37,12 +38,13 @@ export function CommandRibbon(props: Props) {
       {tab === "analysis" && <>
         <div className="ribbon-group"><div>{command("工具箱", Wrench, () => props.onTool(), false, true)}</div><small>地理处理</small></div>
         <div className="ribbon-group"><div>{command("缓冲区", CircleDot, () => props.onTool("buffer"))}{command("裁剪", Scissors, () => props.onTool("clip"))}{command("相交", Combine, () => props.onTool("intersection"))}{command("联合", Layers, () => props.onTool("union_layers"))}{command("擦除", Eraser, () => props.onTool("erase"))}{command("融合", Combine, () => props.onTool("dissolve"))}</div><small>矢量叠加</small></div>
-        <div className="ribbon-group"><div>{command("空间连接", Combine, () => props.onTool("spatial_join"), !props.hasLayer)}{command("按位置选择", Focus, () => props.onTool("select_by_location"), !props.hasLayer)}</div><small>空间关联</small></div>
+        <div className="ribbon-group"><div>{command("空间连接", Combine, () => props.onTool("spatial_join"), !props.hasLayer)}{command("按位置选择", Focus, () => props.onTool("select_by_location"), !props.hasLayer)}{command("裁剪到 AOI", Scissors, props.onClipAoi, !props.hasLayer || !props.hasAoi)}</div><small>空间关联 / AOI</small></div>
         <div className="ribbon-group"><div>{command("凸包", Hexagon, () => props.onTool("convex_hull"))}{command("简化", SlidersHorizontal, () => props.onTool("simplify"))}{command("面积长度", Ruler, () => props.onTool("calculate_geometry"))}</div><small>几何处理</small></div>
         <div className="ribbon-group"><div>{command("按属性选择", ListFilter, () => props.onTool("select_by_attributes"))}{command("字段统计", Download, () => props.onTool("field_statistics"))}</div><small>查询与统计</small></div>
         <div className="ribbon-group"><div>{command("加权叠加", Layers3, () => props.onTool("wasm_weighted_overlay"), !props.hasLayer)}{command("加权总和", Layers3, () => props.onTool("wasm_weighted_sum"), !props.hasLayer)}</div><small>栅格叠加</small></div>
         <div className="ribbon-group"><div>{command("分区统计", Download, () => props.onTool("wasm_zonal_statistics"), !props.hasLayer)}{command("栅格裁剪", Scissors, () => props.onTool("wasm_clip_raster_to_polygon"), !props.hasLayer)}</div><small>栅格分析</small></div>
         <div className="ribbon-group"><div>{command("网络拓扑", Network, () => props.onTool("wasm_build_network_topology"), !props.hasLayer)}{command("最近设施", Route, () => props.onTool("wasm_closest_facility_network"), !props.hasLayer)}</div><small>网络分析</small></div>
+        <div className="ribbon-group"><div>{command("廊道连通", Network, () => props.onTool("linkage_mapper_corridor"), !props.hasLayer)}{command("水文流程", Waves, () => props.onTool("hydrology_flow_pipeline"), !props.hasLayer)}{command("最小成本路径", Route, () => props.onTool("least_cost_path_pipeline"), !props.hasLayer)}</div><small>扩展工作流</small></div>
         <div className="ribbon-group"><div>{command("坡向", Mountain, () => props.onTool("wasm_aspect"))}{command("坡度", Mountain, () => props.onTool("wasm_slope"))}{command("山体阴影", SunMoon, () => props.onTool("wasm_hillshade"))}{command("流域", Waves, () => props.onTool("wasm_watershed"))}{command("河网提取", Waves, () => props.onTool("wasm_extract_streams"))}</div><small>地形 / 水文</small></div>
       </>}
       {tab === "rs" && <>

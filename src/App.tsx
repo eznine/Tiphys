@@ -118,6 +118,20 @@ export default function App() {
     const result = await (await engineRequest("/tools/run", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, arguments: args }) })).json();
     agent.mergeToolResult(result);
+    return result;
+  };
+  const clipToAoi = async () => {
+    if (!aoi || !activeLayer) return;
+    setImportNotice("");
+    try {
+      const result = await runWorkspaceTool("clip_layers_to_aoi", {
+        layer: activeLayer.id,
+        aoi_west: aoi[0], aoi_south: aoi[1], aoi_east: aoi[2], aoi_north: aoi[3],
+        output_name: `${activeLayer.name}_AOI裁剪`,
+      });
+      const clipped = result.layer ?? result.layers?.at(-1)?.layer;
+      setImportNotice(`AOI 裁剪完成：${clipped?.name ?? "结果图层已添加"}`);
+    } catch (err) { setImportNotice(`AOI 裁剪失败：${err}`); }
   };
   const handleRename = (id: string, name: string) => { void runWorkspaceTool("rename_layer", { layer: id, name }).catch(err => setImportNotice(`重命名失败：${err}`)); };
   const handleReorder = (ids: string[]) => { void runWorkspaceTool("reorder_layers", { layer_ids: ids }).catch(err => setImportNotice(`图层排序失败：${err}`)); };
@@ -185,7 +199,8 @@ export default function App() {
       <CommandRibbon hasLayer={!!activeLayer} onAdd={() => void addData()} onZoomAll={zoomAll}
         onZoomLayer={() => activeLayer && zoomLayer(activeLayer)} onTable={() => { if (activeLayer) { setTableId(activeLayer.id); setLogsOpen(false); } }}
         onStyle={() => activeLayer && setProperties({ id: activeLayer.id, tab: "style" })} onLabels={() => activeLayer && setProperties({ id: activeLayer.id, tab: "labels" })}
-        onTool={tool => openDock("tools", tool)} onChat={() => openDock("chat")} onLogs={() => setLogsOpen(true)} onSettings={() => setSettingsOpen(true)} onTheme={toggleTheme} />
+        onTool={tool => openDock("tools", tool)} onChat={() => openDock("chat")} onLogs={() => setLogsOpen(true)} onSettings={() => setSettingsOpen(true)} onTheme={toggleTheme}
+        hasAoi={!!aoi} onClipAoi={() => void clipToAoi()} />
       <div className="workspace">
         <LayerRail layers={layers} onToggle={agent.toggleLayer} onAdd={() => void addData()} importing={importing}
           selectedId={activeLayer?.id} onSelect={setSelectedId}
@@ -241,7 +256,7 @@ export default function App() {
           provider={agent.state.provider}
           layers={layers}
           selectedLayer={activeLayer} request={dockRequest} onAdd={() => void addData()} onSettings={() => setSettingsOpen(true)}
-          onSend={agent.send}
+          onSend={text => agent.send(text, { aoi, selectedLayerId: activeLayer?.id ?? null, selectedLayerName: activeLayer?.name ?? null })}
           onApprove={agent.approve}
           onCancelJob={agent.cancelJob}
           onCancelTurn={agent.cancelTurn}
