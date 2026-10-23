@@ -88,6 +88,20 @@ const WASM_SCHEMA_OVERRIDES: Record<string, Record<string, CatalogSchema>> = {
     sigma_int: { type: "number", default: 1, description: "强度核阈值；越大保留的强度差异越多，边缘保持越明显。" },
     treat_as_rgb: { type: "boolean", default: false, description: "是否按 RGB 三通道联合处理。" },
   },
+  gaussian_filter: {
+    treat_as_rgb: { type: "boolean", default: false, description: "是否按 RGB 三通道联合平滑。" },
+  },
+  edge_preserving_mean_filter: {
+    filter_size: { type: "integer", default: 11, description: "移动窗口边长（奇数像元）。" },
+  },
+  mean_filter: {
+    filter_size_x: { type: "integer", default: 11, description: "移动窗口宽度（奇数像元）。" },
+    filter_size_y: { type: "integer", default: 11, description: "移动窗口高度（奇数像元）。" },
+  },
+  minimum_bounding_box: {
+    min_criteria: { type: "string", enum: ["area", "perimeter", "length", "width"], default: "area",
+      description: "最小化准则：area 面积、perimeter 周长、length 长度或 width 宽度。" },
+  },
   opening: {
     filter_size_x: { type: "integer", default: 11, description: "结构元素宽度（奇数像元）。" },
     filter_size_y: { type: "integer", default: 11, description: "结构元素高度（奇数像元）。" },

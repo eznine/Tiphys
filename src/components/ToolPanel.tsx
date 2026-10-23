@@ -20,7 +20,7 @@ type PanelJob = {
   message: string; result?: Record<string, any>; error?: string;
 };
 const SKIP = new Set(["ping", "list_layers", "job_status", "job_cancel"]);
-const FIELD_PARAMS = new Set(["field", "by_field", "field_name", "weight_field", "value_field"]);
+const FIELD_PARAMS = new Set(["field", "by_field", "field_name", "weight_field", "value_field", "line_field", "sort_field", "id_field"]);
 const L1_ORDER = ["矢量", "栅格", "地形", "水文", "遥感", "转换", "投影", "激光雷达", "数据管理", "查询", "图层", "GEE", "扩展", "其他工具"];
 const ACTIVE = new Set(["submitting", "queued", "running", "cancelling"]);
 const LABELS: Record<string, string> = {

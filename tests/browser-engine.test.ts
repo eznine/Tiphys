@@ -248,7 +248,10 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_nibble", "wasm_multipart_to_singlepart", "wasm_eliminate_polygon_part",
     "wasm_aggregate_points", "wasm_symmetrical_difference", "wasm_difference", "wasm_identity",
     "wasm_buffer_vector", "wasm_minimum_bounding_circle", "wasm_bilateral_filter",
-    "wasm_ordinary_kriging", "wasm_trend_surface", "wasm_ruggedness_index"]) {
+    "wasm_ordinary_kriging", "wasm_trend_surface", "wasm_ruggedness_index",
+    "wasm_strahler_stream_order", "wasm_hack_stream_order", "wasm_cost_connectivity",
+    "wasm_gaussian_filter", "wasm_edge_preserving_mean_filter", "wasm_points_to_line",
+    "wasm_minimum_bounding_box", "wasm_relative_topographic_position"]) {
     assert.ok(names.includes(name), `${name} should be exposed in the ribbon`);
   }
   const dock = fs.readFileSync(new URL("../src/components/ChatDock.tsx", import.meta.url), "utf8");
@@ -256,7 +259,8 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
   for (const name of ["wasm_network_service_area", "wasm_buffer_raster", "wasm_contours_from_raster",
     "wasm_cost_distance", "wasm_raster_to_vector_polygons", "wasm_idw_interpolation",
     "wasm_line_density", "wasm_concave_hull", "wasm_empirical_bayesian_kriging", "wasm_basins",
-    "wasm_opening", "wasm_symmetrical_difference", "wasm_difference", "wasm_ruggedness_index"]) {
+    "wasm_opening", "wasm_symmetrical_difference", "wasm_difference", "wasm_ruggedness_index",
+    "wasm_strahler_stream_order", "wasm_cost_connectivity"]) {
     assert.ok(recipeTools.includes(name), `${name} should be available as an agent recipe`);
     assert.ok(browserCatalog.some(tool => tool.name === name), `${name} recipe must resolve to a catalog tool`);
   }
@@ -443,6 +447,53 @@ test("overlay, geometry, filter and terrain ribbon forms expose honest contracts
   }
 });
 
+test("hydro-order, smoothing, geometry and cost-connectivity forms expose honest contracts", async () => {
+  await ensureBrowserCatalog();
+  for (const name of ["wasm_strahler_stream_order", "wasm_hack_stream_order"]) {
+    const props = browserCatalog.find(tool => tool.name === name)!.parameters.properties as any;
+    assert.equal(props.d8_pntr["x-layer-kind"], "raster", `${name} needs a D8 pointer raster`);
+    assert.equal(props.streams["x-layer-kind"], "raster", `${name} needs a stream raster`);
+    assert.equal(props.esri_pntr.type, "boolean");
+    assert.equal(props.zero_background.type, "boolean");
+    assert.ok(!("output" in props), `${name} output path must stay internal`);
+  }
+
+  const cost = browserCatalog.find(tool => tool.name === "wasm_cost_connectivity")!.parameters.properties as any;
+  assert.equal(cost.sources["x-layer-kind"], "vector");
+  assert.equal(cost.cost["x-layer-kind"], "raster");
+  assert.deepEqual(cost.connections.enum, ["mst", "all_neighbors"]);
+  assert.ok(!("output" in cost), "cost-connectivity output path must stay internal");
+
+  const gaussian = browserCatalog.find(tool => tool.name === "wasm_gaussian_filter")!.parameters.properties as any;
+  assert.equal(gaussian.input["x-layer-kind"], "raster");
+  assert.equal(gaussian.sigma.type, "number");
+  assert.equal(gaussian.treat_as_rgb.type, "boolean", "Gaussian RGB mode is a boolean, not a raster");
+  assert.ok(!("output" in gaussian), "Gaussian filter file output must stay internal");
+
+  const edge = browserCatalog.find(tool => tool.name === "wasm_edge_preserving_mean_filter")!.parameters.properties as any;
+  assert.equal(edge.input["x-layer-kind"], "raster");
+  assert.equal(edge.filter_size.type, "integer");
+  assert.equal(edge.threshold.type, "number");
+  assert.ok(!("output" in edge), "edge-preserving filter file output must stay internal");
+
+  const pointsToLine = browserCatalog.find(tool => tool.name === "wasm_points_to_line")!.parameters.properties as any;
+  assert.equal(pointsToLine.input["x-layer-kind"], "vector");
+  assert.equal(pointsToLine.close_line.type, "boolean");
+  assert.ok(!("output" in pointsToLine), "points-to-line output path must stay internal");
+
+  const bbox = browserCatalog.find(tool => tool.name === "wasm_minimum_bounding_box")!.parameters.properties as any;
+  assert.equal(bbox.input["x-layer-kind"], "vector");
+  assert.deepEqual(bbox.min_criteria.enum, ["area", "perimeter", "length", "width"]);
+  assert.equal(bbox.individual_feature_hulls.type, "boolean");
+  assert.ok(!("output" in bbox), "minimum-bounding-box output path must stay internal");
+
+  const rtp = browserCatalog.find(tool => tool.name === "wasm_relative_topographic_position")!.parameters.properties as any;
+  assert.equal(rtp.input["x-layer-kind"], "raster");
+  assert.equal(rtp.filter_size_x.type, "integer");
+  assert.equal(rtp.filter_size_y.type, "integer");
+  assert.ok(!("output" in rtp), "relative-topographic-position output path must stay internal");
+});
+
 test("Chinese GIS aliases rank conversion, interpolation and service-area tools", async () => {
   await ensureBrowserCatalog();
   const rasterToVector = searchBrowserTools(browserCatalog, "栅格转矢量", { limit: 6 }).map(tool => tool.name);
@@ -482,6 +533,18 @@ test("Chinese GIS aliases rank conversion, interpolation and service-area tools"
     ["湿润指数", "wasm_wetness_index"]]) {
     assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
   }
+  for (const [query, expected] of [["Strahler", "wasm_strahler_stream_order"], ["Hack", "wasm_hack_stream_order"],
+    ["成本连通", "wasm_cost_connectivity"], ["廊道", "wasm_corridor"],
+    ["高斯滤波", "wasm_gaussian_filter"], ["均值滤波", "wasm_mean_filter"],
+    ["拉普拉斯", "wasm_laplacian_filter"], ["保边均值", "wasm_edge_preserving_mean_filter"],
+    ["点转线", "wasm_points_to_line"], ["最小外包矩形", "wasm_minimum_bounding_box"],
+    ["地形位置", "wasm_relative_topographic_position"], ["湿润指数", "wasm_wetness_index"],
+    ["填挖方", "wasm_cut_fill"], ["块统计", "wasm_block_statistics"]]) {
+    assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
+  }
+  const streamOrders = searchBrowserTools(browserCatalog, "河网分级", { limit: 4 }).map(tool => tool.name);
+  assert.ok(streamOrders.includes("wasm_strahler_stream_order") && streamOrders.includes("wasm_hack_stream_order"),
+    "河网分级 should surface both Strahler and Hack stream ordering");
 });
 
 test("geometry densify, centroid and line density tools publish real result layers", async () => {
@@ -703,6 +766,26 @@ test("overlay, advanced geometry, bilateral filter and terrain tools publish rea
   assert.ok(circleLayer.feature_count >= 1, "minimum bounding circle must publish a polygon result");
   assert.ok(circleLayer.geometry_types.every((type: string) => type === "Polygon" || type === "MultiPolygon"));
 
+  const boxes = await finished("wasm_minimum_bounding_box", {
+    input: overlayA.id, min_criteria: "width", individual_feature_hulls: true, output_name: "minimum_box_result",
+  });
+  const boxLayer = boxes.layer ?? boxes.layers?.[0]?.layer;
+  assert.equal(boxLayer.feature_count, 1, "minimum bounding box must publish one box per input feature");
+  assert.ok(boxLayer.geometry_types.every((type: string) => type === "Polygon" || type === "MultiPolygon"));
+
+  const routePoints = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [
+    { type: "Feature", properties: { route: "A", step: 2 }, geometry: { type: "Point", coordinates: [500200, 4400000] } },
+    { type: "Feature", properties: { route: "A", step: 1 }, geometry: { type: "Point", coordinates: [500000, 4400000] } },
+    { type: "Feature", properties: { route: "B", step: 1 }, geometry: { type: "Point", coordinates: [500000, 4400200] } },
+    { type: "Feature", properties: { route: "B", step: 2 }, geometry: { type: "Point", coordinates: [500200, 4400200] } },
+  ] })]), "points_to_line_source.geojson")).layer;
+  const lines = await finished("wasm_points_to_line", {
+    input: routePoints.id, line_field: "route", sort_field: "step", close_line: false, output_name: "points_to_line_result",
+  });
+  const lineLayer = lines.layer ?? lines.layers?.[0]?.layer;
+  assert.equal(lineLayer.feature_count, 2, "point-to-line must build one line per group");
+  assert.ok(lineLayer.geometry_types.every((type: string) => type === "LineString" || type === "MultiLineString"));
+
   const cell = 100, cells: any[] = [];
   for (let row = 0; row < 6; row++) for (let col = 0; col < 6; col++) {
     const x = 500000 + col * cell, y = 4400000 + row * cell;
@@ -735,6 +818,30 @@ test("overlay, advanced geometry, bilateral filter and terrain tools publish rea
   assert.equal(ruggednessLayer.kind, "raster", "ruggedness file output must publish as raster");
   assert.equal(ruggednessLayer.raster?.width, dem.raster?.width);
   assert.equal(ruggedness.attachments, undefined);
+
+  const gaussian = await finished("wasm_gaussian_filter", {
+    input: dem.id, sigma: 1, treat_as_rgb: false, assume_three_band_rgb: false, output_name: "gaussian_result",
+  });
+  const gaussianLayer = gaussian.layer ?? gaussian.layers?.[0]?.layer;
+  assert.equal(gaussianLayer.kind, "raster", "Gaussian filter file output must publish as raster");
+  assert.equal(gaussianLayer.raster?.width, dem.raster?.width);
+  assert.equal(gaussian.attachments, undefined);
+
+  const edgeMean = await finished("wasm_edge_preserving_mean_filter", {
+    input: dem.id, filter_size: 3, threshold: 15, output_name: "edge_mean_result",
+  });
+  const edgeMeanLayer = edgeMean.layer ?? edgeMean.layers?.[0]?.layer;
+  assert.equal(edgeMeanLayer.kind, "raster", "edge-preserving filter file output must publish as raster");
+  assert.equal(edgeMeanLayer.raster?.width, dem.raster?.width);
+  assert.equal(edgeMean.attachments, undefined);
+
+  const rtp = await finished("wasm_relative_topographic_position", {
+    input: dem.id, filter_size_x: 3, filter_size_y: 3, output_name: "rtp_result",
+  });
+  const rtpLayer = rtp.layer ?? rtp.layers?.[0]?.layer;
+  assert.equal(rtpLayer.kind, "raster", "relative topographic position must publish a raster");
+  assert.equal(rtpLayer.raster?.width, dem.raster?.width);
+  assert.equal(rtp.attachments, undefined);
 });
 
 test("empirical Bayesian kriging publishes both prediction and error rasters", async () => {
@@ -987,6 +1094,17 @@ test("hydrology helper chains depression fill, D8 flow and stream extraction on 
   const stored = await browserLayers();
   for (const layer of outputs) assert.ok(stored.some(item => item.id === layer.id));
 
+  for (const [tool, output] of [["wasm_strahler_stream_order", "strahler_order"],
+    ["wasm_hack_stream_order", "hack_order"]]) {
+    const order = await finished(tool, {
+      d8_pntr: outputs[1].id, streams: outputs[3].id, esri_pntr: false, zero_background: false, output_name: output,
+    });
+    const orderLayer = order.layer ?? order.layers?.[0]?.layer;
+    assert.equal(orderLayer.kind, "raster", `${tool} must publish a raster`);
+    assert.equal(orderLayer.raster?.width, outputs[1].raster?.width);
+    assert.equal(order.attachments, undefined);
+  }
+
   const pourPoint = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [{
     type: "Feature", properties: { id: 1 }, geometry: { type: "Point", coordinates: [500650, 4400050] },
   }] })]), "synthetic_pour_points.geojson")).layer;
@@ -1049,6 +1167,14 @@ test("least-cost path helper produces point paths, polygon centerlines and a rea
     { type: "Feature", properties: { id: 1 }, geometry: { type: "Point", coordinates: [500100, 4400100] } },
     { type: "Feature", properties: { id: 2 }, geometry: { type: "Point", coordinates: [500700, 4400500] } },
   ] })]), "lcp_points.geojson")).layer;
+  const connectivity = await finished("wasm_cost_connectivity", {
+    sources: points.id, cost: resistance.id, connections: "mst", id_field: "id", output_name: "cost_network",
+  });
+  const connectivityLayer = connectivity.layer ?? connectivity.layers?.[0]?.layer;
+  assert.ok(connectivityLayer.feature_count >= 1, "cost connectivity must connect the source points");
+  assert.ok(connectivityLayer.geometry_types.every((type: string) => type === "LineString" || type === "MultiLineString"));
+  assert.equal(connectivity.attachments, undefined);
+
   const pointPath = await finished("least_cost_path_pipeline", {
     source: points.id, destination: points.id, resistance: resistance.id, output_name: "point_lcp",
   });

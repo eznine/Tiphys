@@ -197,3 +197,15 @@
 - 2026-10-24 06:14 Asia/Shanghai — Overnight supervisor: batch16 pushed itself as `f2f06ef` (50/50). Tree clean. Launching batch17 (filter/geom/hydro densify, agent recipes).
 
 - 2026-10-24 06:14 Asia/Shanghai — Overnight watch: batch16 already on origin/main (`f2f06ef`, 50/50). No tf-codex alive after ship. Direction OK (blue `#2563eb`, light default, logo-temp, no teal). Box-only. Restarting batch17 (hydro/filters/geometry densify, agent recipes).
+
+- 2026-10-24 06:31 Asia/Shanghai — Batch17 implemented and verified on the Linux box:
+  - Ribbon: added eight catalog-backed analysis actions — Strahler 河网分级, Hack 河网分级, 成本连通, 高斯滤波, 保边均值, 点转线, 最小外包矩形, 相对地形位置. They extend the existing 几何处理, 网络分析, 平滑滤波, 地形 and new 河网分级 groups; every action opens a hydrated WASM form.
+  - Contracts: Gaussian `treat_as_rgb` is a boolean mode rather than a raster path; edge-preserving and mean filter window sizes are integer fields; minimum bounding box exposes the supported `width` criterion. Point-to-line `line_field` / `sort_field` and cost-connectivity `id_field` now use field pickers. Generic filter outputs continue to publish displayed rasters through the existing output-kind overrides.
+  - Executions covered: Strahler and Hack ordering from a real fill → D8 → flow-accum → streams chain; cost connectivity from two projected points plus a friction raster; Gaussian and edge-preserving filters plus relative topographic position from a real DEM; point-to-line grouped/sorted into two lines; minimum bounding boxes from a polygon layer.
+  - Agent: added restrained 河网分级 and 成本连通 recipe cards that only open forms. Chinese aliases now rank Strahler, Hack, 河网分级, 成本连通, 廊道, 高斯滤波, 均值滤波, 拉普拉斯, 保边均值, 点转线, 最小外包矩形, 地形位置, 湿润指数, 填挖方 and 块统计 to their intended tools. Recovery/compaction remains state-only.
+  - Perf/beauty: no risky perf refactor (no obvious remaining hot path); controls and recipe cards reuse the existing blue-family styling. No teal or mythology.
+  - Verification: 51/51 browser tests passed (`npm run test:browser`), `npx tsc --noEmit` passed, `npm run build` passed. `dist/` remains ~36 MB with unchanged payload shape (app 1.92 MB, lazy catalog 1.95 MB, CLI WASM 24.11 MB), so no deploy-size edit and no live deploy. GEE remains docs/demo only; no credentials read or created. No Python changes.
+
+- 2026-10-24 06:19 Asia/Shanghai — Overnight supervisor: duplicate batch17 detected (parallel supervisor launched `batch17-hydro-filters-geometry`). Stopped this supervisor's waiting tf-codex (filter-geom-hydro) to leave a single writer. Continuing watch on hydro-filters-geometry log.
+
+- 2026-10-24 06:24 Asia/Shanghai — Overnight supervisor: batch17 exited (sandbox blocked commit). Re-verified `npm run test:browser` 51/51 + `npx tsc --noEmit`. Committing+pushing as `P3/P4: hydro/filters/geometry densify, agent recipes`, then starting batch18.
