@@ -153,3 +153,5 @@
 - 2026-10-24 05:29 Asia/Shanghai — Overnight supervisor: batch13 exited (sandbox blocked commit; key-rotated mid-run). Re-verified `npm run test:browser` 41/41 + `npx tsc --noEmit`. Committing+pushing as `P3/P4: geometry densify, line density/allocation, agent recipes`, then starting batch14.
 
 - 2026-10-24 05:30 Asia/Shanghai — Batch13 pushed as `782a0e0` (41/41). Launching batch14 tf-codex (morphology/EBK/hydro densify, agent recipes).
+
+- 2026-10-24 05:36 Asia/Shanghai — Overnight watch: batch14 tf-codex exited early (~156k tokens, clean tree, no patch) mid contract exploration for EBK/morphology. No code landed. Relaunching batch14 immediately (same scope).
