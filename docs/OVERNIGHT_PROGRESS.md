@@ -73,4 +73,5 @@
   - Ribbon/symbology: added 填洼, D8 流向, 汇流累积, 栅格计算器 and 重分类; split terrain/hydrology into cleaner groups. Removed teal palette entries and gave AOI/廊道/最小成本/水文 helper names a deterministic blue-family palette.
   - GEE: browser demo export now emits clearly labelled staged progress (`demo_steps`) while keeping `connected: false`; docs add box presence checks and the exact service-account verification runbook. No credentials were created or read.
   - Docs: added `docs/DEPLOY_TIPHYS_XYZ.md`; updated runtime, parity and GEE notes to the verified 997 merged / 993 visible catalog counts and current hybrid routes.
-  - Verification: `npm run test:browser` 26/26; `npx tsc --noEmit`; production build and engine tests run before ship.
+  - Verification: `npm run test:browser` 26/26; `npx tsc --noEmit`; production build passed; `npm run test:engine` 30/30.
+  - Pushed to origin/main as `8dabf06`; worktree clean. No GEE credentials exist or were created on the box.

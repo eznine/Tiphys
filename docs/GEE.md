@@ -20,7 +20,7 @@ This Linux workspace has **no** `EARTHENGINE_TOKEN`, `GEE_SERVICE_ACCOUNT`, `TIP
 | `demo` | Whether `TIPHYS_GEE_DEMO=1` is active. Demo mode only proves the local job/form flow. |
 | `hint` | The exact next action for the current status. |
 
-`gee_search_collection` always returns an honest empty result unless a future verified client is wired. `gee_export_raster` creates a local job only in demo mode; otherwise it returns the requested path plus a structured not-connected result and writes no raster. `gee_job_status` reads local job records and also reports the current auth status.
+`gee_search_collection` always returns an honest empty result unless a future verified client is wired. `gee_export_raster` completes a local job only in demo mode; otherwise the job ends `failed` with the requested path plus a structured not-connected result and writes no raster. `gee_job_status` reads local job records and also reports the current auth status.
 
 Search and export are disabled in the toolbox until `connected` is true or demo mode is enabled. Auth status and local job status remain available while disconnected so users can diagnose configuration.
 
