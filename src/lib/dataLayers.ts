@@ -29,17 +29,22 @@ export function syncDataLayers(map: Map, layers: DataLayer[]) {
     const color = PALETTE[i % PALETTE.length];
     if (!map.getSource(sid)) map.addSource(sid, { type: "geojson", data: l.url });
     const vis = l.visible === false ? "none" : "visible";
-    const poly = l.geometry_types.some((g) => /POLYGON/i.test(g));
-    if (poly) {
+    // Geometry filters adapted from GeoLibre map-controller.ts (MIT, Qiusheng Wu).
+    // Always provide all three representations: mixed datasets must not lose features.
       if (!map.getLayer(`${sid}-fill`))
-        map.addLayer({ id: `${sid}-fill`, type: "fill", source: sid, paint: { "fill-color": color, "fill-opacity": 0.28 } });
+        map.addLayer({ id: `${sid}-fill`, type: "fill", source: sid,
+          filter: ["match", ["geometry-type"], ["Polygon", "MultiPolygon"], true, false],
+          paint: { "fill-color": color, "fill-opacity": 0.28 } });
       if (!map.getLayer(`${sid}-line`))
-        map.addLayer({ id: `${sid}-line`, type: "line", source: sid, paint: { "line-color": color, "line-width": 1.6 } });
-    } else if (!map.getLayer(`${sid}-pt`)) {
+        map.addLayer({ id: `${sid}-line`, type: "line", source: sid,
+          filter: ["match", ["geometry-type"], ["LineString", "MultiLineString", "Polygon", "MultiPolygon"], true, false],
+          paint: { "line-color": color, "line-width": 1.6 } });
+    if (!map.getLayer(`${sid}-pt`)) {
       map.addLayer({
         id: `${sid}-pt`,
         type: "circle",
         source: sid,
+        filter: ["match", ["geometry-type"], ["Point", "MultiPoint"], true, false],
         paint: { "circle-radius": 5, "circle-color": color, "circle-stroke-color": "#fff", "circle-stroke-width": 1.5 },
       });
     }

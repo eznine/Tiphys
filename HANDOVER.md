@@ -1,5 +1,7 @@
 # TIPHYS 交接文档
 
+> 更新：下文保留项目背景和开发入口，里程碑经过 2026-10-23 的可靠性批次修正。当前实现、测试证据和 Windows 发布边界请以 `README.md` 与 `docs/RELIABILITY_STATUS.md` 为准。
+
 > 2026-10-23 · 从 Linux 开发盒交接到 Windows（目标目录 `F:\tiphys`）。价值主张：**From Intent to Outcome**。
 
 ## 1. TIPHYS 是什么
@@ -10,8 +12,8 @@
 |---|---|---|
 | 桌面壳 | Tauri 2 (Rust) | `src-tauri/` |
 | 界面 | React + TypeScript (Vite) + MapLibre GL（地球 globe 投影 + 多底图） | `src/` |
-| Agent sidecar | Node + Vercel AI SDK（`streamText` 工具循环），HTTP+SSE `127.0.0.1:8787` | `agent/` |
-| 空间引擎 | Python FastAPI + MCP（FastMCP，挂在 `/mcp/`），`127.0.0.1:8765`，geopandas/shapely | `engine/` |
+| Agent sidecar | Node + Vercel AI SDK（`streamText` 工具循环），HTTP+SSE `127.0.0.1:8972` | `agent/` |
+| 空间引擎 | Python FastAPI + MCP（FastMCP，挂在 `/mcp/`），`127.0.0.1:8971`，geopandas/shapely | `engine/` |
 | 云端遥感 | Google Earth Engine — **计划中，未接** | — |
 
 完整产品说明：`docs/MVP_SPEC.md`；Agent 架构细节：`docs/AGENT_ARCH.md`；框架选型对比：`docs/AGENT_FRAMEWORK_COMPARISON.md`；参考仓库：`reference/README.md`。
@@ -26,34 +28,28 @@
 | M2-lite Agent 循环 | ✅ 对话 → MCP 工具（ping / list_layers / add_data / describe_layer / buffer / job_status / job_cancel / remove_layer）→ 结果上图 |
 | 长任务（buffer job） | ✅ 立即返回 `job_id`，Agent 轮询推进度，UI 进度卡可取消，无固定超时 |
 | 人工确认 | ✅ `remove_layer` 及 `overwrite: true` 调用前弹确认卡 |
-| 上下文压缩 | ⚠️ 骨架：工具输出溢写到 `.tiphys/spill/`；80% 阈值触发压缩，但摘要是**规则拼接**，非模型生成 |
+| 上下文压缩 | ✅ 工具输出溢写到 `.tiphys/spill/`；80% 阈值触发压缩；真实模型生成交接摘要，mock 模式使用记录型摘要 |
 | 记忆文件 | ✅ `.tiphys/MEMORY.md`（项目级）+ `~/.tiphys/memory.md`（用户级）每轮注入系统提示 |
 | 会话日志/恢复 | ✅ `.tiphys/sessions/<id>.jsonl` + checkpoint，重启恢复、界面重放 |
 | M3 GEE | ❌ 未开始 |
-| M4 Windows 安装包 | ❌ `tauri build` 未接入 sidecar 启动 |
+| M4 Windows 安装包 | ✅ NSIS 安装版与便携 zip 均通过构建、安装（或解压）、启动、关闭、卸载验收；未签名，正式分发前需签名 |
 
 ## 3. 能用 vs 占位
 
 **已验证可用**：mock 模型端到端；真实模型 tierflow_pro 跑通 “给 samples 里的点做 500 米缓冲”（ping → add_data → buffer → 上图）；坏 key 自动轮换（401/402/403/429/5xx）；取消任务；删除确认；工具输出溢写；压缩触发；会话重放。
 
 **占位 / 已知问题**：
-- 压缩摘要为规则拼接（提示词 `COMPACT_PROMPT` 已备好，未调用模型）。
 - AOI 字段始终为空（无画 AOI 工具）；GEE 未接。
 - “哪些工具是破坏性”写死在 Agent 的 `DESTRUCTIVE` 中。
-- 引擎图层只在内存，引擎重启即丢；旧 checkpoint 会引用失效的 layer id。
 - 进度靠 Agent 轮询 `job_status`，未用 MCP progress 通知。
 - mock 模型每次缓冲都会重复 add_data（出现同名图层）。
-- 重放历史时未完成的审批卡一律显示“已拒绝”。
-- `tauri build` 产物不会自动启动 Agent / 引擎 sidecar（开发模式需手动起三个进程）。
-- Windows 上尚未实际跑过（本次只做了路径/脚本的跨平台修正）。
+- 安装包与便携 zip 未签名；付费模型的 API 调用与摘要质量未在本批重新验收。
 
 ## 4. 下一步
 
-1. **GEE 竖切（M3）**：`gee_auth_status / gee_search_collection / gee_export_raster / gee_job_status`，复用 GeoAgentPro 的导出/队列/进度语义，走现有 job 模式。
-2. **模型撰写压缩摘要**：用 `COMPACT_PROMPT` 调模型，保留强制 GIS 状态段。
+1. **代码签名** → 付费模型调用验收 → 真实 GIS 工作流验证。
+2. **GEE 竖切（M3）**：`gee_auth_status / gee_search_collection / gee_export_raster / gee_job_status`，复用 GeoAgentPro 的导出/队列/进度语义，走现有 job 模式。
 3. **更多 GIS 工具**：clip / intersect / union / erase / dissolve / select_* / reproject / export_*、栅格 raster_clip / zonal_stats / ndvi / slope —— 优先从 RustGIS（接口）、GeoLibre（前端样式/图例/格式）、QGIS Processing（分类与参数习惯）、WhiteboxTools（栅格/地形）复用。
-4. **图层持久化**：引擎图层落盘（如 GPKG + 清单），重启恢复，checkpoint 引用稳定 id。
-5. **sidecar 进 tauri build**：用 Tauri sidecar/externalBin 打包 Node Agent 与 Python 引擎（或 PyInstaller），由壳启动/关闭，产出 NSIS/MSI。
 
 ## 5. 复用规则
 
@@ -89,17 +85,19 @@ engine\.venv\Scripts\python.exe -m pip install -r engine\requirements.txt
 
 ### 7.3 运行（三个 PowerShell 窗口）
 ```powershell
-# 窗口 1：空间引擎 :8765
+# 窗口 1：空间引擎 :8971
 cd F:\tiphys; npm run engine
 # 验证：npm run engine:ping   → {"ok":true,"service":"tiphys-engine"}
 
-# 窗口 2：Agent sidecar :8787
+# 窗口 2：Agent sidecar :8972
 cd F:\tiphys; npm run agent
 
 # 窗口 3：桌面应用
 cd F:\tiphys; npm run tauri dev
 ```
 仅调前端可用 `npm run dev`（浏览器打开 http://localhost:1420）。`npm run engine` 现由 `scripts/engine.mjs` 启动，自动使用 `engine\.venv\Scripts\python.exe`。
+
+> 端口规划：TIPHYS 用 **8971/8972**，与 GeoAgentPro GEE proxy（默认 8765，`GA_GEE_PORT` 可覆盖）和 GeoLibre Desktop（8765/8766）错开，三条产品线可并行。`npm run dev:all` 一次拉起全部服务；`tauri dev`/安装版由壳自行拉起并清理 sidecar。
 
 ### 7.4 模型配置
 默认：OpenAI 兼容接口 base `https://tierflow.cn/v1`，模型 `tierflow_pro`，多 key 轮换。Agent 按以下顺序取 key（`agent/src/config.ts`），都没有则退回内置 mock 模型，**不会崩溃**：

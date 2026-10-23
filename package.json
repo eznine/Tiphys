@@ -5,17 +5,24 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:all": "node scripts/dev.mjs",
+    "bundle:sidecars": "node scripts/bundle-sidecars.mjs",
+    "desktop:build": "node scripts/build-desktop.mjs",
+    "desktop:dev": "node scripts/build-desktop.mjs --dev",
+    "portable:zip": "node scripts/portable-zip.mjs",
+    "test:agent": "npm --prefix agent test",
+    "test:engine": "node scripts/test-engine.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
     "engine": "node scripts/engine.mjs",
-    "engine:ping": "node -e \"fetch('http://127.0.0.1:8765/ping').then(r=>r.text()).then(console.log)\"",
+    "engine:ping": "node -e \"fetch('http://127.0.0.1:8971/ping').then(r=>r.text()).then(console.log)\"",
     "check:rust": "cargo check --manifest-path src-tauri/Cargo.toml",
     "agent": "npm --prefix agent start",
-    "agent:tools": "node -e \"fetch('http://127.0.0.1:8787/tools').then(r=>r.text()).then(console.log)\""
+    "agent:tools": "node scripts/agent-tools.mjs"
   },
   "dependencies": {
-    "@tauri-apps/api": "2.11.6",
+    "@tauri-apps/api": "2.11.1",
     "@tauri-apps/plugin-opener": "^2.5.5",
     "maplibre-gl": "^6.15.0",
     "react": "^19.1.0",
@@ -26,6 +33,7 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^6.0.2",
+    "esbuild": "^0.28.2",
     "typescript": "~6.0.3",
     "vite": "^8.0.16"
   }

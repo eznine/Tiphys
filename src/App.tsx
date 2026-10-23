@@ -23,8 +23,11 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    const t = window.setTimeout(() => void pingEngine().then(setPing), 300);
-    return () => window.clearTimeout(t);
+    const controller = new AbortController();
+    const check = () => void pingEngine(undefined, controller.signal).then(result => { if (!controller.signal.aborted) setPing(result); });
+    check();
+    const timer = window.setInterval(check, 10000);
+    return () => { controller.abort(); window.clearInterval(timer); };
   }, []);
 
   const engineLabel = useMemo(() => {
@@ -61,6 +64,7 @@ export default function App() {
           onSend={agent.send}
           onApprove={agent.approve}
           onCancelJob={agent.cancelJob}
+          onCancelTurn={agent.cancelTurn}
         />
       </div>
     </div>

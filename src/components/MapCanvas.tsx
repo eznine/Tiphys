@@ -14,6 +14,7 @@ import {
   TERRAIN_DEM,
 } from "../lib/basemaps";
 import { DataLayer, syncDataLayers } from "../lib/dataLayers";
+import { engineHeaders } from "../lib/service";
 
 type Props = {
   theme: "light" | "dark";
@@ -119,6 +120,7 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null }: Props)
       bearing: 0,
       attributionControl: { compact: true },
       maxPitch: 85,
+      transformRequest: (url) => ({ url, headers: engineHeaders(url) }),
     });
 
     map.addControl(
@@ -208,7 +210,7 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null }: Props)
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !focusBounds || focusBounds.length !== 4) return;
+    if (!map || !focusBounds || focusBounds.length !== 4 || !focusBounds.every(Number.isFinite)) return;
     const [a, b, c, d] = focusBounds;
     map.fitBounds([[a, b], [c, d]], { padding: 80, duration: 1800, maxZoom: 14 });
   }, [focusBounds]);

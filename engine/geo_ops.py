@@ -11,13 +11,14 @@ from __future__ import annotations
 
 import os
 import time
+import math
 
 # Artificial delay multiplier for demoing job progress (0 = off).
-DEMO_DELAY = float(os.environ.get("TIPHYS_DEMO_DELAY", "2.5"))
+DEMO_DELAY = float(os.environ.get("TIPHYS_DEMO_DELAY", "0"))
 from typing import Any, Callable
 
 import geopandas as gpd
-from pyproj import CRS
+from pyproj import CRS, Proj
 from shapely.ops import unary_union
 
 from layers import LayerStore
@@ -36,13 +37,29 @@ def _to_metres(distance: float, units: str | None) -> float:
 
 
 def _local_utm_crs(gdf: gpd.GeoDataFrame) -> CRS:
-    """Pick a UTM CRS from layer centroid (WGS84)."""
-    gdf4326 = gdf.to_crs("EPSG:4326") if gdf.crs and str(gdf.crs) != "EPSG:4326" else gdf
-    cx = float(gdf4326.geometry.centroid.x.mean())
-    cy = float(gdf4326.geometry.centroid.y.mean())
-    zone = int((cx + 180) // 6) + 1
-    epsg = (32600 if cy >= 0 else 32700) + zone
-    return CRS.from_epsg(epsg)
+    """Use GeoPandas/PROJ selection and reject regions with >0.5% scale distortion."""
+    if gdf.empty or not (gdf.geometry.notna() & ~gdf.geometry.is_empty).any():
+        raise ValueError("Buffer requires at least one non-empty geometry")
+    crs = gdf.estimate_utm_crs()
+    if crs is None:
+        raise ValueError("No suitable local UTM projection; use a smaller analysis region")
+    _check_projection(gdf, crs)
+    return crs
+
+
+def _check_projection(gdf: gpd.GeoDataFrame, crs: CRS) -> None:
+    bounds = gdf.to_crs("EPSG:4326").total_bounds
+    if not all(math.isfinite(v) for v in bounds):
+        raise ValueError("Non-finite geometry bounds")
+    x0, y0, x1, y1 = bounds
+    if y0 < -80 or y1 > 84 or x1 - x0 > 8 or y1 - y0 > 8:
+        raise ValueError("Buffer supports local regions only; split wide, polar or antimeridian data explicitly")
+    proj = Proj(crs)
+    for x in (x0, (x0 + x1) / 2, x1):
+        for y in (y0, (y0 + y1) / 2, y1):
+            factors = proj.get_factors(x, y)
+            if any(not math.isfinite(s) or abs(s - 1) > 0.005 for s in (factors.meridional_scale, factors.parallel_scale)):
+                raise ValueError("Buffer projection distortion exceeds 0.5%; use a smaller analysis region")
 
 
 def buffer_sync(
@@ -53,6 +70,7 @@ def buffer_sync(
     dissolve: bool = False,
     output_name: str | None = None,
     report: Callable[[float, str], None] | None = None,
+    commit: Callable[[Callable[[], dict[str, Any]]], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Buffer a layer; optional progress callback for long-job demo."""
     def r(p: float, m: str = "") -> None:
@@ -65,6 +83,8 @@ def buffer_sync(
     if gdf is None:
         raise KeyError(layer_ref)
     metres = _to_metres(float(distance), units)
+    if not math.isfinite(metres):
+        raise ValueError("Distance must be finite")
     if abs(metres) > 5_000_000:
         raise ValueError("Distance is too large (limit 5000 km)")
 
@@ -86,18 +106,17 @@ def buffer_sync(
         time.sleep(0.6 * DEMO_DELAY)
         geom = unary_union(buffered.geometry.values)
         buffered = gpd.GeoDataFrame({"geometry": [geom]}, crs=utm)
+    nonempty = buffered.loc[buffered.geometry.notna() & ~buffered.geometry.is_empty]
+    if not nonempty.empty:
+        _check_projection(nonempty, utm)
     r(0.85, "reproject to WGS84 + register")
     time.sleep(0.6 * DEMO_DELAY)
-    info = store.add_gdf(buffered, name=out_name)
-    r(1.0, "done")
-    return {
-        "ok": True,
-        "layer": info,
-        "distance_m": metres,
-        "units": units or "meters",
-        "dissolve": dissolve,
-        "source_layer_id": lid,
-    }
+    r(0.95, "commit result")
+    def register() -> dict[str, Any]:
+        return {"ok": True, "layer": store.add_gdf(buffered, name=out_name),
+                "distance_m": metres, "units": units or "meters", "dissolve": dissolve,
+                "source_layer_id": lid, "analysis_crs": str(utm), "max_scale_error": 0.005}
+    return commit(register) if commit else register()
 
 
 def start_buffer_job(
@@ -120,6 +139,7 @@ def start_buffer_job(
             dissolve=dissolve,
             output_name=output_name,
             report=report,
+            commit=lambda fn: jobs.commit(job, fn),
         )
 
     return jobs.start("buffer", label, worker)

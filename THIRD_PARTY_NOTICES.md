@@ -1,6 +1,6 @@
 # Third-party notices
 
-TIPHYS uses or adapts the following third-party works. Full license texts are in each project's LICENSE file (paths are the local reference clones under `/workspace/tiphys-refs/`).
+TIPHYS uses or adapts the following third-party works. Original notices for adapted sources are preserved in `docs/licenses/` and copied into `runtime/licenses/adapted-sources/`. Bundled Agent package notices are collected into `runtime/licenses/javascript/`; Python notices into `runtime/licenses/`; Node notices into `runtime/NODE-LICENSE.txt`. Vite emits frontend notices into `dist/licenses/frontend.md`, embedded with the desktop frontend. The build also uses esbuild and PyInstaller.
 
 ## Code / text adapted into TIPHYS
 
@@ -11,6 +11,7 @@ TIPHYS uses or adapts the following third-party works. Full license texts are in
 | 80% auto-compaction threshold (same constant) | block/goose — `crates/goose/src/context_mgmt/mod.rs` | Apache-2.0, Copyright Block, Inc. | `agent/src/context.ts` |
 | `buffer` tool parameter shape (input/distance/units/dissolve/output name, 5000 km limit) | RustGIS — `crates/analysis/src/tools.rs` | Apache-2.0 | `engine/geo_ops.py`, MCP `buffer` schema |
 | Unit vocabulary meters/kilometers/miles | GeoLibre — `packages/processing/src/vector-tools.ts` | MIT, Copyright (c) 2026 Qiusheng Wu | `engine/geo_ops.py` |
+| Geometry-type filters for polygon fill, line/outline and point rendering | GeoLibre — `packages/map/src/map-controller.ts`, `syncHighlight` | MIT, Copyright (c) 2026 Qiusheng Wu | `src/lib/dataLayers.ts` (adapted) |
 
 ## Libraries (dependencies, used unmodified)
 

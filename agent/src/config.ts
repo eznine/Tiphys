@@ -66,8 +66,8 @@ export function maskKey(k: string): string {
   return k.length > 8 ? `${k.slice(0, 3)}…${k.slice(-2)}` : "***";
 }
 
-export const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-export const TIPHYS_DIR = path.join(PROJECT_ROOT, ".tiphys");
+export const PROJECT_ROOT = process.env.TIPHYS_PROJECT_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+export const TIPHYS_DIR = process.env.TIPHYS_STATE_DIR || path.join(PROJECT_ROOT, ".tiphys");
 export const USER_DIR = path.join(os.homedir(), ".tiphys");
 
 export type AgentConfig = {
@@ -122,7 +122,7 @@ export function loadConfig(): AgentConfig {
     model: e.TIPHYS_LLM_MODEL || file.model || (provider === "mock" ? "mock-gis" : defaultModel),
     contextWindow: Number(e.TIPHYS_CONTEXT_WINDOW || file.contextWindow || 64000),
     maxToolOutputChars: Number(e.TIPHYS_MAX_TOOL_OUTPUT || file.maxToolOutputChars || 6000),
-    engineUrl: (e.TIPHYS_ENGINE_URL || file.engineUrl || "http://127.0.0.1:8765").replace(/\/$/, ""),
-    port: Number(e.TIPHYS_AGENT_PORT || file.port || 8787),
+    engineUrl: (e.TIPHYS_ENGINE_URL || file.engineUrl || "http://127.0.0.1:8971").replace(/\/$/, ""),
+    port: Number(e.TIPHYS_AGENT_PORT || file.port || 8972),
   };
 }

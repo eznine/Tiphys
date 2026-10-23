@@ -35,6 +35,7 @@ dist/
 engine/data/
 agent/node_modules/
 .tiphys/tierflow_keys.txt
+.tiphys/service-token
 reference/*/
 .env
 .env.*
@@ -44,3 +45,11 @@ venv/
 __pycache__/
 src-tauri/target/
 agent/sessions/
+.tooling/
+src-tauri/runtime/
+engine/build/
+engine/.venv-build/
+engine/dist/
+*.spec
+.mimosa/
+reference/clone_log.txt

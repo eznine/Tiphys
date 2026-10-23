@@ -9,7 +9,7 @@ Scaffolded on the Linux box at `/workspace/tiphys/` (fresh; not under GeoAgentPr
 | Project scaffold | OK | `create-tauri-app` React-TS + Tauri 2 |
 | Design tokens + shell chrome | OK | `src/styles/tokens.css`, chat dock / map / top bar / theme toggle |
 | MapLibre blank map | OK | OSM raster, no API key; dark theme soft-desaturates tiles |
-| Python `/ping` | OK | FastAPI → `{"ok":true,"service":"tiphys-engine"}` on `:8765` |
+| Python `/ping` | OK | FastAPI → `{"ok":true,"service":"tiphys-engine"}` on `:8971` |
 | TS → ping in UI | OK | Auto + Ping button + chat “ping”; CORS open for local dev |
 | `npm run build` (vite) | OK | tsc + vite production build |
 | `cargo check` | OK | finished in ~1m15s |
@@ -42,7 +42,7 @@ Recorded at scaffold time — re-check with the commands below if the environmen
 ```bash
 cd /workspace/tiphys
 npm run engine &          # or: engine/.venv/bin/uvicorn ...
-curl -sS http://127.0.0.1:8765/ping
+curl -sS http://127.0.0.1:8971/ping
 npm run build
 npm run check:rust
 # with display:

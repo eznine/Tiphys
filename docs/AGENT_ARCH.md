@@ -1,5 +1,7 @@
 # TIPHYS Agent 架构（M2-lite 骨架）
 
+> 本文保留最初骨架的设计记录。当前恢复、审批、压缩、共享工具契约和运行时打包已更新，请以 `RELIABILITY_STATUS.md` 与项目 `README.md` 为准。
+
 2026-10-23 写。这是“能跑通的骨架”，很多地方是占位，下面会标清楚。
 
 ## 一句话
@@ -10,12 +12,12 @@
 ┌────────────── Tauri 窗口（React）──────────────┐
 │ 图层列表 │      MapLibre 地球/地图      │ 对话栏 │
 └──────────────────────────────────────────────────┘
-        │ HTTP + SSE（127.0.0.1:8787）
+        │ HTTP + SSE（127.0.0.1:8972）
 ┌───────▼──────── Agent sidecar（agent/，Node）────┐
 │ Vercel AI SDK streamText 循环 · 审批 · 任务监视     │
 │ 上下文管理 · 记忆 · JSONL 事件日志                  │
 └───────┬──────────────────────────────────────────┘
-        │ MCP（streamable HTTP，127.0.0.1:8765/mcp/）
+        │ MCP（streamable HTTP，127.0.0.1:8971/mcp/）
 ┌───────▼──────── 空间引擎（engine/，FastAPI）──────┐
 │ ping/list_layers/add_data/describe_layer/buffer  │
 │ job_status/job_cancel/remove_layer · /ping · 图层GeoJSON │
@@ -25,8 +27,8 @@
 ## 怎么跑
 
 ```bash
-npm run engine        # Python 引擎 :8765（/ping 和 /mcp/）
-npm run agent         # Agent sidecar :8787
+npm run engine        # Python 引擎 :8971（/ping 和 /mcp/）
+npm run agent         # Agent sidecar :8972
 npm run tauri dev     # Linux 无头盒需 DISPLAY=:9；Windows 直接运行
 ```
 在对话框点“给 samples 里的点做 500 米缓冲”即可演示。
@@ -55,7 +57,7 @@ npm run tauri dev     # Linux 无头盒需 DISPLAY=:9；Windows 直接运行
 3. **长任务**（`engine/jobs.py`）：`buffer` 立即返回 `job_id`，后台线程跑；Agent 端 `watchJob` 每 300ms 查一次状态推送进度，**没有固定超时**；界面有进度条卡片和取消按钮。缓冲本身很快，进度是人为放慢的（`TIPHYS_DEMO_DELAY`，默认 2.5，设 0 关掉）。
 4. **上下文管理**（`agent/src/context.ts`）：
    - (a) 工具输出超长 → 全文写到 `.tiphys/spill/<调用id>.json`，模型只看到预览和路径。
-   - (b) 估算 token 超过窗口 80% → 压缩：保留最近约 16% 的消息（按用户轮次切，不拆开工具调用对），前面换成“交接摘要”，**强制写入 GIS 工作区状态**（图层/CRS/AOI/输出路径/未完成任务 id）。**目前摘要是规则拼出来的占位版，还没调用模型去写摘要**（提示词已备好：`COMPACT_PROMPT`）。
+   - (b) 估算 token 超过窗口 80% → 压缩：保留最近约 16% 的消息（按用户轮次切，不拆开工具调用对），完整旧记录归档到 `.tiphys/spill/`，前面换成“交接摘要”，**强制写入 GIS 工作区状态**（图层/CRS/AOI/输出路径/未完成任务 id）。真实模型用 `COMPACT_PROMPT` 生成摘要；mock 模式用可重复的记录型摘要。摘要失败或压缩后仍超预算时保留原对话并报错。
    - (c) 每轮刷新图层列表，把工作区快照（JSON）放进系统提示词。
    - (d) 记忆文件：项目级 `.tiphys/MEMORY.md` + 用户级 `~/.tiphys/memory.md`，每轮读入系统提示词。
 5. **人工确认**：破坏性工具（目前 `remove_layer`，以及任何带 `overwrite: true` 的调用）执行前，界面弹出确认卡片，点“允许/拒绝”后才继续；不设超时。
@@ -86,11 +88,9 @@ npm run tauri dev     # Linux 无头盒需 DISPLAY=:9；Windows 直接运行
 能用（已验证）：mock 端到端（加载 → 缓冲任务 → 进度 → 结果上图）；真实模型（tierflow_pro）界面里点“给 samples 里的点做 500 米缓冲”：调用 ping → add_data → buffer，任务完成、缓冲图层上图；坏 key 自动轮换（测过 403 → 下一个 key）；取消任务；删除图层确认；工具输出溢写；压缩触发（小窗口测试）；会话日志与重放。
 
 占位/未做：
-- 压缩摘要是规则拼接，不是模型写的。
 - AOI 字段永远为空（还没有画 AOI 的工具）；GEE 任务没有接。
 - 工具 schema 来自 MCP，但“哪些是破坏性”写死在 Agent（`DESTRUCTIVE`）。
-- 引擎重启后图层只在内存里，会丢；会话日志里的 checkpoint 仍会引用旧 layer id。
 - 引擎没有通过 MCP progress 通知推进度，而是 Agent 轮询 `job_status`。
 - mock 模型每次“缓冲”都会重新 add_data 一份点图层（所以会出现同名图层）。
-- 界面审批卡片在重放历史时一律显示为“已拒绝”（未完成的审批不会跨重启保留）。
-- 生产打包（`tauri build`）时 Agent/引擎 sidecar 的启动尚未接入 Tauri。
+- 真实付费模型的摘要质量尚未重新验收；自动化测试通过注入的摘要回调检查覆盖范围和归档。
+- Windows release 桌面包在窗口创建后、sidecar 就绪前崩溃；Debug 桌面构建可以启动。安装与卸载已通过，启动验收未通过。

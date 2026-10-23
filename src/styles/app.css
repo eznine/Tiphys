@@ -490,6 +490,7 @@ textarea {
 .tool-chip[data-status="running"] .tool-dot { animation: tiphys-pulse 1s infinite; }
 .tool-chip[data-status="error"] .tool-dot { background: #e5484d; }
 .tool-chip[data-status="done"] .tool-dot { background: #30a46c; }
+.tool-chip[data-status="rejected"] .tool-dot { background: var(--tiphys-text-muted); }
 .tool-sum { color: var(--tiphys-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @keyframes tiphys-pulse { 50% { opacity: 0.3; } }
 .job-card, .approval-card { border: 1px solid var(--tiphys-border); border-radius: var(--tiphys-radius-soft); padding: 8px 10px; font-size: 12px; display: flex; flex-direction: column; gap: 6px; }

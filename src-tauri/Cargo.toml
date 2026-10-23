@@ -22,9 +22,14 @@ tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Startup-failure dialogs; rfd calls the native message box directly, so it
+# works inside the setup hook before the event loop runs.
+rfd = "0.15"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
+# panic=abort is safe now: expected startup failures exit through the rfd
+# dialog in fail_startup() and never reach the builder's `.expect` panic.
 [profile.release]
 codegen-units = 1
 lto = true

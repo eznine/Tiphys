@@ -15,6 +15,8 @@ from __future__ import annotations
 import threading
 import time
 import uuid
+import json
+from pathlib import Path
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any, Callable
@@ -34,14 +36,51 @@ class Job:
     updated_at: float = field(default_factory=time.time)
     _cancel: threading.Event = field(default_factory=threading.Event)
     _future: Future | None = field(default=None, repr=False)
+    _committed: bool = False
 
 
 class JobRegistry:
-    def __init__(self, max_workers: int = 2) -> None:
+    def __init__(self, max_workers: int = 2, state_path: Path | None = None) -> None:
         self._lock = threading.RLock()
         self._jobs: dict[str, Job] = {}
         self._pool = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="tiphys-job")
         self._listeners: list[Callable[[dict[str, Any]], None]] = []
+        self._state_path = state_path
+        if state_path and state_path.exists():
+            for row in json.loads(state_path.read_text(encoding="utf-8")):
+                job = Job(**row)
+                if job.status in ("queued", "running", "cancelling"):
+                    job.status = "interrupted"
+                    job.message = "Engine restarted before the job settled; inspect outputs before retrying"
+                self._jobs[job.id] = job
+            self._save()
+
+    def _save(self) -> None:
+        if self._state_path:
+            self._state_path.parent.mkdir(parents=True, exist_ok=True)
+            rows = [{k: v for k, v in vars(j).items() if not k.startswith("_")} for j in self._jobs.values()]
+            tmp = self._state_path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(rows, ensure_ascii=False, allow_nan=False), encoding="utf-8")
+            tmp.replace(self._state_path)
+
+    def commit(self, job: Job, fn: Callable[[], dict[str, Any]]) -> dict[str, Any]:
+        """Cancellation and publishing an output share one ordered commit boundary."""
+        with self._lock:
+            if job._cancel.is_set():
+                raise InterruptedError("cancelled")
+            result = fn()
+            job.result = result
+            job._committed = True
+            job.status = "completed"
+            job.progress = 1.0
+            job.message = "done"
+            self._save()
+            return result
+
+    def close(self) -> None:
+        for jid in self.pending_ids():
+            self.cancel(jid)
+        self._pool.shutdown(wait=True, cancel_futures=True)
 
     def on_event(self, fn: Callable[[dict[str, Any]], None]) -> None:
         self._listeners.append(fn)
@@ -63,10 +102,16 @@ class JobRegistry:
         job = Job(id=jid, kind=kind, label=label, status="queued")
         with self._lock:
             self._jobs[jid] = job
+            self._save()
 
         def run() -> None:
-            job.status = "running"
-            job.updated_at = time.time()
+            with self._lock:
+                if job._cancel.is_set():
+                    job.status = "cancelled"
+                    self._save()
+                    return
+                job.status = "running"
+                job.updated_at = time.time()
             self._emit({"type": "job_progress", "job_id": jid, "progress": 0.0, "message": "started", "status": "running"})
 
             def report(p: float, msg: str = "") -> None:
@@ -88,14 +133,16 @@ class JobRegistry:
 
             try:
                 result = worker(job, report)
-                if job._cancel.is_set():
-                    job.status = "cancelled"
-                    job.message = "cancelled"
-                else:
-                    job.status = "completed"
-                    job.progress = 1.0
-                    job.result = result
-                    job.message = job.message or "done"
+                with self._lock:
+                    if not job._committed:
+                        if job._cancel.is_set():
+                            job.status = "cancelled"
+                            job.message = "cancelled"
+                        else:
+                            job.status = "completed"
+                            job.progress = 1.0
+                            job.result = result
+                            job.message = "done"
             except InterruptedError:
                 job.status = "cancelled"
                 job.message = "cancelled"
@@ -104,6 +151,8 @@ class JobRegistry:
                 job.error = str(e)
                 job.message = str(e)
             job.updated_at = time.time()
+            with self._lock:
+                self._save()
             self._emit(
                 {
                     "type": "job_progress",
@@ -141,13 +190,17 @@ class JobRegistry:
             job = self._jobs.get(job_id)
             if not job:
                 raise KeyError(f"unknown job: {job_id}")
-            job._cancel.set()
-            if job.status in ("queued", "running"):
-                job.status = "cancelled"
+            if job.status in ("queued", "running", "cancelling"):
+                job._cancel.set()
+                queued = job.status == "queued"
+                job.status = "cancelled" if queued else "cancelling"
+                if queued and job._future:
+                    job._future.cancel()
                 job.message = "cancel requested"
                 job.updated_at = time.time()
+                self._save()
             return self.status(job_id)
 
     def pending_ids(self) -> list[str]:
         with self._lock:
-            return [j.id for j in self._jobs.values() if j.status in ("queued", "running")]
+            return [j.id for j in self._jobs.values() if j.status in ("queued", "running", "cancelling")]

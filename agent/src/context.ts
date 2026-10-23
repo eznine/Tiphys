@@ -1,5 +1,5 @@
 /**
- * Context management skeleton.
+ * Context management: retrievable output pages and model-written handoff summaries.
  * - spill: oversized tool output -> file (idea from deepseek-harness `spill` / compaction-tool-result-pruner).
  * - compaction at 80% (DEFAULT_THRESHOLD_RATIO=0.8, retain ~16% from deepseek-harness packages/compaction; 0.8 also Goose).
  * - handoff prompt text adapted from openai/codex codex-rs/prompts/templates/compact (Apache-2.0).
@@ -7,6 +7,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { createHash, randomUUID } from "node:crypto";
 import type { ModelMessage } from "ai";
 import { TIPHYS_DIR, USER_DIR } from "./config.js";
 
@@ -75,44 +76,62 @@ export function spillIfLarge(callId: string, output: unknown, maxChars: number):
   if (s.length <= maxChars) return output;
   const dir = path.join(TIPHYS_DIR, "spill");
   fs.mkdirSync(dir, { recursive: true });
-  const p = path.join(dir, `${callId}.json`);
+  const spillId = createHash("sha256").update(callId).digest("hex").slice(0, 32);
+  const p = path.join(dir, `${spillId}.json`);
   fs.writeFileSync(p, s);
-  return { truncated: true, original_chars: s.length, spill_path: p, preview: s.slice(0, Math.floor(maxChars * 0.8)) };
+  return { truncated: true, original_chars: s.length, spill_id: spillId, preview: s.slice(0, Math.floor(maxChars * 0.8)), read_with: "read_tool_output" };
+}
+
+export function readToolOutput(spillId: string, offset = 0, length = 4000) {
+  if (!/^[a-f0-9]{32}$/.test(spillId) || !Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(length) || length < 1 || length > 6000)
+    throw new Error("Invalid output page; length must be 1..6000");
+  const text = fs.readFileSync(path.join(TIPHYS_DIR, "spill", `${spillId}.json`), "utf8");
+  return { text: text.slice(offset, offset + length), offset, total_chars: text.length,
+    next_offset: offset + length < text.length ? offset + length : null };
 }
 
 export function estimateTokens(msgs: ModelMessage[], system = ""): number {
-  return Math.ceil((JSON.stringify(msgs).length + system.length) / 4);
+  const text = JSON.stringify(msgs) + system;
+  const nonAscii = (text.match(/[^\x00-\x7F]/g) ?? []).length;
+  return Math.ceil((text.length - nonAscii) / 3 + nonAscii);
 }
 
 /**
- * Placeholder compaction: deterministic summary (no LLM call yet) that FORCIBLY
- * preserves GIS workspace state. Keeps the most recent ~16% of messages, cut at a user turn
- * so tool-call/result pairs are never split.
+ * Preserve GIS state and archive the full earlier transcript before summarizing.
+ * Cut at a user turn so tool-call/result pairs are never split. Mock mode keeps a trace.
  */
-export function maybeCompact(
+export async function maybeCompact(
   msgs: ModelMessage[],
   system: string,
   contextWindow: number,
   ws: Workspace,
-): { messages: ModelMessage[]; compacted: boolean; summary?: string; before: number; after: number } {
+  summarize?: (messages: ModelMessage[]) => Promise<string>,
+): Promise<{ messages: ModelMessage[]; compacted: boolean; summary?: string; before: number; after: number }> {
   const before = estimateTokens(msgs, system);
-  if (before < contextWindow * COMPACT_THRESHOLD_RATIO || msgs.length < 4) return { messages: msgs, compacted: false, before, after: before };
+  if (before < contextWindow * COMPACT_THRESHOLD_RATIO) return { messages: msgs, compacted: false, before, after: before };
+  if (msgs.length < 4) throw new Error("Current request and tool schemas exceed the context budget; shorten the request or configure the correct model context window");
   let keepFrom = Math.floor(msgs.length * (1 - COMPACT_RETAIN_RATIO));
   while (keepFrom < msgs.length && msgs[keepFrom].role !== "user") keepFrom++;
   if (keepFrom >= msgs.length) keepFrom = msgs.findLastIndex((m) => m.role === "user");
   const old = msgs.slice(0, Math.max(keepFrom, 0));
-  const userAsks = old
-    .filter((m) => m.role === "user")
-    .map((m) => (typeof m.content === "string" ? m.content : JSON.stringify(m.content)).slice(0, 200));
+  const archiveId = randomUUID().replaceAll("-", "");
+  const dir = path.join(TIPHYS_DIR, "spill");
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, `${archiveId}.json`), JSON.stringify(old));
+  // Real models summarize all roles, including tool results and decisions. Mock mode uses a trace.
+  const handoff = summarize ? await summarize(old) : old.map(m => `${m.role}: ${JSON.stringify(m.content).slice(0, 1200)}`).join("\n");
+  if (!handoff.trim()) throw new Error("Context summary was empty; conversation was preserved and not compacted");
   const summary = [
-    "# Handoff summary (placeholder compaction, deterministic)",
-    "## Earlier user requests",
-    ...userAsks.map((u) => `- ${u}`),
+    "# Handoff summary",
+    handoff,
+    `## Complete earlier transcript\nUse read_tool_output with spill_id=${archiveId} to retrieve details; offsets are character positions.`,
     "## GIS workspace state (preserved verbatim)",
     workspaceSnapshot(ws),
     "## Next steps",
     "- Continue from the latest user message; check pending_job_ids with job_status.",
   ].join("\n");
   const messages: ModelMessage[] = [{ role: "user", content: SUMMARY_PREFIX + summary }, { role: "assistant", content: "OK, resuming with this state." }, ...msgs.slice(keepFrom)];
+  if (estimateTokens(messages, system) >= contextWindow * COMPACT_THRESHOLD_RATIO)
+    throw new Error("Context still exceeds its budget after summarizing; shorten the latest request or increase the configured model context window");
   return { messages, compacted: true, summary, before, after: estimateTokens(messages, system) };
 }

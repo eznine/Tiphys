@@ -12,7 +12,7 @@ export function TopBar({ theme, onToggleTheme, engineLabel, engineState }: Props
         <div className="topbar-mark" aria-hidden />
         <div>
           <div className="topbar-title">TIPHYS</div>
-          <div className="topbar-subtitle">From Intent to Outcome · M0 shell</div>
+          <div className="topbar-subtitle">From Intent to Outcome</div>
         </div>
       </div>
       <div className="topbar-actions">

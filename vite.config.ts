@@ -7,6 +7,7 @@ const host = process.env.TAURI_DEV_HOST;
 // https://vite.dev/config/
 export default defineConfig(() => ({
   plugins: [react()],
+  build: { license: { fileName: "licenses/frontend.md" } },
   // maplibre-gl v6 loads its module worker relative to its own file; pre-bundling breaks that URL.
   optimizeDeps: { exclude: ["maplibre-gl"] },
 
@@ -33,7 +34,7 @@ export default defineConfig(() => ({
     proxy: {
       // Optional: fetch('/engine/ping') → Python sidecar
       "/engine": {
-        target: "http://127.0.0.1:8765",
+        target: "http://127.0.0.1:8971",
         changeOrigin: true,
         rewrite: (path: string) => path.replace(/^\/engine/, ""),
       },

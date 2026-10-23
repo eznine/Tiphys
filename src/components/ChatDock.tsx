@@ -6,26 +6,26 @@ type Props = {
   busy: boolean;
   connected: boolean;
   provider: string;
-  onSend: (text: string) => void;
+  onSend: (text: string) => Promise<boolean>;
   onApprove: (toolCallId: string, ok: boolean) => void;
   onCancelJob: (jobId: string) => void;
+  onCancelTurn: () => void;
 };
 
 const SUGGESTIONS = ["给 samples 里的点做 500 米缓冲", "列出图层", "删除最后一个图层"];
 
-export function ChatDock({ items, busy, connected, provider, onSend, onApprove, onCancelJob }: Props) {
+export function ChatDock({ items, busy, connected, provider, onSend, onApprove, onCancelJob, onCancelTurn }: Props) {
   const [draft, setDraft] = useState("");
   const endRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
   }, [items]);
 
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
     const text = draft.trim();
-    if (!text || busy) return;
-    onSend(text);
-    setDraft("");
+    if (!text || busy || !connected) return;
+    if (await onSend(text)) setDraft("");
   }
 
   return (
@@ -33,7 +33,7 @@ export function ChatDock({ items, busy, connected, provider, onSend, onApprove, 
       <div className="chat-dock-header">
         <h2>Agent</h2>
         <p>
-          <span className="status-dot" data-state={connected ? "ok" : "error"} /> {connected ? provider : "agent sidecar offline (npm run agent)"}
+          <span className="status-dot" data-state={connected ? "ok" : "error"} /> {connected ? provider : "Agent 连接中断，正在重连…"}
         </p>
       </div>
       <div className="chat-messages">
@@ -90,7 +90,7 @@ export function ChatDock({ items, busy, connected, provider, onSend, onApprove, 
                     </button>
                   </div>
                 ) : (
-                  <div className="meta">{it.state === "approved" ? "已允许" : "已拒绝"}</div>
+                  <div className="meta">{it.state === "approved" ? "已允许" : it.state === "expired" ? "审批已失效" : "已拒绝"}</div>
                 )}
               </div>
             );
@@ -104,14 +104,15 @@ export function ChatDock({ items, busy, connected, provider, onSend, onApprove, 
       </div>
       <div className="chat-suggestions">
         {SUGGESTIONS.map((s) => (
-          <button key={s} type="button" className="chat-chip" disabled={busy} onClick={() => onSend(s)}>
+          <button key={s} type="button" className="chat-chip" disabled={busy || !connected} onClick={() => void onSend(s)}>
             {s}
           </button>
         ))}
       </div>
       <form className="chat-composer" onSubmit={submit}>
         <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="描述 GIS 任务…" aria-label="Message" />
-        <button type="submit" className="primary-btn" disabled={!draft.trim() || busy}>
+        {busy && <button type="button" className="icon-btn" onClick={onCancelTurn}>停止回复</button>}
+        <button type="submit" className="primary-btn" disabled={!draft.trim() || busy || !connected}>
           {busy ? "…" : "Send"}
         </button>
       </form>
