@@ -151,3 +151,5 @@
   - Verification: 41/41 browser tests passed (`npm run test:browser`), `npx tsc --noEmit` passed, `npm run build` passed. `dist/` remains ~36 MB with unchanged payload shape (app 1.91 MB, lazy catalog 1.95 MB, CLI WASM 24.1 MB), so no deploy-doc size edit and no live deploy. GEE remains docs/demo only; no credentials read or created. No Python changes.
 
 - 2026-10-24 05:29 Asia/Shanghai — Overnight supervisor: batch13 exited (sandbox blocked commit; key-rotated mid-run). Re-verified `npm run test:browser` 41/41 + `npx tsc --noEmit`. Committing+pushing as `P3/P4: geometry densify, line density/allocation, agent recipes`, then starting batch14.
+
+- 2026-10-24 05:30 Asia/Shanghai — Batch13 pushed as `782a0e0` (41/41). Launching batch14 tf-codex (morphology/EBK/hydro densify, agent recipes).
