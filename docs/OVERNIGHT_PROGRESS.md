@@ -295,3 +295,5 @@
 
 
 - 2026-10-25 ~03:28 Asia/Shanghai — Overnight kickoff: user asleep; F:\tiphys clean=origin/main @017709e. New brief in docs/OVERNIGHT_BRIEF.md. Priority: plan leftovers (zonal_stats, Identify UX, layer menu, M11 params, symbology) → 5C ecology → offline Android APK shell → OSS densify. Models: tf-codex/tierflow_pro with key rotate. Watcher to resume ~30m.
+
+- 2026-10-25 ~03:29 Asia/Shanghai — User order lock: finish plan leftovers → then rough offline APK shell → then keep advancing roadmap. Builder steered; APK not before P0/P1 plan items.

@@ -59,3 +59,10 @@ UI direction: blue accent `#2563eb`, light default, SVG logo system, full ~958 W
 
 ## Models
 `tf-codex -C /workspace/tiphys` with tierflow profile. Keep a long-running loop: after each successful batch, immediately start the next. Never idle waiting for the user.
+
+## User order lock (2026-10-25 ~03:29 CST)
+1. **Finish the plan leftovers first** (MASTER_ROADMAP incomplete items: zonal_statistics, Identify UX, layer menu, M11 params, symbology, then 5C ecology, etc.).
+2. **Only after that**: Android offline APK — rough Capacitor/WebView shell prototype is enough.
+3. **Then** keep advancing later roadmap items and continuous optimization.
+
+Do not start APK work until P0/P1 plan items above have landed or are honestly blocked with a written note in OVERNIGHT_PROGRESS.md.
