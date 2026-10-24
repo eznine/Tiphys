@@ -8,6 +8,7 @@ import { fileInfo, loadWasmManifests, originalGeojson, wasmTool } from "./wasm";
 import { browserCatalogState, browserToolCatalog, ensureBrowserCatalog, hydrateWasmCatalog, isWasmInputParam, isWasmOutputParam, wasmInputKind } from "./catalog-schema";
 import { pluginToolNames, runPluginTool } from "../plugins/registry";
 import type { GeeAuthStatus } from "../gee";
+import { assertShapefileParts, groupShapefileParts, SHAPEFILE_EXTENSIONS } from "../shapefile";
 
 type LayerRecord = {
   info: Omit<DataLayer, "url">;
@@ -520,7 +521,7 @@ async function execute(name: string, args: Record<string, any>, signal?: AbortSi
   if (name === "list_supported_formats") return {
     ok: true,
     runtime: "browser-wasm",
-    vector: ["GeoJSON (.geojson/.json)", "GeoPackage (.gpkg)", "Shapefile (.zip，需含 .shp/.shx/.dbf)", "FlatGeobuf (.fgb)", "KML/KMZ (.kml/.kmz)", "GPX (.gpx)", "GML (.gml)", "GeoParquet (.geoparquet)", "TopoJSON (.topojson)"],
+    vector: ["GeoJSON (.geojson/.json)", "GeoPackage (.gpkg)", "Shapefile ZIP 或多文件 .shp + .shx/.dbf（可选 .prj/.cpg）", "FlatGeobuf (.fgb)", "KML/KMZ (.kml/.kmz)", "GPX (.gpx)", "GML (.gml)", "GeoParquet (.geoparquet)", "TopoJSON (.topojson)"],
     raster: ["GeoTIFF (.tif/.tiff)"],
     table: ["CSV (.csv，作为只读表格导入)"],
     arcgis: {
@@ -528,7 +529,7 @@ async function execute(name: string, args: Record<string, any>, signal?: AbortSi
       aprx: "不支持直接解析；APRX 工程内容请先导出为开放格式。",
       file_gdb: "浏览器端不支持 ESRI File Geodatabase；请导出为 GeoPackage 或 Shapefile ZIP。",
     },
-    preferred: ["GeoPackage", "GeoJSON", "FlatGeobuf", "Shapefile ZIP", "GeoTIFF"],
+    preferred: ["GeoPackage", "GeoJSON", "FlatGeobuf", "Shapefile ZIP 或多文件", "GeoTIFF"],
   };
   if (name === "import_arcgis_project") {
     const path = String(args.path ?? "");
@@ -730,28 +731,48 @@ export async function importBrowserFile(file: Blob, filename: string, sourceCrs?
   }
   return adopt(bytes, extension === "json" ? "geojson" : extension, filename.replace(/\.[^.]+$/, ""));
 }
+export type BrowserShapefileUpload = { name: string; blob: Blob };
+async function convertShapefile(parts: ReadonlyMap<string, Uint8Array>, base: string, name: string, sourceCrs?: string, signal?: AbortSignal) {
+  const input = Object.fromEntries([...parts].map(([extension, bytes]) => [`${base}.${extension}`, bytes]));
+  const result = await wasmTool("vector_convert", input, { input: `/work/${base}.shp`, output: "/work/shapefile.fgb" }, signal);
+  const converted = result.files["shapefile.fgb"];
+  if (!converted?.length) throw new Error("Shapefile 转换没有生成数据。");
+  let data = converted;
+  if (sourceCrs) {
+    const match = /^EPSG:(\d+)$/i.exec(sourceCrs); if (!match) throw new Error("源坐标系请使用 EPSG:编号。");
+    const assigned = await wasmTool("assign_projection_vector", { "crs.fgb": data }, { input: "/work/crs.fgb", epsg: Number(match[1]), output: "/work/assigned.fgb" }, signal);
+    data = assigned.files["assigned.fgb"]; if (!data?.length) throw new Error("无法设置 Shapefile 坐标系。");
+  }
+  return adopt(data, "fgb", name, signal);
+}
+export async function importBrowserShapefiles(files: BrowserShapefileUpload[], sourceCrs?: string) {
+  if (!files.length) throw new Error("请选择 Shapefile 文件（至少包含同名的 .shp、.shx 和 .dbf）。");
+  const groups = groupShapefileParts(files.map(file => ({ name: file.name, data: file.blob })));
+  const layers: Record<string, any>[] = [];
+  for (const group of groups) {
+    const parts = new Map<string, Uint8Array>();
+    for (const [extension, blob] of group.parts) {
+      if (blob.size > 128 * 1024 * 1024) throw new Error(`浏览器当前单文件导入上限为 128 MiB（${group.stem}.${extension}）。`);
+      parts.set(extension, new Uint8Array(await blob.arrayBuffer()));
+    }
+    layers.push(await convertShapefile(parts, group.stem, group.stem, sourceCrs));
+  }
+  const single = layers.length === 1 ? layers[0] : undefined;
+  return { ok: true, ...(single ? single : {}), layers, engine: "GeoLibre WASM · 浏览器计算" };
+}
 async function importShapefileZip(bytes: Uint8Array, filename: string, sourceCrs?: string) {
   const entries = unzipSync(bytes);
   const names = Object.keys(entries).filter(n => !n.split("/").some(part => part === "__MACOSX" || part.startsWith(".")));
   const shapes = names.filter(n => n.toLowerCase().endsWith(".shp"));
   if (shapes.length !== 1) throw new Error(shapes.length ? "压缩包里有多个 Shapefile；当前一次导入一个。" : "压缩包中没有找到 .shp 文件。");
   const shp = shapes[0], dir = shp.slice(0, shp.lastIndexOf("/") + 1), stem = shp.slice(0, -4), base = stem.slice(dir.length);
-  const input: Record<string, Uint8Array> = {};
-  for (const ext of ["shp", "shx", "dbf", "prj"]) {
-    const match = names.find(n => n.toLowerCase() === `${stem}.${ext}`.toLowerCase());
-    if (match) input[`${base}.${ext}`] = entries[match];
+  const parts = new Map<string, Uint8Array>();
+  for (const extension of SHAPEFILE_EXTENSIONS) {
+    const match = names.find(n => n.toLowerCase() === `${stem}.${extension}`.toLowerCase());
+    if (match) parts.set(extension, entries[match]);
   }
-  if (!input[`${base}.shx`] || !input[`${base}.dbf`]) throw new Error("Shapefile 压缩包必须同时包含 .shp、.shx 和 .dbf。");
-  const result = await wasmTool("vector_convert", { [`${base}.shp`]: input[`${base}.shp`], [`${base}.shx`]: input[`${base}.shx`], [`${base}.dbf`]: input[`${base}.dbf`], ...(input[`${base}.prj`] ? { [`${base}.prj`]: input[`${base}.prj`] } : {}) }, { input: `/work/${base}.shp`, output: "/work/shapefile.fgb" }, undefined);
-  const converted = result.files["shapefile.fgb"];
-  if (!converted?.length) throw new Error("Shapefile 转换没有生成数据。");
-  let data = converted;
-  if (sourceCrs) {
-    const match = /^EPSG:(\d+)$/i.exec(sourceCrs); if (!match) throw new Error("源坐标系请使用 EPSG:编号。");
-    const assigned = await wasmTool("assign_projection_vector", { "crs.fgb": data }, { input: "/work/crs.fgb", epsg: Number(match[1]), output: "/work/assigned.fgb" });
-    data = assigned.files["assigned.fgb"]; if (!data?.length) throw new Error("无法设置 Shapefile 坐标系。");
-  }
-  return adopt(data, "fgb", filename.replace(/\.zip$/i, ""));
+  assertShapefileParts(parts, base);
+  return convertShapefile(parts, base, filename.replace(/\.zip$/i, ""), sourceCrs);
 }
 export async function runBrowserTool(name: string, args: Record<string, any> = {}): Promise<Record<string, any>> {
   if (name.startsWith("wasm_")) await hydrateWasmCatalog();
@@ -882,6 +903,12 @@ export async function browserEngineRequest(path: string, init: RequestInit = {})
   }
   else if (p === "/tools/run") { const body = JSON.parse(String(init.body)); result = await runBrowserTool(body.name, body.arguments); }
   else if (p === "/layers/import") { if (!(init.body instanceof Blob)) throw new Error("请通过文件选择器添加数据。"); result = await importBrowserFile(init.body, url.searchParams.get("filename") ?? "data.geojson", url.searchParams.get("source_crs") ?? undefined); }
+  else if (p === "/layers/import-shapefile") {
+    if (!(init.body instanceof FormData)) throw new Error("请通过文件选择器同时选择 Shapefile 主文件和附属文件。");
+    const files: BrowserShapefileUpload[] = [];
+    for (const [key, value] of init.body.entries()) if (value instanceof Blob) files.push({ name: key.startsWith("file:") ? key.slice(5) : "data.shp", blob: value });
+    result = await importBrowserShapefiles(files, url.searchParams.get("source_crs") ?? undefined);
+  }
   else if (p.startsWith("/jobs/")) { const [, , id, action] = p.split("/"); result = action === "cancel" ? await cancelBrowserJob(id) : await readBrowserJob(id); }
   else if (p === "/layers") result = { layers: await browserLayers() };
   else if (p.startsWith("/layers/") && p.endsWith(".geojson")) {

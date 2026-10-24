@@ -18,6 +18,7 @@ import { LogPanel } from "./components/LogPanel";
 import { browserRuntime } from "./lib/runtime";
 import { warmWasmToolRunner } from "./lib/browser/wasm-tool-runner";
 import { scheduleIdle } from "./lib/idle";
+import { isShapefilePart } from "./lib/shapefile";
 import { buildAgentSessionStub, buildWorkspaceSnapshot, loadWorkspaceSnapshot, saveWorkspaceSnapshot, type WorkspaceRecovery } from "./lib/workspace";
 import "./styles/app.css";
 
@@ -163,7 +164,18 @@ export default function App() {
     setImporting(true); setImportNotice("");
     let loaded = 0;
     try {
-      for (const file of Array.from(files)) {
+      const selected = Array.from(files);
+      const shapefileFiles = selected.filter(file => isShapefilePart(file.name));
+      if (shapefileFiles.length) {
+        const query = new URLSearchParams();
+        if (sourceCrs) query.set("source_crs", sourceCrs);
+        const form = new FormData();
+        for (const file of shapefileFiles) form.append(`file:${file.name}`, file, file.name);
+        const result = await (await engineRequest(`/layers/import-shapefile?${query}`, { method: "POST", body: form })).json();
+        agent.mergeToolResult(result);
+        loaded += Array.isArray(result.layers) ? result.layers.length : 1;
+      }
+      for (const file of selected.filter(file => !isShapefilePart(file.name))) {
         const query = new URLSearchParams({ filename: file.name });
         if (sourceCrs) query.set("source_crs", sourceCrs);
         const result = await (await engineRequest(`/layers/import?${query}`, { method: "POST", body: file })).json();
@@ -290,7 +302,7 @@ export default function App() {
           selectedId={activeLayer?.id} onSelect={setSelectedId}
           onZoom={zoomLayer} onTable={id => { setTableId(id); setLogsOpen(false); }} onProperties={(id, tab) => setProperties({ id, tab })}
           onRename={handleRename} onReorder={handleReorder} />
-        <input ref={fileRef} hidden type="file" multiple accept=".geojson,.json,.gpkg,.zip,.fgb,.kml,.kmz,.gpx,.gml,.geoparquet,.topojson,.tif,.tiff,.csv" onChange={e => { if (e.target.files?.length) void importFiles(e.target.files); }} />
+        <input ref={fileRef} hidden type="file" multiple accept=".geojson,.json,.gpkg,.zip,.shp,.shx,.dbf,.prj,.cpg,.sbn,.sbx,.fgb,.kml,.kmz,.gpx,.gml,.geoparquet,.topojson,.tif,.tiff,.csv" onChange={e => { if (e.target.files?.length) void importFiles(e.target.files); }} />
         <main className="map-pane" aria-label="地图">
           <div className="map-document-bar"><span className="map-document-tab"><MapIcon size={15} /> 地图</span><span>{activeLayer ? activeLayer.name : "地理空间工作区"}</span></div>
           <div className="map-viewport">

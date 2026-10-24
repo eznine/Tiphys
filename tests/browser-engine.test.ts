@@ -5,9 +5,11 @@ import fs from "node:fs";
 import { zipSync } from "fflate";
 import { initTools, runTool } from "geolibre-wasm/tools";
 import initLibrary from "geolibre-wasm";
-import { browserCatalog, browserEngineRequest, browserLayers, cancelBrowserJob, importBrowserFile, readBrowserJob, runBrowserTool } from "../src/lib/browser/engine.ts";
+import { browserCatalog, browserEngineRequest, browserLayers, cancelBrowserJob, importBrowserFile, importBrowserShapefiles, readBrowserJob, runBrowserTool } from "../src/lib/browser/engine.ts";
 import { readRecord, writeRecord } from "../src/lib/browser/storage.ts";
 import { metricCrs } from "../src/lib/browser/geometry.ts";
+import { groupShapefileParts } from "../src/lib/shapefile.ts";
+import { reduce } from "../src/lib/agent.ts";
 import { browserCatalogState, desktopToolCatalog, ensureBrowserCatalog, shellToolCatalog } from "../src/lib/browser/catalog-schema.ts";
 import { zhToolL1, zhToolL2 } from "../src/lib/i18n/tools.ts";
 import { searchBrowserTools } from "../src/lib/browser/search.ts";
@@ -117,8 +119,55 @@ test("Shapefile zip and FlatGeobuf import from actual converted files", async ()
   const imported = await importBrowserFile(new Blob([zip]), "shape_points.zip");
   assert.equal(imported.layer.feature_count, 1); assert.equal(imported.layer.crs, "EPSG:4326");
   assert.equal(imported.layer.geometry_types[0], "Point");
+  const uploads = Object.entries(converted.files).map(([name, bytes]) => ({
+    name: `stations.${name.split(".").pop()!.toLowerCase()}`,
+    blob: new Blob([bytes]),
+  }));
+  uploads.push({ name: "stations.cpg", blob: new Blob(["UTF-8"]) });
+  const form = new FormData();
+  for (const upload of uploads) form.append(`file:${upload.name}`, upload.blob, upload.name);
+  const multiResponse = await browserEngineRequest("/layers/import-shapefile", { method: "POST", body: form });
+  const multi = await multiResponse.json();
+  assert.equal(multi.layers.length, 1);
+  assert.equal(multi.layers[0].layer.feature_count, 1);
+  assert.equal(multi.layers[0].layer.geometry_types[0], "Point");
+  await assert.rejects(importBrowserShapefiles([uploads.find(upload => upload.name.endsWith(".shp"))!]), /缺少 \.shx、\.dbf/);
   const bad = zipSync({ "roads.shp": new Uint8Array([1]), "roads.shx": new Uint8Array([2]), "roads.dbf": new Uint8Array([3]) });
   await assert.rejects(importBrowserFile(new Blob([bad]), "broken.zip"), /转换没有生成|读取|Shapefile|无效/);
+});
+
+test("multi-file shapefile selections group by basename and require sidecars", () => {
+  const groups = groupShapefileParts([
+    { name: "ROADS.SHP", data: "roads-shp" },
+    { name: "roads.shx", data: "roads-shx" },
+    { name: "Roads.dbf", data: "roads-dbf" },
+    { name: "roads.PRJ", data: "roads-prj" },
+    { name: "parcels.shp", data: "parcels-shp" },
+    { name: "parcels.shx", data: "parcels-shx" },
+    { name: "parcels.dbf", data: "parcels-dbf" },
+    { name: "parcels.cpg", data: "parcels-cpg" },
+    { name: "notes.geojson", data: "ignored" },
+  ]);
+  assert.equal(groups.length, 2);
+  const roads = groups.find(group => group.stem.toLowerCase() === "roads")!;
+  assert.equal(roads.parts.get("shp"), "roads-shp");
+  assert.equal(roads.parts.get("prj"), "roads-prj");
+  const parcels = groups.find(group => group.stem === "parcels")!;
+  assert.equal(parcels.parts.get("cpg"), "parcels-cpg");
+  assert.throws(() => groupShapefileParts([{ name: "alone.shp", data: new Uint8Array([1]) }]), /缺少 \.shx、\.dbf/);
+  assert.throws(() => groupShapefileParts([{ name: "orphan.dbf", data: new Uint8Array([1]) }]), /缺少 \.shp/);
+});
+
+test("workspace reset snapshots preserve import auto-focus", () => {
+  const layer = { id: "lyr_focus", name: "beijing_points", url: "", geometry_types: ["Point"], feature_count: 5,
+    bounds: [116.2, 39.8, 116.6, 40.1], crs: "EPSG:4326", kind: "vector" as const };
+  const initial: any = { items: [], layers: [], busy: false, connected: false, provider: "?", focus: null, hydrated: false, cursor: 0, viewCommands: [] };
+  const focused = reduce(initial, { type: "layer-added", layer });
+  assert.deepEqual(focused.focus, layer.bounds);
+  const refreshed = reduce(focused, { type: "snapshot", reset: true, events: [], cursor: 1, busy: false,
+    workspace: { layers: [layer] }, pendingApprovals: [] });
+  assert.deepEqual(refreshed.focus, layer.bounds);
+  assert.equal(refreshed.layers[0].id, layer.id);
 });
 
 test("attribute comparison keeps numeric nulls and text leading zeros distinct", async () => {

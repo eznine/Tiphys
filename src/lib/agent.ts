@@ -62,7 +62,7 @@ function lastLive(items: TimelineItem[]): number {
 
 export function reduce(s: AgentState, e: Ev): AgentState {
   if (e.type === "snapshot") {
-    let st: AgentState = e.reset ? { ...s, items: [], layers: [], cursor: 0, focus: null, viewCommands: [] } : s;
+    let st: AgentState = e.reset ? { ...s, items: [], layers: [], cursor: 0, viewCommands: [] } : s;
     // Health describes the current provider. Historical settings events must not
     // relabel a restarted Agent after its startup configuration has changed.
     for (const event of e.events) if (event.type !== "model-config") st = reduce(st, event);
@@ -158,7 +158,7 @@ export function useAgent(session = "default") {
   useEffect(() => {
     const controller = new AbortController();
     let cursor = 0;
-    setState(s => ({ ...s, items: [], layers: [], busy: false, connected: false, cursor: 0, viewCommands: [], hydrated: false }));
+    setState(s => ({ ...s, items: [], layers: [], busy: false, connected: false, cursor: 0, focus: null, viewCommands: [], hydrated: false }));
     (async () => {
       while (!controller.signal.aborted) {
         try {

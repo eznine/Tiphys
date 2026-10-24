@@ -96,6 +96,8 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<Map | null>(null);
   const introDone = useRef(false);
+  const introTimerRef = useRef<number | undefined>(undefined);
+  const focusRequestedRef = useRef(false);
   const statusRef = useRef(onStatus);
   statusRef.current = onStatus;
   const selectionRef = useRef(selection);
@@ -184,7 +186,6 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
 
     let cancelControls = () => {};
     let cancelTerrain = () => {};
-    let introTimer: number | undefined;
     map.on("mousemove", e => statusRef.current?.({ lng: e.lngLat.wrap().lng, lat: e.lngLat.lat, zoom: map.getZoom() }));
     map.on("moveend", () => { const center = map.getCenter().wrap(); statusRef.current?.({ lng: center.lng, lat: center.lat, zoom: map.getZoom() }); });
     map.on("click", event => {
@@ -211,12 +212,13 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
         if (mapRef.current === map) ensureTerrainSource(map);
       }, { timeout: 1400, fallbackDelay: 350 });
       requestAnimationFrame(() => {
-        if (mapRef.current !== map || introDone.current || dataLayersRef.current.length !== 0) return;
+        if (mapRef.current !== map || introDone.current || focusRequestedRef.current || dataLayersRef.current.length !== 0) return;
         introDone.current = true;
         // Globe projection: avoid easeTo with bearing (unsupported). Zoom then rotate.
         map.easeTo({ zoom: 2.05, pitch: 0, duration: 1600 });
-        introTimer = window.setTimeout(() => {
-          if (mapRef.current !== map) return;
+        introTimerRef.current = window.setTimeout(() => {
+          introTimerRef.current = undefined;
+          if (mapRef.current !== map || focusRequestedRef.current) return;
           map.rotateTo(map.getBearing() + 35, { duration: 2200 });
         }, 1700);
       });
@@ -237,7 +239,8 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
     return () => {
       cancelControls();
       cancelTerrain();
-      if (introTimer !== undefined) window.clearTimeout(introTimer);
+      if (introTimerRef.current !== undefined) window.clearTimeout(introTimerRef.current);
+      introTimerRef.current = undefined;
       observer.disconnect();
       map.remove();
       mapRef.current = null;
@@ -396,6 +399,11 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
     const map = mapRef.current;
     if (!map || !focusBounds || focusBounds.length !== 4 || !focusBounds.every(Number.isFinite)) return;
     const [a, b, c, d] = focusBounds;
+    focusRequestedRef.current = true;
+    introDone.current = true;
+    if (introTimerRef.current !== undefined) window.clearTimeout(introTimerRef.current);
+    introTimerRef.current = undefined;
+    map.stop();
     map.fitBounds([[a, b], [c, d]], { padding: 80, duration: 1800, maxZoom: 14 });
   }, [focusBounds]);
 

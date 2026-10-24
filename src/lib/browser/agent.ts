@@ -112,14 +112,14 @@ async function emit(s: Session, event: Event) {
   // Persist completed messages and task milestones, avoiding a full history write per token.
   if (event.type !== "text-delta") await checkpoint(s);
 }
-async function snapshot(s: Session, after: number) {
+async function snapshot(s: Session, after: number, reset = after === 0) {
   const layers = await browserLayers();
-  return { type: "snapshot", reset: after === 0, events: s.events.filter(e => e.seq! > after), cursor: s.seq, busy: s.busy,
+  return { type: "snapshot", reset, events: s.events.filter(e => e.seq! > after), cursor: s.seq, busy: s.busy,
     workspace: { layers, pendingJobs: [], outputs: [], aoi: s.workspace?.aoi ?? null, aoi_bbox: s.workspace?.aoi_bbox ?? s.workspace?.aoi ?? null,
       selectedLayerId: s.workspace?.selectedLayerId ?? null, selectedLayerName: s.workspace?.selectedLayerName ?? null, selection: s.workspace?.selection ?? null },
     pendingApprovals: [...approvals.keys()].filter(k => k.startsWith(`${s.id}:`)).map(k => k.slice(s.id.length + 1)) };
 }
-engineEvents.addEventListener("workspace", () => { for (const pending of sessions.values()) void pending.then(async s => { const event = await snapshot(s, s.seq); for (const listener of s.listeners) listener(event); }); });
+engineEvents.addEventListener("workspace", () => { for (const pending of sessions.values()) void pending.then(async s => { const event = await snapshot(s, s.seq, false); for (const listener of s.listeners) listener(event); }); });
 function approval(s: Session, id: string, name: string, input: unknown, signal: AbortSignal): Promise<boolean> {
   return new Promise(resolve => {
     const key = `${s.id}:${id}`;
