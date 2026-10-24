@@ -4,7 +4,7 @@ import { agentRequest } from "../lib/service";
 
 export type ThemeMode = "light" | "dark" | "system";
 type Settings = { provider: string; baseURL: string; model: string; hasApiKey: boolean; keyCount: number; keySource: string;
-  contextWindow: number; maxToolOutputChars: number; configIssue: string; configPath: string; environmentOverrides: string[] };
+  contextWindow: number; maxToolOutputChars: number; configIssue: string; configPath: string; backupPath: string; environmentOverrides: string[] };
 export function SettingsDialog({ theme, onTheme, density, onDensity, onClose, onSaved, onLogs }: {
   theme: ThemeMode; onTheme: (mode: ThemeMode) => void; density: "standard" | "compact"; onDensity: (value: "standard" | "compact") => void;
   onClose: () => void; onSaved: () => void; onLogs: () => void;
@@ -89,6 +89,8 @@ export function SettingsDialog({ theme, onTheme, density, onDensity, onClose, on
             <div className="settings-section-heading"><h2>TIPHYS</h2><p>Agent 驱动的地理空间工作区 · 0.1.0</p></div>
             <div className="settings-static"><span>数据处理</span><strong>本地空间引擎</strong></div>
             <label className="settings-field"><span>配置文件位置</span><input readOnly aria-label="配置文件位置" value={settings?.configPath ?? "读取中…"} /></label>
+            <div className="settings-static"><span>配置备份</span><strong title={settings?.backupPath}>{settings?.backupPath ?? "—"}</strong></div>
+            <p className="settings-help">保存 API 配置时会自动在用户目录留一份备份；更新、重装或清理应用数据后，配置会自动恢复。密钥只存在本机。</p>
             <p className="settings-help">遇到连接、工具或任务问题，可以在运行日志中查看详细记录与服务状态。</p>
             <button type="button" className="icon-btn" onClick={() => { onClose(); onLogs(); }}>打开运行日志</button>
           </>}

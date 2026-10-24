@@ -74,7 +74,8 @@ export function maskKey(k: string): string {
 
 export const PROJECT_ROOT = process.env.TIPHYS_PROJECT_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 export const TIPHYS_DIR = process.env.TIPHYS_STATE_DIR || path.join(PROJECT_ROOT, ".tiphys");
-export const USER_DIR = path.join(os.homedir(), ".tiphys");
+/** User-profile config survives reinstalls and app-data wipes; tests redirect it via TIPHYS_USER_DIR. */
+export const USER_DIR = process.env.TIPHYS_USER_DIR || path.join(os.homedir(), ".tiphys");
 
 export type AgentConfig = {
   provider: "mock" | "openai-compatible" | "unconfigured";

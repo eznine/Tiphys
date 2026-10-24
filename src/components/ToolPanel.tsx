@@ -100,7 +100,7 @@ function toolDesc(item: CatalogTool): string {
   return DESCRIPTIONS[item.name] ?? zhTool(item.name)?.desc ?? item.description?.split("\n")[0] ?? "";
 }
 
-export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers: DataLayer[]; onResult: (result: Record<string, any>) => void; request?: { id: number; tool?: string }; selectedLayer?: DataLayer }) {
+export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers: DataLayer[]; onResult: (result: Record<string, any>) => void; request?: { id: number; tool?: string; search?: string }; selectedLayer?: DataLayer }) {
   const [catalog, setCatalog] = useState<CatalogTool[] | null>(null);
   const [catalogHydrated, setCatalogHydrated] = useState(false);
   const [geeStatus, setGeeStatus] = useState<GeeAuthStatus | null>(null);
@@ -116,7 +116,16 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
   const busy = !!job && ACTIVE.has(job.status);
   const appliedRequest = useRef<number | undefined>(undefined);
   useEffect(() => {
-    if (!request || !catalog || busy || appliedRequest.current === request.id) return;
+    if (!request || appliedRequest.current === request.id) return;
+    // Ribbon search only needs the catalogue list, so it does not wait for the
+    // form catalog's full hydration.
+    if (request.search !== undefined) {
+      appliedRequest.current = request.id;
+      setToolName("");
+      setSearch(request.search);
+      return;
+    }
+    if (!catalog || busy) return;
     appliedRequest.current = request.id;
     const requested = catalog.find(t => t.name === request.tool);
     setToolName(requested?.name ?? "");

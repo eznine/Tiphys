@@ -7,7 +7,8 @@ import http from "node:http";
 import { spawn, type ChildProcess } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import type { AgentConfig } from "../src/config.ts";
-import { prepareSettings, publicSettings, saveSettings } from "../src/settings.ts";
+import { loadConfig } from "../src/config.ts";
+import { prepareSettings, publicSettings, saveSettings, ensureSettingsBackup } from "../src/settings.ts";
 
 const current: AgentConfig = { provider: "openai-compatible", model: "fixture", baseURL: "https://example.test/v1", apiKeys: ["fixture-key"], apiKey: "fixture-key",
   keySource: "test", contextWindow: 64000, maxToolOutputChars: 6000, engineUrl: "http://127.0.0.1:8971", port: 8972 };
@@ -29,6 +30,49 @@ test("API settings save preserves unrelated configuration and the full key pool"
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
+test("first launch seeds the user-profile backup from an existing state-dir config", () => {
+  const state = fs.mkdtempSync(path.join(os.tmpdir(), "tiphys-backup-state-"));
+  const profile = fs.mkdtempSync(path.join(os.tmpdir(), "tiphys-backup-profile-"));
+  try {
+    fs.writeFileSync(path.join(state, "agent.json"), JSON.stringify({ provider: "openai-compatible", model: "legacy", apiKeys: ["legacy-key"] }));
+    ensureSettingsBackup(state, profile);
+    const seeded = JSON.parse(fs.readFileSync(path.join(profile, "agent.json"), "utf8"));
+    assert.deepEqual(seeded.apiKeys, ["legacy-key"]);
+    // An existing backup is never overwritten by the migration.
+    fs.writeFileSync(path.join(profile, "agent.json"), JSON.stringify({ model: "newer" }));
+    ensureSettingsBackup(state, profile);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(profile, "agent.json"), "utf8")).model, "newer");
+  } finally {
+    fs.rmSync(state, { recursive: true, force: true });
+    fs.rmSync(profile, { recursive: true, force: true });
+  }
+});
+
+test("saving mirrors the configuration to the user profile and restores it after app data is wiped", () => {
+  const state = fs.mkdtempSync(path.join(os.tmpdir(), "tiphys-settings-state-"));
+  const profile = fs.mkdtempSync(path.join(os.tmpdir(), "tiphys-settings-profile-"));
+  // The suite runner exports TIPHYS_LLM_PROVIDER=mock; the restore path under
+  // test must be judged without it.
+  const suiteProvider = process.env.TIPHYS_LLM_PROVIDER;
+  delete process.env.TIPHYS_LLM_PROVIDER;
+  try {
+    saveSettings({ ...current, apiKeys: ["mirror-key-one", "mirror-key-two"] }, state, profile);
+    const mirror = JSON.parse(fs.readFileSync(path.join(profile, "agent.json"), "utf8"));
+    assert.deepEqual(mirror.apiKeys, ["mirror-key-one", "mirror-key-two"]);
+    // Simulate an update/reinstall that clears the app-data directory: only the
+    // user-profile backup remains, and loadConfig must come back configured.
+    fs.rmSync(state, { recursive: true, force: true });
+    const restored = loadConfig(state, profile);
+    assert.equal(restored.provider, "openai-compatible");
+    assert.deepEqual(restored.apiKeys, ["mirror-key-one", "mirror-key-two"]);
+    assert.equal(restored.model, "fixture");
+  } finally {
+    if (suiteProvider !== undefined) process.env.TIPHYS_LLM_PROVIDER = suiteProvider;
+    fs.rmSync(state, { recursive: true, force: true });
+    fs.rmSync(profile, { recursive: true, force: true });
+  }
+});
+
 test("production settings: no mock fallback, authenticated save, real protocol test, redaction and restart", { timeout: 45000 }, async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tiphys-settings-http-"));
   const mockApi = http.createServer((req, res) => {
@@ -44,7 +88,7 @@ test("production settings: no mock fallback, authenticated save, real protocol t
   const port = (probe.address() as any).port;
   await new Promise<void>(resolve => probe.close(() => resolve()));
   const url = `http://127.0.0.1:${port}`;
-  const env = { ...process.env, TIPHYS_STATE_DIR: dir, TIPHYS_PROJECT_ROOT: dir, TIPHYS_AGENT_PORT: String(port),
+  const env = { ...process.env, TIPHYS_STATE_DIR: dir, TIPHYS_USER_DIR: path.join(dir, "user-profile"), TIPHYS_PROJECT_ROOT: dir, TIPHYS_AGENT_PORT: String(port),
     TIPHYS_LLM_PROVIDER: "", TIPHYS_LLM_API_KEY: "", TIPHYS_LLM_BASE_URL: "", TIPHYS_LLM_MODEL: "", TIPHYS_TF_KEYS: "",
     TIPHYS_TF_KEYS_FILE: path.join(dir, "missing"), TIPHYS_CONTEXT_WINDOW: "", TIPHYS_MAX_TOOL_OUTPUT: "", TIPHYS_SERVICE_TOKEN: "fixture-service-token-long-enough-for-tests" };
   let child: ChildProcess | undefined;
@@ -78,6 +122,8 @@ test("production settings: no mock fallback, authenticated save, real protocol t
     const saved = await request("/settings", input);
     assert.equal(saved.status, 200);
     assert.ok(!(await saved.text()).includes("fixture-api-secret"));
+    const backup = JSON.parse(fs.readFileSync(path.join(dir, "user-profile", "agent.json"), "utf8"));
+    assert.deepEqual(backup.apiKeys, ["fixture-api-secret"], "saved settings must mirror to the user profile");
     assert.equal((await (await fetch(`${url}/health`)).json()).provider, "openai-compatible");
     const proxy = await request("/model/chat/completions", { model: "must-not-override-config", messages: [{ role: "user", content: "test proxy" }] });
     assert.equal(proxy.status, 200);

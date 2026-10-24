@@ -122,7 +122,9 @@ test("isolated engine + Agent: auth, buffer, approval ownership, reconnect, rest
       return result;
     };
     const catalog = await (await engineRequest("/tools/catalog")).json();
-    assert.equal(catalog.tools.length, 24);
+    // The Python sidecar catalog grew from 24 to 34 tools with the browser-era
+    // additions; assert a floor plus the stable per-tool contracts below.
+    assert.ok(catalog.tools.length >= 34, `expected at least 34 engine tools, got ${catalog.tools.length}`);
     assert.equal(catalog.tools.find((t: any) => t.name === "buffer").category, "邻近分析");
     assert.equal(catalog.tools.find((t: any) => t.name === "clip").category, "叠加分析");
     assert.equal(catalog.tools.find((t: any) => t.name === "remove_layer").annotations.destructiveHint, true);
@@ -289,6 +291,11 @@ test("isolated engine + Agent: auth, buffer, approval ownership, reconnect, rest
     await stop(engine);
     const resolved = fs.realpathSync(dir);
     assert.equal(path.dirname(resolved), fs.realpathSync(os.tmpdir()));
-    fs.rmSync(resolved, { recursive: true, force: true });
+    // Windows can keep engine log/data handles open briefly after taskkill;
+    // retry instead of failing the whole suite on cleanup.
+    for (let attempt = 0; ; attempt++) {
+      try { fs.rmSync(resolved, { recursive: true, force: true }); break; }
+      catch (err) { if (attempt >= 9 || (err as NodeJS.ErrnoException).code !== "EPERM") throw err; await new Promise(resolve => setTimeout(resolve, 200)); }
+    }
   }
 });

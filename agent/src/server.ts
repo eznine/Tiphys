@@ -7,11 +7,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { streamText, generateText, stepCountIs, tool, jsonSchema, type ToolSet } from "ai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { loadConfig, TIPHYS_DIR, type AgentConfig } from "./config.js";
+import { loadConfig, TIPHYS_DIR, USER_DIR, type AgentConfig } from "./config.js";
 import { providerFetch } from "./provider-fetch.js";
 import { once } from "node:events";
 import { eventLogEntries, redact } from "./diagnostics.js";
-import { prepareSettings, publicSettings, saveSettings } from "./settings.js";
+import { prepareSettings, publicSettings, saveSettings, ensureSettingsBackup } from "./settings.js";
 import { EngineMcp } from "./mcp.js";
 import { createMockModel } from "./mock.js";
 import { Session, type AgentEvent } from "./session.js";
@@ -19,6 +19,7 @@ import { COMPACT_PROMPT, loadMemory, maybeCompact, readToolOutput, spillIfLarge,
 import { allowedOrigins, authorized, serviceToken } from "./security.js";
 
 let cfg = loadConfig();
+ensureSettingsBackup();
 const engine = new EngineMcp(cfg.engineUrl);
 const sessions = new Map<string, Session>();
 const clients = new Map<string, Set<http.ServerResponse>>();
@@ -280,7 +281,7 @@ const server = http.createServer(async (req, res) => {
       try {
         const next = prepareSettings(cfg, await body(req));
         const nextModel = configuredModel(next);
-        saveSettings(next);
+        saveSettings(next, undefined, USER_DIR);
         cfg = next; model = nextModel;
         for (const session of sessions.values()) emit(session, { type: "model-config", provider: cfg.provider, model: cfg.model });
         return json(publicSettings(cfg));

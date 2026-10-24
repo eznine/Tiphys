@@ -83,8 +83,12 @@ test("changing symbols updates existing sources and labels follow layer visibili
   const style = { ...defaultLayerStyle(layer.id), color: "#123456", pointSize: 9, labelField: "name" };
   syncDataLayers(map, [{ ...layer, style }]);
   assert.equal(sources.get("tiphys-lyr_style"), source);
-  assert.equal(paint.get("tiphys-lyr_style-pt:circle-color"), "#123456");
-  assert.equal(paint.get("tiphys-lyr_style-pt:circle-radius"), 9);
+  // Paint values are selection-aware case expressions; the fallback branch is
+  // the configured style.
+  const circleColor = paint.get("tiphys-lyr_style-pt:circle-color") as unknown[];
+  const circleRadius = paint.get("tiphys-lyr_style-pt:circle-radius") as unknown[];
+  assert.equal(circleColor.at(-1), "#123456");
+  assert.equal(circleRadius.at(-1), 9);
   assert.ok(layers.has("tiphys-lyr_style-label"));
   syncDataLayers(map, [{ ...layer, style, visible: false }]);
   assert.equal(layout.get("tiphys-lyr_style-label:visibility"), "none");

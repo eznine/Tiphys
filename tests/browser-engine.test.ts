@@ -277,52 +277,23 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
   await ensureBrowserCatalog();
   const source = fs.readFileSync(new URL("../src/components/CommandRibbon.tsx", import.meta.url), "utf8");
   const names = [...source.matchAll(/props\.onTool\("(wasm_[^"]+)"\)/g)].map(match => match[1]);
-  assert.ok(names.length >= 158, `expected a dense ribbon, got ${names.length} WASM actions`);
+  // The ribbon is deliberately curated: common entry points only. The full
+  // catalogue stays available through the toolbox and the ribbon search.
+  assert.ok(names.length >= 8 && names.length <= 40, `expected a curated ribbon, got ${names.length} WASM actions`);
   assert.equal(new Set(names).size, names.length, "ribbon must not expose duplicate WASM actions");
   for (const name of names) assert.ok(browserCatalog.some(tool => tool.name === name), `${name} must resolve to a catalog tool`);
-  for (const name of ["wasm_panchromatic_sharpening", "wasm_resample", "wasm_segment_slic_superpixels",
-    "wasm_spectral_angle_mapper", "wasm_viewshed", "wasm_visibility_index", "wasm_sky_view_factor",
-    "wasm_contours_from_raster", "wasm_create_colour_composite", "wasm_cost_distance", "wasm_cost_pathway",
-    "wasm_euclidean_distance", "wasm_extract_raster_values_at_points", "wasm_deviation_from_mean_elevation",
-    "wasm_sobel_filter", "wasm_mosaic", "wasm_raster_to_vector_polygons", "wasm_raster_to_vector_lines",
-    "wasm_raster_to_vector_points", "wasm_vector_points_to_raster", "wasm_vector_polygons_to_raster",
-    "wasm_idw_interpolation", "wasm_tin_interpolation", "wasm_buffer_raster", "wasm_merge_vectors",
-    "wasm_smooth_vectors", "wasm_network_service_area", "wasm_generate_near_table",
-    "wasm_majority_filter", "wasm_boundary_clean", "wasm_snap_points_to_network",
-    "wasm_split_lines_at_intersections", "wasm_line_density", "wasm_euclidean_allocation",
-    "wasm_cost_allocation", "wasm_median_filter", "wasm_centroid_vector",
-    "wasm_densify_features", "wasm_concave_hull", "wasm_feature_to_line",
-    "wasm_expand_shrink", "wasm_clump", "wasm_sieve", "wasm_empirical_bayesian_kriging",
-    "wasm_basins", "wasm_snap_pour_points", "wasm_feature_vertices_to_points",
-    "wasm_aggregate_polygons", "wasm_opening", "wasm_closing", "wasm_percentile_filter",
-    "wasm_nibble", "wasm_multipart_to_singlepart", "wasm_eliminate_polygon_part",
-    "wasm_aggregate_points", "wasm_symmetrical_difference", "wasm_difference", "wasm_identity",
-    "wasm_buffer_vector", "wasm_minimum_bounding_circle", "wasm_bilateral_filter",
-    "wasm_ordinary_kriging", "wasm_trend_surface", "wasm_ruggedness_index",
-    "wasm_strahler_stream_order", "wasm_hack_stream_order", "wasm_cost_connectivity",
-    "wasm_gaussian_filter", "wasm_edge_preserving_mean_filter", "wasm_points_to_line",
-    "wasm_minimum_bounding_box", "wasm_relative_topographic_position", "wasm_mean_filter",
-    "wasm_laplacian_filter", "wasm_euclidean_direction", "wasm_update", "wasm_vector_lines_to_raster",
-    "wasm_simple_kriging", "wasm_wetness_index", "wasm_change_vector_analysis",
-    "wasm_near", "wasm_extend_vector_lines", "wasm_split_vector_lines", "wasm_find_identical",
-    "wasm_integrate", "wasm_median_center", "wasm_lee_filter", "wasm_downslope_index",
-    "wasm_central_feature", "wasm_directional_distribution", "wasm_corridor", "wasm_path_distance",
-    "wasm_prewitt_filter", "wasm_conservative_smoothing_filter", "wasm_extract_valleys", "wasm_local_kriging",
-    "wasm_frost_filter", "wasm_fast_almost_gaussian_filter", "wasm_circular_variance_of_aspect",
-    "wasm_average_flowpath_slope", "wasm_cut_fill", "wasm_is_nodata", "wasm_focal_statistics",
-    "wasm_k_means_clustering", "wasm_balance_contrast_enhancement", "wasm_histogram_equalization",
-    "wasm_min_max_contrast_stretch", "wasm_horton_stream_order", "wasm_shreve_stream_magnitude",
-    "wasm_contour_list", "wasm_contours_from_points", "wasm_pennock_landform_classification",
-    "wasm_scharr_filter", "wasm_standard_deviation_filter", "wasm_total_curvature",
-    "wasm_sediment_transport_index", "wasm_relative_aspect", "wasm_max_elevation_deviation",
-    "wasm_elev_relative_to_min_max", "wasm_principal_component_analysis",
-    "wasm_anisotropic_diffusion_filter", "wasm_laplacian_of_gaussians_filter",
-    "wasm_roberts_cross_filter", "wasm_otsu_thresholding", "wasm_accumulation_curvature",
-    "wasm_multiscale_roughness", "wasm_stream_link_identifier", "wasm_hexagonal_grid_from_vector_base"]) {
-    assert.ok(names.includes(name), `${name} should be exposed in the ribbon`);
+  for (const name of ["wasm_slope", "wasm_hillshade", "wasm_principal_component_analysis",
+    "wasm_normalized_difference_index", "wasm_raster_calculator"]) {
+    assert.ok(names.includes(name), `${name} should stay in the curated ribbon`);
   }
+  assert.ok(source.includes("onSearchTools"), "ribbon must expose a full-catalog search entry");
+  assert.ok(source.includes("ribbon-tool-search"), "ribbon search box must exist");
+  assert.ok(source.includes("props.onTool()"), "ribbon must keep an all-tools entry");
+  // Recipes live in the shared timeline since the mobile layout refactor.
+  const timeline = fs.readFileSync(new URL("../src/components/ChatTimeline.tsx", import.meta.url), "utf8");
   const dock = fs.readFileSync(new URL("../src/components/ChatDock.tsx", import.meta.url), "utf8");
-  const recipeTools = [...dock.matchAll(/tool: "(wasm_[^"]+)"/g)].map(match => match[1]);
+  const recipeTools = [...`${dock}
+${timeline}`.matchAll(/tool: "(wasm_[^"]+)"/g)].map(match => match[1]);
   for (const name of ["wasm_network_service_area", "wasm_buffer_raster", "wasm_contours_from_raster",
     "wasm_cost_distance", "wasm_raster_to_vector_polygons", "wasm_idw_interpolation",
     "wasm_line_density", "wasm_concave_hull", "wasm_empirical_bayesian_kriging", "wasm_basins",
