@@ -36,6 +36,8 @@ type Scenario = {
   prepare?: string;
   /** Background the tab right after tapping run (lifecycle probe). */
   backgroundDuringRun?: boolean;
+  /** Per-scenario job observation budget; default 120s. */
+  timeoutMs?: number;
   expect: { status?: "completed" | "failed"; blocked?: boolean; export?: boolean; noFailedAcceptance?: boolean };
 };
 
@@ -54,6 +56,10 @@ const SCENARIOS: Scenario[] = [
     card: "DEM 坡度与山体阴影", prepare: "big", expect: { blocked: true } },
   { id: "M7", title: "同图层裁剪被阻止并给出降级说明", fixtures: [{ key: "zones", file: "tests/fixtures/district_zones.geojson" }],
     card: "面裁剪", prepare: "same", expect: { blocked: true } },
+  { id: "M8", title: "河网任务卡闭环（5 步链，手机预算内）", fixtures: [{ key: "dem", file: "tests/fixtures/dem_hills.tif" }],
+    card: "DEM 河网提取", expect: { status: "completed", noFailedAcceptance: true } },
+  { id: "M9", title: "服务圈任务卡闭环（双图层 + 统计）", fixtures: [{ key: "schools", file: "tests/fixtures/schools.geojson" }, { key: "homes", file: "tests/fixtures/residential.geojson" }],
+    card: "学校服务圈统计", expect: { status: "completed", noFailedAcceptance: true } },
 ];
 
 const argv = process.argv.slice(2);
@@ -139,11 +145,12 @@ async function main() {
           note("运行中短暂后台后返回", true);
         }
         const result = page.locator(".task-card-result");
-        await result.waitFor({ timeout: 120000 });
+        const budget = scenario.timeoutMs ?? 120000;
+        await result.waitFor({ timeout: budget });
         await page.waitForFunction(() => {
           const node = document.querySelector(".task-card-result");
           return node && node.getAttribute("data-status") !== null && !node.getAttribute("data-status")?.includes("running");
-        }, { timeout: 120000 }).catch(() => undefined);
+        }, { timeout: budget }).catch(() => undefined);
         const status = await result.getAttribute("data-status");
         note(`运行结束 status=${scenario.expect.status}`, status === scenario.expect.status, `实际 ${status}`);
         if (scenario.expect.noFailedAcceptance) {

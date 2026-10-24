@@ -34,6 +34,7 @@
     "vertical:hydro": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/run-hydrology-vertical.ts",
     "vertical:gis": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/run-gis-vertical.ts",
     "bench:geoagent": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/run-geoagentbench.ts",
+    "compare:arms": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/compare-agent-arms.ts",
     "compare:engines": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/compare-engines.ts",
     "wasm:spike": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/wasm-spike.ts",
     "eval:search": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/search-eval.ts",

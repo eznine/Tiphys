@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-10-24T14:48:17.652Z",
+  "generated_at": "2026-10-24T15:46:48.322Z",
   "device": "iPhone 12 emulation (390x844, touch)",
   "totals": {
-    "scenarios": 7,
-    "pass": 7,
+    "scenarios": 9,
+    "pass": 9,
     "fail": 0
   },
   "results": [
@@ -11,7 +11,7 @@
       "id": "M1",
       "title": "点缓冲任务卡闭环（含导出）",
       "ok": true,
-      "duration_ms": 21426,
+      "duration_ms": 11380,
       "checks": [
         {
           "name": "视口 390×844（iPhone 12 仿真）",
@@ -55,7 +55,7 @@
       "id": "M2",
       "title": "面裁剪任务卡闭环",
       "ok": true,
-      "duration_ms": 17633,
+      "duration_ms": 11851,
       "checks": [
         {
           "name": "视口 390×844（iPhone 12 仿真）",
@@ -70,7 +70,7 @@
         {
           "name": "执行前说明引擎与数据预算",
           "ok": true,
-          "detail": "浏览器本地 GeoLibre WASM 计算，数据不出设备。输入「district_zones」×掩膜「zone_a」（合计 未知大小）；结果应落在掩膜范围内。"
+          "detail": "浏览器本地 GeoLibre WASM 计算，数据不出设备。输入「zone_a」×掩膜「district_zones」（合计 未知大小）；结果应落在掩膜范围内。"
         },
         {
           "name": "运行结束 status=completed",
@@ -94,7 +94,7 @@
       "id": "M3",
       "title": "叠加求交与面积任务卡闭环",
       "ok": true,
-      "duration_ms": 14568,
+      "duration_ms": 11146,
       "checks": [
         {
           "name": "视口 390×844（iPhone 12 仿真）",
@@ -133,7 +133,7 @@
       "id": "M4",
       "title": "字段统计任务卡闭环（只读）",
       "ok": true,
-      "duration_ms": 6147,
+      "duration_ms": 32211,
       "checks": [
         {
           "name": "视口 390×844（iPhone 12 仿真）",
@@ -172,7 +172,7 @@
       "id": "M5",
       "title": "DEM 坡度任务卡闭环 + 短暂后台恢复",
       "ok": true,
-      "duration_ms": 14366,
+      "duration_ms": 14801,
       "checks": [
         {
           "name": "视口 390×844（iPhone 12 仿真）",
@@ -216,7 +216,7 @@
       "id": "M6",
       "title": "超预算栅格在执行前被拒绝",
       "ok": true,
-      "duration_ms": 30297,
+      "duration_ms": 14352,
       "checks": [
         {
           "name": "视口 390×844（iPhone 12 仿真）",
@@ -250,7 +250,7 @@
       "id": "M7",
       "title": "同图层裁剪被阻止并给出降级说明",
       "ok": true,
-      "duration_ms": 16272,
+      "duration_ms": 5719,
       "checks": [
         {
           "name": "视口 390×844（iPhone 12 仿真）",
@@ -276,6 +276,84 @@
           "name": "降级建议可见",
           "ok": true,
           "detail": "请另选一个掩膜面图层。"
+        }
+      ],
+      "fatal": null
+    },
+    {
+      "id": "M8",
+      "title": "河网任务卡闭环（5 步链，手机预算内）",
+      "ok": true,
+      "duration_ms": 20476,
+      "checks": [
+        {
+          "name": "视口 390×844（iPhone 12 仿真）",
+          "ok": true,
+          "detail": "390×844"
+        },
+        {
+          "name": "手机对话抽屉打开且任务卡可见",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "执行前说明引擎与数据预算",
+          "ok": true,
+          "detail": "浏览器本地 GeoLibre WASM（Whitebox D8 链），数据不出设备。输入「dem_hills」120×100；阈值 50 像元（阈值越大河网越稀"
+        },
+        {
+          "name": "运行结束 status=completed",
+          "ok": true,
+          "detail": "实际 completed"
+        },
+        {
+          "name": "验收断言全部通过",
+          "ok": true,
+          "detail": "0 条未过"
+        },
+        {
+          "name": "诚实结论（headline）",
+          "ok": true,
+          "detail": "计划完成：5 个步骤全部成功，5 个可交付图层。"
+        }
+      ],
+      "fatal": null
+    },
+    {
+      "id": "M9",
+      "title": "服务圈任务卡闭环（双图层 + 统计）",
+      "ok": true,
+      "duration_ms": 5195,
+      "checks": [
+        {
+          "name": "视口 390×844（iPhone 12 仿真）",
+          "ok": true,
+          "detail": "390×844"
+        },
+        {
+          "name": "手机对话抽屉打开且任务卡可见",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "执行前说明引擎与数据预算",
+          "ok": true,
+          "detail": "浏览器本地 GeoLibre WASM 计算，数据不出设备。「schools」5 所 × 1000 米圈 ∩「residential」。统计口径：欧式距离、相交"
+        },
+        {
+          "name": "运行结束 status=completed",
+          "ok": true,
+          "detail": "实际 completed"
+        },
+        {
+          "name": "验收断言全部通过",
+          "ok": true,
+          "detail": "0 条未过"
+        },
+        {
+          "name": "诚实结论（headline）",
+          "ok": true,
+          "detail": "计划完成：3 个步骤全部成功，2 个可交付图层。"
         }
       ],
       "fatal": null

@@ -29,7 +29,7 @@ const ROOT = path.resolve(import.meta.dirname, "..");
 const BENCH = path.join(ROOT, "reference", "gis", "GeoAgentBench");
 const OUT_DIR = path.join(ROOT, "docs", "baselines", "stage4");
 const APP = "http://127.0.0.1:1420/";
-const PYTHON = process.platform === "win32" ? "engine/.venv/Scripts/python.exe" : "engine/.venv/bin/python";
+const PYTHON = path.join(ROOT, process.platform === "win32" ? "engine/.venv/Scripts/python.exe" : "engine/.venv/bin/python");
 const CHROME_CANDIDATES = [
   process.env.CHROME_PATH,
   "C:/Program Files/Google/Chrome/Application/chrome.exe",
@@ -88,7 +88,8 @@ function runGrader(taskId: string, submissionDir: string): { ok: boolean; json: 
     env: { ...process.env, PYTHONPATH: path.join(BENCH, "eval"), PYTHONDONTWRITEBYTECODE: "1" },
   });
   const stdout = String(child.stdout ?? "");
-  const stderr = String(child.stderr ?? "");
+  const stderr = [child.error ? String(child.error) : "", String(child.stderr ?? "")].filter(Boolean).join("\n");
+  if (child.status !== 0 && !stdout.trim()) return { ok: false, json: null, stderr: stderr.slice(0, 500) || `grader exited ${child.status} without output` };
   try {
     const start = stdout.indexOf("{");
     return { ok: true, json: JSON.parse(stdout.slice(start)), stderr };
@@ -182,7 +183,12 @@ async function main() {
     const weighted = subchecks.length
       ? subchecks.reduce((acc: number, check: any) => acc + Number(check.weight ?? 1) * (check.passed ? 1 : 0), 0) / subchecks.reduce((acc: number, check: any) => acc + Number(check.weight ?? 1), 0)
       : 0;
-    const passed = !fatal && gates.every((gate: any) => gate.passed) && subchecks.every((check: any) => check.passed);
+    // Vacuous-pass guard: an empty grader verdict is a harness failure, not a pass.
+    const passed = !fatal
+      && graded?.ok
+      && Array.isArray(gates) && gates.length > 0
+      && gates.every((gate: any) => gate.passed)
+      && subchecks.every((check: any) => check.passed);
     results.push({
       task_id: taskId, instruction_chars: task.instruction.length,
       expected_files: expectedFiles, produced_files: producedFiles,

@@ -1,0 +1,381 @@
+{
+  "generated_at": "2026-10-24T16:32:41.980Z",
+  "source": {
+    "repo": "pothos-dev/geoagentbench",
+    "cloned_at": "2026-10-24T15:21:35.482Z"
+  },
+  "subset": {
+    "included": [
+      "crs-l1-paris-lambert93",
+      "geo-l1-cairo-multipoint-hull",
+      "geo-l1-capetown-building-centroids",
+      "geo-l2-bangkok-landuse-intersect",
+      "dc-l1-capetown-waterway-nulls",
+      "fio-l1-paris-kml-pois"
+    ],
+    "excluded": [
+      {
+        "id": "geo-l1-tokyo-busstop-buffer",
+        "reason": "输出 GeoParquet，浏览器导出暂不支持该格式"
+      },
+      {
+        "id": "spa-l1-capetown-hospital-nn",
+        "reason": "输入为 GeoParquet 且要求精确列名（nearest_hospital_name/distance_m），第一轮不接"
+      },
+      {
+        "id": "spa-l1-paris-amenity-within / spa-l1-vienna-pip-count",
+        "reason": "CSV 列名来自参考实现的 pandas 语义（分组计数/指定列名），我们原生导出对不上 schema"
+      },
+      {
+        "id": "dc-l2-* / fio-l2-capetown-landuse-dissolve",
+        "reason": "依赖 dissolve——浏览器端 D1 缺陷未修"
+      },
+      {
+        "id": "spa-l3-paris-emergency-routing / spa-l2-*",
+        "reason": "需要路网/距离矩阵/kNN 算子，当前引擎无对应能力"
+      },
+      {
+        "id": "crs-l3 / dc-l3 / fio-l3 / dd-l3 / geo-l3 / lagos",
+        "reason": "多算子长链或需外部数据下载（Overture/Overpass），第一轮不接"
+      }
+    ],
+    "policy": "只收引擎原生支持且输出格式可产出的任务；排除项逐条给原因"
+  },
+  "scoring": "benchmark 自带 grade.py（gates + 加权 subchecks），非 TIPHYS 自评",
+  "totals": {
+    "tasks": 6,
+    "pass": 2,
+    "weighted_avg": 0.483
+  },
+  "results": [
+    {
+      "task_id": "crs-l1-paris-lambert93",
+      "instruction_chars": 449,
+      "expected_files": [
+        "paris_buildings_lambert93.gpkg"
+      ],
+      "produced_files": [
+        "paris_buildings_lambert93.gpkg"
+      ],
+      "gates": [
+        {
+          "name": "format_schema_valid",
+          "passed": true,
+          "reason": ""
+        }
+      ],
+      "subchecks": [
+        {
+          "name": "feature_count_within_5_percent",
+          "passed": true,
+          "detail": "sub rows 330; ref rows 330",
+          "weight": 1
+        },
+        {
+          "name": "geometry_type_is_polygon",
+          "passed": true,
+          "detail": "types observed: ['Polygon']",
+          "weight": 1
+        },
+        {
+          "name": "feature_id_set_preserved",
+          "passed": true,
+          "detail": "Jaccard 1.0000",
+          "weight": 1
+        },
+        {
+          "name": "coordinates_within_lambert93_paris_envelope",
+          "passed": true,
+          "detail": "bbox=(652678, 6861857, 653039, 6862297); expected x∈[600000, 700000], y∈[6800000, 6900000]",
+          "weight": 5
+        },
+        {
+          "name": "geometry_iou_high",
+          "passed": true,
+          "detail": "IoU 1.000000",
+          "weight": 3
+        },
+        {
+          "name": "per_feature_area_matches",
+          "passed": true,
+          "detail": "per-id area match rate 1.0000",
+          "weight": 3
+        },
+        {
+          "name": "total_area_within_1_percent",
+          "passed": true,
+          "detail": "sub total 75993.1 m²; ref total 75993.1 m²; rel diff 0.0000%",
+          "weight": 3
+        },
+        {
+          "name": "identifying_attributes_preserved",
+          "passed": true,
+          "detail": "class match 1.0000; subtype match 1.0000; name match 1.0000",
+          "weight": 1
+        },
+        {
+          "name": "original_columns_preserved",
+          "passed": true,
+          "detail": "all present",
+          "weight": 1
+        },
+        {
+          "name": "crs_is_canonical",
+          "passed": true,
+          "detail": "original EPSG:2154; canonical EPSG:2154",
+          "weight": 5
+        },
+        {
+          "name": "crs_in_meaningful_set",
+          "passed": true,
+          "detail": "original EPSG:2154; meaningful set [2154, 32631]",
+          "weight": 5
+        }
+      ],
+      "weighted_score": 1,
+      "pass": true,
+      "fatal": null,
+      "grader_error": null,
+      "duration_ms": 201286
+    },
+    {
+      "task_id": "geo-l1-cairo-multipoint-hull",
+      "instruction_chars": 541,
+      "expected_files": [
+        "cairo_metro_hulls.geojson"
+      ],
+      "produced_files": [
+        "cairo_metro_hulls.geojson"
+      ],
+      "gates": [
+        {
+          "name": "format_schema_valid",
+          "passed": true,
+          "reason": ""
+        }
+      ],
+      "subchecks": [
+        {
+          "name": "station_name_en_populated",
+          "passed": true,
+          "detail": "20/20 rows have non-empty station_name_en",
+          "weight": 1
+        },
+        {
+          "name": "station_name_ar_populated",
+          "passed": true,
+          "detail": "20/20 rows have non-empty station_name_ar",
+          "weight": 1
+        },
+        {
+          "name": "station_name_en_set_preserved",
+          "passed": true,
+          "detail": "english-name Jaccard 1.0000",
+          "weight": 3
+        },
+        {
+          "name": "arabic_names_match",
+          "passed": true,
+          "detail": "20/20 arabic names match",
+          "weight": 3
+        },
+        {
+          "name": "hull_contains_input_points",
+          "passed": true,
+          "detail": "20/20 hulls cover all input entrances",
+          "weight": 4
+        },
+        {
+          "name": "hull_iou_against_reference",
+          "passed": true,
+          "detail": "mean per-station IoU 1.0000",
+          "weight": 5
+        },
+        {
+          "name": "geometry_types_polygon",
+          "passed": true,
+          "detail": "geometry types: ['Polygon'] (expected Polygon only)",
+          "weight": 2
+        },
+        {
+          "name": "row_count_within_tolerance",
+          "passed": true,
+          "detail": "submission 20 vs reference 20 (±5%)",
+          "weight": 3
+        },
+        {
+          "name": "crs_is_canonical",
+          "passed": true,
+          "detail": "original EPSG:4326; canonical EPSG:4326",
+          "weight": 0.5
+        },
+        {
+          "name": "crs_in_meaningful_set",
+          "passed": true,
+          "detail": "original EPSG:4326; meaningful set [4326]",
+          "weight": 0.5
+        }
+      ],
+      "weighted_score": 1,
+      "pass": true,
+      "fatal": null,
+      "grader_error": null,
+      "duration_ms": 71181
+    },
+    {
+      "task_id": "geo-l1-capetown-building-centroids",
+      "instruction_chars": 486,
+      "expected_files": [
+        "building_centroids.geojson"
+      ],
+      "produced_files": [],
+      "gates": [],
+      "subchecks": [],
+      "weighted_score": 0,
+      "pass": false,
+      "fatal": "page.evaluate: Error: unsupported vector format 'shp' (try: geojson,topojson,gml,gpx,kml,flatgeobuf,geopackage,kmz,geoparquet)\n    at Worker.onMessage (http://127.0.0.1:1420/src/lib/browser/wasm-tool-runner.ts?t=1792808421877:170:45)",
+      "grader_error": null,
+      "duration_ms": 2219
+    },
+    {
+      "task_id": "geo-l2-bangkok-landuse-intersect",
+      "instruction_chars": 490,
+      "expected_files": [
+        "bma_landcover_intersect.geojson"
+      ],
+      "produced_files": [],
+      "gates": [
+        {
+          "name": "format_schema_valid",
+          "passed": false,
+          "reason": "missing output file: bma_landcover_intersect.geojson"
+        }
+      ],
+      "subchecks": [],
+      "weighted_score": 0,
+      "pass": false,
+      "fatal": null,
+      "grader_error": null,
+      "duration_ms": 309227
+    },
+    {
+      "task_id": "dc-l1-capetown-waterway-nulls",
+      "instruction_chars": 718,
+      "expected_files": [
+        "waterways_clean.geojson"
+      ],
+      "produced_files": [
+        "waterways_clean.geojson"
+      ],
+      "gates": [
+        {
+          "name": "format_schema_valid",
+          "passed": true,
+          "reason": ""
+        }
+      ],
+      "subchecks": [
+        {
+          "name": "geometry_type_linestring_only",
+          "passed": true,
+          "detail": "got geometry types ['LineString'] on non-null subset, expected LineString",
+          "weight": 1
+        },
+        {
+          "name": "no_null_or_empty_geometry_in_output",
+          "passed": true,
+          "detail": "null=0, empty=0",
+          "weight": 4
+        },
+        {
+          "name": "no_null_waterway_type_in_output",
+          "passed": true,
+          "detail": "null waterway_type rows: 0",
+          "weight": 4
+        },
+        {
+          "name": "dropped_count_present",
+          "passed": false,
+          "detail": "top-level dropped_count = None",
+          "weight": 1
+        },
+        {
+          "name": "dropped_count_correct",
+          "passed": false,
+          "detail": "reported None, expected 20",
+          "weight": 2
+        },
+        {
+          "name": "feature_count_within_tolerance",
+          "passed": true,
+          "detail": "submission 80 vs reference 80 (±5%)",
+          "weight": 2
+        },
+        {
+          "name": "feature_id_set_preserved",
+          "passed": true,
+          "detail": "Jaccard 1.0000",
+          "weight": 4
+        },
+        {
+          "name": "null_name_rows_preserved",
+          "passed": true,
+          "detail": "all 5 null-name rows present",
+          "weight": 4
+        },
+        {
+          "name": "geometry_preserved_per_id",
+          "passed": true,
+          "detail": "per-id geometry match rate 1.0000 (common ids: 80)",
+          "weight": 2.5
+        },
+        {
+          "name": "attributes_preserved_per_id",
+          "passed": true,
+          "detail": "name match 1.0000; waterway_type match 1.0000",
+          "weight": 2.5
+        },
+        {
+          "name": "crs_is_canonical",
+          "passed": true,
+          "detail": "original EPSG:4326; canonical EPSG:4326",
+          "weight": 1
+        },
+        {
+          "name": "crs_in_meaningful_set",
+          "passed": true,
+          "detail": "original EPSG:4326; meaningful set [4326]",
+          "weight": 1
+        }
+      ],
+      "weighted_score": 0.897,
+      "pass": false,
+      "fatal": null,
+      "grader_error": null,
+      "duration_ms": 237682
+    },
+    {
+      "task_id": "fio-l1-paris-kml-pois",
+      "instruction_chars": 402,
+      "expected_files": [
+        "paris_pois.geojson"
+      ],
+      "produced_files": [
+        "paris_pois.geojson"
+      ],
+      "gates": [
+        {
+          "name": "format_schema_valid",
+          "passed": false,
+          "reason": "missing columns: ['category', 'verified_date']"
+        }
+      ],
+      "subchecks": [],
+      "weighted_score": 0,
+      "pass": false,
+      "fatal": null,
+      "grader_error": null,
+      "duration_ms": 145970
+    }
+  ]
+}
