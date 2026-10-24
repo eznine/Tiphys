@@ -15,6 +15,8 @@ import { zhToolL1, zhToolL2 } from "../src/lib/i18n/tools.ts";
 import { searchBrowserTools } from "../src/lib/browser/search.ts";
 import { compactBrowserMessages, estimateBrowserTokens, readBrowserContextRecord } from "../src/lib/browser/context.ts";
 import { buildBrowserSystemPrompt } from "../src/lib/browser/prompt.ts";
+import { parseKmlPlacemarks } from "../src/lib/browser/kml.ts";
+import { requestedExport } from "../src/lib/browser/delivery.ts";
 import { mapExportFilename, mapPngDataUrl } from "../src/lib/map-export.ts";
 import { geeExecutionAllowed } from "../src/lib/gee.ts";
 import { defaultLayerStyle, layerColor, PALETTE, symbologyMode, withSymbologyMode, type DataLayer, type LayerStyle } from "../src/lib/dataLayers.ts";
@@ -136,8 +138,65 @@ test("Shapefile zip and FlatGeobuf import from actual converted files", async ()
   assert.equal(multi.layers[0].layer.feature_count, 1);
   assert.equal(multi.layers[0].layer.geometry_types[0], "Point");
   await assert.rejects(importBrowserShapefiles([uploads.find(upload => upload.name.endsWith(".shp"))!]), /缺少 \.shx、\.dbf/);
+  await assert.rejects(importBrowserFile(new Blob([new Uint8Array([1])]), "bare.shp"), /同时选择同名的 \.shp、\.shx 和 \.dbf/);
   const bad = zipSync({ "roads.shp": new Uint8Array([1]), "roads.shx": new Uint8Array([2]), "roads.dbf": new Uint8Array([3]) });
   await assert.rejects(importBrowserFile(new Blob([bad]), "broken.zip"), /转换没有生成|读取|Shapefile|无效/);
+});
+
+test("KML ExtendedData survives the managed work copy and GeoJSON export", async () => {
+  const kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+  <Placemark><name>Louvre</name><description><![CDATA[Art museum]]></description>
+    <ExtendedData><Data name="category"><value>museum</value></Data><Data name="verified_date"><value>2026-01-02</value></Data></ExtendedData>
+    <Point><coordinates>2.3364,48.8606,0</coordinates></Point></Placemark>
+  <Placemark><name>Cafe &amp; Bar</name>
+    <ExtendedData><SchemaData schemaUrl="#poi"><SimpleData name="category">cafe</SimpleData><SimpleData name="verified_date">2026-02-03</SimpleData></SchemaData></ExtendedData>
+    <Point><coordinates>2.3400,48.8600,0</coordinates></Point></Placemark>
+</Document></kml>`;
+  const marks = parseKmlPlacemarks(kml);
+  assert.equal(marks.length, 2);
+  assert.equal(marks[1].name, "Cafe & Bar");
+  assert.equal(marks[1].properties.category, "cafe");
+  const imported = await importBrowserFile(new Blob([kml]), "paris_pois.kml");
+  assert.equal(imported.layer.feature_count, 2);
+  const stored: any = await readRecord(`layer:${imported.layer.id}`);
+  assert.ok(stored.geojson.features.every((feature: any) => "category" in feature.properties && "verified_date" in feature.properties));
+  assert.equal(stored.extension, "fgb");
+  await finished("export_features", { layer: imported.layer.id, path: "paris_pois.geojson", fmt: "geojson" });
+  const exported: any = await readRecord("download:paris_pois.geojson");
+  const json = JSON.parse(new TextDecoder().decode(exported.bytes));
+  assert.equal(json.features.length, 2);
+  assert.deepEqual(json.features.map((feature: any) => feature.properties.category).sort(), ["cafe", "museum"]);
+  assert.deepEqual(json.features.map((feature: any) => feature.properties.verified_date).sort(), ["2026-01-02", "2026-02-03"]);
+});
+
+test("attribute filters carry dropped_count into GeoJSON exports and report unsupported formats", async () => {
+  const source = { type: "FeatureCollection", features: [
+    { type: "Feature", properties: { id: 1, name: "clean" }, geometry: { type: "Point", coordinates: [2.35, 48.85] } },
+    { type: "Feature", properties: { id: 2, name: null }, geometry: { type: "Point", coordinates: [2.36, 48.86] } },
+    { type: "Feature", properties: { id: 3, name: "clean" }, geometry: { type: "Point", coordinates: [2.37, 48.87] } },
+  ] };
+  const input = (await importBrowserFile(new Blob([JSON.stringify(source)]), "waterways_dirty.geojson")).layer;
+  const filtered = await finished("select_by_attributes", { layer: input.id, field: "name", op: "notnull", output_name: "waterways_clean" });
+  assert.equal(filtered.layer.feature_count, 2);
+  assert.equal(filtered.dropped_count, 1);
+  assert.deepEqual(filtered.metadata, { dropped_count: 1 });
+  const geo = await finished("export_features", { layer: filtered.layer.id, path: "waterways_clean.geojson", fmt: "geojson" });
+  assert.equal(geo.metadata_status, "included");
+  const stored: any = await readRecord("download:waterways_clean.geojson");
+  const json = JSON.parse(new TextDecoder().decode(stored.bytes));
+  assert.equal(json.dropped_count, 1);
+  assert.equal(json.features.length, 2);
+  const explicit = await finished("export_features", { layer: input.id, path: "explicit_metadata.geojson", fmt: "geojson", metadata: { dropped_count: 1, source: "field filter" } });
+  assert.equal(explicit.metadata_status, "included");
+  const explicitFile: any = await readRecord("download:explicit_metadata.geojson");
+  const explicitJson = JSON.parse(new TextDecoder().decode(explicitFile.bytes));
+  assert.equal(explicitJson.dropped_count, 1);
+  assert.equal(explicitJson.source, "field filter");
+  const gpkg = await finished("export_features", { layer: filtered.layer.id, path: "waterways_clean.gpkg", fmt: "gpkg" });
+  assert.equal(gpkg.metadata_status, "not_supported");
+  assert.match(gpkg.metadata_not_supported, /dropped_count/);
+  await assert.rejects(finished("export_features", { layer: filtered.layer.id, path: "mismatch.gpkg", fmt: "geojson" }), /扩展名.*不一致/);
 });
 
 test("multi-file shapefile selections group by basename and require sidecars", () => {
@@ -2421,6 +2480,10 @@ test("browser tool search ranks Chinese names and taxonomy, not only description
   assert.match(prompt, /116\.1,39\.1,116\.4,39\.4/);
   assert.match(prompt, /lyr_prompt/);
   assert.match(prompt, /当前要素选择.*"feature_ids":\[7,9\]/);
+  assert.match(prompt, /交付纪律（文件导出）/);
+  assert.match(prompt, /必须对最终结果图层调用 export_features/);
+  assert.match(prompt, /metadata 参数显式传入/);
+  assert.equal((browserCatalog.find(tool => tool.name === "export_features")!.parameters.properties as any).metadata.type, "object");
   for (const name of ["linkage_mapper_corridor", "hydrology_flow_pipeline", "least_cost_path_pipeline", "clip_layers_to_aoi"]) assert.match(prompt, new RegExp(name));
   const recovered = buildBrowserSystemPrompt([{ id: "lyr_prompt", name: "道路", kind: "vector" }], {
     aoi: [116.1, 39.1, 116.4, 39.4], selectedLayerId: "lyr_prompt", selectedLayerName: "道路",
@@ -2554,6 +2617,23 @@ test("default symbology stays in the blue family for helper outputs", () => {
   for (const name of ["AOI", "生态廊道", "最小成本路径", "水文分析_D8流向"]) {
     assert.match(defaultLayerStyle("lyr_test", name).color, /^#(2563eb|1d4ed8|0284c7|3b82f6|0369a1|4f46e5)$/);
   }
+});
+
+test("explicit deliverable requests resolve only named export files", () => {
+  assert.deepEqual(requestedExport("Save the result to bma_landcover_intersect.geojson"), {
+    filename: "bma_landcover_intersect.geojson", format: "geojson",
+  });
+  assert.deepEqual(requestedExport("请导出 waterways_clean.geojson"), {
+    filename: "waterways_clean.geojson", format: "geojson",
+  });
+  assert.deepEqual(requestedExport("保存为“结果.gpkg”"), {
+    filename: "结果.gpkg", format: "gpkg",
+  });
+  assert.deepEqual(requestedExport("Export /tmp/out/results.gpkg"), {
+    filename: "results.gpkg", format: "gpkg",
+  });
+  assert.equal(requestedExport("Intersect the two layers and explain the result"), null);
+  assert.equal(requestedExport("Save the analysis when done"), null);
 });
 
 test("graduated breaks use equal or quantile ranges without inventing observations", () => {

@@ -44,3 +44,7 @@
 - ✗ gate format_schema_valid：undefined
 - 产物：["paris_pois.geojson"]（期望 ["paris_pois.geojson"]）
 
+## Batch 33 产品修复（未重评分）
+
+2026-10-25：已修复 KML `ExtendedData` / `SchemaData` 属性保真、GeoJSON 顶层 `dropped_count`、非 GeoJSON 格式的 NOT_SUPPORTED 说明、显式文件名导出守卫，以及驱动器对裸 Shapefile sidecar 的分组导入。确定性浏览器回归通过；因本机缺少 GeoAgentBench 克隆且 `github.com` 不可解析，**agent re-score deferred**。本文件上方计数与 `geoagentbench.json` 保持 2026-10-24 单次实测，不声称新分数。详见 `docs/GEOAGENT_SCHEMA_EXPORT.md`。
+

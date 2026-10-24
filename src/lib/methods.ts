@@ -21,6 +21,17 @@ export type MethodExample = {
   toolId: string;
 };
 
+export type GuardrailKind = "crs" | "units" | "overlay-double-count" | "nodata" | "predicate";
+
+/** A check that prevents a plausible-looking but methodologically wrong run. */
+export type MethodGuardrail = {
+  kind: GuardrailKind;
+  /** The invariant to establish before accepting a result. */
+  check: string;
+  /** What to do when the invariant cannot be established from the request/data. */
+  next: string;
+};
+
 export type MethodCard = {
   id: string;
   title: string;
@@ -30,6 +41,8 @@ export type MethodCard = {
   operation?: OperationId;
   /** What must hold before the first tool runs. */
   preconditions: string[];
+  /** Typed checks injected with the card; not a second tool catalog. */
+  guardrails: MethodGuardrail[];
   /** Questions that must be answered before running, if any. */
   clarify: string[];
   /** Common mistakes and the wrong request that invites them. */
@@ -51,6 +64,10 @@ export const METHOD_CARDS: MethodCard[] = [
       "输入是矢量点/线/面，且坐标系是 EPSG 编号。",
       "距离是正的公制/英制长度；负距离内缩不在 v1 契约内。",
       "浏览器端会先投影到本地米制 CRS，输出图层记录该分析 CRS。",
+    ],
+    guardrails: [
+      { kind: "crs", check: "源图层 CRS 已知且为 EPSG 编号；显示用的 WGS84 副本不能代替分析 CRS。", next: "CRS 缺失时先请用户指定，绝不猜测。" },
+      { kind: "units", check: "缓冲区距离与单位同时明确，契约会换算为正的米制长度。", next: "用户未写单位时先追问米/公里/英里，不把裸数字当成度。" },
     ],
     clarify: ["距离单位是米还是公里？", "重叠的缓冲要不要合并成一个面？"],
     antiPatterns: [
@@ -74,6 +91,9 @@ export const METHOD_CARDS: MethodCard[] = [
       "目标 CRS 必须是 EPSG:<编号> 形式，不接受 proj 字符串。",
       "源图层必须已有 CRS；没有就先让用户指定，绝不猜。",
     ],
+    guardrails: [
+      { kind: "crs", check: "源 CRS 与目标 EPSG 都明确；同 CRS 请求必须是显式 no-op。", next: "缺少任一侧 CRS 时先追问，不以图层名称或范围猜测。" },
+    ],
     clarify: ["目标坐标系用哪一个 EPSG？", "只是为了量算，还是要与另一份数据叠加？"],
     antiPatterns: [
       "把“经纬度转成米”理解为换单位：这是换投影，不是乘系数。",
@@ -93,6 +113,10 @@ export const METHOD_CARDS: MethodCard[] = [
       "浏览器端只支持面与点；线裁剪会显式拒绝。",
       "两图层都在同一分析 CRS 下运算，属性保留规则要说明。",
     ],
+    guardrails: [
+      { kind: "crs", check: "输入与掩膜都先落到同一分析 EPSG；不得用屏幕 WGS84 坐标直接裁剪。", next: "CRS 未知或不一致时先重投影或在计划中显式拒绝。" },
+      { kind: "predicate", check: "相交、完全包含和边界接触是不同谓词，输出口径必须与用户选择一致。", next: "用户只说“范围内”时先追问边界接触算不算。" },
+    ],
     clarify: ["裁剪结果要保留原属性吗？", "边界上的要素算不算（相交 / 完全包含）？"],
     antiPatterns: [
       "用“裁剪”表达“删除范围内”：那是 erase，语义相反。",
@@ -111,6 +135,10 @@ export const METHOD_CARDS: MethodCard[] = [
       "输入是面图层。",
       "不分组时语义是“全部求并成一个要素”；分组时每组一个要素。",
       "浏览器 WASM 端目前不可用（见 OPERATION_SUPPORT 的 D1/D2 说明）。",
+    ],
+    guardrails: [
+      { kind: "crs", check: "输入面图层有明确 EPSG；融合后的面积在投影米制 CRS 中核对。", next: "CRS 缺失或为经纬度时先重投影再做面积验收。" },
+      { kind: "overlay-double-count", check: "重叠面融合后的面积不应大于各输入面积之和；分组汇总不得按切片重复累计。", next: "先 union/dissolve 去重，或按唯一源 id 建立显式计数口径。" },
     ],
     clarify: ["按哪个字段分组？", "融合后要保留哪些属性（通常只保留分组字段）？"],
     antiPatterns: [
@@ -132,6 +160,11 @@ export const METHOD_CARDS: MethodCard[] = [
       "NoData 处理必须显式（忽略或当 0）。",
       "桌面 Python 引擎已实现；浏览器 WASM 仍拒绝，因为目录里的同名工具只接受栅格分区。",
     ],
+    guardrails: [
+      { kind: "crs", check: "分区面与数值栅格都有 EPSG，且分区会重投影到栅格 CRS 后按像元掩膜。", next: "任一 CRS 缺失时停止；不得用 WGS84 显示范围代替栅格网格。" },
+      { kind: "units", check: "统计值保留栅格原生单位，像素计数与面积口径分开报告。", next: "用户要面积时先确认像元面积/投影单位，不把像元数冒充面积。" },
+      { kind: "nodata", check: "NoData 是忽略还是当 0 已明确，并在结果中报告有效像元数。", next: "未指定时先追问；全 NoData 分区必须返回空值而不是 0。" },
+    ],
     clarify: ["统计哪个栅格字段/波段？", "NoData 算不算进分母？", "分区与像元不重合时按像元中心还是面积加权？"],
     antiPatterns: [
       "把分区面当栅格传给 zonal_statistics：manifest 即如此，按名调用会跑错。",
@@ -149,6 +182,10 @@ export const METHOD_CARDS: MethodCard[] = [
     preconditions: [
       "地理坐标（EPSG:4326）要用测地线量算，不能直接用平面公式。",
       "投影坐标要用该投影的单位与比例因子；结果单位是米/平方米。",
+    ],
+    guardrails: [
+      { kind: "crs", check: "面积/长度在适合 AOI 的局部投影米制 CRS 中计算，并记录该分析 CRS。", next: "只有 4326 时先选择局部投影，或明确改用测地线算法。" },
+      { kind: "units", check: "输出字段标明 m、km、m² 或 km²，换算只做一次。", next: "用户未指定展示单位时保留米制并在报告中换算说明。" },
     ],
     clarify: ["要平面面积还是椭球面积？", "结果是写回属性表还是只报告数值？"],
     antiPatterns: [
@@ -169,6 +206,10 @@ export const METHOD_CARDS: MethodCard[] = [
       "谓词（intersects / within / nearest）必须显式。",
       "字段名冲突要预先决定前缀策略。",
     ],
+    guardrails: [
+      { kind: "crs", check: "连接双方在同一分析 EPSG；最近距离在局部米制 CRS 中量算。", next: "CRS 缺失或不一致时先重投影，不直接比较经纬度距离。" },
+      { kind: "overlay-double-count", check: "一对一连接的目标行数不得因一对多匹配而膨胀；多匹配要保留明细或聚合口径。", next: "先说明一个点落在多个面时保留哪条，或输出匹配次数而不是静默复制。" },
+    ],
     clarify: ["一个点落在多个面里时保留哪一条？", "最近匹配有没有距离上限？"],
     antiPatterns: [
       "用属性 join 代替空间连接：没有公共键时结果为空。",
@@ -188,6 +229,10 @@ export const METHOD_CARDS: MethodCard[] = [
       "先填洼再算流向，否则内流区会截断河网。",
       "流量阈值决定河网密度，必须作为参数说明。",
     ],
+    guardrails: [
+      { kind: "crs", check: "DEM 与上游派生栅格保持同一投影网格；坐标不是 4326 度。", next: "先重投影/重采样并核对网格尺寸，再开始流向链。" },
+      { kind: "units", check: "坡度输出单位、像元尺寸和流量累积阈值采用同一米制口径。", next: "未说明阈值单位时先追问，不把像元数或度值当米制阈值。" },
+    ],
     clarify: ["流量累积阈值取多少？", "要整条河网还是只到出口的流域？"],
     antiPatterns: [
       "跳过填洼直接算流向：平原区会出现大量平行/断流伪影。",
@@ -203,11 +248,42 @@ export const METHOD_CARDS: MethodCard[] = [
     triggers: ["坡度", "坡向", "slope", "aspect", "地形起伏"],
     operation: undefined,
     preconditions: ["DEM 已投影到米制 CRS。", "坡度单位（度/百分比）要明确。"],
+    guardrails: [
+      { kind: "crs", check: "DEM 为投影米制栅格，x/y 像元尺寸同一单位。", next: "4326 DEM 先重投影，不能直接算坡度。" },
+      { kind: "units", check: "坡度单位（度或百分比）与坡向角度约定在输出中明确。", next: "未指定时先追问，并在结果中写清单位。" },
+    ],
     clarify: ["坡度要度还是百分比？", "坡向要正北顺时针 0–360 吗？"],
     antiPatterns: ["把坡向当方位角用于导航而不做磁偏角修正：GIS 里通常是真北。"],
     acceptance: ["坡度范围 0–90°。", "平地坡向返回 NoData 而不是 0。"],
     positiveExample: { query: "算这个 DEM 的坡度和坡向", toolId: "wasm_slope" },
     negativeExample: { query: "算这份矢量面的坡度", why: "坡度是栅格邻域运算，矢量面没有坡度。" },
+  },
+  {
+    id: "overlay-double-count",
+    title: "叠加汇总与重复计数",
+    triggers: ["叠加", "求交", "相交", "intersection", "联合", "union", "重叠面积", "面积汇总", "重复计算", "double count"],
+    preconditions: [
+      "两个输入图层都有 EPSG CRS，并落到同一分析 CRS 后再叠加。",
+      "汇总前定义去重键：唯一源 id、先 union/dissolve，或明确允许按切片多次计数。",
+      "面积/长度只在投影米制 CRS 中求和，经纬度度数不能直接相加或全局换系数。",
+    ],
+    guardrails: [
+      { kind: "crs", check: "输入、叠加结果和面积量算共用同一投影米制 EPSG；显示图层不参与计算。", next: "CRS 缺失时先追问；不同 CRS 时先在计划中显式重投影。" },
+      { kind: "units", check: "汇总字段带 m²/km²（或 m/km）单位，换算只执行一次且保留原始数值。", next: "单位不明时停止汇总并先确认，不按字段名猜测。" },
+      { kind: "overlay-double-count", check: "同一源面被切成多块时不得把每块面积都当独立源面积；去重后总量不得超过源面并集。", next: "按唯一源 id 去重、先 dissolve/union，或向用户确认“切片各计一次”的口径。" },
+    ],
+    clarify: ["同一源面跨多个目标区时，是按目标区各计一次，还是按源 id 只计一次？", "重叠区要保留明细，还是先融合成并集再汇总？"],
+    antiPatterns: [
+      "intersection 后直接 sum(area_m2)：一个源面跨 n 个目标面会被计 n 次，总和不等于源面并集面积。",
+      "把 EPSG:4326 的度数当米乘固定系数：面积误差随纬度变化，不能全局换算。",
+    ],
+    acceptance: [
+      "去重后的汇总面积不超过源面并集面积（明确容差除外）。",
+      "每条汇总结果可追溯到唯一源 id；重复 id 有显式计数口径和备注。",
+      "输出字段或报告标明面积/长度单位与分析 CRS。",
+    ],
+    positiveExample: { query: "求这两个面图层相交部分，并按唯一源面去重汇总面积", toolId: "intersection" },
+    negativeExample: { query: "把相交结果的面积列全部相加，不管同一块被切了几次", why: "这会把切片重复计数；应先去重或按唯一源 id 汇总，并说明重叠口径。" },
   },
 ];
 

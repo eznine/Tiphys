@@ -121,10 +121,15 @@ async function main() {
       await page.waitForTimeout(1200);
       await page.evaluate(async (payload: { inputs: { name: string; b64: string }[] }) => {
         const engine = await import("/src/lib/browser/engine.ts");
-        for (const input of payload.inputs) {
-          const bytes = Uint8Array.from(atob(input.b64), ch => ch.charCodeAt(0));
-          await engine.importBrowserFile(new Blob([bytes]), input.name);
-        }
+        const files = payload.inputs.map(input => ({
+          name: input.name,
+          blob: new Blob([Uint8Array.from(atob(input.b64), ch => ch.charCodeAt(0))]),
+        }));
+        // Bare Shapefile tasks list .shp/.shx/.dbf separately. Feed them as one
+        // real multi-file selection; the single-file importer cannot see sidecars.
+        const shapefile = files.filter(file => /\.(?:shp|shx|dbf|prj|cpg|sbn|sbx)$/i.test(file.name));
+        if (shapefile.length) await engine.importBrowserShapefiles(shapefile);
+        for (const file of files.filter(file => !shapefile.includes(file))) await engine.importBrowserFile(file.blob, file.name);
       }, { inputs: task.inputs.map(input => ({ name: path.basename(input.url), b64: fs.readFileSync(path.join(BENCH, input.url)).toString("base64") })) });
 
       const session = "gab_" + taskId;

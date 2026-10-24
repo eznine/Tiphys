@@ -136,3 +136,5 @@ iPhone 12 仿真（390×844，touch，deviceScaleFactor 3）× 真实 WASM 引�
 | geo-l1-capetown-building-centroids | ERROR | 输入是裸 .shp（非 zip），浏览器导入不支持——兼容性缺口，记 ERROR 不记分 |
 
 解读：几何/CRS 类任务满分，失分集中在**schema 保真、元数据约定、导出纪律**——与自有基线的结论互补（那边败在检索/参数，这边败在交付格式细节）。这两个方向就是下一步产品化的靶子。
+
+**Batch 33 产品跟进（2026-10-25，未重评分）**：KML 导入现在补读并持久化 `ExtendedData` / `SchemaData` 属性；属性过滤产生的 `dropped_count` 会随 GeoJSON 导出写到顶层，GPKG/FGB/CSV 明确返回 NOT_SUPPORTED；显式文件名交付有真实导出守卫；GeoAgentBench 驱动器已改为把 `.shp/.shx/.dbf` 作为一次多文件选择导入。确定性浏览器回归覆盖上述路径。由于本机缺少 GeoAgentBench 浅克隆且网络不可用，本轮 **agent re-score deferred**，上表计数仍为 2026-10-24 单次运行结果，不把产品测试冒充新基准分数。细节见 `docs/GEOAGENT_SCHEMA_EXPORT.md`。

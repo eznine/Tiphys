@@ -12,15 +12,19 @@ import { listPlanRuns, readPlanRun, runBrowserPlan } from "./plans";
 import type { GeeAuthStatus } from "../gee";
 import { assertShapefileParts, groupShapefileParts, SHAPEFILE_EXTENSIONS } from "../shapefile";
 import { fieldRenameError, isNumericField, matchesDefinitionQuery, normalizeDefinitionOperator } from "../attribute-query";
+import { mergeKmlProperties, parseKmlPlacemarks } from "./kml";
 
 type LayerRecord = {
   info: Omit<DataLayer, "url">;
   geojson?: FeatureCollection;
   bytes: Uint8Array;
   extension: string;
+  /** Export-only top-level metadata (for example dropped_count). */
+  metadata?: ExportMetadata;
   /** PNG preview bytes for raster layers, rendered once at adoption. */
   preview?: Uint8Array;
 };
+type ExportMetadata = Record<string, string | number | boolean | null>;
 type Job = { job_id: string; label: string; status: string; progress: number; message: string; step?: string; result?: Record<string, any>; error?: string; owner: string };
 export type BrowserLog = { id: string; ts: number; source: string; kind: string; level: string; summary: string; detail: unknown };
 const owner = crypto.randomUUID();
@@ -199,14 +203,15 @@ async function exportCsv(record: LayerRecord, signal?: AbortSignal) {
     ...source.features.map(f => [...columns.map(name => csvCell(f.properties?.[name])), csvCell(wkt(f.geometry))].join(",")) ];
   return encoder.encode(`${lines.join("\n")}\n`);
 }
-async function adopt(bytes: Uint8Array, extension: string, name: string, signal?: AbortSignal) {
+async function adopt(bytes: Uint8Array, extension: string, name: string, signal?: AbortSignal, metadata?: ExportMetadata) {
   const meta = await fileInfo(bytes, extension, signal);
   if (!meta.epsg) throw new Error("源坐标系未定义，请在导入时指定源坐标系。");
   const converted = await wasmTool("vector_convert", { [`input.${extension}`]: bytes }, { input: `/work/input.${extension}`, output: "/work/display.geojson" }, signal);
   const json = JSON.parse(new TextDecoder().decode(converted.files["display.geojson"])); assertGeojson(json);
   if (meta.features !== json.features.length) throw new Error("数据读回校验失败：要素数量不一致。");
   const record: LayerRecord = { info: { id: `lyr_${crypto.randomUUID().replace(/-/g, "")}`, name, crs: `EPSG:${meta.epsg}`,
-    feature_count: json.features.length, bounds: boundsOf(json), geometry_types: [...new Set(json.features.map(f => f.geometry?.type).filter((v): v is NonNullable<typeof v> => !!v))], visible: true }, geojson: json, bytes, extension };
+    feature_count: json.features.length, bounds: boundsOf(json), geometry_types: [...new Set(json.features.map(f => f.geometry?.type).filter((v): v is NonNullable<typeof v> => !!v))], visible: true },
+    geojson: json, bytes, extension, ...(metadata && Object.keys(metadata).length ? { metadata } : {}) };
   signal?.throwIfAborted();
   await writeRecord(`layer:${record.info.id}`, record, signal);
   notify();
@@ -336,6 +341,19 @@ function metricDistance(raw: unknown, units = "meters") {
   const value = Number(raw) * factor;
   if (!Number.isFinite(value) || value <= 0 || value > 5_000_000) throw new Error("距离必须为正数且不超过 5000 千米，并使用有效单位。");
   return value;
+}
+function exportMetadata(record: LayerRecord, extra: unknown): ExportMetadata {
+  const metadata: ExportMetadata = { ...(record.metadata ?? {}) };
+  if (extra !== undefined && extra !== null) {
+    if (typeof extra !== "object" || Array.isArray(extra)) throw new Error("metadata 必须是键值对象。");
+    for (const [key, value] of Object.entries(extra as Record<string, unknown>)) {
+      if (!/^[A-Za-z_][\w.-]{0,63}$/.test(key) || ["type", "features", "crs", "bbox"].includes(key)) throw new Error(`元数据字段名无效或为保留字段：${key}`);
+      if (value !== null && !["string", "number", "boolean"].includes(typeof value)) throw new Error(`元数据 ${key} 只能是字符串、数值、布尔值或 null。`);
+      if (typeof value === "number" && !Number.isFinite(value)) throw new Error(`元数据 ${key} 必须是有限数值。`);
+      metadata[key] = value as ExportMetadata[string];
+    }
+  }
+  return metadata;
 }
 export const browserCatalog = browserToolCatalog;
 function validate(name: string, args: Record<string, any>) {
@@ -707,19 +725,39 @@ async function execute(name: string, args: Record<string, any>, signal?: AbortSi
       if (value == null) return false;
       switch (args.op) { case "eq": return value === comparison; case "ne": return value !== comparison; case "gt": return value > comparison; case "ge": return value >= comparison; case "lt": return value < comparison; case "le": return value <= comparison; case "contains": return String(value).includes(String(comparison)); case "startswith": return String(value).startsWith(String(comparison)); case "endswith": return String(value).endsWith(String(comparison)); default: throw new Error("不支持的比较方式。"); }
     });
-    return adopt(encoder.encode(JSON.stringify({ type: "FeatureCollection", features: selected })), "geojson", outputName, signal);
+    const dropped = Math.max(0, record.info.feature_count - selected.length);
+    const metadata = dropped > 0 ? { dropped_count: dropped } : undefined;
+    const output = await adopt(encoder.encode(JSON.stringify({ type: "FeatureCollection", features: selected })), "geojson", outputName, signal, metadata);
+    return { ...output, feature_count: selected.length, dropped_count: dropped, metadata: metadata ?? {} };
   }
   if (name === "export_features") {
-    const format = args.fmt ?? "geojson";
+    const pathExtension = String(args.path ?? "").replace(/\\/g, "/").split("/").pop()?.split(".").pop()?.toLowerCase();
+    const inferred = pathExtension === "json" ? "geojson" : pathExtension;
+    const format = args.fmt ?? (inferred && ["geojson", "gpkg", "fgb", "csv"].includes(inferred) ? inferred : "geojson");
     if (!["geojson", "gpkg", "fgb", "csv"].includes(format)) throw new Error("浏览器当前支持导出 GeoJSON、GeoPackage、FlatGeobuf 和 CSV。");
-    const bytes = format === "csv" ? await exportCsv(record, signal)
+    if (inferred && ["geojson", "json", "gpkg", "fgb", "csv"].includes(pathExtension ?? "") && inferred !== format) {
+      throw new Error(`导出路径扩展名 .${pathExtension} 与格式 ${format} 不一致；请使用匹配的文件名，避免生成名实不符的文件。`);
+    }
+    let bytes = format === "csv" ? await exportCsv(record, signal)
       : (await wasmTool("vector_convert", { [`input.${record.extension}`]: record.bytes }, { input: `/work/input.${record.extension}`, output: `/work/export.${format}` }, signal)).files[`export.${format}`];
     if (!bytes?.length) throw new Error("导出未生成有效文件。");
+    const metadata = exportMetadata(record, args.metadata);
+    const metadataKeys = Object.keys(metadata);
+    if (metadataKeys.length && format === "geojson") {
+      const collection = JSON.parse(new TextDecoder().decode(bytes));
+      if (collection?.type !== "FeatureCollection" || !Array.isArray(collection.features)) throw new Error("GeoJSON 导出结构无效，未附加元数据。");
+      Object.assign(collection, metadata);
+      bytes = encoder.encode(JSON.stringify(collection));
+    }
     const filename = String(args.path).replace(/\\/g, "/").split("/").pop() || `${record.info.name}.${format}`;
     if (await readRecord(`download:${filename}`) && !args.overwrite) throw new Error("浏览器存储中已有同名导出文件，若要替换请明确勾选覆盖。");
-    const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: format === "csv" ? "text/csv;charset=utf-8" : "application/octet-stream" }));
+    const type = format === "csv" ? "text/csv;charset=utf-8" : format === "geojson" ? "application/geo+json" : "application/octet-stream";
+    const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type }));
     await writeRecord(`download:${filename}`, { filename, bytes });
-    return { ok: true, path: filename, download_url: url, bytes: bytes.length, feature_count: record.info.feature_count, message: "点击下载文件保存到电脑。" };
+    return { ok: true, path: filename, download_url: url, bytes: bytes.length, feature_count: record.info.feature_count,
+      metadata, metadata_status: !metadataKeys.length ? "none" : format === "geojson" ? "included" : "not_supported",
+      ...(metadataKeys.length && format !== "geojson" ? { metadata_not_supported: `格式 ${format} 不支持 GeoJSON 顶层元数据；这些字段未写入文件：${metadataKeys.join(", ")}` } : {}),
+      message: "点击下载文件保存到电脑。" };
   }
   let inputBytes = record.bytes, extension = record.extension;
   let tool = name, params: Record<string, string | number | boolean> = {};
@@ -803,6 +841,10 @@ export async function importBrowserFile(file: Blob, filename: string, sourceCrs?
   if (file.size > 128 * 1024 * 1024) throw new Error("浏览器当前单文件导入上限为 128 MiB。");
   let bytes = new Uint8Array(await file.arrayBuffer());
   if (extension === "zip") return importShapefileZip(bytes, filename, sourceCrs);
+  if (extension === "shp" || extension === "shx" || extension === "dbf" || extension === "prj" || extension === "cpg" || extension === "sbn" || extension === "sbx") {
+    throw new Error("Shapefile 需要同时选择同名的 .shp、.shx 和 .dbf（可选 .prj/.cpg）；单个附属文件不能独立导入。");
+  }
+  if (extension === "kml" || extension === "kmz") return importKml(bytes, extension, filename.replace(/\.[^.]+$/, ""));
   if (extension === "tif" || extension === "tiff") {
     if (sourceCrs) throw new Error("GeoTIFF 自带坐标系信息，无需指定源坐标系。");
     return adoptRaster(bytes, filename.replace(/\.[^.]+$/, ""), rasterRenderer());
@@ -813,6 +855,35 @@ export async function importBrowserFile(file: Blob, filename: string, sourceCrs?
     const data = JSON.parse(new TextDecoder().decode(bytes)); data.crs = { type: "name", properties: { name: sourceCrs } }; bytes = encoder.encode(JSON.stringify(data));
   }
   return adopt(bytes, extension === "json" ? "geojson" : extension, filename.replace(/\.[^.]+$/, ""));
+}
+function kmlDocument(bytes: Uint8Array, extension: string): Uint8Array {
+  if (extension === "kml") return bytes;
+  const entries = unzipSync(bytes);
+  const names = Object.keys(entries).filter(name => !name.split("/").some(part => part === "__MACOSX" || part.startsWith(".")));
+  const document = names.find(name => name.toLowerCase().endsWith("/doc.kml")) ?? names.find(name => name.toLowerCase().endsWith(".kml"));
+  if (!document) throw new Error("KMZ 中没有找到 .kml 文档。");
+  return entries[document];
+}
+async function importKml(bytes: Uint8Array, extension: "kml" | "kmz", name: string, signal?: AbortSignal) {
+  const document = kmlDocument(bytes, extension);
+  const meta = await fileInfo(document, "kml", signal);
+  if (!meta.epsg) throw new Error("KML 未声明坐标系；KML 应为 WGS84，但浏览器无法确认。");
+  const converted = await wasmTool("vector_convert", { "input.kml": document }, {
+    input: "/work/input.kml", output: "/work/kml_display.geojson",
+  }, signal);
+  const display = converted.files["kml_display.geojson"];
+  if (!display?.length) throw new Error("KML 转换没有生成矢量数据。");
+  let collection = JSON.parse(new TextDecoder().decode(display)) as FeatureCollection;
+  assertGeojson(collection);
+  collection = mergeKmlProperties(collection, parseKmlPlacemarks(new TextDecoder().decode(document)));
+  const withCrs = collection as FeatureCollection & { crs?: { type: string; properties: { name: string } } };
+  if (!withCrs.crs) withCrs.crs = { type: "name", properties: { name: `urn:ogc:def:crs:EPSG::${meta.epsg}` } };
+  const work = await wasmTool("vector_convert", { "input.geojson": encoder.encode(JSON.stringify(collection)) }, {
+    input: "/work/input.geojson", output: "/work/kml_work.fgb",
+  }, signal);
+  const fgb = work.files["kml_work.fgb"];
+  if (!fgb?.length) throw new Error("KML 属性保真工作副本写入失败。");
+  return adopt(fgb, "fgb", name, signal);
 }
 export type BrowserShapefileUpload = { name: string; blob: Blob };
 async function convertShapefile(parts: ReadonlyMap<string, Uint8Array>, base: string, name: string, sourceCrs?: string, signal?: AbortSignal) {
@@ -1045,7 +1116,7 @@ function describe(record: LayerRecord) {
   const kind = record.info.kind ?? "vector";
   const path = kind === "raster" ? `此浏览器 / ${record.info.name}.tif（${record.info.raster?.width}×${record.info.raster?.height}，${record.info.raster?.bands} 波段）`
     : kind === "table" ? `此浏览器 / ${record.info.name}.csv` : `此浏览器 / ${record.info.name}.${record.extension}`;
-  return { ...publicLayer(record), columns: fields(record), path, sample: record.geojson?.features.slice(0, 5).map(f => f.properties) ?? [] };
+  return { ...publicLayer(record), columns: fields(record), metadata: record.metadata ?? {}, path, sample: record.geojson?.features.slice(0, 5).map(f => f.properties) ?? [] };
 }
 export async function browserEngineRequest(path: string, init: RequestInit = {}): Promise<Response> {
   init.signal?.throwIfAborted();

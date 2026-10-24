@@ -13,6 +13,7 @@ import { isBrowserSearchable, searchBrowserToolCandidates } from "./search";
 import { normalizeAgentSessionStub, normalizeWorkspaceRecovery } from "../workspace";
 import { BUILTIN_API } from "../defaults";
 import { listProviderModels } from "./models";
+import { requestedExport } from "./delivery";
 
 type Event = { type: string; seq?: number; ts?: number; [key: string]: any };
 type Session = { id: string; seq: number; events: Event[]; messages: ModelMessage[]; busy: boolean; workspace?: Partial<BrowserWorkspace>; controller?: AbortController; listeners: Set<(event: Event) => void> };
@@ -176,6 +177,9 @@ async function callTool(s: Session, name: string, input: Record<string, any>, id
 async function runTurn(s: Session, text: string) {
   s.busy = true; s.controller = new AbortController(); const signal = s.controller.signal, turnId = crypto.randomUUID();
   const config = await getConfig();
+  const deliverable = requestedExport(text);
+  let lastLayer: { id?: string; name?: string } | undefined;
+  const delivered = new Set<string>();
   let budgetStop: { stop: false } | { stop: true; dimension: "context" | "time" | "steps"; reason: string; advice: string } = { stop: false };
   await emit(s, { type: "user", text, turnId });
   try {
@@ -217,6 +221,13 @@ async function runTurn(s: Session, text: string) {
       else if (event.type === "tool-call") await emit(s, { type: "tool-call", toolCallId: event.toolCallId, toolName: event.toolName, input: event.input, turnId });
       else if (event.type === "tool-result") {
         toolSteps++;
+        const output = event.output as any;
+        if (output?.layer?.id) lastLayer = output.layer;
+        if (Array.isArray(output?.deliverables) && output.deliverables.length) {
+          const latest = output.deliverables[output.deliverables.length - 1];
+          if (latest?.layerId) lastLayer = { id: latest.layerId, name: latest.name };
+        }
+        if (output?.download_url && typeof output.path === "string") delivered.add(output.path.toLowerCase());
         await emit(s, { type: "tool-result", toolCallId: event.toolCallId, toolName: event.toolName, output: event.output });
         budgetStop = budgetVerdict({ toolSteps, elapsedMs: Date.now() - turnStarted, estimatedTokens: 0 }, budget);
         if (!budgetStop.stop && toolSteps % 3 === 0) {
@@ -241,6 +252,27 @@ async function runTurn(s: Session, text: string) {
         inputTokens: usage.inputTokens ?? null, outputTokens: usage.outputTokens ?? null, totalTokens: usage.totalTokens ?? null });
     } catch { /* no usage from provider */ }
     if (await result.finishReason === "tool-calls") await emit(s, { type: "notice", text: "本轮达到步数预算上限，已有结果已保留；任务可能尚未完成，可继续发消息接续。" });
+    // Delivery guard: an explicit "save/export <filename>" request is a real
+    // deliverable. If the model ended without exporting, run the real export
+    // tool on the final layer instead of silently claiming the file exists.
+    if (deliverable && !signal.aborted && !delivered.has(deliverable.filename.toLowerCase())) {
+      const layers = await browserLayers();
+      const target = lastLayer?.id ?? s.workspace?.selectedLayerId ?? layers[layers.length - 1]?.id;
+      if (!target) {
+        await emit(s, { type: "notice", text: `未执行导出：请求的文件 ${deliverable.filename} 没有可导出的结果图层。` });
+      } else {
+        const toolCallId = `delivery-${crypto.randomUUID()}`;
+        const input = { layer: target, path: deliverable.filename, fmt: deliverable.format, overwrite: false };
+        await emit(s, { type: "tool-call", toolCallId, toolName: "export_features", input, turnId, source: "delivery-guard" });
+        try {
+          const exported = await callTool(s, "export_features", input, toolCallId, signal);
+          await emit(s, { type: "tool-result", toolCallId, toolName: "export_features", output: exported, turnId, source: "delivery-guard" });
+          if (!exported?.ok) await emit(s, { type: "notice", text: `未完成导出：${deliverable.filename} 没有得到有效文件。` });
+        } catch (error) {
+          await emit(s, { type: "tool-error", toolCallId, toolName: "export_features", error: cleanError(error, config), turnId, source: "delivery-guard" });
+        }
+      }
+    }
   } catch (error) { await emit(s, { type: "error", error: signal.aborted ? (budgetStop.stop ? `预算停止：${budgetStop.reason}` : "已停止当前回复。") : cleanError(error, config) }); }
   finally { s.busy = false; s.controller = undefined; await emit(s, { type: "turn-end", turnId }); }
 }
