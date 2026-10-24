@@ -65,7 +65,7 @@ export function ChatDock({ items, busy, connected, provider, layers, recovery, o
       </div>
       {tab === "chat" && (
         <>
-      <ChatTimeline items={items} layers={layers} recovery={recovery} busy={busy}
+      <ChatTimeline items={items} layers={layers} recovery={recovery} busy={busy} selectedLayerId={selectedLayer?.id}
         onOpenTool={onOpenTool} onInsertPrompt={insertPrompt}
         onApprove={onApprove} onCancelJob={onCancelJob} />
       <div className="chat-suggestions">

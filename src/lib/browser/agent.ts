@@ -215,6 +215,12 @@ async function runTurn(s: Session, text: string) {
     }
     if (buffer) await emit(s, { type: "assistant-text", text: buffer, turnId });
     s.messages.push(...(await result.response).messages);
+    // Token accounting for audits/baselines; providers without usage just skip the event.
+    try {
+      const usage = await result.usage;
+      if (usage) await emit(s, { type: "usage", turnId,
+        inputTokens: usage.inputTokens ?? null, outputTokens: usage.outputTokens ?? null, totalTokens: usage.totalTokens ?? null });
+    } catch { /* no usage from provider */ }
     if (await result.finishReason === "tool-calls") await emit(s, { type: "notice", text: "本轮达到工具步骤上限，已有结果已保留；任务可能尚未完成。" });
   } catch (error) { await emit(s, { type: "error", error: signal.aborted ? "已停止当前回复。" : cleanError(error, config) }); }
   finally { s.busy = false; s.controller = undefined; await emit(s, { type: "turn-end", turnId }); }

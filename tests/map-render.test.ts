@@ -12,7 +12,13 @@ const dist = path.join(root, "dist");
 const outputDir = path.join(root, "test-results");
 const geojsonFixture = path.join(root, "tests/fixtures/bj_points.geojson");
 const rasterFixture = path.join(root, "tests/fixtures/obia-overview.tif");
-const chromeCandidates = [process.env.CHROME_PATH, "/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser"].filter(Boolean);
+const chromeCandidates = [
+  process.env.CHROME_PATH,
+  "/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser",
+  "C:/Program Files/Google/Chrome/Application/chrome.exe",
+  "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+  "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
+].filter(Boolean);
 const chromePath = chromeCandidates.find(candidate => fs.existsSync(candidate!));
 
 type Stage = "world" | "sample" | "geojson" | "raster";

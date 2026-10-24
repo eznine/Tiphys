@@ -1,0 +1,284 @@
+{
+  "generated_at": "2026-10-24T14:48:17.652Z",
+  "device": "iPhone 12 emulation (390x844, touch)",
+  "totals": {
+    "scenarios": 7,
+    "pass": 7,
+    "fail": 0
+  },
+  "results": [
+    {
+      "id": "M1",
+      "title": "点缓冲任务卡闭环（含导出）",
+      "ok": true,
+      "duration_ms": 21426,
+      "checks": [
+        {
+          "name": "视口 390×844（iPhone 12 仿真）",
+          "ok": true,
+          "detail": "390×844"
+        },
+        {
+          "name": "手机对话抽屉打开且任务卡可见",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "执行前说明引擎与数据预算",
+          "ok": true,
+          "detail": "浏览器本地 GeoLibre WASM 计算，数据不出设备。输入「beijing_points」5 个点、未知大小；输出面要素数应与输入一致。buf：gis.b"
+        },
+        {
+          "name": "运行结束 status=completed",
+          "ok": true,
+          "detail": "实际 completed"
+        },
+        {
+          "name": "验收断言全部通过",
+          "ok": true,
+          "detail": "0 条未过"
+        },
+        {
+          "name": "诚实结论（headline）",
+          "ok": true,
+          "detail": "计划完成：1 个步骤全部成功，1 个可交付图层。"
+        },
+        {
+          "name": "导出下载链接生成",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "fatal": null
+    },
+    {
+      "id": "M2",
+      "title": "面裁剪任务卡闭环",
+      "ok": true,
+      "duration_ms": 17633,
+      "checks": [
+        {
+          "name": "视口 390×844（iPhone 12 仿真）",
+          "ok": true,
+          "detail": "390×844"
+        },
+        {
+          "name": "手机对话抽屉打开且任务卡可见",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "执行前说明引擎与数据预算",
+          "ok": true,
+          "detail": "浏览器本地 GeoLibre WASM 计算，数据不出设备。输入「district_zones」×掩膜「zone_a」（合计 未知大小）；结果应落在掩膜范围内。"
+        },
+        {
+          "name": "运行结束 status=completed",
+          "ok": true,
+          "detail": "实际 completed"
+        },
+        {
+          "name": "验收断言全部通过",
+          "ok": true,
+          "detail": "0 条未过"
+        },
+        {
+          "name": "诚实结论（headline）",
+          "ok": true,
+          "detail": "计划完成：1 个步骤全部成功，1 个可交付图层。"
+        }
+      ],
+      "fatal": null
+    },
+    {
+      "id": "M3",
+      "title": "叠加求交与面积任务卡闭环",
+      "ok": true,
+      "duration_ms": 14568,
+      "checks": [
+        {
+          "name": "视口 390×844（iPhone 12 仿真）",
+          "ok": true,
+          "detail": "390×844"
+        },
+        {
+          "name": "手机对话抽屉打开且任务卡可见",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "执行前说明引擎与数据预算",
+          "ok": true,
+          "detail": "浏览器本地 GeoLibre WASM 计算，数据不出设备。「district_zones」∩「zone_a」（合计 未知大小）；输出带 area_m2 字段。"
+        },
+        {
+          "name": "运行结束 status=completed",
+          "ok": true,
+          "detail": "实际 completed"
+        },
+        {
+          "name": "验收断言全部通过",
+          "ok": true,
+          "detail": "0 条未过"
+        },
+        {
+          "name": "诚实结论（headline）",
+          "ok": true,
+          "detail": "计划完成：2 个步骤全部成功，2 个可交付图层。"
+        }
+      ],
+      "fatal": null
+    },
+    {
+      "id": "M4",
+      "title": "字段统计任务卡闭环（只读）",
+      "ok": true,
+      "duration_ms": 6147,
+      "checks": [
+        {
+          "name": "视口 390×844（iPhone 12 仿真）",
+          "ok": true,
+          "detail": "390×844"
+        },
+        {
+          "name": "手机对话抽屉打开且任务卡可见",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "执行前说明引擎与数据预算",
+          "ok": true,
+          "detail": "浏览器本地计算，只读不修改数据。「district_zones」3 个要素的 pop 字段。stat：field_statistics"
+        },
+        {
+          "name": "运行结束 status=completed",
+          "ok": true,
+          "detail": "实际 completed"
+        },
+        {
+          "name": "验收断言全部通过",
+          "ok": true,
+          "detail": "0 条未过"
+        },
+        {
+          "name": "诚实结论（headline）",
+          "ok": true,
+          "detail": "计划完成：1 个步骤全部成功，0 个可交付图层。"
+        }
+      ],
+      "fatal": null
+    },
+    {
+      "id": "M5",
+      "title": "DEM 坡度任务卡闭环 + 短暂后台恢复",
+      "ok": true,
+      "duration_ms": 14366,
+      "checks": [
+        {
+          "name": "视口 390×844（iPhone 12 仿真）",
+          "ok": true,
+          "detail": "390×844"
+        },
+        {
+          "name": "手机对话抽屉打开且任务卡可见",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "执行前说明引擎与数据预算",
+          "ok": true,
+          "detail": "浏览器本地 GeoLibre WASM（Worker 线程）计算，数据不出设备。输入「dem_hills」120×100、未知大小；输出两张同尺寸栅格。手机端预"
+        },
+        {
+          "name": "运行中短暂后台后返回",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "运行结束 status=completed",
+          "ok": true,
+          "detail": "实际 completed"
+        },
+        {
+          "name": "验收断言全部通过",
+          "ok": true,
+          "detail": "0 条未过"
+        },
+        {
+          "name": "诚实结论（headline）",
+          "ok": true,
+          "detail": "计划完成：2 个步骤全部成功，2 个可交付图层。"
+        }
+      ],
+      "fatal": null
+    },
+    {
+      "id": "M6",
+      "title": "超预算栅格在执行前被拒绝",
+      "ok": true,
+      "duration_ms": 30297,
+      "checks": [
+        {
+          "name": "视口 390×844（iPhone 12 仿真）",
+          "ok": true,
+          "detail": "390×844"
+        },
+        {
+          "name": "手机对话抽屉打开且任务卡可见",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "执行前阻止并给出原因",
+          "ok": true,
+          "detail": " 栅格 1600×1400＝2.2 百万像素，超出手机端预算（2.0 百万）。先裁剪研究区或降采样后重试；或在桌面端执行同一任务。"
+        },
+        {
+          "name": "执行按钮禁用（不会误跑）",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "降级建议可见",
+          "ok": true,
+          "detail": "先裁剪研究区或降采样后重试；或在桌面端执行同一任务。"
+        }
+      ],
+      "fatal": null
+    },
+    {
+      "id": "M7",
+      "title": "同图层裁剪被阻止并给出降级说明",
+      "ok": true,
+      "duration_ms": 16272,
+      "checks": [
+        {
+          "name": "视口 390×844（iPhone 12 仿真）",
+          "ok": true,
+          "detail": "390×844"
+        },
+        {
+          "name": "手机对话抽屉打开且任务卡可见",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "执行前阻止并给出原因",
+          "ok": true,
+          "detail": " 输入与掩膜不能是同一个图层。请另选一个掩膜面图层。"
+        },
+        {
+          "name": "执行按钮禁用（不会误跑）",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "降级建议可见",
+          "ok": true,
+          "detail": "请另选一个掩膜面图层。"
+        }
+      ],
+      "fatal": null
+    }
+  ]
+}

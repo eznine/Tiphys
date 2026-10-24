@@ -9,7 +9,8 @@
     "roads": "tests/fixtures/roads.geojson",
     "bowtie": "tests/fixtures/bowtie.geojson",
     "dem": "tests/fixtures/dem_hills.tif",
-    "dem_large": "tests/fixtures/dem_large.tif"
+    "dem_large": "tests/fixtures/dem_large.tif",
+    "dem_over_budget": "tests/fixtures/dem_over_budget.tif"
   },
   "groups": {
     "simple": "10 项 UI / 单工具",

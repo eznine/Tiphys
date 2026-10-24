@@ -3,6 +3,7 @@ import type { TimelineItem } from "../lib/agent";
 import type { DataLayer } from "../lib/dataLayers";
 import type { WorkspaceRecovery } from "../lib/workspace";
 import { PipelineResultDetails, pipelineResult } from "./ToolResultDetails";
+import { TaskCards } from "./TaskCards";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Layers3, Network, Waves, Route, Scissors, Sparkles, History, Mountain, Shapes, CircleDot, Hexagon, ChartScatter, Expand, Boxes, SlidersHorizontal, RefreshCw, Square } from "lucide-react";
@@ -60,13 +61,14 @@ type Props = {
   layers: DataLayer[];
   recovery?: WorkspaceRecovery | null;
   busy: boolean;
+  selectedLayerId?: string | null;
   onOpenTool: (tool: string) => void;
   onInsertPrompt: (text: string) => void;
   onApprove: (toolCallId: string, ok: boolean) => void;
   onCancelJob: (jobId: string) => void;
 };
 
-export function ChatTimeline({ items, layers, recovery, busy, onOpenTool, onInsertPrompt, onApprove, onCancelJob }: Props) {
+export function ChatTimeline({ items, layers, recovery, busy, selectedLayerId, onOpenTool, onInsertPrompt, onApprove, onCancelJob }: Props) {
   const endRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }); }, [items]);
   return (
@@ -83,6 +85,7 @@ export function ChatTimeline({ items, layers, recovery, busy, onOpenTool, onInse
         </div>
       </div>}
       {!items.length && <div className="agent-welcome"><span className="agent-welcome-kicker">本机 GIS Agent</span><h2>从一个空间问题开始</h2><p className="agent-welcome-lead">{layers.length ? "图层已就绪。描述目标，我会选择工具、执行分析并显示结果。" : "添加本地数据，或让我加载样例，然后描述分析目标。"}</p><p className="agent-welcome-note">也可以打开工具箱逐项运行；右键图层可查看属性与符号。</p>
+        <TaskCards layers={layers} selectedLayerId={selectedLayerId} busy={busy} />
         <section className="workflow-recipes" aria-label="推荐工作流">
           <div className="workflow-heading"><span><Sparkles size={13} />推荐工作流</span><small>只打开表单或插入提示词，不自动执行</small></div>
           <div className="workflow-grid">

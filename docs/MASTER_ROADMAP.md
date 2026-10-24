@@ -306,11 +306,12 @@ interface ArtifactManifest {
 > | 1｜公共契约 + 桌面 WASM | ✅ 完成 | [STAGE1_CONTRACTS_AND_WASM.md](STAGE1_CONTRACTS_AND_WASM.md)、commit `4cbf212` |
 > | 2｜检索、方法、五操作 | ✅ 完成（缺口已记录） | [STAGE2_REPORT.md](STAGE2_REPORT.md)、[SEARCH_QUALITY.md](SEARCH_QUALITY.md)、[METHODS.md](METHODS.md)、[CROSS_ENGINE_SEMANTICS.md](CROSS_ENGINE_SEMANTICS.md) |
 > | 3｜自适应调度与审计 | ✅ 完成 | [STAGE3_REPORT.md](STAGE3_REPORT.md)、`docs/baselines/stage3/`、commit 记录见 HANDOVER |
-> | 4｜系统对照评测 + 手机 | ⏳ 未开始 | — |
+> | 4｜系统对照评测 + 手机 | 🔶 部分完成 | [STAGE4_REPORT.md](STAGE4_REPORT.md)：agent 基线 28/30、移动 7/7 已落地；**A/B 双臂对照与 GeoAgentBench 适配未做** |
 > | 5｜完整价值任务 | ⏳ 未开始 | — |
 >
 > 阶段 2 的"完成"指验收门槛满足：207 条标注检索、五操作覆盖/缺口矩阵、8 张方法卡、CRS/单位前置校验；**不代表** `gis.dissolve`（浏览器端）与 `gis.zonal_statistics` 可用——两者在 [STAGE2_REPORT.md](STAGE2_REPORT.md) 与 `OPERATION_SUPPORT` 中标为不支持并给出降级路径。
 > 阶段 3 的"完成"指：11 个真实 3–4 步任务（12 次运行）在确定性执行器上可执行/可安全中止/可断点恢复，运行记录可独立复算（sha256 重算 + auditRuns 不变量），故意制造的错误全部诚实失败；**不代表**模型在环成功率已测（阶段 4）、桌面端有计划执行器、客户端有回放 UI——见 [STAGE3_REPORT.md](STAGE3_REPORT.md) §8。
+> 阶段 4 的"部分完成"：模型在环基线（28/30，含 token/耗时/工具命中与两个真实失败样本）、手机任务卡闭环（390×844 仿真 7/7，含预算拒绝与后台恢复）已实测；**A/B 双臂对照、≥3 次方差、GeoAgentBench/GeoAnalystBench 适配、真机未做**——见 [STAGE4_REPORT.md](STAGE4_REPORT.md) §5。
 
 ### 阶段 0｜测清现状，冻结可复现基线（P0）
 

@@ -149,6 +149,8 @@ def write_json(path: pathlib.Path, payload: dict) -> None:
 def main() -> None:
     write_raster(OUT / "dem_hills.tif", dem(120, 100))
     write_raster(OUT / "dem_large.tif", dem(600, 500, large=True))
+    # Stage-4 mobile budget probe: 2.24M pixels exceeds the 2M mobile WASM budget.
+    write_raster(OUT / "dem_over_budget.tif", dem(1600, 1400))
     write_json(OUT / "district_zones.geojson", polygons())
     write_json(OUT / "zone_a.geojson", zone_a())
     write_json(OUT / "bowtie.geojson", bowtie())

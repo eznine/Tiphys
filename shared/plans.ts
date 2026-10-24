@@ -414,8 +414,9 @@ async function evaluateAcceptance(
       case "crs": ok = !!layer?.crs && parseEpsg(layer.crs) === parseEpsg(check.value), detail = `crs=${layer?.crs ?? "无"}（要求 ${check.value}）`; break;
       case "geometry_types": {
         const types = layer?.geometryTypes ?? [];
+        // `contains` is ANY-of: ["Polygon","MultiPolygon"] means polygon-ish output.
         const contains = check.contains ?? [], excludes = check.excludes ?? [];
-        ok = contains.every(t => types.includes(t)) && excludes.every(t => !types.includes(t));
+        ok = contains.some(t => types.includes(t)) && excludes.every(t => !types.includes(t));
         detail = `geometry_types=${types.join(",") || "无"}`;
         break;
       }

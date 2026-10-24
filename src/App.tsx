@@ -381,10 +381,10 @@ export default function App() {
               {importNotice.includes("CRS") && <label>源坐标系 <input aria-label="导入源坐标系" placeholder="如 EPSG:4547，然后重新添加" value={sourceCrs} onChange={e => setSourceCrs(e.target.value)} /></label>}
               <button type="button" className="icon-btn" aria-label="关闭导入提示" onClick={() => setImportNotice("")}>×</button></div>}
           </main>
-          {(agent.state.items.length > 0 || agent.state.busy) && mobileSheet !== "chat" && (
+          {mobileSheet !== "chat" && (
             <button type="button" className="mobile-chat-handle" onClick={() => setMobileSheet("chat")}>
               <span className="status-dot" data-state={agent.state.busy ? "pending" : "ok"} />
-              <span className="mobile-chat-handle-text">{agent.state.busy ? "TIPHYS 正在处理…" : lastAgentMessage ? lastAgentMessage.slice(0, 64) : `对话 · ${agent.state.items.length} 条`}</span>
+              <span className="mobile-chat-handle-text">{agent.state.busy ? "TIPHYS 正在处理…" : lastAgentMessage ? lastAgentMessage.slice(0, 64) : agent.state.items.length ? `对话 · ${agent.state.items.length} 条` : "对话与任务卡"}</span>
               <MessageSquareText size={15} />
             </button>
           )}
@@ -481,7 +481,7 @@ export default function App() {
           <BottomSheet open={mobileSheet === "chat"} title="TIPHYS 对话" size="full"
             subtitle={<><span className="status-dot" data-state={agent.state.connected && !agentUnconfigured ? "ok" : "error"} />{agentProviderLabel}</>}
             onClose={() => setMobileSheet(null)}>
-            <ChatTimeline items={agent.state.items} layers={layers} recovery={recoveryNote} busy={agent.state.busy}
+            <ChatTimeline items={agent.state.items} layers={layers} recovery={recoveryNote} busy={agent.state.busy} selectedLayerId={selectedId}
               onOpenTool={tool => openDock("tools", tool)} onInsertPrompt={setMobileDraft}
               onApprove={agent.approve} onCancelJob={agent.cancelJob} />
             {agentUnconfigured && <button type="button" className="api-setup-notice" onClick={() => setSettingsOpen(true)}>配置 API，开始与 Agent 对话 →</button>}

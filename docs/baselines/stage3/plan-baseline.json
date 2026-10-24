@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-24T13:26:10.727Z",
+  "generated_at": "2026-10-24T14:48:35.395Z",
   "mode": "plan-executor",
   "tasks_file": {
     "path": "tests\\plans\\plan-tasks.json",
@@ -28,7 +28,7 @@
           "runId": "plan_P01_1",
           "status": "completed",
           "resumedFrom": null,
-          "durationMs": 126
+          "durationMs": 129
         }
       ],
       "expects": [
@@ -50,7 +50,7 @@
         {
           "name": "recompute.plan_P01_1.buf",
           "ok": true,
-          "detail": "图层 lyr_b2934c11ce2046738c4e3c0bfc863cda 摘要复验一致"
+          "detail": "图层 lyr_a06325a310a047cbbf0b57ba298bcd4a 摘要复验一致"
         }
       ],
       "fatal": null
@@ -63,7 +63,7 @@
           "runId": "plan_P02_1",
           "status": "completed",
           "resumedFrom": null,
-          "durationMs": 226
+          "durationMs": 238
         }
       ],
       "expects": [
@@ -85,17 +85,17 @@
         {
           "name": "recompute.plan_P02_1.rp1",
           "ok": true,
-          "detail": "图层 lyr_675bd289ab9441d4a4561a157d927911 摘要复验一致"
+          "detail": "图层 lyr_6184813c12bc4689948b8e5591e07d6a 摘要复验一致"
         },
         {
           "name": "recompute.plan_P02_1.buf",
           "ok": true,
-          "detail": "图层 lyr_1167a6e857aa4e7ab6e683f1509d7e55 摘要复验一致"
+          "detail": "图层 lyr_8d5edc02ee364a45a21db8a8d1a85c9a 摘要复验一致"
         },
         {
           "name": "recompute.plan_P02_1.rp2",
           "ok": true,
-          "detail": "图层 lyr_e8824446df9d41158a677f7a959cabd6 摘要复验一致"
+          "detail": "图层 lyr_86ccb7088fdc4567bb7a795b6e9cbf38 摘要复验一致"
         }
       ],
       "fatal": null
@@ -108,7 +108,7 @@
           "runId": "plan_P03_1",
           "status": "completed",
           "resumedFrom": null,
-          "durationMs": 44
+          "durationMs": 48
         }
       ],
       "expects": [
@@ -130,7 +130,7 @@
         {
           "name": "recompute.plan_P03_1.cut",
           "ok": true,
-          "detail": "图层 lyr_faea7a9f6414416394fe4b5fb3fc5f6b 摘要复验一致"
+          "detail": "图层 lyr_7454737d96574e0da6e658abd7d7e8fc 摘要复验一致"
         }
       ],
       "fatal": null
@@ -143,7 +143,7 @@
           "runId": "plan_P04_1",
           "status": "completed",
           "resumedFrom": null,
-          "durationMs": 12
+          "durationMs": 16
         }
       ],
       "expects": [
@@ -165,7 +165,7 @@
         {
           "name": "recompute.plan_P04_1.sel",
           "ok": true,
-          "detail": "图层 lyr_a9621a98e90b435e8f502681b95e0886 摘要复验一致"
+          "detail": "图层 lyr_e16717ebcc97496b8c3d31fe5ac94818 摘要复验一致"
         }
       ],
       "fatal": null
@@ -178,7 +178,7 @@
           "runId": "plan_P05_1",
           "status": "completed",
           "resumedFrom": null,
-          "durationMs": 60
+          "durationMs": 62
         }
       ],
       "expects": [
@@ -200,12 +200,12 @@
         {
           "name": "recompute.plan_P05_1.hull",
           "ok": true,
-          "detail": "图层 lyr_d1e1964edf5549a08c6c2d8784e678a6 摘要复验一致"
+          "detail": "图层 lyr_0bd4687024784dc6ae7fff19df77ca4b 摘要复验一致"
         },
         {
           "name": "recompute.plan_P05_1.calc",
           "ok": true,
-          "detail": "图层 lyr_10232c2b88704751b90c9e9ebb28cef4 摘要复验一致"
+          "detail": "图层 lyr_39b7ddbbdceb4e0fb37bee5035eaf318 摘要复验一致"
         }
       ],
       "fatal": null
@@ -218,7 +218,7 @@
           "runId": "plan_P06_1",
           "status": "completed",
           "resumedFrom": null,
-          "durationMs": 60
+          "durationMs": 58
         }
       ],
       "expects": [
@@ -240,17 +240,17 @@
         {
           "name": "recompute.plan_P06_1.rp1",
           "ok": true,
-          "detail": "图层 lyr_66898ee71dab43c4bf0115761cc9ab0c 摘要复验一致"
+          "detail": "图层 lyr_e5f8dc2a19224f0da390dc90cea559a7 摘要复验一致"
         },
         {
           "name": "recompute.plan_P06_1.rp2",
           "ok": true,
-          "detail": "图层 lyr_3a8e914d09414aa8b5cf853830e12a5d 摘要复验一致"
+          "detail": "图层 lyr_40d16fcb159f4a64b23a7047b496fbf4 摘要复验一致"
         },
         {
           "name": "recompute.plan_P06_1.rp3",
           "ok": true,
-          "detail": "图层 lyr_3a8e914d09414aa8b5cf853830e12a5d 摘要复验一致"
+          "detail": "图层 lyr_40d16fcb159f4a64b23a7047b496fbf4 摘要复验一致"
         }
       ],
       "fatal": null
@@ -263,7 +263,7 @@
           "runId": "plan_P07_1",
           "status": "failed",
           "resumedFrom": null,
-          "durationMs": 1
+          "durationMs": 2
         }
       ],
       "expects": [
@@ -298,7 +298,7 @@
           "runId": "plan_P08_1",
           "status": "failed",
           "resumedFrom": null,
-          "durationMs": 1
+          "durationMs": 2
         }
       ],
       "expects": [
@@ -333,7 +333,7 @@
           "runId": "plan_P09_1",
           "status": "failed",
           "resumedFrom": null,
-          "durationMs": 1
+          "durationMs": 2
         }
       ],
       "expects": [
@@ -368,13 +368,13 @@
           "runId": "plan_P10_1",
           "status": "failed",
           "resumedFrom": null,
-          "durationMs": 146
+          "durationMs": 164
         },
         {
           "runId": "plan_P10_2",
           "status": "completed",
           "resumedFrom": "plan_P10_1",
-          "durationMs": 857
+          "durationMs": 893
         }
       ],
       "expects": [
@@ -396,7 +396,7 @@
         {
           "name": "recompute.plan_P10_1.hs",
           "ok": true,
-          "detail": "图层 lyr_ce905da4f4fa423ca85b122fdbfbe990 摘要复验一致"
+          "detail": "图层 lyr_b1447713dac34d489183c22886e453a5 摘要复验一致"
         },
         {
           "name": "resume.status",
@@ -421,17 +421,17 @@
         {
           "name": "recompute.plan_P10_2.hs",
           "ok": true,
-          "detail": "图层 lyr_ce905da4f4fa423ca85b122fdbfbe990 摘要复验一致"
+          "detail": "图层 lyr_b1447713dac34d489183c22886e453a5 摘要复验一致"
         },
         {
           "name": "recompute.plan_P10_2.slope",
           "ok": true,
-          "detail": "图层 lyr_b66b2c6aece849bda111d1a24668b086 摘要复验一致"
+          "detail": "图层 lyr_cccfa90e2de34364b53f551e2085a0eb 摘要复验一致"
         },
         {
           "name": "recompute.plan_P10_2.contours",
           "ok": true,
-          "detail": "图层 lyr_cf5427ca82bd4513b197b5b4424fcf6d 摘要复验一致"
+          "detail": "图层 lyr_32afd142fb96446aa20893df4a1de493 摘要复验一致"
         }
       ],
       "fatal": null
@@ -444,7 +444,7 @@
           "runId": "plan_P11_1",
           "status": "failed",
           "resumedFrom": null,
-          "durationMs": 130
+          "durationMs": 127
         }
       ],
       "expects": [
@@ -471,7 +471,7 @@
         {
           "name": "recompute.plan_P11_1.buf",
           "ok": true,
-          "detail": "图层 lyr_2065934ed1b54a22a0b032373d46f484 摘要复验一致"
+          "detail": "图层 lyr_fb0b1a51418045d6a639de17d618c911 摘要复验一致"
         }
       ],
       "fatal": null
@@ -484,25 +484,25 @@
       "goal": "为北京样例点生成 500 米服务圈并统计要素数",
       "provider": "browser-wasm",
       "status": "completed",
-      "startedAt": "2026-10-24T13:26:05.705Z",
+      "startedAt": "2026-10-24T14:48:30.265Z",
       "steps": [
         {
           "stepId": "buf",
           "kind": "operation",
           "label": "gis.buffer",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:05.709Z",
+          "startedAt": "2026-10-24T14:48:30.270Z",
           "args": {
             "distance": 500,
             "units": "meters"
           },
           "input": {
-            "layerId": "lyr_a7410f21c1634aabb00b72e23d4c899b",
+            "layerId": "lyr_f5a148d542cc41258ebf3ede8e3cd67c",
             "crs": "EPSG:4326",
             "sha256": "cce69aa92837e59e96cc6d8699bdd9471b3b7def686a725a3f7cd24b44516135"
           },
           "outputLayer": {
-            "id": "lyr_b2934c11ce2046738c4e3c0bfc863cda",
+            "id": "lyr_a06325a310a047cbbf0b57ba298bcd4a",
             "name": "beijing_points_buffer",
             "kind": "vector",
             "crs": "EPSG:32650",
@@ -517,7 +517,7 @@
             "ok": true,
             "engine": "GeoLibre WASM · 浏览器计算"
           },
-          "durationMs": 119,
+          "durationMs": 121,
           "acceptance": [
             {
               "type": "feature_count",
@@ -536,19 +536,19 @@
           "kind": "tool",
           "label": "field_statistics",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:05.828Z",
+          "startedAt": "2026-10-24T14:48:30.392Z",
           "args": {
-            "layer": "lyr_b2934c11ce2046738c4e3c0bfc863cda",
+            "layer": "lyr_a06325a310a047cbbf0b57ba298bcd4a",
             "field": "id"
           },
           "input": {
-            "layerId": "lyr_b2934c11ce2046738c4e3c0bfc863cda",
+            "layerId": "lyr_a06325a310a047cbbf0b57ba298bcd4a",
             "crs": "EPSG:32650",
             "sha256": "2eb535ccb3060f2dbfd326d04c77a697aded4b66487f64ca0caf31280fac4b46"
           },
           "outputLayer": null,
           "resultSummary": {
-            "layer": "lyr_b2934c11ce2046738c4e3c0bfc863cda",
+            "layer": "lyr_a06325a310a047cbbf0b57ba298bcd4a",
             "field": "id",
             "count": 5,
             "null_count": 0,
@@ -559,7 +559,7 @@
             "median": 3,
             "std": 1.5811388300841898
           },
-          "durationMs": 2,
+          "durationMs": 1,
           "acceptance": [
             {
               "type": "field_value",
@@ -573,12 +573,12 @@
           "kind": "tool",
           "label": "zoom_to_layer",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:05.830Z",
+          "startedAt": "2026-10-24T14:48:30.393Z",
           "args": {
-            "layer": "lyr_b2934c11ce2046738c4e3c0bfc863cda"
+            "layer": "lyr_a06325a310a047cbbf0b57ba298bcd4a"
           },
           "input": {
-            "layerId": "lyr_b2934c11ce2046738c4e3c0bfc863cda",
+            "layerId": "lyr_a06325a310a047cbbf0b57ba298bcd4a",
             "crs": "EPSG:32650",
             "sha256": "2eb535ccb3060f2dbfd326d04c77a697aded4b66487f64ca0caf31280fac4b46"
           },
@@ -599,7 +599,7 @@
         "deliverables": [
           {
             "stepId": "buf",
-            "layerId": "lyr_b2934c11ce2046738c4e3c0bfc863cda",
+            "layerId": "lyr_a06325a310a047cbbf0b57ba298bcd4a",
             "name": "beijing_points_buffer"
           }
         ],
@@ -607,8 +607,8 @@
           "结果图层已在地图与图层库中，可用 export_features 导出。"
         ]
       },
-      "finishedAt": "2026-10-24T13:26:05.831Z",
-      "durationMs": 126
+      "finishedAt": "2026-10-24T14:48:30.394Z",
+      "durationMs": 129
     },
     {
       "runId": "plan_P02_1",
@@ -616,24 +616,24 @@
       "goal": "把点投影到 UTM 49N，缓冲 1 公里后投影回 WGS84，并独立复核缓冲半径",
       "provider": "browser-wasm",
       "status": "completed",
-      "startedAt": "2026-10-24T13:26:06.168Z",
+      "startedAt": "2026-10-24T14:48:30.748Z",
       "steps": [
         {
           "stepId": "rp1",
           "kind": "operation",
           "label": "gis.reproject",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:06.173Z",
+          "startedAt": "2026-10-24T14:48:30.754Z",
           "args": {
             "targetCrs": "EPSG:32650"
           },
           "input": {
-            "layerId": "lyr_694e857f508d4d8883d981822cb6ae11",
+            "layerId": "lyr_30ad7ee49baf4ba596034e3fbfaeccf7",
             "crs": "EPSG:4326",
             "sha256": "cce69aa92837e59e96cc6d8699bdd9471b3b7def686a725a3f7cd24b44516135"
           },
           "outputLayer": {
-            "id": "lyr_675bd289ab9441d4a4561a157d927911",
+            "id": "lyr_6184813c12bc4689948b8e5591e07d6a",
             "name": "beijing_points_reproject",
             "kind": "vector",
             "crs": "EPSG:32650",
@@ -648,7 +648,7 @@
             "ok": true,
             "engine": "GeoLibre WASM · 浏览器计算"
           },
-          "durationMs": 37,
+          "durationMs": 41,
           "acceptance": [
             {
               "type": "crs",
@@ -667,18 +667,18 @@
           "kind": "operation",
           "label": "gis.buffer",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:06.210Z",
+          "startedAt": "2026-10-24T14:48:30.796Z",
           "args": {
             "distance": 1000,
             "units": "meters"
           },
           "input": {
-            "layerId": "lyr_675bd289ab9441d4a4561a157d927911",
+            "layerId": "lyr_6184813c12bc4689948b8e5591e07d6a",
             "crs": "EPSG:32650",
             "sha256": "c0ac3b39f408d8cd1432e18cb2a8e1769c15b867460ce2739caa5489acd214b6"
           },
           "outputLayer": {
-            "id": "lyr_1167a6e857aa4e7ab6e683f1509d7e55",
+            "id": "lyr_8d5edc02ee364a45a21db8a8d1a85c9a",
             "name": "beijing_points_reproject_buffer",
             "kind": "vector",
             "crs": "EPSG:32650",
@@ -693,7 +693,7 @@
             "ok": true,
             "engine": "GeoLibre WASM · 浏览器计算"
           },
-          "durationMs": 95,
+          "durationMs": 100,
           "acceptance": [
             {
               "type": "feature_count",
@@ -707,17 +707,17 @@
           "kind": "operation",
           "label": "gis.reproject",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:06.305Z",
+          "startedAt": "2026-10-24T14:48:30.896Z",
           "args": {
             "targetCrs": "EPSG:4326"
           },
           "input": {
-            "layerId": "lyr_1167a6e857aa4e7ab6e683f1509d7e55",
+            "layerId": "lyr_8d5edc02ee364a45a21db8a8d1a85c9a",
             "crs": "EPSG:32650",
             "sha256": "d2618aacbafc318f943d93386ae1d228e1b77383f3cdf580b2527d1b00bac12f"
           },
           "outputLayer": {
-            "id": "lyr_e8824446df9d41158a677f7a959cabd6",
+            "id": "lyr_86ccb7088fdc4567bb7a795b6e9cbf38",
             "name": "beijing_points_reproject_buffer_reproject",
             "kind": "vector",
             "crs": "EPSG:4326",
@@ -732,7 +732,7 @@
             "ok": true,
             "engine": "GeoLibre WASM · 浏览器计算"
           },
-          "durationMs": 88,
+          "durationMs": 89,
           "acceptance": [
             {
               "type": "crs",
@@ -753,17 +753,17 @@
         "deliverables": [
           {
             "stepId": "rp1",
-            "layerId": "lyr_675bd289ab9441d4a4561a157d927911",
+            "layerId": "lyr_6184813c12bc4689948b8e5591e07d6a",
             "name": "beijing_points_reproject"
           },
           {
             "stepId": "buf",
-            "layerId": "lyr_1167a6e857aa4e7ab6e683f1509d7e55",
+            "layerId": "lyr_8d5edc02ee364a45a21db8a8d1a85c9a",
             "name": "beijing_points_reproject_buffer"
           },
           {
             "stepId": "rp2",
-            "layerId": "lyr_e8824446df9d41158a677f7a959cabd6",
+            "layerId": "lyr_86ccb7088fdc4567bb7a795b6e9cbf38",
             "name": "beijing_points_reproject_buffer_reproject"
           }
         ],
@@ -771,8 +771,8 @@
           "结果图层已在地图与图层库中，可用 export_features 导出。"
         ]
       },
-      "finishedAt": "2026-10-24T13:26:06.394Z",
-      "durationMs": 226
+      "finishedAt": "2026-10-24T14:48:30.986Z",
+      "durationMs": 238
     },
     {
       "runId": "plan_P03_1",
@@ -780,25 +780,25 @@
       "goal": "用 zone_a 掩膜裁剪分区面并统计保留要素",
       "provider": "browser-wasm",
       "status": "completed",
-      "startedAt": "2026-10-24T13:26:06.736Z",
+      "startedAt": "2026-10-24T14:48:31.340Z",
       "steps": [
         {
           "stepId": "desc",
           "kind": "tool",
           "label": "describe_layer",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:06.741Z",
+          "startedAt": "2026-10-24T14:48:31.345Z",
           "args": {
             "layer": "district_zones"
           },
           "input": {
-            "layerId": "lyr_f2bd4322c8a2467dae92df44c49adc7f",
+            "layerId": "lyr_57d6dea11e6045a89e2fd518613fc617",
             "crs": "EPSG:4326",
             "sha256": "a6a36148a946ce9eaf74d5abbdf7d4fdabc36e66f8f6d3ba0777600d6291a47f"
           },
           "outputLayer": null,
           "resultSummary": {
-            "id": "lyr_f2bd4322c8a2467dae92df44c49adc7f",
+            "id": "lyr_57d6dea11e6045a89e2fd518613fc617",
             "name": "district_zones",
             "crs": "EPSG:4326",
             "feature_count": 3,
@@ -811,7 +811,7 @@
               "length": 1
             },
             "visible": true,
-            "url": "blob:nodedata:5eec9036-1f7f-4285-aef6-7a9e17b699ed",
+            "url": "blob:nodedata:c82bdd95-8729-4987-99c8-c0c59efcc003",
             "columns": {
               "type": "array",
               "length": 3
@@ -830,17 +830,17 @@
           "kind": "operation",
           "label": "gis.clip",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:06.742Z",
+          "startedAt": "2026-10-24T14:48:31.346Z",
           "args": {
             "maskLayerId": "zone_a"
           },
           "input": {
-            "layerId": "lyr_f2bd4322c8a2467dae92df44c49adc7f",
+            "layerId": "lyr_57d6dea11e6045a89e2fd518613fc617",
             "crs": "EPSG:4326",
             "sha256": "a6a36148a946ce9eaf74d5abbdf7d4fdabc36e66f8f6d3ba0777600d6291a47f"
           },
           "outputLayer": {
-            "id": "lyr_faea7a9f6414416394fe4b5fb3fc5f6b",
+            "id": "lyr_7454737d96574e0da6e658abd7d7e8fc",
             "name": "district_zones_clip",
             "kind": "vector",
             "crs": "EPSG:4326",
@@ -855,7 +855,7 @@
             "ok": true,
             "engine": "GeoLibre WASM · 浏览器计算"
           },
-          "durationMs": 37,
+          "durationMs": 41,
           "acceptance": [
             {
               "type": "feature_count",
@@ -869,19 +869,19 @@
           "kind": "tool",
           "label": "field_statistics",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:06.779Z",
+          "startedAt": "2026-10-24T14:48:31.387Z",
           "args": {
-            "layer": "lyr_faea7a9f6414416394fe4b5fb3fc5f6b",
+            "layer": "lyr_7454737d96574e0da6e658abd7d7e8fc",
             "field": "pop"
           },
           "input": {
-            "layerId": "lyr_faea7a9f6414416394fe4b5fb3fc5f6b",
+            "layerId": "lyr_7454737d96574e0da6e658abd7d7e8fc",
             "crs": "EPSG:4326",
             "sha256": "41efabc5ee232b1221c5ac7de399a43450e789d8299efe3b2ed74df08f4ac7f2"
           },
           "outputLayer": null,
           "resultSummary": {
-            "layer": "lyr_faea7a9f6414416394fe4b5fb3fc5f6b",
+            "layer": "lyr_7454737d96574e0da6e658abd7d7e8fc",
             "field": "pop",
             "count": 2,
             "null_count": 0,
@@ -908,7 +908,7 @@
         "deliverables": [
           {
             "stepId": "cut",
-            "layerId": "lyr_faea7a9f6414416394fe4b5fb3fc5f6b",
+            "layerId": "lyr_7454737d96574e0da6e658abd7d7e8fc",
             "name": "district_zones_clip"
           }
         ],
@@ -916,8 +916,8 @@
           "结果图层已在地图与图层库中，可用 export_features 导出。"
         ]
       },
-      "finishedAt": "2026-10-24T13:26:06.780Z",
-      "durationMs": 44
+      "finishedAt": "2026-10-24T14:48:31.388Z",
+      "durationMs": 48
     },
     {
       "runId": "plan_P04_1",
@@ -925,14 +925,14 @@
       "goal": "选出 pop ≥ 8000 的分区并统计均值",
       "provider": "browser-wasm",
       "status": "completed",
-      "startedAt": "2026-10-24T13:26:07.123Z",
+      "startedAt": "2026-10-24T14:48:31.715Z",
       "steps": [
         {
           "stepId": "sel",
           "kind": "tool",
           "label": "select_by_attributes",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:07.127Z",
+          "startedAt": "2026-10-24T14:48:31.719Z",
           "args": {
             "layer": "district_zones",
             "field": "pop",
@@ -940,12 +940,12 @@
             "value": "8000"
           },
           "input": {
-            "layerId": "lyr_05d7107083ff4cdd9c677314339cd060",
+            "layerId": "lyr_70a21923150b4081baad3c2fb7f2893a",
             "crs": "EPSG:4326",
             "sha256": "a6a36148a946ce9eaf74d5abbdf7d4fdabc36e66f8f6d3ba0777600d6291a47f"
           },
           "outputLayer": {
-            "id": "lyr_a9621a98e90b435e8f502681b95e0886",
+            "id": "lyr_e16717ebcc97496b8c3d31fe5ac94818",
             "name": "district_zones_select_by_attributes",
             "kind": "vector",
             "crs": "EPSG:4326",
@@ -960,7 +960,7 @@
             "ok": true,
             "engine": "GeoLibre WASM · 浏览器计算"
           },
-          "durationMs": 6,
+          "durationMs": 10,
           "acceptance": [
             {
               "type": "feature_count",
@@ -974,19 +974,19 @@
           "kind": "tool",
           "label": "field_statistics",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:07.134Z",
+          "startedAt": "2026-10-24T14:48:31.729Z",
           "args": {
-            "layer": "lyr_a9621a98e90b435e8f502681b95e0886",
+            "layer": "lyr_e16717ebcc97496b8c3d31fe5ac94818",
             "field": "pop"
           },
           "input": {
-            "layerId": "lyr_a9621a98e90b435e8f502681b95e0886",
+            "layerId": "lyr_e16717ebcc97496b8c3d31fe5ac94818",
             "crs": "EPSG:4326",
             "sha256": "458a4bf56db6efe01c546749fc45b6ba14aeb1e03d0d9bcf93d17e138546eb1d"
           },
           "outputLayer": null,
           "resultSummary": {
-            "layer": "lyr_a9621a98e90b435e8f502681b95e0886",
+            "layer": "lyr_e16717ebcc97496b8c3d31fe5ac94818",
             "field": "pop",
             "count": 2,
             "null_count": 0,
@@ -1011,12 +1011,12 @@
           "kind": "tool",
           "label": "zoom_to_layer",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:07.135Z",
+          "startedAt": "2026-10-24T14:48:31.730Z",
           "args": {
-            "layer": "lyr_a9621a98e90b435e8f502681b95e0886"
+            "layer": "lyr_e16717ebcc97496b8c3d31fe5ac94818"
           },
           "input": {
-            "layerId": "lyr_a9621a98e90b435e8f502681b95e0886",
+            "layerId": "lyr_e16717ebcc97496b8c3d31fe5ac94818",
             "crs": "EPSG:4326",
             "sha256": "458a4bf56db6efe01c546749fc45b6ba14aeb1e03d0d9bcf93d17e138546eb1d"
           },
@@ -1027,7 +1027,7 @@
               "type": "object"
             }
           },
-          "durationMs": 0,
+          "durationMs": 1,
           "acceptance": []
         }
       ],
@@ -1037,7 +1037,7 @@
         "deliverables": [
           {
             "stepId": "sel",
-            "layerId": "lyr_a9621a98e90b435e8f502681b95e0886",
+            "layerId": "lyr_e16717ebcc97496b8c3d31fe5ac94818",
             "name": "district_zones_select_by_attributes"
           }
         ],
@@ -1045,8 +1045,8 @@
           "结果图层已在地图与图层库中，可用 export_features 导出。"
         ]
       },
-      "finishedAt": "2026-10-24T13:26:07.135Z",
-      "durationMs": 12
+      "finishedAt": "2026-10-24T14:48:31.731Z",
+      "durationMs": 16
     },
     {
       "runId": "plan_P05_1",
@@ -1054,24 +1054,24 @@
       "goal": "生成点的凸包、量算面积并导出 GeoJSON（需用户确认的步骤）",
       "provider": "browser-wasm",
       "status": "completed",
-      "startedAt": "2026-10-24T13:26:07.458Z",
+      "startedAt": "2026-10-24T14:48:32.059Z",
       "steps": [
         {
           "stepId": "hull",
           "kind": "tool",
           "label": "convex_hull",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:07.462Z",
+          "startedAt": "2026-10-24T14:48:32.063Z",
           "args": {
             "layer": "beijing_points"
           },
           "input": {
-            "layerId": "lyr_ec92e54d287c4afe8e41f950e2b2bf95",
+            "layerId": "lyr_59ed70acc0d34375b79a504d518ba3a7",
             "crs": "EPSG:4326",
             "sha256": "cce69aa92837e59e96cc6d8699bdd9471b3b7def686a725a3f7cd24b44516135"
           },
           "outputLayer": {
-            "id": "lyr_d1e1964edf5549a08c6c2d8784e678a6",
+            "id": "lyr_0bd4687024784dc6ae7fff19df77ca4b",
             "name": "beijing_points_convex_hull",
             "kind": "vector",
             "crs": "EPSG:4326",
@@ -1086,7 +1086,7 @@
             "ok": true,
             "engine": "GeoLibre WASM · 浏览器计算"
           },
-          "durationMs": 30,
+          "durationMs": 31,
           "acceptance": [
             {
               "type": "feature_count",
@@ -1105,17 +1105,17 @@
           "kind": "tool",
           "label": "calculate_geometry",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:07.493Z",
+          "startedAt": "2026-10-24T14:48:32.095Z",
           "args": {
-            "layer": "lyr_d1e1964edf5549a08c6c2d8784e678a6"
+            "layer": "lyr_0bd4687024784dc6ae7fff19df77ca4b"
           },
           "input": {
-            "layerId": "lyr_d1e1964edf5549a08c6c2d8784e678a6",
+            "layerId": "lyr_0bd4687024784dc6ae7fff19df77ca4b",
             "crs": "EPSG:4326",
             "sha256": "451b0ccc60db203afef04af1b2b049c9fd2b071357995f5b2b7da53735a7b97e"
           },
           "outputLayer": {
-            "id": "lyr_10232c2b88704751b90c9e9ebb28cef4",
+            "id": "lyr_39b7ddbbdceb4e0fb37bee5035eaf318",
             "name": "beijing_points_convex_hull_calculate_geometry",
             "kind": "vector",
             "crs": "EPSG:4326",
@@ -1134,9 +1134,9 @@
               "length": 2
             },
             "analysis_crs": "EPSG:4326",
-            "source_layer_id": "lyr_d1e1964edf5549a08c6c2d8784e678a6"
+            "source_layer_id": "lyr_0bd4687024784dc6ae7fff19df77ca4b"
           },
-          "durationMs": 18,
+          "durationMs": 19,
           "acceptance": [
             {
               "type": "layer_field",
@@ -1150,14 +1150,14 @@
           "kind": "tool",
           "label": "export_features",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:07.512Z",
+          "startedAt": "2026-10-24T14:48:32.114Z",
           "args": {
-            "layer": "lyr_10232c2b88704751b90c9e9ebb28cef4",
+            "layer": "lyr_39b7ddbbdceb4e0fb37bee5035eaf318",
             "path": "p05_hull.geojson",
             "fmt": "geojson"
           },
           "input": {
-            "layerId": "lyr_10232c2b88704751b90c9e9ebb28cef4",
+            "layerId": "lyr_39b7ddbbdceb4e0fb37bee5035eaf318",
             "crs": "EPSG:4326",
             "sha256": "9e1daf8205cc782d6fdb476e9e107c67edd4e88fdf4cace60d15e0c67bfbaffd"
           },
@@ -1165,12 +1165,12 @@
           "resultSummary": {
             "ok": true,
             "path": "p05_hull.geojson",
-            "download_url": "blob:nodedata:8f4ed060-9d31-4e68-9508-a92c67129753",
+            "download_url": "blob:nodedata:ce8eb0b5-17f8-4b85-8454-80a4e853b568",
             "bytes": 296,
             "feature_count": 1,
             "message": "点击下载文件保存到电脑。"
           },
-          "durationMs": 6,
+          "durationMs": 7,
           "acceptance": [
             {
               "type": "field_value",
@@ -1189,12 +1189,12 @@
         "deliverables": [
           {
             "stepId": "hull",
-            "layerId": "lyr_d1e1964edf5549a08c6c2d8784e678a6",
+            "layerId": "lyr_0bd4687024784dc6ae7fff19df77ca4b",
             "name": "beijing_points_convex_hull"
           },
           {
             "stepId": "calc",
-            "layerId": "lyr_10232c2b88704751b90c9e9ebb28cef4",
+            "layerId": "lyr_39b7ddbbdceb4e0fb37bee5035eaf318",
             "name": "beijing_points_convex_hull_calculate_geometry"
           }
         ],
@@ -1202,8 +1202,8 @@
           "结果图层已在地图与图层库中，可用 export_features 导出。"
         ]
       },
-      "finishedAt": "2026-10-24T13:26:07.518Z",
-      "durationMs": 60
+      "finishedAt": "2026-10-24T14:48:32.121Z",
+      "durationMs": 62
     },
     {
       "runId": "plan_P06_1",
@@ -1211,24 +1211,24 @@
       "goal": "分区面投影到 3857 再回 4326，重复投影按契约 no-op",
       "provider": "browser-wasm",
       "status": "completed",
-      "startedAt": "2026-10-24T13:26:07.838Z",
+      "startedAt": "2026-10-24T14:48:32.458Z",
       "steps": [
         {
           "stepId": "rp1",
           "kind": "operation",
           "label": "gis.reproject",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:07.844Z",
+          "startedAt": "2026-10-24T14:48:32.463Z",
           "args": {
             "targetCrs": "EPSG:3857"
           },
           "input": {
-            "layerId": "lyr_511484e316fb43bbb6830c025d820288",
+            "layerId": "lyr_07f3a8c0582d4336a0e790132f12834b",
             "crs": "EPSG:4326",
             "sha256": "a6a36148a946ce9eaf74d5abbdf7d4fdabc36e66f8f6d3ba0777600d6291a47f"
           },
           "outputLayer": {
-            "id": "lyr_66898ee71dab43c4bf0115761cc9ab0c",
+            "id": "lyr_e5f8dc2a19224f0da390dc90cea559a7",
             "name": "district_zones_reproject",
             "kind": "vector",
             "crs": "EPSG:3857",
@@ -1243,7 +1243,7 @@
             "ok": true,
             "engine": "GeoLibre WASM · 浏览器计算"
           },
-          "durationMs": 37,
+          "durationMs": 36,
           "acceptance": [
             {
               "type": "crs",
@@ -1257,17 +1257,17 @@
           "kind": "operation",
           "label": "gis.reproject",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:07.882Z",
+          "startedAt": "2026-10-24T14:48:32.500Z",
           "args": {
             "targetCrs": "EPSG:4326"
           },
           "input": {
-            "layerId": "lyr_66898ee71dab43c4bf0115761cc9ab0c",
+            "layerId": "lyr_e5f8dc2a19224f0da390dc90cea559a7",
             "crs": "EPSG:3857",
             "sha256": "1e28b73a3eb0f1bdcf84626aa8040045af83d8826b892818f2d8a0559d8e38ba"
           },
           "outputLayer": {
-            "id": "lyr_3a8e914d09414aa8b5cf853830e12a5d",
+            "id": "lyr_40d16fcb159f4a64b23a7047b496fbf4",
             "name": "district_zones_reproject_reproject",
             "kind": "vector",
             "crs": "EPSG:4326",
@@ -1296,12 +1296,12 @@
           "kind": "operation",
           "label": "gis.reproject",
           "phase": "noop",
-          "startedAt": "2026-10-24T13:26:07.897Z",
+          "startedAt": "2026-10-24T14:48:32.515Z",
           "args": {
             "targetCrs": "EPSG:4326"
           },
           "input": {
-            "layerId": "lyr_3a8e914d09414aa8b5cf853830e12a5d",
+            "layerId": "lyr_40d16fcb159f4a64b23a7047b496fbf4",
             "crs": "EPSG:4326",
             "sha256": "5f07172ea711752e312d2108b5adab73605272a1e80c154a09d5392003fb1a9d"
           },
@@ -1309,7 +1309,7 @@
             "noop": "图层已经是 EPSG:4326，不重复创建数据集。"
           },
           "outputLayer": {
-            "id": "lyr_3a8e914d09414aa8b5cf853830e12a5d",
+            "id": "lyr_40d16fcb159f4a64b23a7047b496fbf4",
             "name": "district_zones_reproject_reproject",
             "kind": "vector",
             "crs": "EPSG:4326",
@@ -1336,17 +1336,17 @@
         "deliverables": [
           {
             "stepId": "rp1",
-            "layerId": "lyr_66898ee71dab43c4bf0115761cc9ab0c",
+            "layerId": "lyr_e5f8dc2a19224f0da390dc90cea559a7",
             "name": "district_zones_reproject"
           },
           {
             "stepId": "rp2",
-            "layerId": "lyr_3a8e914d09414aa8b5cf853830e12a5d",
+            "layerId": "lyr_40d16fcb159f4a64b23a7047b496fbf4",
             "name": "district_zones_reproject_reproject"
           },
           {
             "stepId": "rp3",
-            "layerId": "lyr_3a8e914d09414aa8b5cf853830e12a5d",
+            "layerId": "lyr_40d16fcb159f4a64b23a7047b496fbf4",
             "name": "district_zones_reproject_reproject"
           }
         ],
@@ -1354,8 +1354,8 @@
           "结果图层已在地图与图层库中，可用 export_features 导出。"
         ]
       },
-      "finishedAt": "2026-10-24T13:26:07.898Z",
-      "durationMs": 60
+      "finishedAt": "2026-10-24T14:48:32.516Z",
+      "durationMs": 58
     },
     {
       "runId": "plan_P07_1",
@@ -1363,7 +1363,7 @@
       "goal": "缓冲后按 kind 融合（浏览器端 dissolve 已知不可用）",
       "provider": "browser-wasm",
       "status": "failed",
-      "startedAt": "2026-10-24T13:26:08.241Z",
+      "startedAt": "2026-10-24T14:48:32.867Z",
       "steps": [
         {
           "stepId": "pre",
@@ -1420,8 +1420,8 @@
           "按降级方案改用受支持的引擎或操作；不要换一个名字近似的工具继续跑。"
         ]
       },
-      "finishedAt": "2026-10-24T13:26:08.242Z",
-      "durationMs": 1
+      "finishedAt": "2026-10-24T14:48:32.869Z",
+      "durationMs": 2
     },
     {
       "runId": "plan_P08_1",
@@ -1429,7 +1429,7 @@
       "goal": "负距离缓冲（契约 v1 明确不接受）",
       "provider": "browser-wasm",
       "status": "failed",
-      "startedAt": "2026-10-24T13:26:08.566Z",
+      "startedAt": "2026-10-24T14:48:33.203Z",
       "steps": [
         {
           "stepId": "bad",
@@ -1485,8 +1485,8 @@
           "修正输入（图层/字段/参数）后重新提交计划。"
         ]
       },
-      "finishedAt": "2026-10-24T13:26:08.567Z",
-      "durationMs": 1
+      "finishedAt": "2026-10-24T14:48:33.205Z",
+      "durationMs": 2
     },
     {
       "runId": "plan_P09_1",
@@ -1494,7 +1494,7 @@
       "goal": "掩膜引用不存在的步骤输出 @ghost",
       "provider": "browser-wasm",
       "status": "failed",
-      "startedAt": "2026-10-24T13:26:08.892Z",
+      "startedAt": "2026-10-24T14:48:33.546Z",
       "steps": [
         {
           "stepId": "buf",
@@ -1550,8 +1550,8 @@
           "修正输入（图层/字段/参数）后重新提交计划。"
         ]
       },
-      "finishedAt": "2026-10-24T13:26:08.893Z",
-      "durationMs": 1
+      "finishedAt": "2026-10-24T14:48:33.548Z",
+      "durationMs": 2
     },
     {
       "runId": "plan_P10_1",
@@ -1559,24 +1559,24 @@
       "goal": "DEM 山体阴影 → 坡度 → 等高线；第二轮注入让坡度失败，随后从断点恢复",
       "provider": "browser-wasm",
       "status": "failed",
-      "startedAt": "2026-10-24T13:26:09.218Z",
+      "startedAt": "2026-10-24T14:48:33.855Z",
       "steps": [
         {
           "stepId": "hs",
           "kind": "tool",
           "label": "wasm_hillshade",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:09.224Z",
+          "startedAt": "2026-10-24T14:48:33.860Z",
           "args": {
             "input": "dem_hills"
           },
           "input": {
-            "layerId": "lyr_005af3d787604c4ab3ef96b4b42123b9",
+            "layerId": "lyr_7a46a0678fd34bcabc16940b34b2406a",
             "crs": "EPSG:32650",
             "sha256": "c324485ea4b0a5dedac4d1ec2274be8852112ca2195253c35ab7096d320a98ad"
           },
           "outputLayer": {
-            "id": "lyr_ce905da4f4fa423ca85b122fdbfbe990",
+            "id": "lyr_b1447713dac34d489183c22886e453a5",
             "name": "Hillshade",
             "kind": "raster",
             "crs": "EPSG:32650",
@@ -1593,7 +1593,7 @@
             "ok": true,
             "engine": "GeoLibre WASM · 浏览器计算"
           },
-          "durationMs": 138,
+          "durationMs": 158,
           "acceptance": []
         },
         {
@@ -1601,13 +1601,13 @@
           "kind": "tool",
           "label": "wasm_slope",
           "phase": "fail",
-          "startedAt": "2026-10-24T13:26:09.363Z",
+          "startedAt": "2026-10-24T14:48:34.018Z",
           "args": {
             "input": "dem_hills",
             "units": "degrees"
           },
           "input": {
-            "layerId": "lyr_005af3d787604c4ab3ef96b4b42123b9",
+            "layerId": "lyr_7a46a0678fd34bcabc16940b34b2406a",
             "crs": "EPSG:32650",
             "sha256": "c324485ea4b0a5dedac4d1ec2274be8852112ca2195253c35ab7096d320a98ad"
           },
@@ -1615,7 +1615,7 @@
             "class": "EXECUTION_ERROR",
             "message": "注入：模拟引擎故障"
           },
-          "durationMs": 0
+          "durationMs": 1
         },
         {
           "stepId": "contours",
@@ -1635,7 +1635,7 @@
         "deliverables": [
           {
             "stepId": "hs",
-            "layerId": "lyr_ce905da4f4fa423ca85b122fdbfbe990",
+            "layerId": "lyr_b1447713dac34d489183c22886e453a5",
             "name": "Hillshade"
           }
         ],
@@ -1652,8 +1652,8 @@
           "该步骤执行失败（引擎或上游缺陷）；可重试一次或换执行引擎，已有图层不会被自动覆盖。"
         ]
       },
-      "finishedAt": "2026-10-24T13:26:09.364Z",
-      "durationMs": 146
+      "finishedAt": "2026-10-24T14:48:34.019Z",
+      "durationMs": 164
     },
     {
       "runId": "plan_P10_2",
@@ -1661,24 +1661,24 @@
       "goal": "DEM 山体阴影 → 坡度 → 等高线；第二轮注入让坡度失败，随后从断点恢复",
       "provider": "browser-wasm",
       "status": "completed",
-      "startedAt": "2026-10-24T13:26:09.364Z",
+      "startedAt": "2026-10-24T14:48:34.020Z",
       "steps": [
         {
           "stepId": "hs",
           "kind": "tool",
           "label": "wasm_hillshade",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:09.224Z",
+          "startedAt": "2026-10-24T14:48:33.860Z",
           "args": {
             "input": "dem_hills"
           },
           "input": {
-            "layerId": "lyr_005af3d787604c4ab3ef96b4b42123b9",
+            "layerId": "lyr_7a46a0678fd34bcabc16940b34b2406a",
             "crs": "EPSG:32650",
             "sha256": "c324485ea4b0a5dedac4d1ec2274be8852112ca2195253c35ab7096d320a98ad"
           },
           "outputLayer": {
-            "id": "lyr_ce905da4f4fa423ca85b122fdbfbe990",
+            "id": "lyr_b1447713dac34d489183c22886e453a5",
             "name": "Hillshade",
             "kind": "raster",
             "crs": "EPSG:32650",
@@ -1695,7 +1695,7 @@
             "ok": true,
             "engine": "GeoLibre WASM · 浏览器计算"
           },
-          "durationMs": 138,
+          "durationMs": 158,
           "acceptance": [],
           "reused": true
         },
@@ -1704,18 +1704,18 @@
           "kind": "tool",
           "label": "wasm_slope",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:09.365Z",
+          "startedAt": "2026-10-24T14:48:34.021Z",
           "args": {
             "input": "dem_hills",
             "units": "degrees"
           },
           "input": {
-            "layerId": "lyr_005af3d787604c4ab3ef96b4b42123b9",
+            "layerId": "lyr_7a46a0678fd34bcabc16940b34b2406a",
             "crs": "EPSG:32650",
             "sha256": "c324485ea4b0a5dedac4d1ec2274be8852112ca2195253c35ab7096d320a98ad"
           },
           "outputLayer": {
-            "id": "lyr_b66b2c6aece849bda111d1a24668b086",
+            "id": "lyr_cccfa90e2de34364b53f551e2085a0eb",
             "name": "Slope",
             "kind": "raster",
             "crs": "EPSG:32650",
@@ -1746,18 +1746,18 @@
           "kind": "tool",
           "label": "wasm_contours_from_raster",
           "phase": "pass",
-          "startedAt": "2026-10-24T13:26:09.382Z",
+          "startedAt": "2026-10-24T14:48:34.038Z",
           "args": {
             "input": "dem_hills",
             "interval": 10
           },
           "input": {
-            "layerId": "lyr_005af3d787604c4ab3ef96b4b42123b9",
+            "layerId": "lyr_7a46a0678fd34bcabc16940b34b2406a",
             "crs": "EPSG:32650",
             "sha256": "c324485ea4b0a5dedac4d1ec2274be8852112ca2195253c35ab7096d320a98ad"
           },
           "outputLayer": {
-            "id": "lyr_cf5427ca82bd4513b197b5b4424fcf6d",
+            "id": "lyr_32afd142fb96446aa20893df4a1de493",
             "name": "Contours From Raster",
             "kind": "vector",
             "crs": "EPSG:32650",
@@ -1766,13 +1766,13 @@
               "LineString"
             ],
             "raster": null,
-            "sha256": "98b58c8753a31850e2ce9638ff78be9173263e122612fe0bbd0e31b2d3848bb0"
+            "sha256": "bac7adc836cb9d1ab4c518c05157091d5a3d5f30140ebe7ec9b7b54615393469"
           },
           "resultSummary": {
             "ok": true,
             "engine": "GeoLibre WASM · 浏览器计算"
           },
-          "durationMs": 839,
+          "durationMs": 874,
           "acceptance": [
             {
               "type": "feature_count",
@@ -1789,17 +1789,17 @@
         "deliverables": [
           {
             "stepId": "hs",
-            "layerId": "lyr_ce905da4f4fa423ca85b122fdbfbe990",
+            "layerId": "lyr_b1447713dac34d489183c22886e453a5",
             "name": "Hillshade"
           },
           {
             "stepId": "slope",
-            "layerId": "lyr_b66b2c6aece849bda111d1a24668b086",
+            "layerId": "lyr_cccfa90e2de34364b53f551e2085a0eb",
             "name": "Slope"
           },
           {
             "stepId": "contours",
-            "layerId": "lyr_cf5427ca82bd4513b197b5b4424fcf6d",
+            "layerId": "lyr_32afd142fb96446aa20893df4a1de493",
             "name": "Contours From Raster"
           }
         ],
@@ -1807,8 +1807,8 @@
           "结果图层已在地图与图层库中，可用 export_features 导出。"
         ]
       },
-      "finishedAt": "2026-10-24T13:26:10.221Z",
-      "durationMs": 857
+      "finishedAt": "2026-10-24T14:48:34.913Z",
+      "durationMs": 893
     },
     {
       "runId": "plan_P11_1",
@@ -1816,25 +1816,25 @@
       "goal": "缓冲后断言 999 个要素（错误预期），运行必须以 VALIDATION_ERROR 失败",
       "provider": "browser-wasm",
       "status": "failed",
-      "startedAt": "2026-10-24T13:26:10.560Z",
+      "startedAt": "2026-10-24T14:48:35.248Z",
       "steps": [
         {
           "stepId": "buf",
           "kind": "operation",
           "label": "gis.buffer",
           "phase": "fail",
-          "startedAt": "2026-10-24T13:26:10.565Z",
+          "startedAt": "2026-10-24T14:48:35.253Z",
           "args": {
             "distance": 500,
             "units": "meters"
           },
           "input": {
-            "layerId": "lyr_ba694ea432014a9c8ddc047ba18b7d22",
+            "layerId": "lyr_1884031386be429596084f9333f8432c",
             "crs": "EPSG:4326",
             "sha256": "cce69aa92837e59e96cc6d8699bdd9471b3b7def686a725a3f7cd24b44516135"
           },
           "outputLayer": {
-            "id": "lyr_2065934ed1b54a22a0b032373d46f484",
+            "id": "lyr_fb0b1a51418045d6a639de17d618c911",
             "name": "beijing_points_buffer",
             "kind": "vector",
             "crs": "EPSG:32650",
@@ -1849,7 +1849,7 @@
             "ok": true,
             "engine": "GeoLibre WASM · 浏览器计算"
           },
-          "durationMs": 125,
+          "durationMs": 121,
           "acceptance": [
             {
               "type": "feature_count",
@@ -1900,8 +1900,8 @@
           "结果未通过验收断言：按验收明细修正参数或数据后重跑；不要把未通过验收的结果当作结论。"
         ]
       },
-      "finishedAt": "2026-10-24T13:26:10.690Z",
-      "durationMs": 130
+      "finishedAt": "2026-10-24T14:48:35.375Z",
+      "durationMs": 127
     }
   ]
 }
