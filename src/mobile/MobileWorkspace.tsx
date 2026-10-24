@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { AgentWorkspaceContext, useAgent } from "../lib/agent";
 import type { LayerSelection, LayerStyle, DataLayer } from "../lib/dataLayers";
+import type { IdentifyTableFilter } from "../lib/identify";
 import type { WorkspaceRecovery } from "../lib/workspace";
 import type { AgentSessionStub } from "../lib/workspace";
 import { browserRuntime } from "../lib/runtime";
@@ -64,9 +65,13 @@ export type MobileWorkspaceProps = {
   onRemoveLayer: (layer: DataLayer) => void;
   onClipAoi: () => void;
   onOpenSettings: () => void;
-  onTable: (id: string) => void;
+  onTable: (id: string, featureId?: number) => void;
   tableLayer?: DataLayer;
   onTableClose: () => void;
+  tableFilter?: IdentifyTableFilter | null;
+  tableResetToken?: number;
+  onFilterTable: (filter: IdentifyTableFilter) => void;
+  onExportIdentifyFeature: (layerId: string, featureId: number) => Promise<void>;
   onTableSelection: (featureIds: number[], additive: boolean) => void;
   properties: PropertiesState;
   propertyLayer?: DataLayer;
@@ -86,7 +91,8 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
   const {
     theme, agent, layers, activeLayer, onSelectLayer, selection, onSelection, onClearSelection, aoi, onAoi,
     focus, onFocusAll, onZoomBounds, onZoomLayer, onAddData, importing, importNotice, onDismissNotice, sourceCrs, onSourceCrs,
-    onRenameLayer, onReorderLayers, onRemoveLayer, onClipAoi, onOpenSettings, onTable, tableLayer, onTableClose, onTableSelection,
+    onRenameLayer, onReorderLayers, onRemoveLayer, onClipAoi, onOpenSettings, onTable, tableLayer, onTableClose, tableFilter, tableResetToken,
+    onFilterTable, onExportIdentifyFeature, onTableSelection,
     properties, propertyLayer, onPropertiesChange, onLayerStyle, onMapStatus, engineState, agentUnconfigured,
     agentProviderLabel, recoveryNote, agentSession,
   } = props;
@@ -104,11 +110,11 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
   const [effects, setEffects] = useState<"full" | "lite">("full");
   const [formFocused, setFormFocused] = useState(false);
 
-  const openTable = (id: string) => {
+  const openTable = (id: string, featureId?: number) => {
     setLayersOpen(false);
     setActionsOpen(false);
     setToolboxOpen(false);
-    onTable(id);
+    onTable(id, featureId);
   };
 
   useEffect(() => {
@@ -659,6 +665,7 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
     <div className="m-map-stage" aria-hidden={tab !== "map"}>
       <MapCanvas variant="mobile" theme={theme} dataLayers={layers} focusBounds={focus} onStatus={onMapStatus}
         selection={selection} onSelect={onSelection} aoi={aoi} onAoiChange={onAoi} onOpenTable={openTable}
+        onFilterTable={onFilterTable} onExportIdentifyFeature={onExportIdentifyFeature}
         onViewChange={handleViewChange} viewRequest={viewRequest} onFitAll={onFocusAll} />
       <MapLegend layers={layers} onStyle={id => onPropertiesChange({ id, tab: "style" })} />
     </div>
@@ -810,6 +817,8 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
     {tableLayer && <div className="m-fullscreen-panel" role="dialog" aria-modal="true" aria-label={`${tableLayer.name} 属性表`}>
       <AttributeTable key={tableLayer.id} layer={tableLayer}
         selectedIds={selection?.layerId === tableLayer.id ? selection.featureIds : []}
+        initialFilter={tableFilter?.layerId === tableLayer.id ? tableFilter : null}
+        resetToken={tableResetToken}
         onSelectionChange={onTableSelection} onClearSelection={onClearSelection} onClose={onTableClose} onZoom={onZoomBounds} />
     </div>}
 

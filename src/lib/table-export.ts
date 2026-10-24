@@ -41,3 +41,8 @@ export function selectedGeoJsonFilename(layerName: string): string {
   const stem = layerName.trim().replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, "_").slice(0, 80) || "features";
   return `${stem}_已选.geojson`;
 }
+
+export function identifyGeoJsonFilename(layerName: string, featureId: number): string {
+  const stem = layerName.trim().replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, "_").slice(0, 80) || "feature";
+  return `${stem}_要素${featureId + 1}.geojson`;
+}

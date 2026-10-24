@@ -11,6 +11,8 @@ import { CommandRibbon } from "./components/CommandRibbon";
 import { useAgent, type TimelineItem } from "./lib/agent";
 import { defaultLayerStyle, type DataLayer, type LayerSelection, type LayerStyle } from "./lib/dataLayers";
 import { engineRequest } from "./lib/service";
+import type { IdentifyTableFilter } from "./lib/identify";
+import { identifyGeoJsonFilename, selectedFeaturesGeoJson } from "./lib/table-export";
 import { AttributeTable } from "./components/AttributeTable";
 import { LayerProperties } from "./components/LayerProperties";
 import { MapLegend } from "./components/MapLegend";
@@ -63,6 +65,8 @@ export default function App() {
   const [styles, setStyles] = useState(loadLayerStyles);
   const [focus, setFocus] = useState<number[] | null>(null);
   const [tableId, setTableId] = useState<string | null>(restoredWorkspace?.tableLayerId ?? null);
+  const [tableFilter, setTableFilter] = useState<IdentifyTableFilter | null>(null);
+  const [tableResetToken, setTableResetToken] = useState(0);
   const [selection, setSelection] = useState<LayerSelection | null>(restoredWorkspace?.selection ?? null);
   const [aoi, setAoi] = useState<number[] | null>(restoredWorkspace?.aoi ?? null);
   const [properties, setProperties] = useState<{ id: string; tab: "style" | "labels" | "info" } | null>(null);
@@ -144,7 +148,12 @@ export default function App() {
       appliedViews.current.add(command.id);
       changed = true;
       if (command.action === "zoom" && command.bounds) setFocus([...command.bounds]);
-      if (command.action === "attributes") { setTableId(command.layer_id); setLogsOpen(false); }
+      if (command.action === "attributes") {
+        setTableId(command.layer_id);
+        setTableFilter(null);
+        setTableResetToken(token => token + 1);
+        setLogsOpen(false);
+      }
       if (command.style) setStyles(current => ({ ...current,
         [command.layer_id]: { ...defaultLayerStyle(command.layer_id), ...current[command.layer_id], ...command.style },
       }));
@@ -154,6 +163,37 @@ export default function App() {
   }, [agent.state.viewCommands]);
   const zoomLayer = useCallback((layer: DataLayer) => { if (layer.bounds) setFocus([...layer.bounds]); }, []);
   const clearSelection = useCallback(() => setSelection(null), []);
+  const openTable = useCallback((layerId: string, featureId?: number) => {
+    setTableId(layerId);
+    setLogsOpen(false);
+    setTableFilter(null);
+    setTableResetToken(token => token + 1);
+    setSelectedId(layerId);
+    if (featureId != null && Number.isFinite(featureId)) setSelection({ layerId, featureIds: [featureId] });
+  }, []);
+  const closeTable = useCallback(() => { setTableId(null); setTableFilter(null); }, []);
+  const filterTable = useCallback((filter: IdentifyTableFilter) => {
+    setTableFilter(filter);
+    setTableResetToken(token => token + 1);
+    setTableId(filter.layerId);
+    setLogsOpen(false);
+    setSelectedId(filter.layerId);
+  }, []);
+  const exportIdentifyFeature = useCallback(async (layerId: string, featureId: number) => {
+    const response = await engineRequest(`/layers/${encodeURIComponent(layerId)}.geojson`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const collection = selectedFeaturesGeoJson(await response.json(), [featureId]);
+    const layer = layers.find(item => item.id === layerId);
+    const blob = new Blob([JSON.stringify(collection, null, 2)], { type: "application/geo+json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = identifyGeoJsonFilename(layer?.name ?? layerId, featureId);
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 500);
+  }, [layers]);
   const handleMapSelection = useCallback((next: LayerSelection | null, additive: boolean) => {
     if (!next) { if (!additive) setSelection(null); return; }
     setSelectedId(next.layerId);
@@ -339,9 +379,13 @@ export default function App() {
           onRemoveLayer={handleRemoveLayer}
           onClipAoi={() => void clipToAoi()}
           onOpenSettings={() => setSettingsOpen(true)}
-          onTable={id => { setTableId(id); setLogsOpen(false); }}
+          onTable={openTable}
           tableLayer={tableLayer}
-          onTableClose={() => setTableId(null)}
+          onTableClose={closeTable}
+          tableFilter={tableFilter?.layerId === tableLayer?.id ? tableFilter : null}
+          tableResetToken={tableResetToken}
+          onFilterTable={filterTable}
+          onExportIdentifyFeature={exportIdentifyFeature}
           onTableSelection={(featureIds, additive) => {
             if (!tableLayer) return;
             setSelectedId(tableLayer.id);
@@ -366,20 +410,20 @@ export default function App() {
       ) : (
         <>
       <CommandRibbon hasLayer={!!activeLayer} onAdd={() => void addData()} onZoomAll={zoomAll}
-        onZoomLayer={() => activeLayer && zoomLayer(activeLayer)} onTable={() => { if (activeLayer) { setTableId(activeLayer.id); setLogsOpen(false); } }}
+        onZoomLayer={() => activeLayer && zoomLayer(activeLayer)} onTable={() => { if (activeLayer) openTable(activeLayer.id); }}
         onStyle={() => activeLayer && setProperties({ id: activeLayer.id, tab: "style" })} onLabels={() => activeLayer && setProperties({ id: activeLayer.id, tab: "labels" })}
         onTool={tool => openDock("tools", tool)} onChat={() => openDock("chat")} onLogs={() => setLogsOpen(true)} onSettings={() => setSettingsOpen(true)} onTheme={toggleTheme}
         hasAoi={!!aoi} onClipAoi={() => void clipToAoi()} onSearchTools={query => openDock("tools", undefined, query)} />
       <div className="workspace">
         <LayerRail layers={layers} onToggle={agent.toggleLayer} onAdd={() => void addData()} importing={importing}
           selectedId={activeLayer?.id} onSelect={setSelectedId}
-          onZoom={zoomLayer} onTable={id => { setTableId(id); setLogsOpen(false); }} onProperties={(id, tab) => setProperties({ id, tab })}
+          onZoom={zoomLayer} onTable={openTable} onProperties={(id, tab) => setProperties({ id, tab })}
           onRename={handleRename} onReorder={handleReorder} onRemove={handleRemoveLayer} />
         <main className="map-pane" aria-label="地图">
           <div className="map-document-bar"><span className="map-document-tab"><MapIcon size={15} /> 地图</span><span>{activeLayer ? activeLayer.name : "地理空间工作区"}</span></div>
           <div className="map-viewport">
           <MapCanvas theme={theme} dataLayers={layers} focusBounds={focus} onStatus={setMapStatus} selection={selection} onSelect={handleMapSelection}
-            aoi={aoi} onAoiChange={setAoi} onOpenTable={id => { setTableId(id); setLogsOpen(false); }} />
+            aoi={aoi} onAoiChange={setAoi} onOpenTable={openTable} onFilterTable={filterTable} onExportIdentifyFeature={exportIdentifyFeature} />
           <MapLegend layers={layers} onStyle={id => setProperties({ id, tab: "style" })} />
           {!layers.length && <div className="map-empty-state" role="status">
             <span className="map-empty-icon"><Layers size={20} /></span>
@@ -410,6 +454,8 @@ export default function App() {
           </div>
           {logsOpen ? <LogPanel onClose={() => setLogsOpen(false)} /> : tableLayer && <AttributeTable key={tableLayer.id} layer={tableLayer}
             selectedIds={selection?.layerId === tableLayer.id ? selection.featureIds : []}
+            initialFilter={tableFilter?.layerId === tableLayer.id ? tableFilter : null}
+            resetToken={tableResetToken}
             onSelectionChange={(featureIds, additive) => {
               setSelectedId(tableLayer.id);
               setSelection(current => {
@@ -419,7 +465,7 @@ export default function App() {
                 return ids.size ? { layerId: tableLayer.id, featureIds: [...ids].sort((a, b) => a - b) } : null;
               });
             }}
-            onClearSelection={clearSelection} onClose={() => setTableId(null)} onZoom={bounds => setFocus([...bounds])} />}
+            onClearSelection={clearSelection} onClose={closeTable} onZoom={bounds => setFocus([...bounds])} />}
         </main>
         <ChatDock
           items={agent.state.items}

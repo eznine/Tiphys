@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import type { DataLayer } from "../lib/dataLayers";
 import { engineRequest } from "../lib/service";
+import { copyText } from "../lib/clipboard";
+import { identifyValueText, type IdentifyTableFilter } from "../lib/identify";
 import { selectedFeaturesGeoJson, selectedGeoJsonFilename, tableExportFilename, tablePageCsv } from "../lib/table-export";
 
 type Row = { id: number; attributes: Record<string, unknown>; bounds: number[] | null };
 type Page = { fields: { name: string; type: string }[]; rows: Row[]; total: number };
 
-export function AttributeTable({ layer, selectedIds, onSelectionChange, onClearSelection, onClose, onZoom }: {
+export function AttributeTable({ layer, selectedIds, initialFilter = null, resetToken = 0, onSelectionChange, onClearSelection, onClose, onZoom }: {
   layer: DataLayer; selectedIds: number[]; onSelectionChange: (ids: number[], additive: boolean) => void;
+  initialFilter?: IdentifyTableFilter | null; resetToken?: number;
   onClearSelection: () => void; onClose: () => void; onZoom: (bounds: number[]) => void;
 }) {
   const [page, setPage] = useState<Page | null>(null);
@@ -22,6 +25,7 @@ export function AttributeTable({ layer, selectedIds, onSelectionChange, onClearS
   const [statsError, setStatsError] = useState("");
   const [actionNotice, setActionNotice] = useState("");
   const [exportingGeoJson, setExportingGeoJson] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<IdentifyTableFilter | null>(null);
   const rowRefs = useRef(new Map<number, HTMLTableRowElement>());
   const anchorRef = useRef<number | null>(null);
   const selectionKey = selectedIds.join(",");
@@ -48,6 +52,16 @@ export function AttributeTable({ layer, selectedIds, onSelectionChange, onClearS
     const row = page.rows.find(item => selectedIds.includes(item.id));
     rowRefs.current.get(row?.id ?? -1)?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [page, selectionKey, selectedIds]);
+  useEffect(() => {
+    if (initialFilter) {
+      setSearch(identifyValueText(initialFilter.value));
+      setActiveFilter(initialFilter);
+    } else {
+      setSearch("");
+      setActiveFilter(null);
+    }
+    setOffset(0);
+  }, [initialFilter, resetToken]);
   const format = (value: unknown) => value === null ? "<空值>" : typeof value === "object" ? JSON.stringify(value) : String(value);
   const loadStats = async (field: string) => {
     setStatsField(field); setStats(null); setStatsError("");
@@ -90,12 +104,7 @@ export function AttributeTable({ layer, selectedIds, onSelectionChange, onClearS
     if (!selectedIds.length) return;
     const text = selectedIds.join(",");
     try {
-      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
-      else {
-        const input = document.createElement("textarea");
-        input.value = text; input.style.position = "fixed"; input.style.opacity = "0";
-        document.body.append(input); input.select(); document.execCommand("copy"); input.remove();
-      }
+      await copyText(text);
       setActionNotice(`已复制 ${selectedIds.length} 个要素 ID`);
     } catch { setActionNotice("复制失败，请检查浏览器剪贴板权限"); }
   };
@@ -121,7 +130,7 @@ export function AttributeTable({ layer, selectedIds, onSelectionChange, onClearS
     <header className="attribute-header"><strong>{layer.name} · 属性表</strong>
       <button type="button" className="icon-btn" onClick={onClose} aria-label="关闭属性表">×</button></header>
     <div className="attribute-toolbar">
-      <input type="search" aria-label="搜索属性" placeholder="搜索属性…" value={search} onChange={e => { setSearch(e.target.value); setOffset(0); }} />
+      <input type="search" aria-label="搜索属性" placeholder="搜索属性…" value={search} onChange={e => { setSearch(e.target.value); setOffset(0); setActiveFilter(null); }} />
       <button type="button" className="icon-btn" disabled={!selectedRow?.bounds} onClick={() => selectedRow?.bounds && onZoom(selectedRow.bounds)}>缩放至所选记录</button>
       {selectedIds.length > 0 && <button type="button" className="icon-btn" onClick={onClearSelection}>清除选择</button>}
       <select aria-label="字段统计选择" value={statsField} onChange={e => void loadStats(e.target.value)}>
@@ -130,6 +139,10 @@ export function AttributeTable({ layer, selectedIds, onSelectionChange, onClearS
       </select>
       <span>{loading ? "读取中…" : `${page?.total ?? 0} 条记录${selectedIds.length ? ` · 已选 ${selectedIds.length}` : ""}`}</span>
     </div>
+    {activeFilter && <div className="attribute-filter-chip" role="status">
+      <span>已预填值：<code>{activeFilter.field}</code> = {identifyValueText(activeFilter.value) || "空值"}</span>
+      <button type="button" aria-label="清除值筛选" onClick={() => { setSearch(""); setOffset(0); setActiveFilter(null); }}>×</button>
+    </div>}
     {statsError && <p role="alert" className="chat-notice">{statsError}</p>}
     {statsField && stats && <div className="field-stats" aria-label={`${statsField} 统计`}>
       <strong>{statsField}</strong>

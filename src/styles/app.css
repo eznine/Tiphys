@@ -63,15 +63,20 @@
 .map-viewport { flex: 1; min-height: 0; position: relative; overflow: hidden; }
 .maplibregl-popup.tiphys-identify-popup .maplibregl-popup-content { background: var(--tiphys-surface-elevated); color: var(--tiphys-text); border: 1px solid var(--tiphys-border); border-radius: 9px; padding: 10px 12px; box-shadow: 0 10px 30px color-mix(in srgb, var(--tiphys-text) 20%, transparent); }
 .maplibregl-popup.tiphys-identify-popup .maplibregl-popup-close-button { color: var(--tiphys-text-muted); font-size: 15px; width: 22px; height: 22px; }
-.tiphys-identify { font-size: 12px; max-height: 240px; overflow: auto; }
+.tiphys-identify { font-size: 12px; max-height: 320px; overflow: auto; }
 .tiphys-identify-title { font-weight: 600; font-size: 12.5px; padding-right: 18px; margin-bottom: 6px; }
 .tiphys-identify dl { display: grid; grid-template-columns: minmax(64px, auto) 1fr; gap: 3px 10px; margin: 0; }
 .tiphys-identify dt { color: var(--tiphys-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tiphys-identify dd { margin: 0; word-break: break-all; }
+.tiphys-identify dd { margin: 0; min-width: 0; }
+.tiphys-identify-value { display: block; width: 100%; margin: 0; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; word-break: break-all; cursor: copy; }
+.tiphys-identify-value:hover, .tiphys-identify-value:focus-visible { color: var(--tiphys-accent); text-decoration: underline dotted; }
 .tiphys-identify-note { margin: 5px 0 0; font-size: 11px; color: var(--tiphys-text-muted); }
-.tiphys-identify-actions { margin-top: 8px; display: flex; gap: 6px; }
+.tiphys-identify-actions { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 5px; }
 .tiphys-identify-actions button { border: 1px solid var(--tiphys-border); background: var(--tiphys-accent-muted); color: var(--tiphys-text); border-radius: 5px; padding: 4px 9px; font-size: 11.5px; cursor: pointer; }
 .tiphys-identify-actions button:hover { border-color: var(--tiphys-accent); }
+.tiphys-identify-actions button:disabled { opacity: .48; cursor: default; border-color: var(--tiphys-border); }
+.tiphys-identify-status { margin: 6px 0 0; font-size: 11px; color: var(--tiphys-accent); }
+.tiphys-identify-status[data-tone="error"] { color: #b91c1c; }
 .attribute-table { height: 280px; min-height: 180px; max-height: 50%; display: flex; flex-direction: column; background: var(--tiphys-surface); border-top: 1px solid var(--tiphys-border); font-size: 12px; }
 .attribute-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--tiphys-border); }
 .attribute-header strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
@@ -84,6 +89,11 @@
 .attribute-toolbar input, .import-notice input { min-width: 0; border: 1px solid var(--tiphys-border); color: var(--tiphys-text); background: var(--tiphys-bg); border-radius: 5px; padding: 6px 8px; font-size: 12px; }
 .attribute-toolbar input { width: 180px; }
 .attribute-toolbar > span { color: var(--tiphys-text-muted); margin-left: auto; white-space: nowrap; }
+.attribute-filter-chip { display: flex; align-items: center; gap: 8px; padding: 4px 12px 5px; color: var(--tiphys-text-secondary); font-size: 11px; border-bottom: 1px solid var(--tiphys-border-subtle); }
+.attribute-filter-chip span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attribute-filter-chip code { color: var(--tiphys-accent); font-size: 11px; }
+.attribute-filter-chip button { width: 20px; height: 20px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--tiphys-text-muted); cursor: pointer; }
+.attribute-filter-chip button:hover { background: var(--tiphys-accent-muted); color: var(--tiphys-accent); }
 .attribute-scroll { flex: 1; overflow: auto; min-height: 0; }
 .attribute-scroll[aria-busy="true"] { opacity: .6; pointer-events: none; }
 .attribute-scroll table { width: 100%; border-collapse: separate; border-spacing: 0; white-space: nowrap; }

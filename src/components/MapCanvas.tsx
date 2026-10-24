@@ -18,6 +18,8 @@ import { DataLayer, LayerSelection, syncDataLayers } from "../lib/dataLayers";
 import { engineHeaders } from "../lib/service";
 import { downloadMapPng, mapExportFilename } from "../lib/map-export";
 import { scheduleIdle } from "../lib/idle";
+import { copyText } from "../lib/clipboard";
+import { identifyPropertiesTsv, identifyValueText, type IdentifyTableFilter } from "../lib/identify";
 import { Layers2, LocateFixed, Maximize2, Ruler, SquareDashed } from "lucide-react";
 
 type Props = {
@@ -29,7 +31,9 @@ type Props = {
   onSelect?: (selection: LayerSelection | null, additive: boolean) => void;
   aoi?: number[] | null;
   onAoiChange?: (bounds: number[] | null) => void;
-  onOpenTable?: (layerId: string) => void;
+  onOpenTable?: (layerId: string, featureId?: number) => void;
+  onFilterTable?: (filter: IdentifyTableFilter) => void;
+  onExportIdentifyFeature?: (layerId: string, featureId: number) => Promise<void>;
   /** "mobile" renders the touch control rail and tap-to-draw AOI. */
   variant?: "desktop" | "mobile";
   onViewChange?: (view: TiphysMapView) => void;
@@ -156,7 +160,7 @@ function boundsFromPoints(a: maplibregl.LngLat, b: maplibregl.LngLat): number[] 
   return [Math.min(a.lng, b.lng), Math.min(a.lat, b.lat), Math.max(a.lng, b.lng), Math.max(a.lat, b.lat)];
 }
 
-export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus, selection = null, onSelect, aoi = null, onAoiChange, onOpenTable, variant = "desktop", onViewChange, viewRequest = null, onFitAll }: Props) {
+export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus, selection = null, onSelect, aoi = null, onAoiChange, onOpenTable, onFilterTable, onExportIdentifyFeature, variant = "desktop", onViewChange, viewRequest = null, onFitAll }: Props) {
   const mobile = variant === "mobile";
   const dataLayersRef = useRef(dataLayers);
   dataLayersRef.current = dataLayers;
@@ -177,6 +181,10 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   onAoiChangeRef.current = onAoiChange;
   const onOpenTableRef = useRef(onOpenTable);
   onOpenTableRef.current = onOpenTable;
+  const onFilterTableRef = useRef(onFilterTable);
+  onFilterTableRef.current = onFilterTable;
+  const onExportIdentifyFeatureRef = useRef(onExportIdentifyFeature);
+  onExportIdentifyFeatureRef.current = onExportIdentifyFeature;
   const onViewChangeRef = useRef(onViewChange);
   onViewChangeRef.current = onViewChange;
   const onFitAllRef = useRef(onFitAll);
@@ -334,21 +342,51 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
       const geometry = layer?.geometry_types?.[0];
       const geometryLabel = geometry ? geometryLabels[geometry] ?? geometry : "要素";
       const entries = Object.entries(feature.properties ?? {});
+      const featureId = Number(feature.id);
       const content = document.createElement("div");
       content.className = "tiphys-identify";
       const title = document.createElement("div");
       title.className = "tiphys-identify-title";
       title.textContent = `${layer?.name ?? layerId} · ${geometryLabel} #${feature.id}`;
       content.append(title);
+      let activeEntry = entries.find(([, value]) => identifyValueText(value) !== "") ?? null;
+      let filterButton: HTMLButtonElement | null = null;
+      const syncFilterButton = () => {
+        if (!filterButton) return;
+        const valueText = activeEntry ? identifyValueText(activeEntry[1]) : "";
+        filterButton.disabled = !activeEntry || valueText === "" || !onFilterTableRef.current;
+        filterButton.title = activeEntry ? `只看 ${activeEntry[0]} = ${valueText}` : "没有可筛选的属性值";
+      };
       if (entries.length) {
         const list = document.createElement("dl");
         for (const [key, value] of entries.slice(0, 8)) {
           const name = document.createElement("dt");
           name.textContent = key;
           const item = document.createElement("dd");
-          const text = value == null ? "空" : String(value);
-          item.textContent = text.length > 80 ? `${text.slice(0, 80)}…` : text;
-          if (text.length > 80) item.title = text;
+          const text = value == null ? "空" : identifyValueText(value);
+          const valueButton = document.createElement("button");
+          valueButton.type = "button";
+          valueButton.className = "tiphys-identify-value";
+          valueButton.textContent = text.length > 80 ? `${text.slice(0, 80)}…` : text;
+          valueButton.title = `${identifyValueText(value) || "空值"}\n点击复制字段值`;
+          valueButton.addEventListener("click", event => {
+            event.stopPropagation();
+            activeEntry = [key, value];
+            syncFilterButton();
+            void (async () => {
+              try {
+                await copyText(identifyValueText(value));
+                status.hidden = false;
+                status.textContent = `已复制字段值：${key}`;
+                status.dataset.tone = "success";
+              } catch (err) {
+                status.hidden = false;
+                status.textContent = `复制失败：${err instanceof Error ? err.message : String(err)}`;
+                status.dataset.tone = "error";
+              }
+            })();
+          });
+          item.append(valueButton);
           list.append(name, item);
         }
         content.append(list);
@@ -370,11 +408,84 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
         const openTable = document.createElement("button");
         openTable.type = "button";
         openTable.textContent = "在属性表中查看";
-        openTable.addEventListener("click", () => onOpenTableRef.current?.(layerId));
+        openTable.addEventListener("click", () => {
+          closeIdentify();
+          onOpenTableRef.current?.(layerId, Number.isFinite(featureId) ? featureId : undefined);
+        });
         actions.append(openTable);
+        const copyRow = document.createElement("button");
+        copyRow.type = "button";
+        copyRow.textContent = "复制整行";
+        copyRow.disabled = !entries.length;
+        copyRow.title = "复制全部属性（TSV：字段名一行、值一行）";
+        copyRow.addEventListener("click", () => {
+          void (async () => {
+            try {
+              await copyText(identifyPropertiesTsv(feature.properties ?? {}));
+              status.hidden = false;
+              status.textContent = `已复制整行（${entries.length} 个字段，TSV）`;
+              status.dataset.tone = "success";
+            } catch (err) {
+              status.hidden = false;
+              status.textContent = `复制失败：${err instanceof Error ? err.message : String(err)}`;
+              status.dataset.tone = "error";
+            }
+          })();
+        });
+        actions.append(copyRow);
+        if ((layer.kind ?? "vector") === "vector" && Number.isFinite(featureId)) {
+          const exportFeature = document.createElement("button");
+          exportFeature.type = "button";
+          exportFeature.textContent = "导出 GeoJSON";
+          exportFeature.title = "导出该要素的真实几何与属性";
+          exportFeature.disabled = !onExportIdentifyFeatureRef.current;
+          exportFeature.addEventListener("click", () => {
+            void (async () => {
+              const exporter = onExportIdentifyFeatureRef.current;
+              if (!exporter) {
+                status.hidden = false;
+                status.textContent = "导出不可用";
+                status.dataset.tone = "error";
+                return;
+              }
+              exportFeature.disabled = true;
+              exportFeature.textContent = "导出中…";
+              try {
+                await exporter(layerId, featureId);
+                status.hidden = false;
+                status.textContent = "已导出该要素 GeoJSON";
+                status.dataset.tone = "success";
+              } catch (err) {
+                status.hidden = false;
+                status.textContent = `导出失败：${err instanceof Error ? err.message : String(err)}`;
+                status.dataset.tone = "error";
+              } finally {
+                exportFeature.disabled = false;
+                exportFeature.textContent = "导出 GeoJSON";
+              }
+            })();
+          });
+          actions.append(exportFeature);
+        }
+        filterButton = document.createElement("button");
+        filterButton.type = "button";
+        filterButton.textContent = "只看这个值";
+        filterButton.addEventListener("click", () => {
+          if (!activeEntry) return;
+          const [field, value] = activeEntry;
+          closeIdentify();
+          onFilterTableRef.current?.({ layerId, field, value });
+        });
+        actions.append(filterButton);
+        syncFilterButton();
         content.append(actions);
       }
-      identifyRef.current = new maplibregl.Popup({ closeButton: true, closeOnClick: false, maxWidth: "300px", offset: 10, className: "tiphys-identify-popup" })
+      const status = document.createElement("p");
+      status.className = "tiphys-identify-status";
+      status.setAttribute("role", "status");
+      status.hidden = true;
+      content.append(status);
+      identifyRef.current = new maplibregl.Popup({ closeButton: true, closeOnClick: false, maxWidth: "340px", offset: 10, className: "tiphys-identify-popup" })
         .setLngLat(event.lngLat)
         .setDOMContent(content)
         .once("close", closeIdentify)

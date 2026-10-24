@@ -20,7 +20,8 @@ import { geeExecutionAllowed } from "../src/lib/gee.ts";
 import { defaultLayerStyle, PALETTE } from "../src/lib/dataLayers.ts";
 import { releaseIdleWasmToolWorkers, warmWasmToolRunner } from "../src/lib/browser/wasm-tool-runner.ts";
 import { AGENT_GOAL_LIMIT, buildAgentSessionStub, buildWorkspaceSnapshot, normalizeWorkspaceRecovery, normalizeWorkspaceSnapshot, WORKSPACE_SCHEMA, WORKSPACE_VERSION } from "../src/lib/workspace.ts";
-import { selectedFeaturesGeoJson, selectedGeoJsonFilename, tableExportFilename, tablePageCsv } from "../src/lib/table-export.ts";
+import { identifyGeoJsonFilename, selectedFeaturesGeoJson, selectedGeoJsonFilename, tableExportFilename, tablePageCsv } from "../src/lib/table-export.ts";
+import { identifyPropertiesTsv, identifyValueText } from "../src/lib/identify.ts";
 import { pipelineResult } from "../src/components/ToolResultDetails.tsx";
 import type { ModelMessage } from "ai";
 
@@ -250,6 +251,18 @@ test("selected-feature GeoJSON keeps real geometry and drops stale collection bo
   assert.deepEqual(selected.crs, source.crs);
   assert.equal(selectedGeoJsonFilename("道路/网络:测试"), "道路_网络_测试_已选.geojson");
   assert.throws(() => selectedFeaturesGeoJson(source, [9]), /没有可导出/);
+});
+
+test("identify row copy keeps every property as spreadsheet-safe TSV", () => {
+  const properties = { name: "天安门", count: 3, empty: null, nested: { rank: 1 }, note: "a\tb\nc" };
+  const tsv = identifyPropertiesTsv(properties);
+  assert.equal(tsv.split("\n").length, 2, "escaped value newlines must not create extra TSV rows");
+  assert.equal(tsv.split("\n")[0], "name\tcount\tempty\tnested\tnote");
+  assert.match(tsv, /天安门\t3\t\t\{"rank":1\}\ta\\tb\\nc/);
+  assert.equal(identifyValueText(null), "");
+  assert.equal(identifyValueText(false), "false");
+  assert.equal(identifyPropertiesTsv({}), "");
+  assert.equal(identifyGeoJsonFilename("道路/网络:测试", 2), "道路_网络_测试_要素3.geojson");
 });
 
 test("metric admission rejects unsuitable extents; WASM catalog contains real parameter contracts", async () => {
