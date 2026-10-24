@@ -7,12 +7,16 @@ import {
   makeOperationSpec,
   newRun,
   normalizeParams,
+  OPERATION_IDS,
+  operationSupport,
   parseEpsg,
   planOperation,
   validateResult,
   type BufferSpec,
+  type ClipSpec,
   type LayerSemantics,
   type ReprojectSpec,
+  type ZonalStatisticsSpec,
 } from "../shared/contracts/index.ts";
 
 const vector: LayerSemantics = { id: "lyr_1", crs: "EPSG:4326", kind: "vector" };
@@ -121,4 +125,60 @@ test("runs carry identity, version and a measured duration", () => {
   assert.equal(done.status, "completed");
   assert.ok((done.durationMs ?? -1) >= 0);
   assert.ok(done.finishedAt);
+});
+
+test("the support matrix is explicit about what is and is not verified", () => {
+  // Every operation must have a verdict for both providers; "unknown" is not a
+  // state the product is allowed to be in when it answers a user.
+  for (const id of OPERATION_IDS) {
+    for (const provider of ["browser-wasm", "desktop-python"] as const) {
+      const support = operationSupport(id, provider);
+      assert.equal(typeof support.supported, "boolean", `${id}/${provider}`);
+      assert.equal(typeof support.verified, "boolean", `${id}/${provider}`);
+      assert.ok(support.reason.length > 8, `${id}/${provider} needs a real reason`);
+      if (!support.supported) assert.ok(support.degrade, `${id}/${provider} must offer a degrade path`);
+      if (support.verified) assert.equal(support.supported, true, `${id}/${provider} cannot be verified and unsupported`);
+    }
+  }
+  assert.equal(operationSupport("gis.dissolve", "browser-wasm").supported, false);
+  assert.equal(operationSupport("gis.zonal_statistics", "desktop-python").supported, false);
+});
+
+test("clip plans an overlay call and dissolve keeps the optional grouping field", () => {
+  const clip: ClipSpec = { operation: "gis.clip", version: 1, input: "lyr_1", params: { maskLayerId: "lyr_mask" } };
+  const clipped = planOperation(clip, vector);
+  assert.equal(clipped.action, "invoke");
+  if (clipped.action === "invoke") {
+    assert.equal(clipped.tool, "clip");
+    assert.deepEqual(clipped.args, { layer: "lyr_1", mask_layer: "lyr_mask" });
+  }
+  const missingMask = planOperation({ ...clip, params: {} as never }, vector);
+  assert.equal(missingMask.action, "reject");
+
+  const dissolved = planOperation({ operation: "gis.dissolve", version: 1, input: "lyr_1", params: {} }, vector, "desktop-python");
+  assert.equal(dissolved.action, "invoke");
+  if (dissolved.action === "invoke") assert.deepEqual(dissolved.args, { layer: "lyr_1" });
+  const grouped = planOperation({ operation: "gis.dissolve", version: 1, input: "lyr_1", params: { field: "kind" } }, vector, "desktop-python");
+  assert.equal(grouped.action, "invoke");
+  if (grouped.action === "invoke") assert.equal(grouped.args.by_field, "kind");
+
+  // Browser dissolve is refused with the measured reason, never silently run.
+  const refused = planOperation({ operation: "gis.dissolve", version: 1, input: "lyr_1", params: {} }, vector, "browser-wasm");
+  assert.equal(refused.action, "reject");
+  if (refused.action === "reject") {
+    assert.match(refused.errors.join(" "), /EPSG:436207616/);
+    assert.match(refused.errors.join(" "), /降级方案/);
+  }
+});
+
+test("zonal statistics is designed but explicitly not runnable yet", () => {
+  const spec: ZonalStatisticsSpec = {
+    operation: "gis.zonal_statistics", version: 1, input: "raster_1",
+    params: { zonesLayerId: "lyr_zones", statistic: "mean", ignoreNoData: true },
+  };
+  assert.equal(normalizeParams(spec).ok, true);
+  assert.equal(normalizeParams({ ...spec, params: { ...spec.params, statistic: "p95" as never } }).ok, false);
+  const plan = planOperation(spec, { id: "raster_1", crs: "EPSG:32650", kind: "raster" });
+  assert.equal(plan.action, "reject");
+  if (plan.action === "reject") assert.match(plan.errors.join(" "), /没有分区统计|尚无执行端实现/);
 });

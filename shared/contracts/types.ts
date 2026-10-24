@@ -102,7 +102,7 @@ export type WorkspaceInspection = {
 export type DistanceUnit = "meters" | "kilometers" | "miles";
 
 /** Operation ids are stable strings; the version lives on the spec. */
-export type OperationId = "gis.buffer" | "gis.reproject";
+export type OperationId = "gis.buffer" | "gis.reproject" | "gis.clip" | "gis.dissolve" | "gis.zonal_statistics";
 
 export type OutputOptions = {
   /** Requested display name for the output layer. */
@@ -122,6 +122,29 @@ export type ReprojectParams = OutputOptions & {
   targetCrs: CrsCode;
 };
 
+/** Overlay operations share one mask/overlay parameter name across engines. */
+export type ClipParams = OutputOptions & {
+  /** Layer id of the polygon mask. */
+  maskLayerId: string;
+};
+
+export type DissolveParams = OutputOptions & {
+  /** Empty/absent means "union everything into one feature". */
+  field?: string;
+};
+
+export type ZonalStatisticName = "mean" | "median" | "min" | "max" | "sum" | "stddev" | "count";
+
+export type ZonalStatisticsParams = OutputOptions & {
+  /** Layer id of the zone polygons (not a rasterised zone grid). */
+  zonesLayerId: string;
+  statistic: ZonalStatisticName;
+  /** Raster field to summarise; absent means the only band. */
+  valueField?: string;
+  /** Treat NoData as absent instead of zero. */
+  ignoreNoData?: boolean;
+};
+
 export type BufferSpec = {
   operation: "gis.buffer";
   version: 1;
@@ -136,7 +159,28 @@ export type ReprojectSpec = {
   params: ReprojectParams;
 };
 
-export type OperationSpec = BufferSpec | ReprojectSpec;
+export type ClipSpec = {
+  operation: "gis.clip";
+  version: 1;
+  input: string;
+  params: ClipParams;
+};
+
+export type DissolveSpec = {
+  operation: "gis.dissolve";
+  version: 1;
+  input: string;
+  params: DissolveParams;
+};
+
+export type ZonalStatisticsSpec = {
+  operation: "gis.zonal_statistics";
+  version: 1;
+  input: string;
+  params: ZonalStatisticsParams;
+};
+
+export type OperationSpec = BufferSpec | ReprojectSpec | ClipSpec | DissolveSpec | ZonalStatisticsSpec;
 
 export type ValidationStatus = "pass" | "warn" | "fail" | "not_tested";
 
@@ -175,7 +219,7 @@ export type ExecutionRun = {
   finishedAt?: string;
   durationMs?: number;
   input: { layerId: string; crs: CrsCode; sha256?: string };
-  params: BufferParams | ReprojectParams;
+  params: OperationSpec["params"];
   outputs: LayerRef[];
   validation: Validation;
   error?: { class: ErrorClass; message: string };

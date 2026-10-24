@@ -25,8 +25,11 @@
     "audit:catalog": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/catalog-audit.ts",
     "baseline": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/run-baseline.ts",
     "test:contracts": "node --import ./agent/node_modules/tsx/dist/loader.mjs --test tests/contracts.test.ts",
+    "test:methods": "node --import ./agent/node_modules/tsx/dist/loader.mjs --test tests/methods.test.ts",
+    "test:search": "node --import ./agent/node_modules/tsx/dist/loader.mjs --test tests/search-quality.test.ts",
     "compare:engines": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/compare-engines.ts",
     "wasm:spike": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/wasm-spike.ts",
+    "eval:search": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/search-eval.ts",
     "fixtures": "engine/.venv/Scripts/python.exe scripts/make-test-fixtures.py",
     "catalog:engine": "engine/.venv/Scripts/python.exe scripts/export_engine_catalog.py",
     "deploy:xyz": "node scripts/run-deploy-xyz.mjs"

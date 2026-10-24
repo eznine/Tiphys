@@ -1,0 +1,821 @@
+{
+  "generated_at": "2026-10-24T12:22:36.716Z",
+  "mode": "engine-reference",
+  "environment": {
+    "node": "v24.14.0",
+    "platform": "win32",
+    "arch": "x64",
+    "cpus": 24,
+    "memory_gb": 17
+  },
+  "tasks_file": {
+    "path": "tests\\baseline\\tasks.json",
+    "sha256": "c90a6483736349c1d5e94a2c2e8ce61f2b7592ee1169c7705b853878646b0659"
+  },
+  "fixtures": {
+    "pts": {
+      "path": "samples/beijing_points.geojson",
+      "bytes": 997,
+      "sha256": "cce69aa92837e59e96cc6d8699bdd9471b3b7def686a725a3f7cd24b44516135"
+    },
+    "districts": {
+      "path": "tests/fixtures/district_zones.geojson",
+      "bytes": 2117,
+      "sha256": "a6a36148a946ce9eaf74d5abbdf7d4fdabc36e66f8f6d3ba0777600d6291a47f"
+    },
+    "zone_a": {
+      "path": "tests/fixtures/zone_a.geojson",
+      "bytes": 833,
+      "sha256": "78f0ac0067fe67530295b9616e5f5258161b2fcf3b2ae08bb7fddcad55960776"
+    },
+    "roads": {
+      "path": "tests/fixtures/roads.geojson",
+      "bytes": 1587,
+      "sha256": "4cbd63f3d39046e084febcfae97ef380ec1422c9d3743041f6748c2ddcfc7ffd"
+    },
+    "bowtie": {
+      "path": "tests/fixtures/bowtie.geojson",
+      "bytes": 828,
+      "sha256": "1263e4484bff9f2e450185de77ade56a73043a48dc5141cdb8ab65c2a536df42"
+    },
+    "dem": {
+      "path": "tests/fixtures/dem_hills.tif",
+      "bytes": 41297,
+      "sha256": "c324485ea4b0a5dedac4d1ec2274be8852112ca2195253c35ab7096d320a98ad"
+    },
+    "dem_large": {
+      "path": "tests/fixtures/dem_large.tif",
+      "bytes": 1008148,
+      "sha256": "f692dd647d6c3857c723a00d439082e023dabf6359545c93a14e0ef9c8039d53"
+    }
+  },
+  "repeat": 3,
+  "totals": {
+    "tasks": 2,
+    "runs": 6,
+    "pass": 0,
+    "warn": 0,
+    "fail": 3,
+    "error": 3
+  },
+  "agent_baseline": {
+    "status": "NOT_TESTED",
+    "reason": "浏览器 Agent 循环只能在 DOM/Worker 真环境中运行；本轮没有 Playwright 驱动，因此不报告模型成功率。",
+    "next": "阶段 4 用 Playwright 驱动真实页面 + 固定模型，复用同一 tasks.json，每任务 3 次。"
+  },
+  "results": [
+    {
+      "task": "M01",
+      "group": "multistep",
+      "title": "缓冲 → 融合",
+      "run": 1,
+      "status": "FAIL",
+      "duration_ms": 186,
+      "steps": [
+        {
+          "step": 1,
+          "kind": "import",
+          "name": "pts",
+          "ok": true,
+          "duration_ms": 30,
+          "layer": {
+            "id": "lyr_37ce4d9d98484fe0b255322b4b5f8c18",
+            "name": "beijing_points",
+            "crs": "EPSG:4326",
+            "feature_count": 5,
+            "bounds": [
+              116.3892,
+              39.9093,
+              116.4175,
+              39.9255
+            ],
+            "geometry_types": [
+              "Point"
+            ],
+            "visible": true,
+            "url": "blob:nodedata:19f08861-a862-4678-b40f-094f0e2e31b3"
+          }
+        },
+        {
+          "step": 2,
+          "kind": "tool",
+          "name": "buffer",
+          "ok": true,
+          "duration_ms": 119,
+          "layer": {
+            "id": "lyr_aae15e225ac8412fbfefa25c720a8013",
+            "name": "beijing_points_buffer",
+            "crs": "EPSG:32650",
+            "feature_count": 2,
+            "bounds": [
+              116.37983875658632,
+              39.90209243995813,
+              116.42686002069438,
+              39.932707530891435
+            ],
+            "geometry_types": [
+              "Polygon"
+            ],
+            "visible": true,
+            "url": "blob:nodedata:022f89b1-9c1a-47be-96d8-7d18fb4a9b66"
+          },
+          "summary": {
+            "feature_count": 2,
+            "ok": true
+          }
+        },
+        {
+          "step": 3,
+          "kind": "tool",
+          "name": "dissolve",
+          "ok": true,
+          "duration_ms": 30,
+          "layer": {
+            "id": "lyr_c8a2e5c0ace24b71b2496b6ea96d9249",
+            "name": "beijing_points_buffer_dissolve",
+            "crs": "EPSG:4326",
+            "feature_count": 0,
+            "bounds": null,
+            "geometry_types": [],
+            "visible": true,
+            "url": "blob:nodedata:d6f072bd-6fdf-491d-bf47-956274228122"
+          },
+          "summary": {
+            "feature_count": 0,
+            "ok": true
+          }
+        }
+      ],
+      "checks": [
+        {
+          "type": "feature_count",
+          "of": "merged",
+          "severity": "gate",
+          "ok": false,
+          "detail": "feature_count=0 eq 1"
+        },
+        {
+          "type": "geometry_types",
+          "of": "merged",
+          "severity": "gate",
+          "ok": false,
+          "detail": "geometry_types=none"
+        },
+        {
+          "type": "field_value",
+          "of": "buf",
+          "severity": "gate",
+          "ok": false,
+          "detail": "feature_count=undefined"
+        }
+      ],
+      "artifacts": [
+        {
+          "layer_id": "lyr_37ce4d9d98484fe0b255322b4b5f8c18",
+          "name": "beijing_points",
+          "crs": "EPSG:4326",
+          "feature_count": 5,
+          "raster": null,
+          "bytes": 997,
+          "sha256": "cce69aa92837e59e96cc6d8699bdd9471b3b7def686a725a3f7cd24b44516135"
+        },
+        {
+          "layer_id": "lyr_aae15e225ac8412fbfefa25c720a8013",
+          "name": "beijing_points_buffer",
+          "crs": "EPSG:32650",
+          "feature_count": 2,
+          "raster": null,
+          "bytes": 4180,
+          "sha256": "4234b8ccc0672f07f22adc9a2909280ba5a6626c8cc72e3b07a12a0aa386e21e"
+        },
+        {
+          "layer_id": "lyr_c8a2e5c0ace24b71b2496b6ea96d9249",
+          "name": "beijing_points_buffer_dissolve",
+          "crs": "EPSG:4326",
+          "feature_count": 0,
+          "raster": null,
+          "bytes": 42,
+          "sha256": "ed778c73ea51338d6576fb5992b189f2b94d9f3d5e199f46c1af520d6b0b3e6c"
+        }
+      ],
+      "layer_count": {
+        "before": 0,
+        "after": 3
+      }
+    },
+    {
+      "task": "M01",
+      "group": "multistep",
+      "title": "缓冲 → 融合",
+      "run": 2,
+      "status": "FAIL",
+      "duration_ms": 182,
+      "steps": [
+        {
+          "step": 1,
+          "kind": "import",
+          "name": "pts",
+          "ok": true,
+          "duration_ms": 31,
+          "layer": {
+            "id": "lyr_4a69cc2268f540b78aa1e90025a1d422",
+            "name": "beijing_points",
+            "crs": "EPSG:4326",
+            "feature_count": 5,
+            "bounds": [
+              116.3892,
+              39.9093,
+              116.4175,
+              39.9255
+            ],
+            "geometry_types": [
+              "Point"
+            ],
+            "visible": true,
+            "url": "blob:nodedata:535f33ad-1908-43a1-a566-d4c6f9108c44"
+          }
+        },
+        {
+          "step": 2,
+          "kind": "tool",
+          "name": "buffer",
+          "ok": true,
+          "duration_ms": 116,
+          "layer": {
+            "id": "lyr_5f1d3fa533de4aed8b7795b2b1851b91",
+            "name": "beijing_points_buffer",
+            "crs": "EPSG:32650",
+            "feature_count": 2,
+            "bounds": [
+              116.37983875658632,
+              39.90209243995813,
+              116.42686002069438,
+              39.932707530891435
+            ],
+            "geometry_types": [
+              "Polygon"
+            ],
+            "visible": true,
+            "url": "blob:nodedata:6652eec6-e01b-4535-9573-1ee35b8250de"
+          },
+          "summary": {
+            "feature_count": 2,
+            "ok": true
+          }
+        },
+        {
+          "step": 3,
+          "kind": "tool",
+          "name": "dissolve",
+          "ok": true,
+          "duration_ms": 31,
+          "layer": {
+            "id": "lyr_059ca974c8324a408f6ef0b6845571fd",
+            "name": "beijing_points_buffer_dissolve",
+            "crs": "EPSG:4326",
+            "feature_count": 0,
+            "bounds": null,
+            "geometry_types": [],
+            "visible": true,
+            "url": "blob:nodedata:68b58f32-2a47-491c-b1fc-5d7d85aac9e4"
+          },
+          "summary": {
+            "feature_count": 0,
+            "ok": true
+          }
+        }
+      ],
+      "checks": [
+        {
+          "type": "feature_count",
+          "of": "merged",
+          "severity": "gate",
+          "ok": false,
+          "detail": "feature_count=0 eq 1"
+        },
+        {
+          "type": "geometry_types",
+          "of": "merged",
+          "severity": "gate",
+          "ok": false,
+          "detail": "geometry_types=none"
+        },
+        {
+          "type": "field_value",
+          "of": "buf",
+          "severity": "gate",
+          "ok": false,
+          "detail": "feature_count=undefined"
+        }
+      ],
+      "artifacts": [
+        {
+          "layer_id": "lyr_4a69cc2268f540b78aa1e90025a1d422",
+          "name": "beijing_points",
+          "crs": "EPSG:4326",
+          "feature_count": 5,
+          "raster": null,
+          "bytes": 997,
+          "sha256": "cce69aa92837e59e96cc6d8699bdd9471b3b7def686a725a3f7cd24b44516135"
+        },
+        {
+          "layer_id": "lyr_5f1d3fa533de4aed8b7795b2b1851b91",
+          "name": "beijing_points_buffer",
+          "crs": "EPSG:32650",
+          "feature_count": 2,
+          "raster": null,
+          "bytes": 4180,
+          "sha256": "4234b8ccc0672f07f22adc9a2909280ba5a6626c8cc72e3b07a12a0aa386e21e"
+        },
+        {
+          "layer_id": "lyr_059ca974c8324a408f6ef0b6845571fd",
+          "name": "beijing_points_buffer_dissolve",
+          "crs": "EPSG:4326",
+          "feature_count": 0,
+          "raster": null,
+          "bytes": 42,
+          "sha256": "ed778c73ea51338d6576fb5992b189f2b94d9f3d5e199f46c1af520d6b0b3e6c"
+        }
+      ],
+      "layer_count": {
+        "before": 0,
+        "after": 3
+      }
+    },
+    {
+      "task": "M01",
+      "group": "multistep",
+      "title": "缓冲 → 融合",
+      "run": 3,
+      "status": "FAIL",
+      "duration_ms": 174,
+      "steps": [
+        {
+          "step": 1,
+          "kind": "import",
+          "name": "pts",
+          "ok": true,
+          "duration_ms": 30,
+          "layer": {
+            "id": "lyr_12def8f632d246218e3a79ed4af06a95",
+            "name": "beijing_points",
+            "crs": "EPSG:4326",
+            "feature_count": 5,
+            "bounds": [
+              116.3892,
+              39.9093,
+              116.4175,
+              39.9255
+            ],
+            "geometry_types": [
+              "Point"
+            ],
+            "visible": true,
+            "url": "blob:nodedata:6ef871f3-c290-46e8-8715-14d6fd3c9a13"
+          }
+        },
+        {
+          "step": 2,
+          "kind": "tool",
+          "name": "buffer",
+          "ok": true,
+          "duration_ms": 109,
+          "layer": {
+            "id": "lyr_949124430449421dacab60e706e14c16",
+            "name": "beijing_points_buffer",
+            "crs": "EPSG:32650",
+            "feature_count": 2,
+            "bounds": [
+              116.37983875658632,
+              39.90209243995813,
+              116.42686002069438,
+              39.932707530891435
+            ],
+            "geometry_types": [
+              "Polygon"
+            ],
+            "visible": true,
+            "url": "blob:nodedata:c7537d59-1347-4f0d-81c4-65227127d365"
+          },
+          "summary": {
+            "feature_count": 2,
+            "ok": true
+          }
+        },
+        {
+          "step": 3,
+          "kind": "tool",
+          "name": "dissolve",
+          "ok": true,
+          "duration_ms": 32,
+          "layer": {
+            "id": "lyr_98ffb1ac3bed4f45a4235cea3e9302b2",
+            "name": "beijing_points_buffer_dissolve",
+            "crs": "EPSG:4326",
+            "feature_count": 0,
+            "bounds": null,
+            "geometry_types": [],
+            "visible": true,
+            "url": "blob:nodedata:df3cf874-3e38-4eb6-9c49-3011faf69dbf"
+          },
+          "summary": {
+            "feature_count": 0,
+            "ok": true
+          }
+        }
+      ],
+      "checks": [
+        {
+          "type": "feature_count",
+          "of": "merged",
+          "severity": "gate",
+          "ok": false,
+          "detail": "feature_count=0 eq 1"
+        },
+        {
+          "type": "geometry_types",
+          "of": "merged",
+          "severity": "gate",
+          "ok": false,
+          "detail": "geometry_types=none"
+        },
+        {
+          "type": "field_value",
+          "of": "buf",
+          "severity": "gate",
+          "ok": false,
+          "detail": "feature_count=undefined"
+        }
+      ],
+      "artifacts": [
+        {
+          "layer_id": "lyr_12def8f632d246218e3a79ed4af06a95",
+          "name": "beijing_points",
+          "crs": "EPSG:4326",
+          "feature_count": 5,
+          "raster": null,
+          "bytes": 997,
+          "sha256": "cce69aa92837e59e96cc6d8699bdd9471b3b7def686a725a3f7cd24b44516135"
+        },
+        {
+          "layer_id": "lyr_949124430449421dacab60e706e14c16",
+          "name": "beijing_points_buffer",
+          "crs": "EPSG:32650",
+          "feature_count": 2,
+          "raster": null,
+          "bytes": 4180,
+          "sha256": "4234b8ccc0672f07f22adc9a2909280ba5a6626c8cc72e3b07a12a0aa386e21e"
+        },
+        {
+          "layer_id": "lyr_98ffb1ac3bed4f45a4235cea3e9302b2",
+          "name": "beijing_points_buffer_dissolve",
+          "crs": "EPSG:4326",
+          "feature_count": 0,
+          "raster": null,
+          "bytes": 42,
+          "sha256": "ed778c73ea51338d6576fb5992b189f2b94d9f3d5e199f46c1af520d6b0b3e6c"
+        }
+      ],
+      "layer_count": {
+        "before": 0,
+        "after": 3
+      }
+    },
+    {
+      "task": "M02",
+      "group": "multistep",
+      "title": "融合 + 面积量算",
+      "run": 1,
+      "status": "ERROR",
+      "duration_ms": 96,
+      "fatal": "RuntimeError: unreachable",
+      "steps": [
+        {
+          "step": 1,
+          "kind": "import",
+          "name": "districts",
+          "ok": true,
+          "duration_ms": 30,
+          "layer": {
+            "id": "lyr_347e40dbcc3f4d8f93fd5252fbb5bb2e",
+            "name": "district_zones",
+            "crs": "EPSG:4326",
+            "feature_count": 3,
+            "bounds": [
+              116.3,
+              39.8,
+              116.56,
+              39.99
+            ],
+            "geometry_types": [
+              "Polygon"
+            ],
+            "visible": true,
+            "url": "blob:nodedata:fbff0724-95e0-4d27-9f5d-0899a69e8cf7"
+          }
+        },
+        {
+          "step": 2,
+          "kind": "tool",
+          "name": "dissolve",
+          "ok": true,
+          "duration_ms": 37,
+          "layer": {
+            "id": "lyr_a8aee4e4617f4e7684f5a53681c92675",
+            "name": "district_zones_dissolve",
+            "crs": "EPSG:4326",
+            "feature_count": 1,
+            "bounds": [
+              116.30000000000001,
+              39.800000000000004,
+              116.56000000000002,
+              39.99
+            ],
+            "geometry_types": [
+              "MultiPolygon"
+            ],
+            "visible": true,
+            "url": "blob:nodedata:da47788e-b684-4f9b-a12a-e47f74c140a9"
+          },
+          "summary": {
+            "feature_count": 1,
+            "ok": true
+          }
+        },
+        {
+          "step": 3,
+          "kind": "tool",
+          "name": "calculate_geometry",
+          "ok": false,
+          "duration_ms": 26,
+          "error": "RuntimeError: unreachable"
+        }
+      ],
+      "checks": [
+        {
+          "type": "feature_count",
+          "of": "merged",
+          "severity": "gate",
+          "ok": false,
+          "detail": "skipped: step failed"
+        },
+        {
+          "type": "between",
+          "of": "geo",
+          "severity": "gate",
+          "ok": false,
+          "detail": "skipped: step failed",
+          "note": "三区并集，重叠区只算一次"
+        }
+      ],
+      "artifacts": [
+        {
+          "layer_id": "lyr_347e40dbcc3f4d8f93fd5252fbb5bb2e",
+          "name": "district_zones",
+          "crs": "EPSG:4326",
+          "feature_count": 3,
+          "raster": null,
+          "bytes": 2117,
+          "sha256": "a6a36148a946ce9eaf74d5abbdf7d4fdabc36e66f8f6d3ba0777600d6291a47f"
+        },
+        {
+          "layer_id": "lyr_a8aee4e4617f4e7684f5a53681c92675",
+          "name": "district_zones_dissolve",
+          "crs": "EPSG:4326",
+          "feature_count": 1,
+          "raster": null,
+          "bytes": 595,
+          "sha256": "683c0cf96e6361375a4afa657f95859cc90d443e40a95d0f1ee4eb219e941724"
+        }
+      ],
+      "layer_count": {
+        "before": 0,
+        "after": 2
+      }
+    },
+    {
+      "task": "M02",
+      "group": "multistep",
+      "title": "融合 + 面积量算",
+      "run": 2,
+      "status": "ERROR",
+      "duration_ms": 85,
+      "fatal": "RuntimeError: unreachable",
+      "steps": [
+        {
+          "step": 1,
+          "kind": "import",
+          "name": "districts",
+          "ok": true,
+          "duration_ms": 30,
+          "layer": {
+            "id": "lyr_c32c24d9fd964ffbac5c7b092d3fc0bb",
+            "name": "district_zones",
+            "crs": "EPSG:4326",
+            "feature_count": 3,
+            "bounds": [
+              116.3,
+              39.8,
+              116.56,
+              39.99
+            ],
+            "geometry_types": [
+              "Polygon"
+            ],
+            "visible": true,
+            "url": "blob:nodedata:d959b18e-25b7-4c24-aaf5-7988e9a77e80"
+          }
+        },
+        {
+          "step": 2,
+          "kind": "tool",
+          "name": "dissolve",
+          "ok": true,
+          "duration_ms": 22,
+          "layer": {
+            "id": "lyr_db064c247c454d01a7e24c6b39a8a779",
+            "name": "district_zones_dissolve",
+            "crs": "EPSG:4326",
+            "feature_count": 1,
+            "bounds": [
+              116.30000000000001,
+              39.800000000000004,
+              116.56000000000002,
+              39.99
+            ],
+            "geometry_types": [
+              "MultiPolygon"
+            ],
+            "visible": true,
+            "url": "blob:nodedata:9f4e363a-656e-45b5-8903-be2dfb38298c"
+          },
+          "summary": {
+            "feature_count": 1,
+            "ok": true
+          }
+        },
+        {
+          "step": 3,
+          "kind": "tool",
+          "name": "calculate_geometry",
+          "ok": false,
+          "duration_ms": 29,
+          "error": "RuntimeError: unreachable"
+        }
+      ],
+      "checks": [
+        {
+          "type": "feature_count",
+          "of": "merged",
+          "severity": "gate",
+          "ok": false,
+          "detail": "skipped: step failed"
+        },
+        {
+          "type": "between",
+          "of": "geo",
+          "severity": "gate",
+          "ok": false,
+          "detail": "skipped: step failed",
+          "note": "三区并集，重叠区只算一次"
+        }
+      ],
+      "artifacts": [
+        {
+          "layer_id": "lyr_c32c24d9fd964ffbac5c7b092d3fc0bb",
+          "name": "district_zones",
+          "crs": "EPSG:4326",
+          "feature_count": 3,
+          "raster": null,
+          "bytes": 2117,
+          "sha256": "a6a36148a946ce9eaf74d5abbdf7d4fdabc36e66f8f6d3ba0777600d6291a47f"
+        },
+        {
+          "layer_id": "lyr_db064c247c454d01a7e24c6b39a8a779",
+          "name": "district_zones_dissolve",
+          "crs": "EPSG:4326",
+          "feature_count": 1,
+          "raster": null,
+          "bytes": 595,
+          "sha256": "683c0cf96e6361375a4afa657f95859cc90d443e40a95d0f1ee4eb219e941724"
+        }
+      ],
+      "layer_count": {
+        "before": 0,
+        "after": 2
+      }
+    },
+    {
+      "task": "M02",
+      "group": "multistep",
+      "title": "融合 + 面积量算",
+      "run": 3,
+      "status": "ERROR",
+      "duration_ms": 86,
+      "fatal": "RuntimeError: unreachable",
+      "steps": [
+        {
+          "step": 1,
+          "kind": "import",
+          "name": "districts",
+          "ok": true,
+          "duration_ms": 30,
+          "layer": {
+            "id": "lyr_d27f351bf8db4d82821ced658ab09eaa",
+            "name": "district_zones",
+            "crs": "EPSG:4326",
+            "feature_count": 3,
+            "bounds": [
+              116.3,
+              39.8,
+              116.56,
+              39.99
+            ],
+            "geometry_types": [
+              "Polygon"
+            ],
+            "visible": true,
+            "url": "blob:nodedata:b71e0c9f-36ea-44dd-bbfe-af4098fef95a"
+          }
+        },
+        {
+          "step": 2,
+          "kind": "tool",
+          "name": "dissolve",
+          "ok": true,
+          "duration_ms": 22,
+          "layer": {
+            "id": "lyr_6b2d057c92ee48299e4cdd44d17bea54",
+            "name": "district_zones_dissolve",
+            "crs": "EPSG:4326",
+            "feature_count": 1,
+            "bounds": [
+              116.30000000000001,
+              39.800000000000004,
+              116.56000000000002,
+              39.99
+            ],
+            "geometry_types": [
+              "MultiPolygon"
+            ],
+            "visible": true,
+            "url": "blob:nodedata:f4b2e74c-76f4-481b-b320-b2bba20ddce2"
+          },
+          "summary": {
+            "feature_count": 1,
+            "ok": true
+          }
+        },
+        {
+          "step": 3,
+          "kind": "tool",
+          "name": "calculate_geometry",
+          "ok": false,
+          "duration_ms": 27,
+          "error": "RuntimeError: unreachable"
+        }
+      ],
+      "checks": [
+        {
+          "type": "feature_count",
+          "of": "merged",
+          "severity": "gate",
+          "ok": false,
+          "detail": "skipped: step failed"
+        },
+        {
+          "type": "between",
+          "of": "geo",
+          "severity": "gate",
+          "ok": false,
+          "detail": "skipped: step failed",
+          "note": "三区并集，重叠区只算一次"
+        }
+      ],
+      "artifacts": [
+        {
+          "layer_id": "lyr_d27f351bf8db4d82821ced658ab09eaa",
+          "name": "district_zones",
+          "crs": "EPSG:4326",
+          "feature_count": 3,
+          "raster": null,
+          "bytes": 2117,
+          "sha256": "a6a36148a946ce9eaf74d5abbdf7d4fdabc36e66f8f6d3ba0777600d6291a47f"
+        },
+        {
+          "layer_id": "lyr_6b2d057c92ee48299e4cdd44d17bea54",
+          "name": "district_zones_dissolve",
+          "crs": "EPSG:4326",
+          "feature_count": 1,
+          "raster": null,
+          "bytes": 595,
+          "sha256": "683c0cf96e6361375a4afa657f95859cc90d443e40a95d0f1ee4eb219e941724"
+        }
+      ],
+      "layer_count": {
+        "before": 0,
+        "after": 2
+      }
+    }
+  ]
+}

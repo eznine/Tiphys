@@ -1,5 +1,7 @@
 import type { CatalogTool } from "./catalog-schema";
 import { zhTool, zhToolL1, zhToolL2 } from "../i18n/tools";
+import { compactTool, matchesFilter, type InputKind, type ToolCandidate, type ToolProvider } from "./candidates";
+import { intentBoost } from "./intents";
 
 const SEARCHABLE_PREFIXES = ["wasm_", "gee_"];
 
@@ -23,6 +25,11 @@ const TOOL_ALIASES: Record<string, string[]> = {
   cost_pathway: ["成本路径", "最小成本路径"],
   cost_back_link: ["成本回溯", "回溯链接", "成本方向", "回链"],
   corridor: ["廊道", "成本廊道", "最小成本廊道", "阻力廊道"],
+  linkage_mapper_corridor: ["生态廊道", "廊道", "走廊", "连接廊道", "生境廊道"],
+  clip_layers_to_aoi: ["按范围裁剪", "研究区裁剪", "AOI 裁剪", "范围裁剪"],
+  hydrology_flow_pipeline: ["水文流程", "一键水文", "汇流分析流程", "水文分析流程"],
+  least_cost_path_pipeline: ["成本路径流程", "最小成本路径流程", "路径规划流程"],
+  whitebox_extra: ["白盒扩展", "扩展工具箱", "额外工具"],
   central_feature: ["中心要素", "中央要素", "线性方向均值"],
   change_vector_analysis: ["变化矢量", "变化矢量分析", "CVA", "变化方向"],
   centroid_vector: ["质心", "矢量质心", "几何中心", "中心点"],
@@ -134,6 +141,44 @@ function aliasesFor(toolName: string): string[] {
   return TOOL_ALIASES[toolName.startsWith("wasm_") ? toolName.slice(5) : toolName] ?? [];
 }
 
+/**
+ * Chinese has no word delimiters, so a phrase like "算坡度" never equals a tool
+ * name. Bigrams let a shared 2-character term ("坡度") count while requiring at
+ * least one strong match keeps single common characters from ranking anything.
+ */
+function tokensOf(phrase: string): string[] {
+  const words = phrase.split(" ").filter(Boolean);
+  const pieces = [...words];
+  for (const word of words) {
+    // Bigrams are a CJK device. Latin fragments like "st" from "postgis" would
+    // otherwise match inside "distance" and rank unrelated tools.
+    if (!/[\u4e00-\u9fff]/.test(word)) continue;
+    const chars = [...word];
+    if (chars.length < 2) continue;
+    for (let index = 0; index + 1 < chars.length; index++) pieces.push(chars[index] + chars[index + 1]);
+  }
+  return [...new Set(pieces)].filter(piece => !STOP_TOKENS.has(piece));
+}
+
+/**
+ * Verbs and fillers that appear in a request but say nothing about which tool to
+ * use. Without this, "生成 PDF 地图集" scores high on tools whose labels start
+ * with "生成".
+ */
+const STOP_TOKENS = new Set([
+  "生成", "计算", "提取", "制作", "做出", "做成", "帮我", "帮忙", "给我", "我要", "一个", "一份",
+  "统计", "分析", "处理", "转换", "这个", "那个", "数据", "结果", "地图", "图层", "范围", "里面",
+  "可以", "需要", "进行", "得到", "现在", "如何", "怎么", "怎样", "什么", "哪些", "是否", "以及",
+  "然后", "接着", "一起", "所有", "每个",
+  "把", "用", "按", "对", "在", "和", "与", "给", "从", "向", "将", "是", "的", "了", "吗", "呢",
+]);
+
+/** Chinese terms match as substrings; Latin terms must be whole words. */
+function containsTerm(field: string, token: string): boolean {
+  if (!/^[a-z0-9]+$/.test(token)) return field.includes(token);
+  return field.split(" ").some(word => word === token || (token.length >= 4 && word.startsWith(token)));
+}
+
 export function isBrowserSearchable(name: string, tool?: CatalogTool): boolean {
   return SEARCHABLE_PREFIXES.some(prefix => name.startsWith(prefix)) || tool?.category === "扩展";
 }
@@ -159,13 +204,15 @@ export function scoreBrowserTool(tool: CatalogTool, query: string): number {
   const aliases = aliasesFor(tool.name).map(normalized).filter(Boolean);
   const phrase = normalized(query);
   if (!phrase) return 0;
-  const tokens = [...new Set(phrase.split(" ").filter(Boolean))];
+  const tokens = tokensOf(phrase);
   let score = 0;
-  let matchedTokens = 0;
+  let strong = name === phrase || zhName === phrase || label === phrase ||
+    aliases.some(alias => alias === phrase);
 
   if (name === phrase) score += 160;
   else if (name.includes(phrase)) score += 80;
   if (zhName === phrase) score += 150;
+  else if (zhName.startsWith(phrase)) score += 100;
   else if (zhName.includes(phrase)) score += 75;
   if (label === phrase) score += 140;
   else if (label.includes(phrase)) score += 65;
@@ -177,33 +224,69 @@ export function scoreBrowserTool(tool: CatalogTool, query: string): number {
   else if (zhSubcategory.includes(phrase)) score += 34;
   if (category === phrase || subcategory === phrase) score += 30;
 
+  const words = phrase.split(" ").filter(word => word && !STOP_TOKENS.has(word));
+  const matchedWords = new Set<string>();
   for (const token of tokens) {
-    let tokenScore = 0;
-    if (name === token || zhName === token) tokenScore += 80;
-    else if (name.startsWith(token) || zhName.startsWith(token)) tokenScore += 45;
-    else if (name.includes(token) || zhName.includes(token) || label.includes(token)) tokenScore += 30;
-    if (aliases.some(alias => alias === token)) tokenScore += 70;
-    else if (aliases.some(alias => alias.includes(token))) tokenScore += 35;
-    if (zhCategory === token || zhSubcategory === token || category === token || subcategory === token) tokenScore += 24;
-    else if (zhCategory.includes(token) || zhSubcategory.includes(token) || category.includes(token) || subcategory.includes(token)) tokenScore += 13;
-    if (description.includes(token)) tokenScore += 7;
-    if (tokenScore) { matchedTokens++; score += tokenScore; }
+    let lexical = 0;
+    if (name === token || zhName === token) lexical += 80;
+    else if (name.startsWith(token) || zhName.startsWith(token)) lexical += 45;
+    else if (containsTerm(name, token) || containsTerm(zhName, token) || containsTerm(label, token)) lexical += 30;
+    if (aliases.some(alias => alias === token)) lexical += 70;
+    else if (aliases.some(alias => containsTerm(alias, token))) lexical += 35;
+    // Only the tool's own identity (name/label/curated alias) may qualify a hit.
+    // Taxonomy and description matches are context, not evidence.
+    if (lexical >= 30) strong = true;
+    let context = 0;
+    if (zhCategory === token || zhSubcategory === token || category === token || subcategory === token) context += 24;
+    else if (containsTerm(zhCategory, token) || containsTerm(zhSubcategory, token) || containsTerm(category, token) || containsTerm(subcategory, token)) context += 13;
+    if (description.includes(token)) context += 7;
+    if (lexical + context > 0 && words.includes(token)) matchedWords.add(token);
+    score += lexical + context;
   }
-  return matchedTokens === tokens.length ? score : 0;
+  // A spaced query like "栅格 叠加" names two conditions; short atomic words must
+  // all be present. A long CJK run ("填洼后再算流向") is one concept, not two, and
+  // an explicit intent match already proves what the user wants.
+  const requiredWords = words.filter(word => /^[a-z0-9]+$/.test(word) || [...word].length <= 4);
+  const boost = intentBoost(tool.name, phrase);
+  if (boost) strong = true;
+  else if (requiredWords.length > 1 && requiredWords.some(word => !matchedWords.has(word))) return 0;
+  if (!strong) return 0;
+  return Math.min(score, 1000) + boost;
 }
+
+export type SearchOptions = {
+  limit?: number;
+  searchable?: (name: string, tool?: CatalogTool) => boolean;
+  /** Only tools whose data contract accepts this input kind (unknown contracts are excluded). */
+  inputKind?: InputKind;
+  provider?: ToolProvider;
+};
 
 export function searchBrowserTools(
   tools: CatalogTool[],
   query: string,
-  options: { limit?: number; searchable?: (name: string, tool?: CatalogTool) => boolean } = {},
+  options: SearchOptions = {},
 ): CatalogTool[] {
   const limit = options.limit ?? 8;
   const searchable = options.searchable ?? isBrowserSearchable;
+  const filter = { inputKind: options.inputKind, provider: options.provider };
   return tools
-    .filter(tool => searchable(tool.name, tool))
+    .filter(tool => searchable(tool.name, tool) && matchesFilter(tool, filter))
     .map(tool => ({ tool, score: scoreBrowserTool(tool, query) }))
     .filter(item => item.score > 0)
     .sort((a, b) => b.score - a.score || a.tool.name.localeCompare(b.tool.name))
     .slice(0, limit)
     .map(item => item.tool);
+}
+
+/**
+ * What the agent actually receives: identity, input kinds and the parameters
+ * that decide a call — not the full schema of every candidate.
+ */
+export function searchBrowserToolCandidates(
+  tools: CatalogTool[],
+  query: string,
+  options: SearchOptions = {},
+): ToolCandidate[] {
+  return searchBrowserTools(tools, query, options).map(compactTool);
 }

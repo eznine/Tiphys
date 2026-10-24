@@ -1,0 +1,3685 @@
+﻿{
+  "total": 207,
+  "aliases": {
+    "count": 69,
+    "top1": 1,
+    "top5": 1,
+    "mrr": 1
+  },
+  "natural": {
+    "count": 116,
+    "top1": 0.8706896551724138,
+    "top5": 1,
+    "mrr": 0.932471264367816
+  },
+  "gap": {
+    "count": 22,
+    "confident": 2,
+    "confidentRate": 0.09090909090909091
+  },
+  "missingLabels": [],
+  "results": [
+    {
+      "query": "把点做成500米范围",
+      "group": "natural",
+      "expect": [
+        "buffer_vector"
+      ],
+      "ranked": [
+        "buffer_vector"
+      ],
+      "topScore": 120,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "给每个采样点生成1公里缓冲区",
+      "group": "natural",
+      "expect": [
+        "buffer_vector"
+      ],
+      "ranked": [
+        "buffer_vector",
+        "buffer_raster",
+        "graphic_buffer",
+        "multiple_ring_buffer",
+        "buffer_3d"
+      ],
+      "topScore": 194,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "按字段合并相邻面",
+      "group": "natural",
+      "expect": [
+        "dissolve"
+      ],
+      "ranked": [
+        "merge_vectors",
+        "dissolve",
+        "union",
+        "calculate_adjacent_fields",
+        "points_to_line"
+      ],
+      "topScore": 207,
+      "top1": false,
+      "top5": true,
+      "reciprocalRank": 0.5,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "把同一类的面合成一个",
+      "group": "natural",
+      "expect": [
+        "dissolve"
+      ],
+      "ranked": [
+        "union",
+        "dissolve",
+        "merge_vectors",
+        "create_colour_composite",
+        "composite_bands"
+      ],
+      "topScore": 134,
+      "top1": false,
+      "top5": true,
+      "reciprocalRank": 0.5,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "裁剪矢量到研究区",
+      "group": "natural",
+      "expect": [
+        "clip"
+      ],
+      "ranked": [
+        "clip",
+        "clip_raster_to_polygon",
+        "clip_layers_to_aoi",
+        "centroid_vector",
+        "vector_points_to_raster"
+      ],
+      "topScore": 231,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "用面裁剪栅格",
+      "group": "natural",
+      "expect": [
+        "clip_raster_to_polygon"
+      ],
+      "ranked": [
+        "clip_raster_to_polygon",
+        "clip",
+        "buffer_raster",
+        "clump",
+        "raster_to_vector_lines"
+      ],
+      "topScore": 278,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "两个图层求交集",
+      "group": "natural",
+      "expect": [
+        "intersect"
+      ],
+      "ranked": [
+        "intersect",
+        "tabulate_intersection"
+      ],
+      "topScore": 127,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "两个面图层合并",
+      "group": "natural",
+      "expect": [
+        "union"
+      ],
+      "ranked": [
+        "merge_vectors",
+        "union",
+        "dissolve",
+        "merge_divided_roads",
+        "merge_line_segments"
+      ],
+      "topScore": 214,
+      "top1": false,
+      "top5": true,
+      "reciprocalRank": 0.5,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "从A里去掉B的范围",
+      "group": "natural",
+      "expect": [
+        "erase"
+      ],
+      "ranked": [
+        "erase"
+      ],
+      "topScore": 120,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "求对称差",
+      "group": "natural",
+      "expect": [
+        "symmetrical_difference"
+      ],
+      "ranked": [
+        "symmetrical_difference"
+      ],
+      "topScore": 265,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "判断点落在哪个面里",
+      "group": "natural",
+      "expect": [
+        "spatial_join"
+      ],
+      "ranked": [
+        "spatial_join"
+      ],
+      "topScore": 120,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "按属性表连接两个表",
+      "group": "natural",
+      "expect": [
+        "join_tables"
+      ],
+      "ranked": [
+        "join_tables",
+        "extract_by_attribute",
+        "split_by_attributes",
+        "attribute_histogram",
+        "reinitialize_attribute_table"
+      ],
+      "topScore": 179,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "统计每个区的平均高程",
+      "group": "natural",
+      "expect": [
+        "zonal_statistics"
+      ],
+      "ranked": [
+        "deviation_from_mean_elevation",
+        "zonal_statistics",
+        "difference_from_mean_elevation",
+        "average_flowpath_slope",
+        "elev_relative_to_min_max"
+      ],
+      "topScore": 125,
+      "top1": false,
+      "top5": true,
+      "reciprocalRank": 0.5,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "分区统计栅格",
+      "group": "natural",
+      "expect": [
+        "zonal_statistics"
+      ],
+      "ranked": [
+        "zonal_statistics",
+        "buffer_raster",
+        "clump",
+        "spatial_association_between_zones",
+        "zonal_characterization"
+      ],
+      "topScore": 259,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "算坡度",
+      "group": "natural",
+      "expect": [
+        "slope"
+      ],
+      "ranked": [
+        "slope",
+        "average_flowpath_slope",
+        "slope_vs_aspect_plot",
+        "slope_vs_elev_plot",
+        "standard_deviation_of_slope"
+      ],
+      "topScore": 207,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "生成坡向图",
+      "group": "natural",
+      "expect": [
+        "aspect"
+      ],
+      "ranked": [
+        "aspect",
+        "circular_variance_of_aspect",
+        "relative_aspect",
+        "slope_vs_aspect_plot"
+      ],
+      "topScore": 207,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "做出山体阴影",
+      "group": "natural",
+      "expect": [
+        "hillshade"
+      ],
+      "ranked": [
+        "hillshade",
+        "hypsometrically_tinted_hillshade",
+        "multidirectional_hillshade",
+        "shadow_animation",
+        "shadow_image"
+      ],
+      "topScore": 246,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "填平洼地",
+      "group": "natural",
+      "expect": [
+        "fill_depressions"
+      ],
+      "ranked": [
+        "fill_depressions",
+        "sink",
+        "delineate_depressions",
+        "fill_depressions_planchon_and_darboux",
+        "fill_depressions_wang_and_liu"
+      ],
+      "topScore": 185,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "算汇流累积量",
+      "group": "natural",
+      "expect": [
+        "d8_flow_accum"
+      ],
+      "ranked": [
+        "d8_flow_accum",
+        "dinf_flow_accum",
+        "fd8_flow_accum",
+        "mdinf_flow_accum",
+        "qin_flow_accumulation"
+      ],
+      "topScore": 281,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "提取河网",
+      "group": "natural",
+      "expect": [
+        "extract_streams"
+      ],
+      "ranked": [
+        "extract_streams",
+        "raster_streams_to_vector",
+        "vector_stream_network_analysis",
+        "hack_stream_order",
+        "horton_stream_order"
+      ],
+      "topScore": 170,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "划分子流域",
+      "group": "natural",
+      "expect": [
+        "watershed"
+      ],
+      "ranked": [
+        "basins",
+        "watershed",
+        "subbasins",
+        "watershed_from_raster_pour_points",
+        "strahler_order_basins"
+      ],
+      "topScore": 255,
+      "top1": false,
+      "top5": true,
+      "reciprocalRank": 0.5,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "河网分级",
+      "group": "natural",
+      "expect": [
+        "hack_stream_order"
+      ],
+      "ranked": [
+        "hack_stream_order",
+        "horton_stream_order",
+        "strahler_stream_order",
+        "raster_streams_to_vector",
+        "extract_streams"
+      ],
+      "topScore": 495,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "生成等高线",
+      "group": "natural",
+      "expect": [
+        "contours_from_raster"
+      ],
+      "ranked": [
+        "contours_from_raster",
+        "contour_list",
+        "contours_from_points",
+        "contour_with_barriers"
+      ],
+      "topScore": 264,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "把栅格转成矢量面",
+      "group": "natural",
+      "expect": [
+        "polygonize",
+        "raster_to_vector_polygons"
+      ],
+      "ranked": [
+        "raster_to_vector_polygons",
+        "raster_to_vector_lines",
+        "vector_polygons_to_raster",
+        "raster_to_vector_points",
+        "vector_points_to_raster"
+      ],
+      "topScore": 280,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "重分类成5类",
+      "group": "natural",
+      "expect": [
+        "reclass"
+      ],
+      "ranked": [
+        "reclass",
+        "reclass_equal_interval",
+        "reclassify_field",
+        "classification_accuracy_assessment",
+        "generalize_classified_raster"
+      ],
+      "topScore": 235,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "按等间距重分类",
+      "group": "natural",
+      "expect": [
+        "reclass_equal_interval"
+      ],
+      "ranked": [
+        "reclass_equal_interval",
+        "reclass",
+        "reclassify_field",
+        "classification_accuracy_assessment",
+        "generalize_classified_raster"
+      ],
+      "topScore": 325,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "反距离权重插值",
+      "group": "natural",
+      "expect": [
+        "idw_interpolation"
+      ],
+      "ranked": [
+        "idw_interpolation",
+        "ordinary_kriging",
+        "nearest_neighbour_interpolation",
+        "idw_3d",
+        "tin_interpolation"
+      ],
+      "topScore": 505,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "普通克里金插值",
+      "group": "natural",
+      "expect": [
+        "ordinary_kriging"
+      ],
+      "ranked": [
+        "ordinary_kriging",
+        "local_kriging",
+        "simple_kriging",
+        "empirical_bayesian_kriging",
+        "idw_interpolation"
+      ],
+      "topScore": 1048,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "最近邻插值",
+      "group": "natural",
+      "expect": [
+        "nearest_neighbour_interpolation"
+      ],
+      "ranked": [
+        "nearest_neighbour_interpolation",
+        "idw_interpolation",
+        "ordinary_kriging",
+        "tin_interpolation",
+        "nearest_neighbour_index"
+      ],
+      "topScore": 523,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "计算欧氏距离",
+      "group": "natural",
+      "expect": [
+        "euclidean_distance"
+      ],
+      "ranked": [
+        "euclidean_distance",
+        "euclidean_direction",
+        "euclidean_allocation",
+        "path_distance",
+        "cost_distance"
+      ],
+      "topScore": 364,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "做成本距离分析",
+      "group": "natural",
+      "expect": [
+        "cost_distance"
+      ],
+      "ranked": [
+        "cost_distance",
+        "path_distance",
+        "cost_allocation",
+        "cost_back_link",
+        "cost_connectivity"
+      ],
+      "topScore": 363,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "找最小成本路径",
+      "group": "natural",
+      "expect": [
+        "cost_pathway"
+      ],
+      "ranked": [
+        "cost_pathway",
+        "least_cost_path_pipeline",
+        "cost_connectivity",
+        "path_distance",
+        "corridor"
+      ],
+      "topScore": 448,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "算服务区可达范围",
+      "group": "natural",
+      "expect": [
+        "network_service_area"
+      ],
+      "ranked": [
+        "network_service_area",
+        "network_accessibility_metrics"
+      ],
+      "topScore": 327,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "做廊道分析",
+      "group": "natural",
+      "expect": [
+        "corridor"
+      ],
+      "ranked": [
+        "corridor",
+        "linkage_mapper_corridor",
+        "optimal_corridor_connections"
+      ],
+      "topScore": 277,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "求几何中心点",
+      "group": "natural",
+      "expect": [
+        "centroid_vector"
+      ],
+      "ranked": [
+        "centroid_vector",
+        "median_center",
+        "medoid",
+        "central_feature",
+        "smooth_vectors"
+      ],
+      "topScore": 280,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "求最小外接矩形",
+      "group": "natural",
+      "expect": [
+        "minimum_bounding_box"
+      ],
+      "ranked": [
+        "minimum_bounding_box",
+        "minimum_bounding_circle",
+        "min_max_contrast_stretch",
+        "least_cost_path_pipeline",
+        "minimum_bounding_volume"
+      ],
+      "topScore": 347,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "求最小外接圆",
+      "group": "natural",
+      "expect": [
+        "minimum_bounding_circle"
+      ],
+      "ranked": [
+        "minimum_bounding_circle",
+        "minimum_bounding_box",
+        "related_circumscribing_circle",
+        "min_max_contrast_stretch",
+        "least_cost_path_pipeline"
+      ],
+      "topScore": 333,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "生成凹包",
+      "group": "natural",
+      "expect": [
+        "concave_hull"
+      ],
+      "ranked": [
+        "concave_hull"
+      ],
+      "topScore": 277,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "把点聚成簇",
+      "group": "natural",
+      "expect": [
+        "aggregate_points"
+      ],
+      "ranked": [
+        "aggregate_points",
+        "aggregate_polygons"
+      ],
+      "topScore": 155,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "算道路密度",
+      "group": "natural",
+      "expect": [
+        "line_density"
+      ],
+      "ranked": [
+        "line_density",
+        "burn_streams_at_roads",
+        "collapse_road_detail",
+        "pycnophylactic_interpolation",
+        "thin_road_network"
+      ],
+      "topScore": 269,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "做标准差椭圆",
+      "group": "natural",
+      "expect": [
+        "directional_distribution"
+      ],
+      "ranked": [
+        "directional_distribution",
+        "standard_deviation_filter",
+        "standard_deviation_contrast_stretch",
+        "standard_deviation_overlay",
+        "multiscale_std_dev_normals"
+      ],
+      "topScore": 288,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "算中位数中心",
+      "group": "natural",
+      "expect": [
+        "median_center"
+      ],
+      "ranked": [
+        "median_center",
+        "central_feature",
+        "median_filter",
+        "medoid",
+        "centroid_vector"
+      ],
+      "topScore": 416,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "沿折线加密点",
+      "group": "natural",
+      "expect": [
+        "densify_features"
+      ],
+      "ranked": [
+        "densify_features",
+        "geodetic_densify",
+        "lines_to_polygons",
+        "densify_sampling_network",
+        "extend_vector_lines"
+      ],
+      "topScore": 185,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "多部件拆成单部件",
+      "group": "natural",
+      "expect": [
+        "multipart_to_singlepart"
+      ],
+      "ranked": [
+        "multipart_to_singlepart",
+        "singlepart_to_multipart",
+        "eliminate_polygon_part"
+      ],
+      "topScore": 351,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "合并多个矢量图层",
+      "group": "natural",
+      "expect": [
+        "merge_vectors"
+      ],
+      "ranked": [
+        "merge_vectors",
+        "union",
+        "dissolve",
+        "centroid_vector",
+        "layer_footprint_vector"
+      ],
+      "topScore": 299,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "找出重复要素",
+      "group": "natural",
+      "expect": [
+        "find_identical"
+      ],
+      "ranked": [
+        "find_identical",
+        "feature_to_line",
+        "feature_vertices_to_points",
+        "densify_features",
+        "central_feature"
+      ],
+      "topScore": 269,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "消除小碎面",
+      "group": "natural",
+      "expect": [
+        "eliminate_polygon_part"
+      ],
+      "ranked": [
+        "eliminate_polygon_part",
+        "eliminate_coincident_points",
+        "eliminate_polygons",
+        "opening",
+        "sieve"
+      ],
+      "topScore": 270,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "在点位置提取栅格值",
+      "group": "natural",
+      "expect": [
+        "extract_raster_values_at_points"
+      ],
+      "ranked": [
+        "extract_raster_values_at_points",
+        "buffer_raster",
+        "clump",
+        "raster_to_vector_lines",
+        "raster_to_vector_points"
+      ],
+      "topScore": 304,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "生成 NoData 掩膜",
+      "group": "natural",
+      "expect": [
+        "is_nodata"
+      ],
+      "ranked": [
+        "is_nodata"
+      ],
+      "topScore": 277,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "用邻域值填充空洞",
+      "group": "natural",
+      "expect": [
+        "nibble"
+      ],
+      "ranked": [
+        "nibble",
+        "focal_statistics",
+        "fill_missing_data",
+        "fill_missing_values",
+        "neighborhood_summary_statistics"
+      ],
+      "topScore": 152,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "中值滤波去噪",
+      "group": "natural",
+      "expect": [
+        "median_filter"
+      ],
+      "ranked": [
+        "median_filter",
+        "edge_preserving_mean_filter",
+        "mean_filter",
+        "anisotropic_diffusion_filter",
+        "high_pass_median_filter"
+      ],
+      "topScore": 364,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "高斯平滑",
+      "group": "natural",
+      "expect": [
+        "gaussian_filter"
+      ],
+      "ranked": [
+        "gaussian_filter",
+        "laplacian_of_gaussians_filter",
+        "smooth_vectors",
+        "fast_almost_gaussian_filter",
+        "conservative_smoothing_filter"
+      ],
+      "topScore": 518,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "SAR 影像 Lee 滤波",
+      "group": "natural",
+      "expect": [
+        "lee_filter"
+      ],
+      "ranked": [
+        "lee_filter",
+        "enhanced_lee_filter",
+        "refined_lee_filter",
+        "kuan_filter"
+      ],
+      "topScore": 347,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "直方图均衡增强",
+      "group": "natural",
+      "expect": [
+        "histogram_equalization"
+      ],
+      "ranked": [
+        "histogram_equalization",
+        "balance_contrast_enhancement",
+        "histogram_matching",
+        "histogram_matching_two_images",
+        "attribute_histogram"
+      ],
+      "topScore": 436,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "把多张影像镶嵌",
+      "group": "natural",
+      "expect": [
+        "mosaic"
+      ],
+      "ranked": [
+        "mosaic",
+        "image_slider",
+        "image_segmentation",
+        "image_stack_profile",
+        "image_difference_change_detection"
+      ],
+      "topScore": 326,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "生成六边形渔网",
+      "group": "natural",
+      "expect": [
+        "hexagonal_grid_from_vector_base"
+      ],
+      "ranked": [
+        "hexagonal_grid_from_vector_base",
+        "hexagonal_grid_from_raster_base",
+        "vector_hex_binning",
+        "aggregate_polygons",
+        "polygonize"
+      ],
+      "topScore": 264,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "生成矩形格网",
+      "group": "natural",
+      "expect": [
+        "rectangular_grid_from_vector_base"
+      ],
+      "ranked": [
+        "rectangular_grid_from_raster_base",
+        "rectangular_grid_from_vector_base",
+        "hexagonal_grid_from_vector_base",
+        "calculate_grid_convergence_angle",
+        "raster_to_h3"
+      ],
+      "topScore": 237,
+      "top1": false,
+      "top5": true,
+      "reciprocalRank": 0.5,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "计算平均流路坡度",
+      "group": "natural",
+      "expect": [
+        "average_flowpath_slope"
+      ],
+      "ranked": [
+        "average_flowpath_slope",
+        "slope",
+        "average_upslope_flowpath_length",
+        "stream_link_slope",
+        "mean_curvature"
+      ],
+      "topScore": 494,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "提取山谷线",
+      "group": "natural",
+      "expect": [
+        "extract_valleys"
+      ],
+      "ranked": [
+        "extract_valleys",
+        "ridge_and_valley_vectors"
+      ],
+      "topScore": 299,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "计算地形位置指数",
+      "group": "natural",
+      "expect": [
+        "deviation_from_mean_elevation"
+      ],
+      "ranked": [
+        "relative_topographic_position",
+        "deviation_from_mean_elevation",
+        "multiscale_topographic_position_class",
+        "multiscale_topographic_position_image",
+        "wetness_index"
+      ],
+      "topScore": 323,
+      "top1": false,
+      "top5": true,
+      "reciprocalRank": 0.5,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "视线分析",
+      "group": "natural",
+      "expect": [
+        "viewshed",
+        "line_of_sight"
+      ],
+      "ranked": [
+        "line_of_sight",
+        "viewshed",
+        "construct_sight_lines",
+        "skyline_analysis",
+        "split_vector_lines"
+      ],
+      "topScore": 312,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "计算集水区",
+      "group": "natural",
+      "expect": [
+        "basins"
+      ],
+      "ranked": [
+        "basins",
+        "watershed"
+      ],
+      "topScore": 190,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "计算汇流方向",
+      "group": "natural",
+      "expect": [
+        "d8_pointer"
+      ],
+      "ranked": [
+        "d8_pointer",
+        "directional_distribution",
+        "central_feature",
+        "euclidean_direction",
+        "flow_accum_full_workflow"
+      ],
+      "topScore": 133,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "计算剖面曲率",
+      "group": "natural",
+      "expect": [
+        "profile_curvature"
+      ],
+      "ranked": [
+        "profile_curvature",
+        "plan_curvature",
+        "accumulation_curvature",
+        "total_curvature",
+        "tangential_curvature"
+      ],
+      "topScore": 246,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "计算平面曲率",
+      "group": "natural",
+      "expect": [
+        "plan_curvature"
+      ],
+      "ranked": [
+        "plan_curvature",
+        "profile_curvature",
+        "accumulation_curvature",
+        "total_curvature",
+        "tangential_curvature"
+      ],
+      "topScore": 246,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "计算地形湿度指数",
+      "group": "natural",
+      "expect": [
+        "wetness_index"
+      ],
+      "ranked": [
+        "wetness_index",
+        "downslope_index",
+        "relative_topographic_position",
+        "ruggedness_index",
+        "exp"
+      ],
+      "topScore": 462,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "把河网烧录到 DEM",
+      "group": "natural",
+      "expect": [
+        "burn_streams"
+      ],
+      "ranked": [
+        "burn_streams",
+        "raster_streams_to_vector",
+        "extract_streams",
+        "dem_filter",
+        "dem_void_filling"
+      ],
+      "topScore": 171,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "把栅格河流转成矢量",
+      "group": "natural",
+      "expect": [
+        "raster_streams_to_vector"
+      ],
+      "ranked": [
+        "raster_streams_to_vector",
+        "raster_to_vector_lines",
+        "raster_to_vector_polygons",
+        "vector_points_to_raster",
+        "vector_polygons_to_raster"
+      ],
+      "topScore": 186,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "抽稀河网",
+      "group": "natural",
+      "expect": [
+        "prune_vector_streams"
+      ],
+      "ranked": [
+        "prune_vector_streams",
+        "raster_streams_to_vector",
+        "extract_streams",
+        "vector_stream_network_analysis",
+        "hack_stream_order"
+      ],
+      "topScore": 140,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "生成多层缓冲环",
+      "group": "natural",
+      "expect": [
+        "multiple_ring_buffer"
+      ],
+      "ranked": [
+        "buffer_vector",
+        "multiple_ring_buffer",
+        "buffer_raster",
+        "buffer_3d",
+        "graphic_buffer"
+      ],
+      "topScore": 157,
+      "top1": false,
+      "top5": true,
+      "reciprocalRank": 0.5,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "三维缓冲",
+      "group": "natural",
+      "expect": [
+        "buffer_3d"
+      ],
+      "ranked": [
+        "buffer_3d",
+        "buffer_vector",
+        "buffer_raster",
+        "inside_3d",
+        "intersect_3d"
+      ],
+      "topScore": 397,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "三维相交",
+      "group": "natural",
+      "expect": [
+        "intersect_3d"
+      ],
+      "ranked": [
+        "intersect_3d",
+        "intersect",
+        "intersect_3d_line_with_surface",
+        "union_3d",
+        "buffer_3d"
+      ],
+      "topScore": 482,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "三维并集",
+      "group": "natural",
+      "expect": [
+        "union_3d"
+      ],
+      "ranked": [
+        "union_3d",
+        "union",
+        "buffer_3d",
+        "inside_3d",
+        "intersect_3d"
+      ],
+      "topScore": 185,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "计算线交点",
+      "group": "natural",
+      "expect": [
+        "line_intersections"
+      ],
+      "ranked": [
+        "split_lines_at_intersections",
+        "line_intersections"
+      ],
+      "topScore": 220,
+      "top1": false,
+      "top5": true,
+      "reciprocalRank": 0.5,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "在线交点处分割线",
+      "group": "natural",
+      "expect": [
+        "split_lines_at_intersections"
+      ],
+      "ranked": [
+        "split_lines_at_intersections",
+        "split_line_at_point",
+        "line_intersections",
+        "split_vector_lines",
+        "otsu_thresholding"
+      ],
+      "topScore": 396,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "交叉表统计",
+      "group": "natural",
+      "expect": [
+        "tabulate_intersection",
+        "cross_tabulation"
+      ],
+      "ranked": [
+        "tabulate_intersection",
+        "cross_tabulation",
+        "roberts_cross_filter"
+      ],
+      "topScore": 120,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "加权叠加",
+      "group": "natural",
+      "expect": [
+        "weighted_overlay"
+      ],
+      "ranked": [
+        "weighted_overlay",
+        "identity",
+        "weighted_sum",
+        "difference",
+        "symmetrical_difference"
+      ],
+      "topScore": 468,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "求和叠加",
+      "group": "natural",
+      "expect": [
+        "sum_overlay"
+      ],
+      "ranked": [
+        "sum_overlay",
+        "identity",
+        "symmetrical_difference",
+        "difference",
+        "route_event_overlay"
+      ],
+      "topScore": 468,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "成本分配",
+      "group": "natural",
+      "expect": [
+        "cost_allocation"
+      ],
+      "ranked": [
+        "cost_allocation",
+        "cost_connectivity",
+        "cost_back_link",
+        "cost_distance",
+        "cost_pathway"
+      ],
+      "topScore": 807,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "成本连通性",
+      "group": "natural",
+      "expect": [
+        "cost_connectivity"
+      ],
+      "ranked": [
+        "cost_connectivity",
+        "cost_allocation",
+        "cost_back_link",
+        "cost_distance",
+        "cost_pathway"
+      ],
+      "topScore": 865,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "生成百分位等值线",
+      "group": "natural",
+      "expect": [
+        "percentile_contours"
+      ],
+      "ranked": [
+        "percentile_contours",
+        "contour_list",
+        "contours_from_raster",
+        "percentile_filter",
+        "elevation_percentile"
+      ],
+      "topScore": 209,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "计算分区直方图",
+      "group": "natural",
+      "expect": [
+        "zonal_histogram"
+      ],
+      "ranked": [
+        "zonal_histogram",
+        "histogram_equalization",
+        "histogram_matching",
+        "attribute_histogram",
+        "histogram_matching_two_images"
+      ],
+      "topScore": 275,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "按字段重分类",
+      "group": "natural",
+      "expect": [
+        "reclassify_field"
+      ],
+      "ranked": [
+        "reclassify_field",
+        "reclass",
+        "reclass_equal_interval",
+        "classification_accuracy_assessment",
+        "generalize_classified_raster"
+      ],
+      "topScore": 283,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "计算下坡邻域数",
+      "group": "natural",
+      "expect": [
+        "num_downslope_neighbours"
+      ],
+      "ranked": [
+        "num_downslope_neighbours",
+        "nibble",
+        "focal_statistics",
+        "neighborhood_summary_statistics",
+        "block_statistics"
+      ],
+      "topScore": 172,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "生成流域标记",
+      "group": "natural",
+      "expect": [
+        "segment_watershed_markers"
+      ],
+      "ranked": [
+        "basins",
+        "watershed",
+        "segment_watershed_markers",
+        "unnest_basins",
+        "isobasins"
+      ],
+      "topScore": 220,
+      "top1": false,
+      "top5": true,
+      "reciprocalRank": 0.3333333333333333,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "计算相对流域高程",
+      "group": "natural",
+      "expect": [
+        "elev_relative_to_watershed_min_max"
+      ],
+      "ranked": [
+        "elev_relative_to_watershed_min_max",
+        "basins",
+        "watershed",
+        "elev_relative_to_min_max",
+        "max_elevation_deviation"
+      ],
+      "topScore": 276,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "把 4326 的点转到 UTM",
+      "group": "natural",
+      "expect": [
+        "reproject_vector"
+      ],
+      "ranked": [
+        "reproject_vector"
+      ],
+      "topScore": 120,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "找最近的要素",
+      "group": "natural",
+      "expect": [
+        "near"
+      ],
+      "ranked": [
+        "near",
+        "feature_to_line",
+        "feature_vertices_to_points",
+        "densify_features",
+        "find_identical"
+      ],
+      "topScore": 98,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "生成等值线图层",
+      "group": "natural",
+      "expect": [
+        "contours_from_raster"
+      ],
+      "ranked": [
+        "contour_list",
+        "contours_from_raster",
+        "contours_from_points",
+        "voxel_isosurface"
+      ],
+      "topScore": 197,
+      "top1": false,
+      "top5": true,
+      "reciprocalRank": 0.5,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "分层设色山体阴影",
+      "group": "natural",
+      "expect": [
+        "hypsometrically_tinted_hillshade"
+      ],
+      "ranked": [
+        "hypsometrically_tinted_hillshade",
+        "hillshade",
+        "multidirectional_hillshade",
+        "shadow_animation",
+        "shadow_image"
+      ],
+      "topScore": 298,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "多方向山体阴影",
+      "group": "natural",
+      "expect": [
+        "multidirectional_hillshade"
+      ],
+      "ranked": [
+        "multidirectional_hillshade",
+        "hillshade",
+        "hypsometrically_tinted_hillshade",
+        "directional_distribution",
+        "central_feature"
+      ],
+      "topScore": 594,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "计算上游汇水面积",
+      "group": "natural",
+      "expect": [
+        "d8_flow_accum"
+      ],
+      "ranked": [
+        "d8_flow_accum",
+        "depth_to_water",
+        "length_of_upstream_channels",
+        "hypsometric_analysis",
+        "upslope_depression_storage"
+      ],
+      "topScore": 120,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "计算坡面长度",
+      "group": "natural",
+      "expect": [
+        "downslope_flowpath_length"
+      ],
+      "ranked": [
+        "downslope_flowpath_length",
+        "average_upslope_flowpath_length",
+        "polygon_long_axis",
+        "split_vector_lines",
+        "length_of_upstream_channels"
+      ],
+      "topScore": 157,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "统计每个面的栅格值",
+      "group": "natural",
+      "expect": [
+        "zonal_statistics"
+      ],
+      "ranked": [
+        "zonal_statistics",
+        "buffer_raster",
+        "clump",
+        "extract_raster_values_at_points",
+        "raster_to_vector_lines"
+      ],
+      "topScore": 151,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "把矢量裁剪到多边形边界",
+      "group": "natural",
+      "expect": [
+        "clip"
+      ],
+      "ranked": [
+        "clip",
+        "clip_raster_to_polygon",
+        "hexagonal_grid_from_vector_base",
+        "centroid_vector",
+        "vector_hex_binning"
+      ],
+      "topScore": 245,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "根据字段把面合并",
+      "group": "natural",
+      "expect": [
+        "dissolve"
+      ],
+      "ranked": [
+        "merge_vectors",
+        "union",
+        "dissolve",
+        "merge_divided_roads",
+        "merge_table_with_csv"
+      ],
+      "topScore": 207,
+      "top1": false,
+      "top5": true,
+      "reciprocalRank": 0.3333333333333333,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "计算栅格像元的坡度百分比",
+      "group": "natural",
+      "expect": [
+        "slope"
+      ],
+      "ranked": [
+        "slope",
+        "buffer_raster",
+        "raster_cell_assignment",
+        "clump",
+        "vector_lines_to_raster"
+      ],
+      "topScore": 221,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "把 DEM 填洼后再算流向",
+      "group": "natural",
+      "expect": [
+        "fill_depressions"
+      ],
+      "ranked": [
+        "d8_pointer",
+        "fill_depressions",
+        "dem_filter",
+        "dem_void_filling",
+        "fill_spill_merge"
+      ],
+      "topScore": 157,
+      "top1": false,
+      "top5": true,
+      "reciprocalRank": 0.5,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "计算河网 Strahler 级",
+      "group": "natural",
+      "expect": [
+        "horton_stream_order"
+      ],
+      "ranked": [
+        "hack_stream_order",
+        "horton_stream_order",
+        "raster_streams_to_vector",
+        "extract_streams"
+      ],
+      "topScore": 240,
+      "top1": false,
+      "top5": true,
+      "reciprocalRank": 0.5,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "把点连成线",
+      "group": "natural",
+      "expect": [
+        "points_to_line"
+      ],
+      "ranked": [
+        "points_to_line",
+        "generate_od_links"
+      ],
+      "topScore": 225,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "计算多边形面积",
+      "group": "natural",
+      "expect": [
+        "polygon_area"
+      ],
+      "ranked": [
+        "raster_area",
+        "polygon_area",
+        "hexagonal_grid_from_vector_base",
+        "aggregate_polygons",
+        "polygonize"
+      ],
+      "topScore": 171,
+      "top1": false,
+      "top5": true,
+      "reciprocalRank": 0.5,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "计算多边形周长",
+      "group": "natural",
+      "expect": [
+        "polygon_perimeter"
+      ],
+      "ranked": [
+        "polygon_perimeter",
+        "polygonize",
+        "hexagonal_grid_from_vector_base",
+        "aggregate_polygons",
+        "perimeter_area_ratio"
+      ],
+      "topScore": 157,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "计算栅格面积",
+      "group": "natural",
+      "expect": [
+        "raster_area"
+      ],
+      "ranked": [
+        "raster_area",
+        "buffer_raster",
+        "clump",
+        "raster_to_vector_lines",
+        "raster_to_vector_points"
+      ],
+      "topScore": 143,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "生成凸包",
+      "group": "natural",
+      "expect": [
+        "minimum_convex_hull"
+      ],
+      "ranked": [
+        "minimum_convex_hull"
+      ],
+      "topScore": 157,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "简化要素几何",
+      "group": "natural",
+      "expect": [
+        "simplify_features"
+      ],
+      "ranked": [
+        "simplify_features",
+        "densify_features",
+        "feature_to_line",
+        "feature_vertices_to_points",
+        "find_identical"
+      ],
+      "topScore": 245,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "在多边形内生成随机点",
+      "group": "natural",
+      "expect": [
+        "random_points_in_polygon"
+      ],
+      "ranked": [
+        "random_points_in_polygon",
+        "polygonize",
+        "hexagonal_grid_from_vector_base",
+        "aggregate_polygons",
+        "classify_objects_random_forest"
+      ],
+      "topScore": 201,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "生成随机采样",
+      "group": "natural",
+      "expect": [
+        "random_sample"
+      ],
+      "ranked": [
+        "random_sample",
+        "classify_objects_random_forest",
+        "random_forest_classification",
+        "create_spatial_sampling_locations",
+        "random_points_in_polygon"
+      ],
+      "topScore": 232,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "把面转成线",
+      "group": "natural",
+      "expect": [
+        "polygons_to_lines"
+      ],
+      "ranked": [
+        "polygons_to_lines",
+        "vector_polygons_to_raster",
+        "polygons_to_segments",
+        "points_to_line",
+        "multipatch_to_mesh"
+      ],
+      "topScore": 165,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "按面积过滤面要素",
+      "group": "natural",
+      "expect": [
+        "filter_vector_features_by_area"
+      ],
+      "ranked": [
+        "filter_vector_features_by_area",
+        "filter_raster_features_by_area",
+        "feature_to_line",
+        "feature_vertices_to_points",
+        "densify_features"
+      ],
+      "topScore": 313,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "按面积过滤栅格斑块",
+      "group": "natural",
+      "expect": [
+        "filter_raster_features_by_area"
+      ],
+      "ranked": [
+        "filter_raster_features_by_area",
+        "filter_vector_features_by_area",
+        "clump",
+        "raster_area",
+        "buffer_raster"
+      ],
+      "topScore": 353,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "降低点密度",
+      "group": "natural",
+      "expect": [
+        "reduce_point_density"
+      ],
+      "ranked": [
+        "reduce_point_density",
+        "line_density",
+        "pycnophylactic_interpolation",
+        "edge_density",
+        "kernel_density_ratio"
+      ],
+      "topScore": 194,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "训练随机森林分类",
+      "group": "natural",
+      "expect": [
+        "random_forest_classification"
+      ],
+      "ranked": [
+        "random_forest_classification",
+        "random_forest_classification_predict",
+        "classify_objects_random_forest",
+        "random_forest_regression",
+        "random_forest_regression_predict"
+      ],
+      "topScore": 351,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "随机森林回归",
+      "group": "natural",
+      "expect": [
+        "random_forest_regression"
+      ],
+      "ranked": [
+        "random_forest_regression",
+        "random_forest_regression_predict",
+        "classify_objects_random_forest",
+        "random_forest_classification",
+        "random_forest_classification_predict"
+      ],
+      "topScore": 557,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "把 Excel 做成透视表",
+      "group": "natural",
+      "expect": [
+        "pivot_table"
+      ],
+      "ranked": [
+        "pivot_table"
+      ],
+      "topScore": 209,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "OCR 识别扫描地图",
+      "group": "natural",
+      "expect": [
+        "extract_scanned_features"
+      ],
+      "ranked": [
+        "extract_scanned_features",
+        "identify_narrow_polygons"
+      ],
+      "topScore": 157,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "用随机森林预测分类",
+      "group": "natural",
+      "expect": [
+        "random_forest_classification_predict"
+      ],
+      "ranked": [
+        "random_forest_classification_predict",
+        "random_forest_classification",
+        "classify_objects_random_forest",
+        "random_forest_regression_predict",
+        "random_forest_regression"
+      ],
+      "topScore": 320,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "点聚合",
+      "group": "alias",
+      "expect": [
+        "aggregate_points"
+      ],
+      "ranked": [
+        "aggregate_points",
+        "aggregate_polygons",
+        "aggregate_raster"
+      ],
+      "topScore": 462,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "面聚合",
+      "group": "alias",
+      "expect": [
+        "aggregate_polygons"
+      ],
+      "ranked": [
+        "aggregate_polygons",
+        "aggregate_points",
+        "aggregate_raster"
+      ],
+      "topScore": 462,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "集水区",
+      "group": "alias",
+      "expect": [
+        "basins"
+      ],
+      "ranked": [
+        "basins",
+        "watershed"
+      ],
+      "topScore": 410,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "凹包",
+      "group": "alias",
+      "expect": [
+        "concave_hull"
+      ],
+      "ranked": [
+        "concave_hull"
+      ],
+      "topScore": 577,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "标准差椭圆",
+      "group": "alias",
+      "expect": [
+        "directional_distribution"
+      ],
+      "ranked": [
+        "directional_distribution",
+        "standard_deviation_filter",
+        "standard_deviation_contrast_stretch",
+        "standard_deviation_overlay",
+        "multiscale_std_dev_normals"
+      ],
+      "topScore": 515,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "欧氏分配",
+      "group": "alias",
+      "expect": [
+        "euclidean_allocation"
+      ],
+      "ranked": [
+        "euclidean_allocation",
+        "euclidean_direction",
+        "euclidean_distance",
+        "cost_allocation",
+        "elevation_above_stream_euclidean"
+      ],
+      "topScore": 667,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "欧氏方向",
+      "group": "alias",
+      "expect": [
+        "euclidean_direction"
+      ],
+      "ranked": [
+        "euclidean_direction",
+        "euclidean_distance",
+        "directional_distribution",
+        "euclidean_allocation",
+        "central_feature"
+      ],
+      "topScore": 667,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "直线距离",
+      "group": "alias",
+      "expect": [
+        "euclidean_distance"
+      ],
+      "ranked": [
+        "euclidean_distance",
+        "path_distance",
+        "cost_distance",
+        "idw_interpolation",
+        "average_horizon_distance"
+      ],
+      "topScore": 495,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "消除碎面",
+      "group": "alias",
+      "expect": [
+        "eliminate_polygon_part"
+      ],
+      "ranked": [
+        "eliminate_polygon_part",
+        "eliminate_coincident_points",
+        "eliminate_polygons"
+      ],
+      "topScore": 525,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "点采样",
+      "group": "alias",
+      "expect": [
+        "extract_raster_values_at_points"
+      ],
+      "ranked": [
+        "extract_raster_values_at_points",
+        "create_spatial_sampling_locations",
+        "hexagonal_grid_from_vector_base",
+        "densify_sampling_network",
+        "resample"
+      ],
+      "topScore": 430,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "谷线提取",
+      "group": "alias",
+      "expect": [
+        "extract_valleys"
+      ],
+      "ranked": [
+        "extract_valleys",
+        "breakline_mapping"
+      ],
+      "topScore": 445,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "克里金",
+      "group": "alias",
+      "expect": [
+        "empirical_bayesian_kriging",
+        "ordinary_kriging",
+        "simple_kriging",
+        "local_kriging"
+      ],
+      "ranked": [
+        "empirical_bayesian_kriging",
+        "local_kriging",
+        "ordinary_kriging",
+        "simple_kriging",
+        "regression_kriging"
+      ],
+      "topScore": 596,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "局部克里金",
+      "group": "alias",
+      "expect": [
+        "local_kriging"
+      ],
+      "ranked": [
+        "local_kriging",
+        "empirical_bayesian_kriging",
+        "ordinary_kriging",
+        "simple_kriging",
+        "regression_kriging"
+      ],
+      "topScore": 606,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "经验贝叶斯克里金",
+      "group": "alias",
+      "expect": [
+        "empirical_bayesian_kriging"
+      ],
+      "ranked": [
+        "empirical_bayesian_kriging",
+        "ordinary_kriging",
+        "local_kriging",
+        "simple_kriging",
+        "regression_kriging"
+      ],
+      "topScore": 969,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "反距离权重",
+      "group": "alias",
+      "expect": [
+        "idw_interpolation"
+      ],
+      "ranked": [
+        "idw_interpolation",
+        "idw_3d",
+        "euclidean_distance",
+        "path_distance",
+        "cost_distance"
+      ],
+      "topScore": 774,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "恒等叠加",
+      "group": "alias",
+      "expect": [
+        "identity"
+      ],
+      "ranked": [
+        "identity",
+        "difference",
+        "symmetrical_difference",
+        "route_event_overlay",
+        "update"
+      ],
+      "topScore": 368,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "高斯滤波",
+      "group": "alias",
+      "expect": [
+        "gaussian_filter"
+      ],
+      "ranked": [
+        "gaussian_filter",
+        "fast_almost_gaussian_filter",
+        "laplacian_of_gaussians_filter",
+        "laplacian_filter",
+        "bilateral_filter"
+      ],
+      "topScore": 807,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "河网分级",
+      "group": "alias",
+      "expect": [
+        "hack_stream_order"
+      ],
+      "ranked": [
+        "hack_stream_order",
+        "horton_stream_order",
+        "strahler_stream_order",
+        "raster_streams_to_vector",
+        "extract_streams"
+      ],
+      "topScore": 495,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "直方图均衡",
+      "group": "alias",
+      "expect": [
+        "histogram_equalization"
+      ],
+      "ranked": [
+        "histogram_equalization",
+        "histogram_matching",
+        "attribute_histogram",
+        "histogram_matching_two_images",
+        "raster_histogram"
+      ],
+      "topScore": 795,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "查重",
+      "group": "alias",
+      "expect": [
+        "find_identical"
+      ],
+      "ranked": [
+        "find_identical"
+      ],
+      "topScore": 340,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "焦点统计",
+      "group": "alias",
+      "expect": [
+        "focal_statistics"
+      ],
+      "ranked": [
+        "focal_statistics",
+        "point_statistics",
+        "focal_flow"
+      ],
+      "topScore": 595,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "顶点整合",
+      "group": "alias",
+      "expect": [
+        "integrate"
+      ],
+      "ranked": [
+        "integrate",
+        "feature_vertices_to_points"
+      ],
+      "topScore": 440,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "NoData掩膜",
+      "group": "alias",
+      "expect": [
+        "is_nodata"
+      ],
+      "ranked": [
+        "is_nodata",
+        "od_sensitivity_analysis",
+        "unsharp_masking",
+        "cul_de_sac_masks",
+        "multimodal_od_cost_matrix"
+      ],
+      "topScore": 490,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "李滤波",
+      "group": "alias",
+      "expect": [
+        "lee_filter"
+      ],
+      "ranked": [
+        "lee_filter",
+        "anisotropic_diffusion_filter",
+        "bilateral_filter",
+        "conservative_smoothing_filter",
+        "edge_preserving_mean_filter"
+      ],
+      "topScore": 340,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "线密度",
+      "group": "alias",
+      "expect": [
+        "line_density"
+      ],
+      "ranked": [
+        "line_density",
+        "pycnophylactic_interpolation",
+        "edge_density",
+        "kernel_density_ratio",
+        "reduce_point_density"
+      ],
+      "topScore": 722,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "众数滤波",
+      "group": "alias",
+      "expect": [
+        "majority_filter"
+      ],
+      "ranked": [
+        "majority_filter",
+        "median_filter",
+        "anisotropic_diffusion_filter",
+        "bilateral_filter",
+        "conservative_smoothing_filter"
+      ],
+      "topScore": 701,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "中值滤波",
+      "group": "alias",
+      "expect": [
+        "median_filter"
+      ],
+      "ranked": [
+        "median_filter",
+        "high_pass_median_filter",
+        "mean_filter",
+        "edge_preserving_mean_filter",
+        "majority_filter"
+      ],
+      "topScore": 821,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "中位中心",
+      "group": "alias",
+      "expect": [
+        "median_center"
+      ],
+      "ranked": [
+        "median_center",
+        "central_feature",
+        "medoid",
+        "centroid_vector",
+        "collapse_dual_lines_to_centerline"
+      ],
+      "topScore": 534,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "均值滤波",
+      "group": "alias",
+      "expect": [
+        "mean_filter"
+      ],
+      "ranked": [
+        "mean_filter",
+        "edge_preserving_mean_filter",
+        "k_nearest_mean_filter",
+        "non_local_means_filter",
+        "median_filter"
+      ],
+      "topScore": 701,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "拉普拉斯滤波",
+      "group": "alias",
+      "expect": [
+        "laplacian_filter"
+      ],
+      "ranked": [
+        "laplacian_filter",
+        "laplacian_of_gaussians_filter",
+        "fast_almost_gaussian_filter",
+        "gaussian_filter",
+        "bilateral_filter"
+      ],
+      "topScore": 832,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "合并图层",
+      "group": "alias",
+      "expect": [
+        "merge_vectors"
+      ],
+      "ranked": [
+        "merge_vectors",
+        "union",
+        "dissolve",
+        "merge_divided_roads",
+        "merge_line_segments"
+      ],
+      "topScore": 462,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "最小外包框",
+      "group": "alias",
+      "expect": [
+        "minimum_bounding_box"
+      ],
+      "ranked": [
+        "minimum_bounding_box",
+        "minimum_bounding_circle",
+        "min_max_contrast_stretch",
+        "least_cost_path_pipeline",
+        "elev_relative_to_min_max"
+      ],
+      "topScore": 532,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "最小外包圆",
+      "group": "alias",
+      "expect": [
+        "minimum_bounding_circle"
+      ],
+      "ranked": [
+        "minimum_bounding_circle",
+        "minimum_bounding_box",
+        "min_max_contrast_stretch",
+        "least_cost_path_pipeline",
+        "elev_relative_to_min_max"
+      ],
+      "topScore": 419,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "栅格镶嵌",
+      "group": "alias",
+      "expect": [
+        "mosaic"
+      ],
+      "ranked": [
+        "mosaic",
+        "buffer_raster",
+        "clump",
+        "raster_to_vector_lines",
+        "raster_to_vector_points"
+      ],
+      "topScore": 553,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "多部件转单部件",
+      "group": "alias",
+      "expect": [
+        "multipart_to_singlepart"
+      ],
+      "ranked": [
+        "multipart_to_singlepart",
+        "singlepart_to_multipart",
+        "eliminate_polygon_part"
+      ],
+      "topScore": 931,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "服务区",
+      "group": "alias",
+      "expect": [
+        "network_service_area"
+      ],
+      "ranked": [
+        "network_service_area"
+      ],
+      "topScore": 575,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "邻域填充",
+      "group": "alias",
+      "expect": [
+        "nibble"
+      ],
+      "ranked": [
+        "nibble",
+        "focal_statistics",
+        "fill_missing_data",
+        "fill_missing_values",
+        "neighborhood_summary_statistics"
+      ],
+      "topScore": 787,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "邻近分析",
+      "group": "alias",
+      "expect": [
+        "near"
+      ],
+      "ranked": [
+        "near",
+        "generate_near_table",
+        "group_by_proximity",
+        "summarize_nearby",
+        "trace_proximity_events"
+      ],
+      "topScore": 405,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "开运算",
+      "group": "alias",
+      "expect": [
+        "opening"
+      ],
+      "ranked": [
+        "opening",
+        "closing",
+        "aggregate_polygons",
+        "conditional_evaluation"
+      ],
+      "topScore": 616,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "闭运算",
+      "group": "alias",
+      "expect": [
+        "closing"
+      ],
+      "ranked": [
+        "closing",
+        "aggregate_polygons",
+        "opening",
+        "conditional_evaluation"
+      ],
+      "topScore": 616,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "栅格缓冲",
+      "group": "alias",
+      "expect": [
+        "buffer_raster"
+      ],
+      "ranked": [
+        "buffer_raster",
+        "buffer_vector",
+        "clump",
+        "raster_to_vector_lines",
+        "raster_to_vector_points"
+      ],
+      "topScore": 733,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "斑块",
+      "group": "alias",
+      "expect": [
+        "clump"
+      ],
+      "ranked": [
+        "clump",
+        "patch_orientation",
+        "find_patch_edge_cells",
+        "sieve"
+      ],
+      "topScore": 227,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "等值线",
+      "group": "alias",
+      "expect": [
+        "contours_from_raster"
+      ],
+      "ranked": [
+        "contours_from_raster",
+        "contour_list",
+        "contours_from_points",
+        "voxel_isosurface"
+      ],
+      "topScore": 410,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "彩色合成",
+      "group": "alias",
+      "expect": [
+        "create_colour_composite"
+      ],
+      "ranked": [
+        "create_colour_composite",
+        "split_colour_composite",
+        "composite_bands"
+      ],
+      "topScore": 548,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "成本距离",
+      "group": "alias",
+      "expect": [
+        "cost_distance"
+      ],
+      "ranked": [
+        "cost_distance",
+        "path_distance",
+        "cost_allocation",
+        "cost_back_link",
+        "cost_connectivity"
+      ],
+      "topScore": 813,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "成本路径",
+      "group": "alias",
+      "expect": [
+        "cost_pathway"
+      ],
+      "ranked": [
+        "cost_pathway",
+        "least_cost_path_pipeline",
+        "path_distance",
+        "cost_back_link",
+        "cost_connectivity"
+      ],
+      "topScore": 821,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "成本廊道",
+      "group": "alias",
+      "expect": [
+        "corridor"
+      ],
+      "ranked": [
+        "corridor",
+        "linkage_mapper_corridor",
+        "cost_allocation",
+        "cost_back_link",
+        "cost_connectivity"
+      ],
+      "topScore": 601,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "成本连通",
+      "group": "alias",
+      "expect": [
+        "cost_connectivity"
+      ],
+      "ranked": [
+        "cost_connectivity",
+        "cost_allocation",
+        "cost_back_link",
+        "cost_distance",
+        "cost_pathway"
+      ],
+      "topScore": 715,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "成本回溯",
+      "group": "alias",
+      "expect": [
+        "cost_back_link"
+      ],
+      "ranked": [
+        "cost_back_link",
+        "cost_pathway",
+        "cost_allocation",
+        "cost_connectivity",
+        "cost_distance"
+      ],
+      "topScore": 602,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "变化矢量",
+      "group": "alias",
+      "expect": [
+        "change_vector_analysis"
+      ],
+      "ranked": [
+        "change_vector_analysis",
+        "centroid_vector",
+        "vector_points_to_raster",
+        "vector_polygons_to_raster",
+        "vector_lines_to_raster"
+      ],
+      "topScore": 390,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "要素加密",
+      "group": "alias",
+      "expect": [
+        "densify_features"
+      ],
+      "ranked": [
+        "densify_features",
+        "feature_to_line",
+        "feature_vertices_to_points",
+        "central_feature",
+        "find_identical"
+      ],
+      "topScore": 780,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "差集",
+      "group": "alias",
+      "expect": [
+        "difference"
+      ],
+      "ranked": [
+        "difference",
+        "difference_3d"
+      ],
+      "topScore": 450,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "边缘保持均值",
+      "group": "alias",
+      "expect": [
+        "edge_preserving_mean_filter"
+      ],
+      "ranked": [
+        "edge_preserving_mean_filter",
+        "anisotropic_diffusion_filter",
+        "bilateral_filter",
+        "mean_filter",
+        "central_feature"
+      ],
+      "topScore": 453,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "双边滤波",
+      "group": "alias",
+      "expect": [
+        "bilateral_filter"
+      ],
+      "ranked": [
+        "bilateral_filter",
+        "high_pass_bilateral_filter",
+        "median_filter",
+        "anisotropic_diffusion_filter",
+        "conservative_smoothing_filter"
+      ],
+      "topScore": 687,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "边界清理",
+      "group": "alias",
+      "expect": [
+        "boundary_clean"
+      ],
+      "ranked": [
+        "boundary_clean",
+        "boundary_shape_complexity",
+        "majority_filter",
+        "clean_vector",
+        "objects_boundary_refinement_pro"
+      ],
+      "topScore": 688,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "对比度均衡",
+      "group": "alias",
+      "expect": [
+        "balance_contrast_enhancement"
+      ],
+      "ranked": [
+        "balance_contrast_enhancement",
+        "histogram_equalization",
+        "min_max_contrast_stretch",
+        "gaussian_contrast_stretch",
+        "percentage_contrast_stretch"
+      ],
+      "topScore": 461,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "洼地填充",
+      "group": "alias",
+      "expect": [
+        "fill_depressions"
+      ],
+      "ranked": [
+        "fill_depressions",
+        "fill_depressions_planchon_and_darboux",
+        "fill_depressions_wang_and_liu",
+        "sink",
+        "nibble"
+      ],
+      "topScore": 482,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "坡向",
+      "group": "alias",
+      "expect": [
+        "aspect"
+      ],
+      "ranked": [
+        "aspect",
+        "circular_variance_of_aspect",
+        "relative_aspect",
+        "slope_vs_aspect_plot"
+      ],
+      "topScore": 357,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "山体阴影",
+      "group": "alias",
+      "expect": [
+        "hillshade"
+      ],
+      "ranked": [
+        "hillshade",
+        "hypsometrically_tinted_hillshade",
+        "multidirectional_hillshade",
+        "shadow_animation",
+        "shadow_image"
+      ],
+      "topScore": 483,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "重投影",
+      "group": "alias",
+      "expect": [
+        "reproject_vector"
+      ],
+      "ranked": [
+        "reproject_vector",
+        "reproject_raster",
+        "assign_projection_vector",
+        "assign_projection_raster"
+      ],
+      "topScore": 330,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "裁剪",
+      "group": "alias",
+      "expect": [
+        "clip"
+      ],
+      "ranked": [
+        "clip",
+        "clip_raster_to_polygon",
+        "clip_layers_to_aoi",
+        "line_polygon_clip"
+      ],
+      "topScore": 357,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "相交",
+      "group": "alias",
+      "expect": [
+        "intersect"
+      ],
+      "ranked": [
+        "intersect",
+        "intersecting_layers_masks",
+        "intersect_3d",
+        "intersect_3d_line_with_surface",
+        "line_intersections"
+      ],
+      "topScore": 350,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "对称差",
+      "group": "alias",
+      "expect": [
+        "symmetrical_difference"
+      ],
+      "ranked": [
+        "symmetrical_difference"
+      ],
+      "topScore": 715,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "擦除",
+      "group": "alias",
+      "expect": [
+        "erase"
+      ],
+      "ranked": [
+        "erase",
+        "erase_polygon_from_raster",
+        "difference"
+      ],
+      "topScore": 357,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "空间连接",
+      "group": "alias",
+      "expect": [
+        "spatial_join"
+      ],
+      "ranked": [
+        "spatial_join",
+        "spatial_eigenvector_filtering",
+        "spatially_constrained_multivariate_clustering",
+        "spatial_error_regression",
+        "spatial_lag_regression"
+      ],
+      "topScore": 469,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "分区统计",
+      "group": "alias",
+      "expect": [
+        "zonal_statistics"
+      ],
+      "ranked": [
+        "zonal_statistics",
+        "spatial_association_between_zones",
+        "zonal_characterization",
+        "zonal_fill",
+        "zonal_geometry"
+      ],
+      "topScore": 547,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "多边形化",
+      "group": "alias",
+      "expect": [
+        "polygonize"
+      ],
+      "ranked": [
+        "polygonize",
+        "hexagonal_grid_from_vector_base",
+        "aggregate_polygons",
+        "hexagonal_grid_from_raster_base",
+        "vector_hex_binning"
+      ],
+      "topScore": 335,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "流向",
+      "group": "alias",
+      "expect": [
+        "d8_pointer"
+      ],
+      "ranked": [
+        "d8_pointer",
+        "dinf_pointer",
+        "qin_flow_accumulation",
+        "quinn_flow_accumulation",
+        "validate_flow_direction"
+      ],
+      "topScore": 232,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "汇流累积",
+      "group": "alias",
+      "expect": [
+        "d8_flow_accum"
+      ],
+      "ranked": [
+        "d8_flow_accum",
+        "flow_accum_full_workflow",
+        "dinf_flow_accum",
+        "fd8_flow_accum",
+        "mdinf_flow_accum"
+      ],
+      "topScore": 356,
+      "top1": true,
+      "top5": true,
+      "reciprocalRank": 1,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "帮我预测房价",
+      "group": "gap",
+      "expect": [],
+      "ranked": [
+        "forest_based_forecast",
+        "predict_using_trend_raster",
+        "presence_only_prediction",
+        "random_forest_classification_predict",
+        "random_forest_regression_predict"
+      ],
+      "topScore": 37,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "下载 Google 卫星底图",
+      "group": "gap",
+      "expect": [],
+      "ranked": [],
+      "topScore": 0,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "连接 PostGIS 数据库",
+      "group": "gap",
+      "expect": [],
+      "ranked": [],
+      "topScore": 0,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "做 3D 城市建模",
+      "group": "gap",
+      "expect": [],
+      "ranked": [],
+      "topScore": 0,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "实时路况导航",
+      "group": "gap",
+      "expect": [],
+      "ranked": [],
+      "topScore": 0,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "查询人口普查 API",
+      "group": "gap",
+      "expect": [],
+      "ranked": [],
+      "topScore": 0,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "发送一封邮件",
+      "group": "gap",
+      "expect": [],
+      "ranked": [],
+      "topScore": 0,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "写一份项目周报",
+      "group": "gap",
+      "expect": [],
+      "ranked": [],
+      "topScore": 0,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "编辑 CAD 图纸",
+      "group": "gap",
+      "expect": [],
+      "ranked": [],
+      "topScore": 0,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "生成 PDF 地图集",
+      "group": "gap",
+      "expect": [],
+      "ranked": [],
+      "topScore": 0,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "语音播报分析结果",
+      "group": "gap",
+      "expect": [],
+      "ranked": [],
+      "topScore": 0,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "爬取网页上的表格",
+      "group": "gap",
+      "expect": [],
+      "ranked": [
+        "route_event_lines_from_table",
+        "route_event_points_from_table"
+      ],
+      "topScore": 30,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "天气预报",
+      "group": "gap",
+      "expect": [],
+      "ranked": [],
+      "topScore": 0,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "画股票K线图",
+      "group": "gap",
+      "expect": [],
+      "ranked": [],
+      "topScore": 0,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "剪辑一段视频",
+      "group": "gap",
+      "expect": [],
+      "ranked": [],
+      "topScore": 0,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "翻译这份文档",
+      "group": "gap",
+      "expect": [],
+      "ranked": [],
+      "topScore": 0,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "人脸识别",
+      "group": "gap",
+      "expect": [],
+      "ranked": [
+        "identify_narrow_polygons"
+      ],
+      "topScore": 45,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": true
+    },
+    {
+      "query": "实时 GPS 定位跟踪",
+      "group": "gap",
+      "expect": [],
+      "ranked": [],
+      "topScore": 0,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "无人机航线规划",
+      "group": "gap",
+      "expect": [],
+      "ranked": [
+        "least_cost_path_pipeline"
+      ],
+      "topScore": 35,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "点云分类",
+      "group": "gap",
+      "expect": [],
+      "ranked": [
+        "classification_accuracy_assessment",
+        "generalize_classified_raster",
+        "k_means_clustering",
+        "pennock_landform_classification",
+        "fuzzy_knn_classification"
+      ],
+      "topScore": 76,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": true
+    },
+    {
+      "query": "调用 ChatGPT 写文案",
+      "group": "gap",
+      "expect": [],
+      "ranked": [],
+      "topScore": 0,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    },
+    {
+      "query": "建立一个 Web 地图服务",
+      "group": "gap",
+      "expect": [],
+      "ranked": [],
+      "topScore": 0,
+      "top1": false,
+      "top5": false,
+      "reciprocalRank": 0,
+      "confidentWhenGap": false
+    }
+  ]
+}

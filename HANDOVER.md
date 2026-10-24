@@ -2,6 +2,8 @@
 
 > **2026-10-24 起：所有开发以 [docs/MASTER_ROADMAP.md](docs/MASTER_ROADMAP.md) 为最高依据**——阶段与 Ticket 顺序（T-001 起）、架构契约、验收门槛、明确不做清单。本文件以下内容为历史交接记录。
 
+> 2026-10-24 阶段 2（T-005…T-009）完成：检索质量用 207 条标注实测（自然句 Top-1 87.1%/Top-5 100%、别名 100%、gap 误召回 9.1%，见 `docs/SEARCH_QUALITY.md` 与 `docs/baselines/stage2/search-eval.json`）；五操作契约（buffer/reproject/clip/dissolve/zonal_statistics）与 `OPERATION_SUPPORT` 能力矩阵落地，不支持的操作在计划阶段带原因与降级路径拒绝；8 张方法卡（`src/lib/methods.ts` + `docs/METHODS.md`）与工具目录分开检索；**浏览器 `dissolve` 确认不可用**（D1 脏 FGB 投影 + D2 `vector_info` panic），三种绕行方案均被证据否决并回退，基线保留 6/6 ERROR。回归：browser 68/69（Chrome 环境缺口）、agent 23/23、engine 全通过、contracts 11/11、methods 4/4。完整证据与 NOT_TESTED 见 `docs/STAGE2_REPORT.md`。
+
 > 2026-10-24 阶段 1（T-002/T-003/T-004 先行）：共享契约 `shared/contracts`（`LayerRef/OperationSpec/ProviderCapability/ExecutionRun/Validation`，版本 1）落地，浏览器与桌面 Agent 共用同一 `planOperation()`；两端新增只读 `inspect_layers`（真实存储位置、sha256、字段空值、栅格 NoData）；双引擎 buffer/reproject 对照 4 PASS / 2 DIVERGENT（dissolve 分组语义、负距离为空），见 `docs/CROSS_ENGINE_SEMANTICS.md`；桌面 Agent 通过 `wasm_run`（子进程 WASI）首次可直接执行 WASM 工具，端到端把 WASM 结果变成桌面图层（`npm run wasm:spike`）。证据与 NOT_TESTED 见 `docs/STAGE1_CONTRACTS_AND_WASM.md`。
 
 > 2026-10-24 阶段 0（T-001）完成：工具目录对账 + 30 项可复现基线落地。新增 `scripts/export_engine_catalog.py`（FastMCP 真实内省）、`scripts/catalog-audit.ts`（各端可见性/同名对账）、`scripts/run-baseline.ts`（每任务独立进程 + 程序化断言 + 产物 sha256）、`tests/baseline/tasks.json`（10+12+8）与合成 fixtures。首轮结果 28 PASS / 2 ERROR，并定位 3 个真实缺陷：`dissolve` 继承退化 `snap_tolerance` 在投影 CRS 下产出损坏 FGB（D1）、`vector_info` 会在部分 FGB 上 panic 并毒化 WASM 实例（D2）、`buffer(dissolve:true)` 可组合性不清（D3）。完整证据与 NOT_TESTED 清单见 `docs/BASELINE_STAGE0.md`，目录矩阵见 `docs/CATALOG_AUDIT.md`。复现：`npm run audit:catalog`、`npm run baseline`。

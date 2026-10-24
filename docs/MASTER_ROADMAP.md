@@ -298,6 +298,19 @@ interface ArtifactManifest {
 
 ## 4. 分阶段研发路线：工作清单和验收门槛
 
+> **执行进度（2026-10-24）**
+>
+> | 阶段 | 状态 | 证据 |
+> |---|---|---|
+> | 0｜测清现状 | ✅ 完成 | [BASELINE_STAGE0.md](BASELINE_STAGE0.md)、[CATALOG_AUDIT.md](CATALOG_AUDIT.md)、`docs/baselines/stage0/` |
+> | 1｜公共契约 + 桌面 WASM | ✅ 完成 | [STAGE1_CONTRACTS_AND_WASM.md](STAGE1_CONTRACTS_AND_WASM.md)、commit `4cbf212` |
+> | 2｜检索、方法、五操作 | ✅ 完成（缺口已记录） | [STAGE2_REPORT.md](STAGE2_REPORT.md)、[SEARCH_QUALITY.md](SEARCH_QUALITY.md)、[METHODS.md](METHODS.md)、[CROSS_ENGINE_SEMANTICS.md](CROSS_ENGINE_SEMANTICS.md) |
+> | 3｜自适应调度与审计 | ⏳ 未开始 | — |
+> | 4｜系统对照评测 + 手机 | ⏳ 未开始 | — |
+> | 5｜完整价值任务 | ⏳ 未开始 | — |
+>
+> 阶段 2 的"完成"指验收门槛满足：207 条标注检索、五操作覆盖/缺口矩阵、8 张方法卡、CRS/单位前置校验；**不代表** `gis.dissolve`（浏览器端）与 `gis.zonal_statistics` 可用——两者在 [STAGE2_REPORT.md](STAGE2_REPORT.md) 与 `OPERATION_SUPPORT` 中标为不支持并给出降级路径。
+
 ### 阶段 0｜测清现状，冻结可复现基线（P0）
 
 **任务**
