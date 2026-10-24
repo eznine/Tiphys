@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-24T11:57:43.638Z",
+  "generated_at": "2026-10-24T13:11:29.446Z",
   "generated_by": "scripts/catalog-audit.ts",
   "sources": {
     "python": "engine/tools.py → FastMCP.list_tools() (scripts/export_engine_catalog.py)",
@@ -7,21 +7,21 @@
     "wiring": "src/lib/browser/engine.ts string-literal dispatch scan"
   },
   "catalog": {
-    "shell": 40,
-    "initial": 40,
+    "shell": 43,
+    "initial": 43,
     "wasm": 958,
-    "total": 998,
+    "total": 1001,
     "hydrated": true
   },
   "counts": {
     "python_mcp": 35,
-    "browser_shell": 40,
+    "browser_shell": 43,
     "browser_plugins": 5,
     "wasm": 958,
-    "merged_browser_catalog": 998,
+    "merged_browser_catalog": 1001,
     "searchable_wasm": 958,
     "desktop_agent_direct": 36,
-    "browser_agent_direct": 43
+    "browser_agent_direct": 46
   },
   "reconciliation": {
     "common": [
@@ -67,9 +67,12 @@
       "hydrology_flow_pipeline",
       "least_cost_path_pipeline",
       "linkage_mapper_corridor",
+      "plan_get",
+      "plan_list",
+      "run_plan",
       "whitebox_extra"
     ],
-    "browser_shell_wired": 40,
+    "browser_shell_wired": 43,
     "browser_shell_unwired": [],
     "plugins": [
       "clip_layers_to_aoi",
@@ -339,11 +342,11 @@
       ]
     },
     "desktop-toolbox": {
-      "count": 998,
+      "count": 1001,
       "detail": "ToolPanel renders python + every WASM schema + plugin tools inside the Tauri WebView."
     },
     "browser-agent": {
-      "count": 43,
+      "count": 46,
       "detail": "Direct tools = shell catalog (python-name parity + plugins); WASM only via search_browser_tools/run_browser_tool.",
       "names": [
         "add_data",
@@ -373,10 +376,13 @@
         "list_supported_formats",
         "open_attribute_table",
         "ping",
+        "plan_get",
+        "plan_list",
         "remove_layer",
         "rename_layer",
         "reorder_layers",
         "reproject",
+        "run_plan",
         "select_by_attributes",
         "select_by_location",
         "set_layer_labels",
@@ -392,7 +398,7 @@
       ]
     },
     "browser-toolbox": {
-      "count": 998,
+      "count": 1001,
       "detail": "Full hydrated catalog after WASM hydration."
     },
     "browser-search": {

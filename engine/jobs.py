@@ -32,11 +32,46 @@ class Job:
     message: str = ""
     result: dict[str, Any] | None = None
     error: str | None = None
+    # Unified cross-engine error taxonomy (shared/contracts ErrorClass, frozen in stage 1).
+    error_class: str | None = None
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
     _cancel: threading.Event = field(default_factory=threading.Event)
     _future: Future | None = field(default=None, repr=False)
     _committed: bool = False
+
+
+ERROR_CLASSES = (
+    "INPUT_ERROR",
+    "UNSUPPORTED",
+    "RESOURCE_LIMIT",
+    "EXECUTION_ERROR",
+    "VALIDATION_ERROR",
+    "USER_CANCELLED",
+)
+
+
+def classify_error(message: str, *, cancelled: bool = False, timeout: bool = False) -> str:
+    """Map an engine failure onto the taxonomy shared with the browser executor.
+
+    Mirrors classifyError() in shared/plans.ts; keep both in sync when editing.
+    """
+    if cancelled:
+        return "USER_CANCELLED"
+    if timeout:
+        return "RESOURCE_LIMIT"
+    text = message or ""
+    if any(k in text for k in ("已取消", "cancelled", "canceled", "abort")) or "abort" in text.lower():
+        return "USER_CANCELLED"
+    if any(k in text.lower() for k in ("timeout", "超时", "上限", "内存", "out of memory", "limit exceeded")):
+        return "RESOURCE_LIMIT"
+    if "验收" in text or "validation" in text.lower():
+        return "VALIDATION_ERROR"
+    if any(k in text for k in ("找不到图层", "找不到指定字段", "不合法", "无效", "必须是", "只适用", "请提供", "距离必须", "坐标系", "EPSG", "参数", "掩膜")):
+        return "INPUT_ERROR"
+    if any(k in text for k in ("不支持", "降级")) or "unsupported" in text.lower():
+        return "UNSUPPORTED"
+    return "EXECUTION_ERROR"
 
 
 class JobRegistry:
@@ -146,10 +181,12 @@ class JobRegistry:
             except InterruptedError:
                 job.status = "cancelled"
                 job.message = "cancelled"
+                job.error_class = "USER_CANCELLED"
             except Exception as e:
                 job.status = "failed"
                 job.error = str(e)
                 job.message = str(e)
+                job.error_class = classify_error(str(e))
             job.updated_at = time.time()
             with self._lock:
                 self._save()
@@ -183,6 +220,7 @@ class JobRegistry:
                 "message": job.message,
                 "result": job.result,
                 "error": job.error,
+                "error_class": job.error_class,
             }
 
     def cancel(self, job_id: str) -> dict[str, Any]:

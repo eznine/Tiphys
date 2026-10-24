@@ -2309,10 +2309,10 @@ test("field_statistics reports numeric moments or top values with null counts", 
 
 test("catalog union, dedupe, L1 folders and every WASM L2 translation", async () => {
   await ensureBrowserCatalog();
-  assert.equal(browserCatalog.length, 998, "35 shell/common tools + 958 WASM schemas + 5 plugin tools");
+  assert.equal(browserCatalog.length, 1001, "38 shell/common tools (stage 3: +run_plan/plan_list/plan_get) + 958 WASM schemas + 5 plugin tools");
   assert.equal(new Set(browserCatalog.map(t => t.name)).size, browserCatalog.length);
   const desktop = desktopToolCatalog([{ name: "buffer", category: "邻近分析", parameters: { properties: {} } }]);
-  assert.equal(desktop.length, 998, "desktop Python + WASM + shell-only stubs");
+  assert.equal(desktop.length, 1001, "desktop Python + WASM + shell-only stubs");
   assert.equal(new Set(desktop.map(t => t.name)).size, desktop.length);
   assert.ok(desktop.some(t => t.name === "gee_search_collection"));
   const l1 = new Set(browserCatalog.map(zhToolL1));
@@ -2444,7 +2444,7 @@ test("catalog shell is immediately usable and async hydration reaches the honest
   assert.ok(shellToolCatalog.some(tool => tool.name === "gee_auth_status"));
   assert.ok(!shellToolCatalog.some(tool => tool.name.startsWith("wasm_")));
   assert.equal(state.wasm, 958);
-  assert.equal(state.total, 998);
+  assert.equal(state.total, 1001);
   assert.equal(state.hydrated, true);
 });
 
@@ -2571,4 +2571,34 @@ test("inspect_layers reports real storage, digest and raster facts instead of th
   assert.equal(inspected.layer.raster.bands, 1);
   assert.deepEqual(inspected.fields, []);
   assert.match(inspected.layer.data.sha256, /^sha256:[0-9a-f]{64}$/);
+});
+
+test("run_plan executes through the engine job without nested-job deadlock and keeps audit records", async () => {
+  const input = await sample("plan-e2e");
+  const result = await finished("run_plan", { plan: {
+    goal: "run_plan 引擎路径回归",
+    steps: [
+      { id: "buf", kind: "operation", spec: { operation: "gis.buffer", version: 1, input: input.id, params: { distance: 300, units: "meters" } },
+        acceptance: [{ type: "feature_count", op: "eq", value: 5 }] },
+      { id: "stat", kind: "tool", tool: "field_statistics", args: { layer: "@buf", field: "id" }, dependsOn: ["buf"],
+        acceptance: [{ type: "field_value", field: "count", op: "eq", value: 5 }] },
+    ],
+  } });
+  assert.equal(result.ok, true, result.headline);
+  assert.equal(result.status, "completed");
+  assert.equal(result.steps.length, 2);
+  assert.ok(result.steps.every((step: any) => step.phase === "pass"));
+  assert.ok(result.deliverables.length >= 1);
+  const listed = await runBrowserTool("plan_list", {});
+  assert.ok(listed.runs.some((run: any) => run.runId === result.run_id));
+  const got = await runBrowserTool("plan_get", { run_id: result.run_id });
+  assert.equal(got.runId, result.run_id);
+  assert.ok(got.steps[0].outputLayer.sha256, "run record carries the output digest for recomputation");
+  const rejected = await finished("run_plan", { plan: { goal: "拒绝路径", steps: [
+    { id: "d", kind: "operation", spec: { operation: "gis.dissolve", version: 1, input: input.id, params: {} } },
+  ] } });
+  assert.equal(rejected.ok, false);
+  assert.equal(rejected.status, "failed");
+  assert.equal(rejected.blocked_at.errorClass, "UNSUPPORTED");
+  assert.match(rejected.blocked_at.message, /dissolve/);
 });

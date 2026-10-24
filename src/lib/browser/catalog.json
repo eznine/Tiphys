@@ -1090,5 +1090,67 @@
   "annotations": {
     "readOnlyHint": true
   }
-}
+},
+{
+    "name": "run_plan",
+    "description": "按确定性计划执行多步 GIS 任务（阶段 3 调度器）。plan 含 goal 与 3-6 个步骤：每步是契约操作（gis.buffer/gis.reproject/gis.clip/gis.dissolve，参数见 OPERATION_SUPPORT）或浏览器工具调用，步骤之间用 \"@stepId\" 引用上游输出图层，可给每步声明验收断言（acceptance）。计划先整体校验：不支持的操作在执行前就被拒绝并给出降级方案。删除/导出类步骤必须先获得用户同意，把步骤 id 放进 plan.confirmations。返回逐步入账的运行记录（run_id、验收结果、可交付图层、失败节点与下一步建议）；用 plan_get 复查，用 resume_of 从断点恢复。",
+    "category": "任务编排",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "plan": {
+          "type": "object",
+          "description": "计划对象：goal + steps[{id, kind: operation|tool, spec|tool+args, dependsOn?, acceptance?}] + confirmations?",
+          "additionalProperties": true
+        },
+        "resume_of": {
+          "type": "string",
+          "description": "要恢复的历史 run_id；已成功步骤直接复用不重跑"
+        },
+        "step_timeout_ms": {
+          "type": "integer",
+          "minimum": 100,
+          "description": "每步墙钟预算（毫秒），超时按 RESOURCE_LIMIT 中止"
+        }
+      },
+      "required": [
+        "plan"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "plan_list",
+    "description": "列出最近的计划运行记录（run_id、目标、状态、阻塞节点），只读。",
+    "category": "任务编排",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true
+    }
+  },
+  {
+    "name": "plan_get",
+    "description": "读取一条计划运行的完整审计记录：逐步参数、输入摘要、输出图层 sha256、验收明细、错误分类与诚实结论。可据此独立复算。",
+    "category": "任务编排",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "description": "run_plan 返回的 run_id"
+        }
+      },
+      "required": [
+        "run_id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true
+    }
+  }
 ]

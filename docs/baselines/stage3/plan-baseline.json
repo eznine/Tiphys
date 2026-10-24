@@ -1,0 +1,1907 @@
+{
+  "generated_at": "2026-10-24T13:26:10.727Z",
+  "mode": "plan-executor",
+  "tasks_file": {
+    "path": "tests\\plans\\plan-tasks.json",
+    "sha256": "ed839a41a146827ec791c3494d7ef62bf008ba920cc4d1038c477af635362d97"
+  },
+  "totals": {
+    "tasks": 11,
+    "passed": 11,
+    "failed": 0,
+    "runs": 12,
+    "completed": 7,
+    "failed_runs": 5,
+    "cancelled": 0,
+    "honest_rejections": 3
+  },
+  "audit": {
+    "ok": true,
+    "violations": []
+  },
+  "results": [
+    {
+      "task": "P01",
+      "title": "点缓冲服务圈与字段统计",
+      "runs": [
+        {
+          "runId": "plan_P01_1",
+          "status": "completed",
+          "resumedFrom": null,
+          "durationMs": 126
+        }
+      ],
+      "expects": [
+        {
+          "name": "run1.status",
+          "ok": true,
+          "detail": "status=completed（要求 completed）"
+        },
+        {
+          "name": "run1.deliverablesMin",
+          "ok": true,
+          "detail": "deliverables=1（≥ 1）"
+        },
+        {
+          "name": "run1.acceptanceAllOk",
+          "ok": true,
+          "detail": "全部验收通过"
+        },
+        {
+          "name": "recompute.plan_P01_1.buf",
+          "ok": true,
+          "detail": "图层 lyr_b2934c11ce2046738c4e3c0bfc863cda 摘要复验一致"
+        }
+      ],
+      "fatal": null
+    },
+    {
+      "task": "P02",
+      "title": "跨投影缓冲链与独立半径复核",
+      "runs": [
+        {
+          "runId": "plan_P02_1",
+          "status": "completed",
+          "resumedFrom": null,
+          "durationMs": 226
+        }
+      ],
+      "expects": [
+        {
+          "name": "run1.status",
+          "ok": true,
+          "detail": "status=completed（要求 completed）"
+        },
+        {
+          "name": "run1.deliverablesMin",
+          "ok": true,
+          "detail": "deliverables=3（≥ 1）"
+        },
+        {
+          "name": "run1.acceptanceAllOk",
+          "ok": true,
+          "detail": "全部验收通过"
+        },
+        {
+          "name": "recompute.plan_P02_1.rp1",
+          "ok": true,
+          "detail": "图层 lyr_675bd289ab9441d4a4561a157d927911 摘要复验一致"
+        },
+        {
+          "name": "recompute.plan_P02_1.buf",
+          "ok": true,
+          "detail": "图层 lyr_1167a6e857aa4e7ab6e683f1509d7e55 摘要复验一致"
+        },
+        {
+          "name": "recompute.plan_P02_1.rp2",
+          "ok": true,
+          "detail": "图层 lyr_e8824446df9d41158a677f7a959cabd6 摘要复验一致"
+        }
+      ],
+      "fatal": null
+    },
+    {
+      "task": "P03",
+      "title": "面裁剪链",
+      "runs": [
+        {
+          "runId": "plan_P03_1",
+          "status": "completed",
+          "resumedFrom": null,
+          "durationMs": 44
+        }
+      ],
+      "expects": [
+        {
+          "name": "run1.status",
+          "ok": true,
+          "detail": "status=completed（要求 completed）"
+        },
+        {
+          "name": "run1.deliverablesMin",
+          "ok": true,
+          "detail": "deliverables=1（≥ 1）"
+        },
+        {
+          "name": "run1.acceptanceAllOk",
+          "ok": true,
+          "detail": "全部验收通过"
+        },
+        {
+          "name": "recompute.plan_P03_1.cut",
+          "ok": true,
+          "detail": "图层 lyr_faea7a9f6414416394fe4b5fb3fc5f6b 摘要复验一致"
+        }
+      ],
+      "fatal": null
+    },
+    {
+      "task": "P04",
+      "title": "属性选择与统计",
+      "runs": [
+        {
+          "runId": "plan_P04_1",
+          "status": "completed",
+          "resumedFrom": null,
+          "durationMs": 12
+        }
+      ],
+      "expects": [
+        {
+          "name": "run1.status",
+          "ok": true,
+          "detail": "status=completed（要求 completed）"
+        },
+        {
+          "name": "run1.deliverablesMin",
+          "ok": true,
+          "detail": "deliverables=1（≥ 1）"
+        },
+        {
+          "name": "run1.acceptanceAllOk",
+          "ok": true,
+          "detail": "全部验收通过"
+        },
+        {
+          "name": "recompute.plan_P04_1.sel",
+          "ok": true,
+          "detail": "图层 lyr_a9621a98e90b435e8f502681b95e0886 摘要复验一致"
+        }
+      ],
+      "fatal": null
+    },
+    {
+      "task": "P05",
+      "title": "凸包量算与确认导出",
+      "runs": [
+        {
+          "runId": "plan_P05_1",
+          "status": "completed",
+          "resumedFrom": null,
+          "durationMs": 60
+        }
+      ],
+      "expects": [
+        {
+          "name": "run1.status",
+          "ok": true,
+          "detail": "status=completed（要求 completed）"
+        },
+        {
+          "name": "run1.deliverablesMin",
+          "ok": true,
+          "detail": "deliverables=2（≥ 1）"
+        },
+        {
+          "name": "run1.acceptanceAllOk",
+          "ok": true,
+          "detail": "全部验收通过"
+        },
+        {
+          "name": "recompute.plan_P05_1.hull",
+          "ok": true,
+          "detail": "图层 lyr_d1e1964edf5549a08c6c2d8784e678a6 摘要复验一致"
+        },
+        {
+          "name": "recompute.plan_P05_1.calc",
+          "ok": true,
+          "detail": "图层 lyr_10232c2b88704751b90c9e9ebb28cef4 摘要复验一致"
+        }
+      ],
+      "fatal": null
+    },
+    {
+      "task": "P06",
+      "title": "重投影往返与显式 no-op",
+      "runs": [
+        {
+          "runId": "plan_P06_1",
+          "status": "completed",
+          "resumedFrom": null,
+          "durationMs": 60
+        }
+      ],
+      "expects": [
+        {
+          "name": "run1.status",
+          "ok": true,
+          "detail": "status=completed（要求 completed）"
+        },
+        {
+          "name": "run1.deliverablesMin",
+          "ok": true,
+          "detail": "deliverables=3（≥ 1）"
+        },
+        {
+          "name": "run1.acceptanceAllOk",
+          "ok": true,
+          "detail": "全部验收通过"
+        },
+        {
+          "name": "recompute.plan_P06_1.rp1",
+          "ok": true,
+          "detail": "图层 lyr_66898ee71dab43c4bf0115761cc9ab0c 摘要复验一致"
+        },
+        {
+          "name": "recompute.plan_P06_1.rp2",
+          "ok": true,
+          "detail": "图层 lyr_3a8e914d09414aa8b5cf853830e12a5d 摘要复验一致"
+        },
+        {
+          "name": "recompute.plan_P06_1.rp3",
+          "ok": true,
+          "detail": "图层 lyr_3a8e914d09414aa8b5cf853830e12a5d 摘要复验一致"
+        }
+      ],
+      "fatal": null
+    },
+    {
+      "task": "P07",
+      "title": "故意错误：不支持的 dissolve 必须在计划期拒绝",
+      "runs": [
+        {
+          "runId": "plan_P07_1",
+          "status": "failed",
+          "resumedFrom": null,
+          "durationMs": 1
+        }
+      ],
+      "expects": [
+        {
+          "name": "run1.status",
+          "ok": true,
+          "detail": "status=failed（要求 failed）"
+        },
+        {
+          "name": "run1.blockedClass",
+          "ok": true,
+          "detail": "blockedAt=UNSUPPORTED（要求 UNSUPPORTED）"
+        },
+        {
+          "name": "run1.deliverablesMin",
+          "ok": true,
+          "detail": "deliverables=0（≥ 0）"
+        },
+        {
+          "name": "run1.executedSteps",
+          "ok": true,
+          "detail": "实际执行 0 步（要求 0）"
+        }
+      ],
+      "fatal": null
+    },
+    {
+      "task": "P08",
+      "title": "故意错误：负距离缓冲在计划期拒绝",
+      "runs": [
+        {
+          "runId": "plan_P08_1",
+          "status": "failed",
+          "resumedFrom": null,
+          "durationMs": 1
+        }
+      ],
+      "expects": [
+        {
+          "name": "run1.status",
+          "ok": true,
+          "detail": "status=failed（要求 failed）"
+        },
+        {
+          "name": "run1.blockedClass",
+          "ok": true,
+          "detail": "blockedAt=INPUT_ERROR（要求 INPUT_ERROR）"
+        },
+        {
+          "name": "run1.deliverablesMin",
+          "ok": true,
+          "detail": "deliverables=0（≥ 0）"
+        },
+        {
+          "name": "run1.executedSteps",
+          "ok": true,
+          "detail": "实际执行 0 步（要求 0）"
+        }
+      ],
+      "fatal": null
+    },
+    {
+      "task": "P09",
+      "title": "故意错误：幽灵步骤引用在计划期拒绝",
+      "runs": [
+        {
+          "runId": "plan_P09_1",
+          "status": "failed",
+          "resumedFrom": null,
+          "durationMs": 1
+        }
+      ],
+      "expects": [
+        {
+          "name": "run1.status",
+          "ok": true,
+          "detail": "status=failed（要求 failed）"
+        },
+        {
+          "name": "run1.blockedClass",
+          "ok": true,
+          "detail": "blockedAt=INPUT_ERROR（要求 INPUT_ERROR）"
+        },
+        {
+          "name": "run1.deliverablesMin",
+          "ok": true,
+          "detail": "deliverables=0（≥ 0）"
+        },
+        {
+          "name": "run1.executedSteps",
+          "ok": true,
+          "detail": "实际执行 0 步（要求 0）"
+        }
+      ],
+      "fatal": null
+    },
+    {
+      "task": "P10",
+      "title": "注入执行失败 + 断点恢复",
+      "runs": [
+        {
+          "runId": "plan_P10_1",
+          "status": "failed",
+          "resumedFrom": null,
+          "durationMs": 146
+        },
+        {
+          "runId": "plan_P10_2",
+          "status": "completed",
+          "resumedFrom": "plan_P10_1",
+          "durationMs": 857
+        }
+      ],
+      "expects": [
+        {
+          "name": "run1.status",
+          "ok": true,
+          "detail": "status=failed（要求 failed）"
+        },
+        {
+          "name": "run1.blockedClass",
+          "ok": true,
+          "detail": "blockedAt=EXECUTION_ERROR（要求 EXECUTION_ERROR）"
+        },
+        {
+          "name": "run1.deliverablesMin",
+          "ok": true,
+          "detail": "deliverables=1（≥ 1）"
+        },
+        {
+          "name": "recompute.plan_P10_1.hs",
+          "ok": true,
+          "detail": "图层 lyr_ce905da4f4fa423ca85b122fdbfbe990 摘要复验一致"
+        },
+        {
+          "name": "resume.status",
+          "ok": true,
+          "detail": "status=completed（要求 completed）"
+        },
+        {
+          "name": "resume.deliverablesMin",
+          "ok": true,
+          "detail": "deliverables=3（≥ 3）"
+        },
+        {
+          "name": "resume.acceptanceAllOk",
+          "ok": true,
+          "detail": "全部验收通过"
+        },
+        {
+          "name": "resume.reusedMin",
+          "ok": true,
+          "detail": "复用 1 步（≥ 1）"
+        },
+        {
+          "name": "recompute.plan_P10_2.hs",
+          "ok": true,
+          "detail": "图层 lyr_ce905da4f4fa423ca85b122fdbfbe990 摘要复验一致"
+        },
+        {
+          "name": "recompute.plan_P10_2.slope",
+          "ok": true,
+          "detail": "图层 lyr_b66b2c6aece849bda111d1a24668b086 摘要复验一致"
+        },
+        {
+          "name": "recompute.plan_P10_2.contours",
+          "ok": true,
+          "detail": "图层 lyr_cf5427ca82bd4513b197b5b4424fcf6d 摘要复验一致"
+        }
+      ],
+      "fatal": null
+    },
+    {
+      "task": "P11",
+      "title": "故意错误：验收门失败不得假成功",
+      "runs": [
+        {
+          "runId": "plan_P11_1",
+          "status": "failed",
+          "resumedFrom": null,
+          "durationMs": 130
+        }
+      ],
+      "expects": [
+        {
+          "name": "run1.status",
+          "ok": true,
+          "detail": "status=failed（要求 failed）"
+        },
+        {
+          "name": "run1.blockedClass",
+          "ok": true,
+          "detail": "blockedAt=VALIDATION_ERROR（要求 VALIDATION_ERROR）"
+        },
+        {
+          "name": "run1.deliverablesMin",
+          "ok": true,
+          "detail": "deliverables=0（≥ 0）"
+        },
+        {
+          "name": "run1.headlinePattern",
+          "ok": true,
+          "detail": "headline=计划失败：步骤「buf」(gis.buffer) 的结果未通过验收，不能视为完成。"
+        },
+        {
+          "name": "recompute.plan_P11_1.buf",
+          "ok": true,
+          "detail": "图层 lyr_2065934ed1b54a22a0b032373d46f484 摘要复验一致"
+        }
+      ],
+      "fatal": null
+    }
+  ],
+  "runs": [
+    {
+      "runId": "plan_P01_1",
+      "planVersion": 1,
+      "goal": "为北京样例点生成 500 米服务圈并统计要素数",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T13:26:05.705Z",
+      "steps": [
+        {
+          "stepId": "buf",
+          "kind": "operation",
+          "label": "gis.buffer",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:05.709Z",
+          "args": {
+            "distance": 500,
+            "units": "meters"
+          },
+          "input": {
+            "layerId": "lyr_a7410f21c1634aabb00b72e23d4c899b",
+            "crs": "EPSG:4326",
+            "sha256": "cce69aa92837e59e96cc6d8699bdd9471b3b7def686a725a3f7cd24b44516135"
+          },
+          "outputLayer": {
+            "id": "lyr_b2934c11ce2046738c4e3c0bfc863cda",
+            "name": "beijing_points_buffer",
+            "kind": "vector",
+            "crs": "EPSG:32650",
+            "featureCount": 5,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "2eb535ccb3060f2dbfd326d04c77a697aded4b66487f64ca0caf31280fac4b46"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 119,
+          "acceptance": [
+            {
+              "type": "feature_count",
+              "ok": true,
+              "detail": "feature_count=5（要求 eq 5）"
+            },
+            {
+              "type": "geometry_types",
+              "ok": true,
+              "detail": "geometry_types=Polygon"
+            }
+          ]
+        },
+        {
+          "stepId": "stat",
+          "kind": "tool",
+          "label": "field_statistics",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:05.828Z",
+          "args": {
+            "layer": "lyr_b2934c11ce2046738c4e3c0bfc863cda",
+            "field": "id"
+          },
+          "input": {
+            "layerId": "lyr_b2934c11ce2046738c4e3c0bfc863cda",
+            "crs": "EPSG:32650",
+            "sha256": "2eb535ccb3060f2dbfd326d04c77a697aded4b66487f64ca0caf31280fac4b46"
+          },
+          "outputLayer": null,
+          "resultSummary": {
+            "layer": "lyr_b2934c11ce2046738c4e3c0bfc863cda",
+            "field": "id",
+            "count": 5,
+            "null_count": 0,
+            "unique_count": 5,
+            "min": 1,
+            "max": 5,
+            "mean": 3,
+            "median": 3,
+            "std": 1.5811388300841898
+          },
+          "durationMs": 2,
+          "acceptance": [
+            {
+              "type": "field_value",
+              "ok": true,
+              "detail": "count=5（要求 eq 5）"
+            }
+          ]
+        },
+        {
+          "stepId": "view",
+          "kind": "tool",
+          "label": "zoom_to_layer",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:05.830Z",
+          "args": {
+            "layer": "lyr_b2934c11ce2046738c4e3c0bfc863cda"
+          },
+          "input": {
+            "layerId": "lyr_b2934c11ce2046738c4e3c0bfc863cda",
+            "crs": "EPSG:32650",
+            "sha256": "2eb535ccb3060f2dbfd326d04c77a697aded4b66487f64ca0caf31280fac4b46"
+          },
+          "outputLayer": null,
+          "resultSummary": {
+            "ok": true,
+            "view": {
+              "type": "object"
+            }
+          },
+          "durationMs": 1,
+          "acceptance": []
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：3 个步骤全部成功，1 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "buf",
+            "layerId": "lyr_b2934c11ce2046738c4e3c0bfc863cda",
+            "name": "beijing_points_buffer"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T13:26:05.831Z",
+      "durationMs": 126
+    },
+    {
+      "runId": "plan_P02_1",
+      "planVersion": 1,
+      "goal": "把点投影到 UTM 49N，缓冲 1 公里后投影回 WGS84，并独立复核缓冲半径",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T13:26:06.168Z",
+      "steps": [
+        {
+          "stepId": "rp1",
+          "kind": "operation",
+          "label": "gis.reproject",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:06.173Z",
+          "args": {
+            "targetCrs": "EPSG:32650"
+          },
+          "input": {
+            "layerId": "lyr_694e857f508d4d8883d981822cb6ae11",
+            "crs": "EPSG:4326",
+            "sha256": "cce69aa92837e59e96cc6d8699bdd9471b3b7def686a725a3f7cd24b44516135"
+          },
+          "outputLayer": {
+            "id": "lyr_675bd289ab9441d4a4561a157d927911",
+            "name": "beijing_points_reproject",
+            "kind": "vector",
+            "crs": "EPSG:32650",
+            "featureCount": 5,
+            "geometryTypes": [
+              "Point"
+            ],
+            "raster": null,
+            "sha256": "c0ac3b39f408d8cd1432e18cb2a8e1769c15b867460ce2739caa5489acd214b6"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 37,
+          "acceptance": [
+            {
+              "type": "crs",
+              "ok": true,
+              "detail": "crs=EPSG:32650（要求 EPSG:32650）"
+            },
+            {
+              "type": "feature_count",
+              "ok": true,
+              "detail": "feature_count=5（要求 eq 5）"
+            }
+          ]
+        },
+        {
+          "stepId": "buf",
+          "kind": "operation",
+          "label": "gis.buffer",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:06.210Z",
+          "args": {
+            "distance": 1000,
+            "units": "meters"
+          },
+          "input": {
+            "layerId": "lyr_675bd289ab9441d4a4561a157d927911",
+            "crs": "EPSG:32650",
+            "sha256": "c0ac3b39f408d8cd1432e18cb2a8e1769c15b867460ce2739caa5489acd214b6"
+          },
+          "outputLayer": {
+            "id": "lyr_1167a6e857aa4e7ab6e683f1509d7e55",
+            "name": "beijing_points_reproject_buffer",
+            "kind": "vector",
+            "crs": "EPSG:32650",
+            "featureCount": 5,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "d2618aacbafc318f943d93386ae1d228e1b77383f3cdf580b2527d1b00bac12f"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 95,
+          "acceptance": [
+            {
+              "type": "feature_count",
+              "ok": true,
+              "detail": "feature_count=5（要求 eq 5）"
+            }
+          ]
+        },
+        {
+          "stepId": "rp2",
+          "kind": "operation",
+          "label": "gis.reproject",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:06.305Z",
+          "args": {
+            "targetCrs": "EPSG:4326"
+          },
+          "input": {
+            "layerId": "lyr_1167a6e857aa4e7ab6e683f1509d7e55",
+            "crs": "EPSG:32650",
+            "sha256": "d2618aacbafc318f943d93386ae1d228e1b77383f3cdf580b2527d1b00bac12f"
+          },
+          "outputLayer": {
+            "id": "lyr_e8824446df9d41158a677f7a959cabd6",
+            "name": "beijing_points_reproject_buffer_reproject",
+            "kind": "vector",
+            "crs": "EPSG:4326",
+            "featureCount": 5,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "8d05799277c052cb293b29e458ddc3f1992d22bffdba3fe5ded659b5e69879b6"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 88,
+          "acceptance": [
+            {
+              "type": "crs",
+              "ok": true,
+              "detail": "crs=EPSG:4326（要求 EPSG:4326）"
+            },
+            {
+              "type": "buffer_radius",
+              "ok": true,
+              "detail": "325 个顶点，最大半径偏差 2.13 m（容差 10 m）"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：3 个步骤全部成功，3 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "rp1",
+            "layerId": "lyr_675bd289ab9441d4a4561a157d927911",
+            "name": "beijing_points_reproject"
+          },
+          {
+            "stepId": "buf",
+            "layerId": "lyr_1167a6e857aa4e7ab6e683f1509d7e55",
+            "name": "beijing_points_reproject_buffer"
+          },
+          {
+            "stepId": "rp2",
+            "layerId": "lyr_e8824446df9d41158a677f7a959cabd6",
+            "name": "beijing_points_reproject_buffer_reproject"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T13:26:06.394Z",
+      "durationMs": 226
+    },
+    {
+      "runId": "plan_P03_1",
+      "planVersion": 1,
+      "goal": "用 zone_a 掩膜裁剪分区面并统计保留要素",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T13:26:06.736Z",
+      "steps": [
+        {
+          "stepId": "desc",
+          "kind": "tool",
+          "label": "describe_layer",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:06.741Z",
+          "args": {
+            "layer": "district_zones"
+          },
+          "input": {
+            "layerId": "lyr_f2bd4322c8a2467dae92df44c49adc7f",
+            "crs": "EPSG:4326",
+            "sha256": "a6a36148a946ce9eaf74d5abbdf7d4fdabc36e66f8f6d3ba0777600d6291a47f"
+          },
+          "outputLayer": null,
+          "resultSummary": {
+            "id": "lyr_f2bd4322c8a2467dae92df44c49adc7f",
+            "name": "district_zones",
+            "crs": "EPSG:4326",
+            "feature_count": 3,
+            "bounds": {
+              "type": "array",
+              "length": 4
+            },
+            "geometry_types": {
+              "type": "array",
+              "length": 1
+            },
+            "visible": true,
+            "url": "blob:nodedata:5eec9036-1f7f-4285-aef6-7a9e17b699ed",
+            "columns": {
+              "type": "array",
+              "length": 3
+            },
+            "path": "此浏览器 / district_zones.geojson",
+            "sample": {
+              "type": "array",
+              "length": 3
+            }
+          },
+          "durationMs": 1,
+          "acceptance": []
+        },
+        {
+          "stepId": "cut",
+          "kind": "operation",
+          "label": "gis.clip",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:06.742Z",
+          "args": {
+            "maskLayerId": "zone_a"
+          },
+          "input": {
+            "layerId": "lyr_f2bd4322c8a2467dae92df44c49adc7f",
+            "crs": "EPSG:4326",
+            "sha256": "a6a36148a946ce9eaf74d5abbdf7d4fdabc36e66f8f6d3ba0777600d6291a47f"
+          },
+          "outputLayer": {
+            "id": "lyr_faea7a9f6414416394fe4b5fb3fc5f6b",
+            "name": "district_zones_clip",
+            "kind": "vector",
+            "crs": "EPSG:4326",
+            "featureCount": 2,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "41efabc5ee232b1221c5ac7de399a43450e789d8299efe3b2ed74df08f4ac7f2"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 37,
+          "acceptance": [
+            {
+              "type": "feature_count",
+              "ok": true,
+              "detail": "feature_count=2（要求 gte 1）"
+            }
+          ]
+        },
+        {
+          "stepId": "stat",
+          "kind": "tool",
+          "label": "field_statistics",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:06.779Z",
+          "args": {
+            "layer": "lyr_faea7a9f6414416394fe4b5fb3fc5f6b",
+            "field": "pop"
+          },
+          "input": {
+            "layerId": "lyr_faea7a9f6414416394fe4b5fb3fc5f6b",
+            "crs": "EPSG:4326",
+            "sha256": "41efabc5ee232b1221c5ac7de399a43450e789d8299efe3b2ed74df08f4ac7f2"
+          },
+          "outputLayer": null,
+          "resultSummary": {
+            "layer": "lyr_faea7a9f6414416394fe4b5fb3fc5f6b",
+            "field": "pop",
+            "count": 2,
+            "null_count": 0,
+            "unique_count": 2,
+            "min": 8000,
+            "max": 12000,
+            "mean": 10000,
+            "median": 10000,
+            "std": 2828.42712474619
+          },
+          "durationMs": 1,
+          "acceptance": [
+            {
+              "type": "field_value",
+              "ok": true,
+              "detail": "count=2（要求 gte 1）"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：3 个步骤全部成功，1 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "cut",
+            "layerId": "lyr_faea7a9f6414416394fe4b5fb3fc5f6b",
+            "name": "district_zones_clip"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T13:26:06.780Z",
+      "durationMs": 44
+    },
+    {
+      "runId": "plan_P04_1",
+      "planVersion": 1,
+      "goal": "选出 pop ≥ 8000 的分区并统计均值",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T13:26:07.123Z",
+      "steps": [
+        {
+          "stepId": "sel",
+          "kind": "tool",
+          "label": "select_by_attributes",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:07.127Z",
+          "args": {
+            "layer": "district_zones",
+            "field": "pop",
+            "op": "ge",
+            "value": "8000"
+          },
+          "input": {
+            "layerId": "lyr_05d7107083ff4cdd9c677314339cd060",
+            "crs": "EPSG:4326",
+            "sha256": "a6a36148a946ce9eaf74d5abbdf7d4fdabc36e66f8f6d3ba0777600d6291a47f"
+          },
+          "outputLayer": {
+            "id": "lyr_a9621a98e90b435e8f502681b95e0886",
+            "name": "district_zones_select_by_attributes",
+            "kind": "vector",
+            "crs": "EPSG:4326",
+            "featureCount": 2,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "458a4bf56db6efe01c546749fc45b6ba14aeb1e03d0d9bcf93d17e138546eb1d"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 6,
+          "acceptance": [
+            {
+              "type": "feature_count",
+              "ok": true,
+              "detail": "feature_count=2（要求 gte 1）"
+            }
+          ]
+        },
+        {
+          "stepId": "stat",
+          "kind": "tool",
+          "label": "field_statistics",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:07.134Z",
+          "args": {
+            "layer": "lyr_a9621a98e90b435e8f502681b95e0886",
+            "field": "pop"
+          },
+          "input": {
+            "layerId": "lyr_a9621a98e90b435e8f502681b95e0886",
+            "crs": "EPSG:4326",
+            "sha256": "458a4bf56db6efe01c546749fc45b6ba14aeb1e03d0d9bcf93d17e138546eb1d"
+          },
+          "outputLayer": null,
+          "resultSummary": {
+            "layer": "lyr_a9621a98e90b435e8f502681b95e0886",
+            "field": "pop",
+            "count": 2,
+            "null_count": 0,
+            "unique_count": 2,
+            "min": 8000,
+            "max": 12000,
+            "mean": 10000,
+            "median": 10000,
+            "std": 2828.42712474619
+          },
+          "durationMs": 1,
+          "acceptance": [
+            {
+              "type": "field_value",
+              "ok": true,
+              "detail": "mean=10000（要求 gte 8000）"
+            }
+          ]
+        },
+        {
+          "stepId": "view",
+          "kind": "tool",
+          "label": "zoom_to_layer",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:07.135Z",
+          "args": {
+            "layer": "lyr_a9621a98e90b435e8f502681b95e0886"
+          },
+          "input": {
+            "layerId": "lyr_a9621a98e90b435e8f502681b95e0886",
+            "crs": "EPSG:4326",
+            "sha256": "458a4bf56db6efe01c546749fc45b6ba14aeb1e03d0d9bcf93d17e138546eb1d"
+          },
+          "outputLayer": null,
+          "resultSummary": {
+            "ok": true,
+            "view": {
+              "type": "object"
+            }
+          },
+          "durationMs": 0,
+          "acceptance": []
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：3 个步骤全部成功，1 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "sel",
+            "layerId": "lyr_a9621a98e90b435e8f502681b95e0886",
+            "name": "district_zones_select_by_attributes"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T13:26:07.135Z",
+      "durationMs": 12
+    },
+    {
+      "runId": "plan_P05_1",
+      "planVersion": 1,
+      "goal": "生成点的凸包、量算面积并导出 GeoJSON（需用户确认的步骤）",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T13:26:07.458Z",
+      "steps": [
+        {
+          "stepId": "hull",
+          "kind": "tool",
+          "label": "convex_hull",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:07.462Z",
+          "args": {
+            "layer": "beijing_points"
+          },
+          "input": {
+            "layerId": "lyr_ec92e54d287c4afe8e41f950e2b2bf95",
+            "crs": "EPSG:4326",
+            "sha256": "cce69aa92837e59e96cc6d8699bdd9471b3b7def686a725a3f7cd24b44516135"
+          },
+          "outputLayer": {
+            "id": "lyr_d1e1964edf5549a08c6c2d8784e678a6",
+            "name": "beijing_points_convex_hull",
+            "kind": "vector",
+            "crs": "EPSG:4326",
+            "featureCount": 1,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "451b0ccc60db203afef04af1b2b049c9fd2b071357995f5b2b7da53735a7b97e"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 30,
+          "acceptance": [
+            {
+              "type": "feature_count",
+              "ok": true,
+              "detail": "feature_count=1（要求 eq 1）"
+            },
+            {
+              "type": "geometry_types",
+              "ok": true,
+              "detail": "geometry_types=Polygon"
+            }
+          ]
+        },
+        {
+          "stepId": "calc",
+          "kind": "tool",
+          "label": "calculate_geometry",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:07.493Z",
+          "args": {
+            "layer": "lyr_d1e1964edf5549a08c6c2d8784e678a6"
+          },
+          "input": {
+            "layerId": "lyr_d1e1964edf5549a08c6c2d8784e678a6",
+            "crs": "EPSG:4326",
+            "sha256": "451b0ccc60db203afef04af1b2b049c9fd2b071357995f5b2b7da53735a7b97e"
+          },
+          "outputLayer": {
+            "id": "lyr_10232c2b88704751b90c9e9ebb28cef4",
+            "name": "beijing_points_convex_hull_calculate_geometry",
+            "kind": "vector",
+            "crs": "EPSG:4326",
+            "featureCount": 1,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "9e1daf8205cc782d6fdb476e9e107c67edd4e88fdf4cace60d15e0c67bfbaffd"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算",
+            "added_columns": {
+              "type": "array",
+              "length": 2
+            },
+            "analysis_crs": "EPSG:4326",
+            "source_layer_id": "lyr_d1e1964edf5549a08c6c2d8784e678a6"
+          },
+          "durationMs": 18,
+          "acceptance": [
+            {
+              "type": "layer_field",
+              "ok": true,
+              "detail": "features[0].area_m2=2151286.266702966"
+            }
+          ]
+        },
+        {
+          "stepId": "exp",
+          "kind": "tool",
+          "label": "export_features",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:07.512Z",
+          "args": {
+            "layer": "lyr_10232c2b88704751b90c9e9ebb28cef4",
+            "path": "p05_hull.geojson",
+            "fmt": "geojson"
+          },
+          "input": {
+            "layerId": "lyr_10232c2b88704751b90c9e9ebb28cef4",
+            "crs": "EPSG:4326",
+            "sha256": "9e1daf8205cc782d6fdb476e9e107c67edd4e88fdf4cace60d15e0c67bfbaffd"
+          },
+          "outputLayer": null,
+          "resultSummary": {
+            "ok": true,
+            "path": "p05_hull.geojson",
+            "download_url": "blob:nodedata:8f4ed060-9d31-4e68-9508-a92c67129753",
+            "bytes": 296,
+            "feature_count": 1,
+            "message": "点击下载文件保存到电脑。"
+          },
+          "durationMs": 6,
+          "acceptance": [
+            {
+              "type": "field_value",
+              "ok": true,
+              "detail": "bytes=296（要求 gte 100）"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "confirmations": [
+        "exp"
+      ],
+      "honest": {
+        "headline": "计划完成：3 个步骤全部成功，2 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "hull",
+            "layerId": "lyr_d1e1964edf5549a08c6c2d8784e678a6",
+            "name": "beijing_points_convex_hull"
+          },
+          {
+            "stepId": "calc",
+            "layerId": "lyr_10232c2b88704751b90c9e9ebb28cef4",
+            "name": "beijing_points_convex_hull_calculate_geometry"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T13:26:07.518Z",
+      "durationMs": 60
+    },
+    {
+      "runId": "plan_P06_1",
+      "planVersion": 1,
+      "goal": "分区面投影到 3857 再回 4326，重复投影按契约 no-op",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T13:26:07.838Z",
+      "steps": [
+        {
+          "stepId": "rp1",
+          "kind": "operation",
+          "label": "gis.reproject",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:07.844Z",
+          "args": {
+            "targetCrs": "EPSG:3857"
+          },
+          "input": {
+            "layerId": "lyr_511484e316fb43bbb6830c025d820288",
+            "crs": "EPSG:4326",
+            "sha256": "a6a36148a946ce9eaf74d5abbdf7d4fdabc36e66f8f6d3ba0777600d6291a47f"
+          },
+          "outputLayer": {
+            "id": "lyr_66898ee71dab43c4bf0115761cc9ab0c",
+            "name": "district_zones_reproject",
+            "kind": "vector",
+            "crs": "EPSG:3857",
+            "featureCount": 3,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "1e28b73a3eb0f1bdcf84626aa8040045af83d8826b892818f2d8a0559d8e38ba"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 37,
+          "acceptance": [
+            {
+              "type": "crs",
+              "ok": true,
+              "detail": "crs=EPSG:3857（要求 EPSG:3857）"
+            }
+          ]
+        },
+        {
+          "stepId": "rp2",
+          "kind": "operation",
+          "label": "gis.reproject",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:07.882Z",
+          "args": {
+            "targetCrs": "EPSG:4326"
+          },
+          "input": {
+            "layerId": "lyr_66898ee71dab43c4bf0115761cc9ab0c",
+            "crs": "EPSG:3857",
+            "sha256": "1e28b73a3eb0f1bdcf84626aa8040045af83d8826b892818f2d8a0559d8e38ba"
+          },
+          "outputLayer": {
+            "id": "lyr_3a8e914d09414aa8b5cf853830e12a5d",
+            "name": "district_zones_reproject_reproject",
+            "kind": "vector",
+            "crs": "EPSG:4326",
+            "featureCount": 3,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "5f07172ea711752e312d2108b5adab73605272a1e80c154a09d5392003fb1a9d"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 15,
+          "acceptance": [
+            {
+              "type": "crs",
+              "ok": true,
+              "detail": "crs=EPSG:4326（要求 EPSG:4326）"
+            }
+          ]
+        },
+        {
+          "stepId": "rp3",
+          "kind": "operation",
+          "label": "gis.reproject",
+          "phase": "noop",
+          "startedAt": "2026-10-24T13:26:07.897Z",
+          "args": {
+            "targetCrs": "EPSG:4326"
+          },
+          "input": {
+            "layerId": "lyr_3a8e914d09414aa8b5cf853830e12a5d",
+            "crs": "EPSG:4326",
+            "sha256": "5f07172ea711752e312d2108b5adab73605272a1e80c154a09d5392003fb1a9d"
+          },
+          "resultSummary": {
+            "noop": "图层已经是 EPSG:4326，不重复创建数据集。"
+          },
+          "outputLayer": {
+            "id": "lyr_3a8e914d09414aa8b5cf853830e12a5d",
+            "name": "district_zones_reproject_reproject",
+            "kind": "vector",
+            "crs": "EPSG:4326",
+            "featureCount": 3,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "5f07172ea711752e312d2108b5adab73605272a1e80c154a09d5392003fb1a9d"
+          },
+          "durationMs": 1,
+          "acceptance": [
+            {
+              "type": "noop",
+              "ok": true,
+              "detail": "按契约显式 no-op。"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：3 个步骤全部成功，3 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "rp1",
+            "layerId": "lyr_66898ee71dab43c4bf0115761cc9ab0c",
+            "name": "district_zones_reproject"
+          },
+          {
+            "stepId": "rp2",
+            "layerId": "lyr_3a8e914d09414aa8b5cf853830e12a5d",
+            "name": "district_zones_reproject_reproject"
+          },
+          {
+            "stepId": "rp3",
+            "layerId": "lyr_3a8e914d09414aa8b5cf853830e12a5d",
+            "name": "district_zones_reproject_reproject"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T13:26:07.898Z",
+      "durationMs": 60
+    },
+    {
+      "runId": "plan_P07_1",
+      "planVersion": 1,
+      "goal": "缓冲后按 kind 融合（浏览器端 dissolve 已知不可用）",
+      "provider": "browser-wasm",
+      "status": "failed",
+      "startedAt": "2026-10-24T13:26:08.241Z",
+      "steps": [
+        {
+          "stepId": "pre",
+          "kind": "operation",
+          "label": "gis.buffer",
+          "phase": "skipped",
+          "error": {
+            "class": "UNSUPPORTED",
+            "message": "计划校验未通过（gis.dissolve 在 browser-wasm 上不支持：WASM 1.7.1 的 dissolve 写出损坏投影的 FlatGeobuf（EPSG:436207616，D1），vector_info 随后 panic（D2）；GPKG 输出会破坏下游工具，GeoJSON 输出返回 0 要素。），本步骤未执行。"
+          }
+        },
+        {
+          "stepId": "diss",
+          "kind": "operation",
+          "label": "gis.dissolve",
+          "phase": "fail",
+          "error": {
+            "class": "UNSUPPORTED",
+            "message": "gis.dissolve 在 browser-wasm 上不支持：WASM 1.7.1 的 dissolve 写出损坏投影的 FlatGeobuf（EPSG:436207616，D1），vector_info 随后 panic（D2）；GPKG 输出会破坏下游工具，GeoJSON 输出返回 0 要素。"
+          }
+        },
+        {
+          "stepId": "view",
+          "kind": "tool",
+          "label": "zoom_to_layer",
+          "phase": "skipped",
+          "error": {
+            "class": "UNSUPPORTED",
+            "message": "计划校验未通过（gis.dissolve 在 browser-wasm 上不支持：WASM 1.7.1 的 dissolve 写出损坏投影的 FlatGeobuf（EPSG:436207616，D1），vector_info 随后 panic（D2）；GPKG 输出会破坏下游工具，GeoJSON 输出返回 0 要素。），本步骤未执行。"
+          }
+        }
+      ],
+      "planIssues": [
+        {
+          "stepId": "diss",
+          "class": "UNSUPPORTED",
+          "message": "gis.dissolve 在 browser-wasm 上不支持：WASM 1.7.1 的 dissolve 写出损坏投影的 FlatGeobuf（EPSG:436207616，D1），vector_info 随后 panic（D2）；GPKG 输出会破坏下游工具，GeoJSON 输出返回 0 要素。",
+          "next": "降级方案：改用桌面 Python 引擎；或先按组求并集（union）再删列。"
+        }
+      ],
+      "honest": {
+        "headline": "计划失败：步骤「diss」(gis.dissolve) gis.dissolve 在 browser-wasm 上不支持：WASM 1.7.1 的 dissolve 写出损坏投影的 FlatGeobuf（EPSG:436207616，D1），vector_info 随后 panic（D2）；GPKG 输出会破坏下游工具，GeoJSON 输出返回 0 要素。。",
+        "deliverables": [],
+        "blockedAt": {
+          "stepId": "diss",
+          "label": "gis.dissolve",
+          "errorClass": "UNSUPPORTED",
+          "message": "gis.dissolve 在 browser-wasm 上不支持：WASM 1.7.1 的 dissolve 写出损坏投影的 FlatGeobuf（EPSG:436207616，D1），vector_info 随后 panic（D2）；GPKG 输出会破坏下游工具，GeoJSON 输出返回 0 要素。",
+          "next": [
+            "按降级方案改用受支持的引擎或操作；不要换一个名字近似的工具继续跑。"
+          ]
+        },
+        "next": [
+          "按降级方案改用受支持的引擎或操作；不要换一个名字近似的工具继续跑。"
+        ]
+      },
+      "finishedAt": "2026-10-24T13:26:08.242Z",
+      "durationMs": 1
+    },
+    {
+      "runId": "plan_P08_1",
+      "planVersion": 1,
+      "goal": "负距离缓冲（契约 v1 明确不接受）",
+      "provider": "browser-wasm",
+      "status": "failed",
+      "startedAt": "2026-10-24T13:26:08.566Z",
+      "steps": [
+        {
+          "stepId": "bad",
+          "kind": "operation",
+          "label": "gis.buffer",
+          "phase": "fail",
+          "error": {
+            "class": "INPUT_ERROR",
+            "message": "距离必须为正数（v1 不支持负距离内缩；引擎行为尚不一致）。"
+          }
+        },
+        {
+          "stepId": "stat",
+          "kind": "tool",
+          "label": "field_statistics",
+          "phase": "skipped",
+          "error": {
+            "class": "INPUT_ERROR",
+            "message": "计划校验未通过（距离必须为正数（v1 不支持负距离内缩；引擎行为尚不一致）。），本步骤未执行。"
+          }
+        },
+        {
+          "stepId": "view",
+          "kind": "tool",
+          "label": "zoom_to_layer",
+          "phase": "skipped",
+          "error": {
+            "class": "INPUT_ERROR",
+            "message": "计划校验未通过（距离必须为正数（v1 不支持负距离内缩；引擎行为尚不一致）。），本步骤未执行。"
+          }
+        }
+      ],
+      "planIssues": [
+        {
+          "stepId": "bad",
+          "class": "INPUT_ERROR",
+          "message": "距离必须为正数（v1 不支持负距离内缩；引擎行为尚不一致）。"
+        }
+      ],
+      "honest": {
+        "headline": "计划失败：步骤「bad」(gis.buffer) 距离必须为正数（v1 不支持负距离内缩；引擎行为尚不一致）。。",
+        "deliverables": [],
+        "blockedAt": {
+          "stepId": "bad",
+          "label": "gis.buffer",
+          "errorClass": "INPUT_ERROR",
+          "message": "距离必须为正数（v1 不支持负距离内缩；引擎行为尚不一致）。",
+          "next": [
+            "修正输入（图层/字段/参数）后重新提交计划。"
+          ]
+        },
+        "next": [
+          "修正输入（图层/字段/参数）后重新提交计划。"
+        ]
+      },
+      "finishedAt": "2026-10-24T13:26:08.567Z",
+      "durationMs": 1
+    },
+    {
+      "runId": "plan_P09_1",
+      "planVersion": 1,
+      "goal": "掩膜引用不存在的步骤输出 @ghost",
+      "provider": "browser-wasm",
+      "status": "failed",
+      "startedAt": "2026-10-24T13:26:08.892Z",
+      "steps": [
+        {
+          "stepId": "buf",
+          "kind": "operation",
+          "label": "gis.buffer",
+          "phase": "skipped",
+          "error": {
+            "class": "INPUT_ERROR",
+            "message": "计划校验未通过（输入引用的步骤 @ghost 不存在。），本步骤未执行。"
+          }
+        },
+        {
+          "stepId": "cut",
+          "kind": "operation",
+          "label": "gis.clip",
+          "phase": "fail",
+          "error": {
+            "class": "INPUT_ERROR",
+            "message": "输入引用的步骤 @ghost 不存在。"
+          }
+        },
+        {
+          "stepId": "stat",
+          "kind": "tool",
+          "label": "field_statistics",
+          "phase": "skipped",
+          "error": {
+            "class": "INPUT_ERROR",
+            "message": "计划校验未通过（输入引用的步骤 @ghost 不存在。），本步骤未执行。"
+          }
+        }
+      ],
+      "planIssues": [
+        {
+          "stepId": "cut",
+          "class": "INPUT_ERROR",
+          "message": "输入引用的步骤 @ghost 不存在。"
+        }
+      ],
+      "honest": {
+        "headline": "计划失败：步骤「cut」(gis.clip) 输入引用的步骤 @ghost 不存在。。",
+        "deliverables": [],
+        "blockedAt": {
+          "stepId": "cut",
+          "label": "gis.clip",
+          "errorClass": "INPUT_ERROR",
+          "message": "输入引用的步骤 @ghost 不存在。",
+          "next": [
+            "修正输入（图层/字段/参数）后重新提交计划。"
+          ]
+        },
+        "next": [
+          "修正输入（图层/字段/参数）后重新提交计划。"
+        ]
+      },
+      "finishedAt": "2026-10-24T13:26:08.893Z",
+      "durationMs": 1
+    },
+    {
+      "runId": "plan_P10_1",
+      "planVersion": 1,
+      "goal": "DEM 山体阴影 → 坡度 → 等高线；第二轮注入让坡度失败，随后从断点恢复",
+      "provider": "browser-wasm",
+      "status": "failed",
+      "startedAt": "2026-10-24T13:26:09.218Z",
+      "steps": [
+        {
+          "stepId": "hs",
+          "kind": "tool",
+          "label": "wasm_hillshade",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:09.224Z",
+          "args": {
+            "input": "dem_hills"
+          },
+          "input": {
+            "layerId": "lyr_005af3d787604c4ab3ef96b4b42123b9",
+            "crs": "EPSG:32650",
+            "sha256": "c324485ea4b0a5dedac4d1ec2274be8852112ca2195253c35ab7096d320a98ad"
+          },
+          "outputLayer": {
+            "id": "lyr_ce905da4f4fa423ca85b122fdbfbe990",
+            "name": "Hillshade",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 120,
+              "height": 100,
+              "bands": 1
+            },
+            "sha256": "1de0c21da2a3a01d3e02353853539a415602a4787b88d2703289d8259d428c39"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 138,
+          "acceptance": []
+        },
+        {
+          "stepId": "slope",
+          "kind": "tool",
+          "label": "wasm_slope",
+          "phase": "fail",
+          "startedAt": "2026-10-24T13:26:09.363Z",
+          "args": {
+            "input": "dem_hills",
+            "units": "degrees"
+          },
+          "input": {
+            "layerId": "lyr_005af3d787604c4ab3ef96b4b42123b9",
+            "crs": "EPSG:32650",
+            "sha256": "c324485ea4b0a5dedac4d1ec2274be8852112ca2195253c35ab7096d320a98ad"
+          },
+          "error": {
+            "class": "EXECUTION_ERROR",
+            "message": "注入：模拟引擎故障"
+          },
+          "durationMs": 0
+        },
+        {
+          "stepId": "contours",
+          "kind": "tool",
+          "label": "wasm_contours_from_raster",
+          "phase": "skipped",
+          "error": {
+            "class": "EXECUTION_ERROR",
+            "message": "上游步骤「slope」未成功，本步骤按依赖关系跳过。"
+          }
+        }
+      ],
+      "planIssues": [],
+      "injected": true,
+      "honest": {
+        "headline": "计划失败：步骤「slope」(wasm_slope) 注入：模拟引擎故障。",
+        "deliverables": [
+          {
+            "stepId": "hs",
+            "layerId": "lyr_ce905da4f4fa423ca85b122fdbfbe990",
+            "name": "Hillshade"
+          }
+        ],
+        "blockedAt": {
+          "stepId": "slope",
+          "label": "wasm_slope",
+          "errorClass": "EXECUTION_ERROR",
+          "message": "注入：模拟引擎故障",
+          "next": [
+            "该步骤执行失败（引擎或上游缺陷）；可重试一次或换执行引擎，已有图层不会被自动覆盖。"
+          ]
+        },
+        "next": [
+          "该步骤执行失败（引擎或上游缺陷）；可重试一次或换执行引擎，已有图层不会被自动覆盖。"
+        ]
+      },
+      "finishedAt": "2026-10-24T13:26:09.364Z",
+      "durationMs": 146
+    },
+    {
+      "runId": "plan_P10_2",
+      "planVersion": 1,
+      "goal": "DEM 山体阴影 → 坡度 → 等高线；第二轮注入让坡度失败，随后从断点恢复",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T13:26:09.364Z",
+      "steps": [
+        {
+          "stepId": "hs",
+          "kind": "tool",
+          "label": "wasm_hillshade",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:09.224Z",
+          "args": {
+            "input": "dem_hills"
+          },
+          "input": {
+            "layerId": "lyr_005af3d787604c4ab3ef96b4b42123b9",
+            "crs": "EPSG:32650",
+            "sha256": "c324485ea4b0a5dedac4d1ec2274be8852112ca2195253c35ab7096d320a98ad"
+          },
+          "outputLayer": {
+            "id": "lyr_ce905da4f4fa423ca85b122fdbfbe990",
+            "name": "Hillshade",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 120,
+              "height": 100,
+              "bands": 1
+            },
+            "sha256": "1de0c21da2a3a01d3e02353853539a415602a4787b88d2703289d8259d428c39"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 138,
+          "acceptance": [],
+          "reused": true
+        },
+        {
+          "stepId": "slope",
+          "kind": "tool",
+          "label": "wasm_slope",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:09.365Z",
+          "args": {
+            "input": "dem_hills",
+            "units": "degrees"
+          },
+          "input": {
+            "layerId": "lyr_005af3d787604c4ab3ef96b4b42123b9",
+            "crs": "EPSG:32650",
+            "sha256": "c324485ea4b0a5dedac4d1ec2274be8852112ca2195253c35ab7096d320a98ad"
+          },
+          "outputLayer": {
+            "id": "lyr_b66b2c6aece849bda111d1a24668b086",
+            "name": "Slope",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 120,
+              "height": 100,
+              "bands": 1
+            },
+            "sha256": "4c5beb9025dfa6643c377a3722744b5647ac79e1d5251f090afb80438771cf31"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 17,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "120x100 vs 120x100"
+            }
+          ]
+        },
+        {
+          "stepId": "contours",
+          "kind": "tool",
+          "label": "wasm_contours_from_raster",
+          "phase": "pass",
+          "startedAt": "2026-10-24T13:26:09.382Z",
+          "args": {
+            "input": "dem_hills",
+            "interval": 10
+          },
+          "input": {
+            "layerId": "lyr_005af3d787604c4ab3ef96b4b42123b9",
+            "crs": "EPSG:32650",
+            "sha256": "c324485ea4b0a5dedac4d1ec2274be8852112ca2195253c35ab7096d320a98ad"
+          },
+          "outputLayer": {
+            "id": "lyr_cf5427ca82bd4513b197b5b4424fcf6d",
+            "name": "Contours From Raster",
+            "kind": "vector",
+            "crs": "EPSG:32650",
+            "featureCount": 20,
+            "geometryTypes": [
+              "LineString"
+            ],
+            "raster": null,
+            "sha256": "98b58c8753a31850e2ce9638ff78be9173263e122612fe0bbd0e31b2d3848bb0"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 839,
+          "acceptance": [
+            {
+              "type": "feature_count",
+              "ok": true,
+              "detail": "feature_count=20（要求 gte 1）"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "resumedFrom": "plan_P10_1",
+      "honest": {
+        "headline": "计划完成：3 个步骤全部成功，3 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "hs",
+            "layerId": "lyr_ce905da4f4fa423ca85b122fdbfbe990",
+            "name": "Hillshade"
+          },
+          {
+            "stepId": "slope",
+            "layerId": "lyr_b66b2c6aece849bda111d1a24668b086",
+            "name": "Slope"
+          },
+          {
+            "stepId": "contours",
+            "layerId": "lyr_cf5427ca82bd4513b197b5b4424fcf6d",
+            "name": "Contours From Raster"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T13:26:10.221Z",
+      "durationMs": 857
+    },
+    {
+      "runId": "plan_P11_1",
+      "planVersion": 1,
+      "goal": "缓冲后断言 999 个要素（错误预期），运行必须以 VALIDATION_ERROR 失败",
+      "provider": "browser-wasm",
+      "status": "failed",
+      "startedAt": "2026-10-24T13:26:10.560Z",
+      "steps": [
+        {
+          "stepId": "buf",
+          "kind": "operation",
+          "label": "gis.buffer",
+          "phase": "fail",
+          "startedAt": "2026-10-24T13:26:10.565Z",
+          "args": {
+            "distance": 500,
+            "units": "meters"
+          },
+          "input": {
+            "layerId": "lyr_ba694ea432014a9c8ddc047ba18b7d22",
+            "crs": "EPSG:4326",
+            "sha256": "cce69aa92837e59e96cc6d8699bdd9471b3b7def686a725a3f7cd24b44516135"
+          },
+          "outputLayer": {
+            "id": "lyr_2065934ed1b54a22a0b032373d46f484",
+            "name": "beijing_points_buffer",
+            "kind": "vector",
+            "crs": "EPSG:32650",
+            "featureCount": 5,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "2eb535ccb3060f2dbfd326d04c77a697aded4b66487f64ca0caf31280fac4b46"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 125,
+          "acceptance": [
+            {
+              "type": "feature_count",
+              "ok": false,
+              "detail": "feature_count=5（要求 eq 999）"
+            }
+          ],
+          "error": {
+            "class": "VALIDATION_ERROR",
+            "message": "验收未通过：feature_count=5（要求 eq 999）"
+          }
+        },
+        {
+          "stepId": "stat",
+          "kind": "tool",
+          "label": "field_statistics",
+          "phase": "skipped",
+          "error": {
+            "class": "VALIDATION_ERROR",
+            "message": "上游步骤「buf」未成功，本步骤按依赖关系跳过。"
+          }
+        },
+        {
+          "stepId": "view",
+          "kind": "tool",
+          "label": "zoom_to_layer",
+          "phase": "skipped",
+          "error": {
+            "class": "VALIDATION_ERROR",
+            "message": "上游步骤「buf」未成功，本步骤按依赖关系跳过。"
+          }
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划失败：步骤「buf」(gis.buffer) 的结果未通过验收，不能视为完成。",
+        "deliverables": [],
+        "blockedAt": {
+          "stepId": "buf",
+          "label": "gis.buffer",
+          "errorClass": "VALIDATION_ERROR",
+          "message": "验收未通过：feature_count=5（要求 eq 999）",
+          "next": [
+            "结果未通过验收断言：按验收明细修正参数或数据后重跑；不要把未通过验收的结果当作结论。"
+          ]
+        },
+        "next": [
+          "结果未通过验收断言：按验收明细修正参数或数据后重跑；不要把未通过验收的结果当作结论。"
+        ]
+      },
+      "finishedAt": "2026-10-24T13:26:10.690Z",
+      "durationMs": 130
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 # TIPHYS 能力目录对账（阶段 0 · T-001）
 
 > 由 `scripts/catalog-audit.ts` 生成，请勿手改；数据来自真实注册表（Python FastMCP 内省 + 浏览器目录 hydration）。
-> 生成时间：2026-10-24T11:57:43.638Z
+> 生成时间：2026-10-24T13:11:29.446Z
 
 ## 1. 各端实际可见的工具数
 
@@ -9,17 +9,17 @@
 |---|---|---|
 | 桌面 Python MCP 注册表 | 35 | `engine/tools.py` 真实注册；含 ping/list_layers/job_* |
 | 桌面 Agent 可直接调用 | 36 | + `read_tool_output`；WASM 仅经 `wasm_run` 子进程桥接可达（阶段 1） |
-| 浏览器 Agent 可直接调用 | 43 | shell 目录 40（含插件 5）+ search/run/read 三个入口 |
+| 浏览器 Agent 可直接调用 | 46 | shell 目录 43（含插件 5）+ search/run/read 三个入口 |
 | 浏览器 Agent 可检索的 WASM | 958 | 仅能经 `search_browser_tools`→`run_browser_tool` |
-| 合并后的浏览器工具箱 | 998 | 页面手动入口（shell + WASM + 插件去重） |
-| 桌面工具箱（Tauri WebView） | 998 | Python 35 + WASM 958 + 插件；**同一个 WebView 内可手动调用 WASM** |
+| 合并后的浏览器工具箱 | 1001 | 页面手动入口（shell + WASM + 插件去重） |
+| 桌面工具箱（Tauri WebView） | 1001 | Python 35 + WASM 958 + 插件；**同一个 WebView 内可手动调用 WASM** |
 
 ## 2. 对账结论
 
 - Python 与浏览器 shell 同名工具：**35** 个（名称级 parity）。
 - 仅 Python 有：无。
-- 仅浏览器 shell 有：clip_layers_to_aoi、hydrology_flow_pipeline、least_cost_path_pipeline、linkage_mapper_corridor、whitebox_extra。
-- 浏览器 shell 中在 `engine.ts` 有分发分支（字符串字面量）：40/40。
+- 仅浏览器 shell 有：clip_layers_to_aoi、hydrology_flow_pipeline、least_cost_path_pipeline、linkage_mapper_corridor、plan_get、plan_list、run_plan、whitebox_extra。
+- 浏览器 shell 中在 `engine.ts` 有分发分支（字符串字面量）：43/43。
 - Python 侧未归入 `TOOL_GROUPS`（手动面板分组）的工具：job_cancel、job_status、list_layers、ping —— Agent 可见但 UI 分组缺失，需在 T-005/T-006 补齐。
 - 插件工具：clip_layers_to_aoi、hydrology_flow_pipeline、least_cost_path_pipeline、linkage_mapper_corridor、whitebox_extra。
 
@@ -47,4 +47,4 @@ engine/.venv/Scripts/python.exe scripts/export_engine_catalog.py
 node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/catalog-audit.ts
 ```
 
-原始数据：`docs/baselines/stage0/catalog-audit.json`（sha256 02b7d42f066a30a3…）。
+原始数据：`docs/baselines/stage0/catalog-audit.json`（sha256 accfce74acbd7b4c…）。

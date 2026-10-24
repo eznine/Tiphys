@@ -8,6 +8,7 @@ import { fileInfo, loadWasmManifests, originalGeojson, wasmTool } from "./wasm";
 import { browserCatalogState, browserToolCatalog, ensureBrowserCatalog, hydrateWasmCatalog, isWasmInputParam, isWasmOutputParam, wasmInputKind } from "./catalog-schema";
 import { pluginToolNames, runPluginTool } from "../plugins/registry";
 import { planOperation } from "../../../shared/contracts/index.ts";
+import { listPlanRuns, readPlanRun, runBrowserPlan } from "./plans";
 import type { GeeAuthStatus } from "../gee";
 import { assertShapefileParts, groupShapefileParts, SHAPEFILE_EXTENSIONS } from "../shapefile";
 
@@ -496,6 +497,7 @@ async function spatialJoin(record: LayerRecord, other: LayerRecord, args: Record
 }
 async function execute(name: string, args: Record<string, any>, signal?: AbortSignal): Promise<Record<string, any>> {
   if (name.startsWith("wasm_")) return runNative(name.slice(5), args, signal);
+  if (name === "run_plan") return runBrowserPlan(args, signal);
   if (name === "remove_layer") return removeLayer(args.layer);
   if (pluginToolNames.has(name)) return runPluginTool(name, args, {
     runTool: (toolName, toolArgs) => execute(toolName, toolArgs, signal),
@@ -794,6 +796,21 @@ async function importShapefileZip(bytes: Uint8Array, filename: string, sourceCrs
   assertShapefileParts(parts, base);
   return convertShapefile(parts, base, filename.replace(/\.zip$/i, ""), sourceCrs);
 }
+/** Direct step entry for the plan executor: validated, no job wrapper. */
+const QUICK_ENGINE_TOOLS = new Set([
+  "ping", "list_layers", "job_status", "job_cancel", "describe_layer", "inspect_layers",
+  "plan_list", "plan_get", "list_supported_formats", "import_arcgis_project",
+  "gee_auth_status", "gee_search_collection", "gee_job_status", "remove_layer",
+  "rename_layer", "reorder_layers", "field_statistics",
+  "zoom_to_layer", "open_attribute_table", "set_layer_symbology", "set_layer_labels",
+]);
+export async function runEngineStep(name: string, args: Record<string, any>, signal?: AbortSignal): Promise<Record<string, any>> {
+  if (name.startsWith("wasm_")) await hydrateWasmCatalog();
+  validate(name, args);
+  if (QUICK_ENGINE_TOOLS.has(name)) return runBrowserTool(name, args);
+  const impl = execute;
+  return impl(name, args, signal);
+}
 export async function runBrowserTool(name: string, args: Record<string, any> = {}): Promise<Record<string, any>> {
   if (name.startsWith("wasm_")) await hydrateWasmCatalog();
   validate(name, args); recordLog("tool-call", name, args);
@@ -803,6 +820,12 @@ export async function runBrowserTool(name: string, args: Record<string, any> = {
   if (name === "job_cancel") return cancelBrowserJob(args.job_id);
   if (name === "describe_layer") return describe(await resolve(args.layer));
   if (name === "inspect_layers") return inspectLayers(args.layer);
+  if (name === "plan_list") return { runs: await listPlanRuns() };
+  if (name === "plan_get") {
+    const run = await readPlanRun(String(args.run_id ?? ""));
+    if (!run) throw new Error(`找不到计划运行记录：${args.run_id}`);
+    return run as unknown as Record<string, any>;
+  }
   if (["list_supported_formats", "import_arcgis_project", "gee_auth_status", "gee_search_collection", "gee_job_status"].includes(name))
     return execute(name, args);
   if (name === "remove_layer") return removeLayer(args.layer);
@@ -982,6 +1005,8 @@ export async function browserEngineRequest(path: string, init: RequestInit = {})
     result = await importBrowserShapefiles(files, url.searchParams.get("source_crs") ?? undefined);
   }
   else if (p.startsWith("/jobs/")) { const [, , id, action] = p.split("/"); result = action === "cancel" ? await cancelBrowserJob(id) : await readBrowserJob(id); }
+  else if (p.startsWith("/plans/")) { const run = await readPlanRun(decodeURIComponent(p.slice("/plans/".length))); if (!run) throw new Error(`找不到计划运行记录：${p}`); result = run; }
+  else if (p === "/plans") result = { runs: await listPlanRuns() };
   else if (p === "/layers") result = { layers: await browserLayers() };
   else if (p.startsWith("/layers/") && p.endsWith(".geojson")) {
     const id = decodeURIComponent(p.slice("/layers/".length, -".geojson".length));

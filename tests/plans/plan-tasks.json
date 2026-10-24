@@ -1,0 +1,165 @@
+{
+  "comment": "阶段 3 计划执行基线：11 个真实 3-4 步任务，覆盖 completed / 计划期拒绝 / 执行失败+恢复 / 验收门失败。每个任务在独立子进程中对真实浏览器 WASM 引擎执行。expect 为任务级断言；recompute 由脚本从存储独立重算（图层摘要复验 + auditRuns 不变量）。",
+  "fixtures": {
+    "pts": "samples/beijing_points.geojson",
+    "zones": "tests/fixtures/district_zones.geojson",
+    "mask": "tests/fixtures/zone_a.geojson",
+    "dem": "tests/fixtures/dem_hills.tif"
+  },
+  "tasks": [
+    {
+      "id": "P01",
+      "title": "点缓冲服务圈与字段统计",
+      "goal": "为北京样例点生成 500 米服务圈并统计要素数",
+      "fixtures": ["pts"],
+      "steps": [
+        { "id": "buf", "kind": "operation", "spec": { "operation": "gis.buffer", "version": 1, "input": "beijing_points", "params": { "distance": 500, "units": "meters" } },
+          "dependsOn": [], "acceptance": [{ "type": "feature_count", "op": "eq", "value": 5 }, { "type": "geometry_types", "contains": ["Polygon"] }] },
+        { "id": "stat", "kind": "tool", "tool": "field_statistics", "args": { "layer": "@buf", "field": "id" }, "dependsOn": ["buf"],
+          "acceptance": [{ "type": "field_value", "field": "count", "op": "eq", "value": 5 }] },
+        { "id": "view", "kind": "tool", "tool": "zoom_to_layer", "args": { "layer": "@buf" }, "dependsOn": ["buf"] }
+      ],
+      "expect": { "status": "completed", "deliverablesMin": 1, "acceptanceAllOk": true }
+    },
+    {
+      "id": "P02",
+      "title": "跨投影缓冲链与独立半径复核",
+      "goal": "把点投影到 UTM 49N，缓冲 1 公里后投影回 WGS84，并独立复核缓冲半径",
+      "fixtures": ["pts"],
+      "steps": [
+        { "id": "rp1", "kind": "operation", "spec": { "operation": "gis.reproject", "version": 1, "input": "beijing_points", "params": { "targetCrs": "EPSG:32650" } },
+          "acceptance": [{ "type": "crs", "value": "EPSG:32650" }, { "type": "feature_count", "op": "eq", "value": 5 }] },
+        { "id": "buf", "kind": "operation", "dependsOn": ["rp1"], "spec": { "operation": "gis.buffer", "version": 1, "input": "@rp1", "params": { "distance": 1000, "units": "meters" } },
+          "acceptance": [{ "type": "feature_count", "op": "eq", "value": 5 }] },
+        { "id": "rp2", "kind": "operation", "dependsOn": ["buf"], "spec": { "operation": "gis.reproject", "version": 1, "input": "@buf", "params": { "targetCrs": "EPSG:4326" } },
+          "acceptance": [{ "type": "crs", "value": "EPSG:4326" }, { "type": "buffer_radius", "source": "rp1", "distance": 1000, "tol": 10 }] }
+      ],
+      "expect": { "status": "completed", "deliverablesMin": 1, "acceptanceAllOk": true }
+    },
+    {
+      "id": "P03",
+      "title": "面裁剪链",
+      "goal": "用 zone_a 掩膜裁剪分区面并统计保留要素",
+      "fixtures": ["zones", "mask"],
+      "steps": [
+        { "id": "desc", "kind": "tool", "tool": "describe_layer", "args": { "layer": "district_zones" } },
+        { "id": "cut", "kind": "operation", "dependsOn": ["desc"], "spec": { "operation": "gis.clip", "version": 1, "input": "district_zones", "params": { "maskLayerId": "zone_a" } },
+          "acceptance": [{ "type": "feature_count", "op": "gte", "value": 1 }] },
+        { "id": "stat", "kind": "tool", "tool": "field_statistics", "args": { "layer": "@cut", "field": "pop" }, "dependsOn": ["cut"],
+          "acceptance": [{ "type": "field_value", "field": "count", "op": "gte", "value": 1 }] }
+      ],
+      "expect": { "status": "completed", "deliverablesMin": 1, "acceptanceAllOk": true }
+    },
+    {
+      "id": "P04",
+      "title": "属性选择与统计",
+      "goal": "选出 pop ≥ 8000 的分区并统计均值",
+      "fixtures": ["zones"],
+      "steps": [
+        { "id": "sel", "kind": "tool", "tool": "select_by_attributes", "args": { "layer": "district_zones", "field": "pop", "op": "ge", "value": "8000" },
+          "acceptance": [{ "type": "feature_count", "op": "gte", "value": 1 }] },
+        { "id": "stat", "kind": "tool", "tool": "field_statistics", "args": { "layer": "@sel", "field": "pop" }, "dependsOn": ["sel"],
+          "acceptance": [{ "type": "field_value", "field": "mean", "op": "gte", "value": 8000 }] },
+        { "id": "view", "kind": "tool", "tool": "zoom_to_layer", "args": { "layer": "@sel" }, "dependsOn": ["sel"] }
+      ],
+      "expect": { "status": "completed", "deliverablesMin": 1, "acceptanceAllOk": true }
+    },
+    {
+      "id": "P05",
+      "title": "凸包量算与确认导出",
+      "goal": "生成点的凸包、量算面积并导出 GeoJSON（需用户确认的步骤）",
+      "fixtures": ["pts"],
+      "confirmations": ["exp"],
+      "steps": [
+        { "id": "hull", "kind": "tool", "tool": "convex_hull", "args": { "layer": "beijing_points" },
+          "acceptance": [{ "type": "feature_count", "op": "eq", "value": 1 }, { "type": "geometry_types", "contains": ["Polygon"] }] },
+        { "id": "calc", "kind": "tool", "tool": "calculate_geometry", "args": { "layer": "@hull" }, "dependsOn": ["hull"],
+          "acceptance": [{ "type": "layer_field", "index": 0, "field": "area_m2", "op": "gte", "value": 1000 }] },
+        { "id": "exp", "kind": "tool", "tool": "export_features", "args": { "layer": "@calc", "path": "p05_hull.geojson", "fmt": "geojson" }, "dependsOn": ["calc"],
+          "acceptance": [{ "type": "field_value", "field": "bytes", "op": "gte", "value": 100 }] }
+      ],
+      "expect": { "status": "completed", "deliverablesMin": 1, "acceptanceAllOk": true }
+    },
+    {
+      "id": "P06",
+      "title": "重投影往返与显式 no-op",
+      "goal": "分区面投影到 3857 再回 4326，重复投影按契约 no-op",
+      "fixtures": ["zones"],
+      "steps": [
+        { "id": "rp1", "kind": "operation", "spec": { "operation": "gis.reproject", "version": 1, "input": "district_zones", "params": { "targetCrs": "EPSG:3857" } },
+          "acceptance": [{ "type": "crs", "value": "EPSG:3857" }] },
+        { "id": "rp2", "kind": "operation", "dependsOn": ["rp1"], "spec": { "operation": "gis.reproject", "version": 1, "input": "@rp1", "params": { "targetCrs": "EPSG:4326" } },
+          "acceptance": [{ "type": "crs", "value": "EPSG:4326" }] },
+        { "id": "rp3", "kind": "operation", "dependsOn": ["rp2"], "spec": { "operation": "gis.reproject", "version": 1, "input": "@rp2", "params": { "targetCrs": "EPSG:4326" } },
+          "acceptance": [{ "type": "noop" }] }
+      ],
+      "expect": { "status": "completed", "deliverablesMin": 1, "acceptanceAllOk": true }
+    },
+    {
+      "id": "P07",
+      "title": "故意错误：不支持的 dissolve 必须在计划期拒绝",
+      "goal": "缓冲后按 kind 融合（浏览器端 dissolve 已知不可用）",
+      "fixtures": ["zones"],
+      "steps": [
+        { "id": "pre", "kind": "operation", "spec": { "operation": "gis.buffer", "version": 1, "input": "district_zones", "params": { "distance": 100, "units": "meters" } } },
+        { "id": "diss", "kind": "operation", "dependsOn": ["pre"], "spec": { "operation": "gis.dissolve", "version": 1, "input": "@pre", "params": { "field": "kind" } } },
+        { "id": "view", "kind": "tool", "tool": "zoom_to_layer", "args": { "layer": "@pre" }, "dependsOn": ["pre"] }
+      ],
+      "expect": { "status": "failed", "blockedClass": "UNSUPPORTED", "executedSteps": 0, "deliverablesMin": 0 }
+    },
+    {
+      "id": "P08",
+      "title": "故意错误：负距离缓冲在计划期拒绝",
+      "goal": "负距离缓冲（契约 v1 明确不接受）",
+      "fixtures": ["pts"],
+      "steps": [
+        { "id": "bad", "kind": "operation", "spec": { "operation": "gis.buffer", "version": 1, "input": "beijing_points", "params": { "distance": -5, "units": "meters" } } },
+        { "id": "stat", "kind": "tool", "tool": "field_statistics", "args": { "layer": "@bad", "field": "id" }, "dependsOn": ["bad"] },
+        { "id": "view", "kind": "tool", "tool": "zoom_to_layer", "args": { "layer": "@bad" }, "dependsOn": ["bad"] }
+      ],
+      "expect": { "status": "failed", "blockedClass": "INPUT_ERROR", "executedSteps": 0, "deliverablesMin": 0 }
+    },
+    {
+      "id": "P09",
+      "title": "故意错误：幽灵步骤引用在计划期拒绝",
+      "goal": "掩膜引用不存在的步骤输出 @ghost",
+      "fixtures": ["pts"],
+      "steps": [
+        { "id": "buf", "kind": "operation", "spec": { "operation": "gis.buffer", "version": 1, "input": "beijing_points", "params": { "distance": 100, "units": "meters" } } },
+        { "id": "cut", "kind": "operation", "dependsOn": ["buf"], "spec": { "operation": "gis.clip", "version": 1, "input": "@buf", "params": { "maskLayerId": "@ghost" } } },
+        { "id": "stat", "kind": "tool", "tool": "field_statistics", "args": { "layer": "@cut", "field": "id" }, "dependsOn": ["cut"] }
+      ],
+      "expect": { "status": "failed", "blockedClass": "INPUT_ERROR", "executedSteps": 0, "deliverablesMin": 0 }
+    },
+    {
+      "id": "P10",
+      "title": "注入执行失败 + 断点恢复",
+      "goal": "DEM 山体阴影 → 坡度 → 等高线；第二轮注入让坡度失败，随后从断点恢复",
+      "fixtures": ["dem"],
+      "inject": { "step": "slope", "message": "注入：模拟引擎故障" },
+      "resume": true,
+      "steps": [
+        { "id": "hs", "kind": "tool", "tool": "wasm_hillshade", "args": { "input": "dem_hills" } },
+        { "id": "slope", "kind": "tool", "tool": "wasm_slope", "args": { "input": "dem_hills", "units": "degrees" }, "dependsOn": ["hs"],
+          "acceptance": [{ "type": "raster_dims", "ref": "hs" }] },
+        { "id": "contours", "kind": "tool", "tool": "wasm_contours_from_raster", "args": { "input": "dem_hills", "interval": 10 }, "dependsOn": ["slope"],
+          "acceptance": [{ "type": "feature_count", "op": "gte", "value": 1 }] }
+      ],
+      "expect": { "status": "failed", "blockedClass": "EXECUTION_ERROR", "deliverablesMin": 1 },
+      "expectResume": { "status": "completed", "reusedMin": 1, "deliverablesMin": 3, "acceptanceAllOk": true }
+    },
+    {
+      "id": "P11",
+      "title": "故意错误：验收门失败不得假成功",
+      "goal": "缓冲后断言 999 个要素（错误预期），运行必须以 VALIDATION_ERROR 失败",
+      "fixtures": ["pts"],
+      "steps": [
+        { "id": "buf", "kind": "operation", "spec": { "operation": "gis.buffer", "version": 1, "input": "beijing_points", "params": { "distance": 500, "units": "meters" } },
+          "acceptance": [{ "type": "feature_count", "op": "eq", "value": 999 }] },
+        { "id": "stat", "kind": "tool", "tool": "field_statistics", "args": { "layer": "@buf", "field": "id" }, "dependsOn": ["buf"] },
+        { "id": "view", "kind": "tool", "tool": "zoom_to_layer", "args": { "layer": "@buf" }, "dependsOn": ["buf"] }
+      ],
+      "expect": { "status": "failed", "blockedClass": "VALIDATION_ERROR", "deliverablesMin": 0, "headlinePattern": "未通过验收" }
+    }
+  ]
+}
