@@ -70,3 +70,8 @@ secrets.json
 
 # Build artifacts (broad)
 target/
+
+# local tiphys.xyz deploy secrets (never commit)
+.config/tiphys/
+deploy.env
+*deploy-pass*

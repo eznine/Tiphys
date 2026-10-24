@@ -21,7 +21,8 @@
     "engine:ping": "node -e \"fetch('http://127.0.0.1:8971/ping').then(r=>r.text()).then(console.log)\"",
     "check:rust": "cargo check --manifest-path src-tauri/Cargo.toml",
     "agent": "npm --prefix agent start",
-    "agent:tools": "node scripts/agent-tools.mjs"
+    "agent:tools": "node scripts/agent-tools.mjs",
+    "deploy:xyz": "node scripts/run-deploy-xyz.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.87",

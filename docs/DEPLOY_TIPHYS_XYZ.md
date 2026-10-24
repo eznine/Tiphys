@@ -1,113 +1,123 @@
-# Deploying TIPHYS at tiphys.xyz
+# tiphys.xyz 怎么上线
 
-Checked 2026-10-24 against the current Vite build. The browser build is a static SPA: no Node, Python, database, or local port is required. The optional desktop runtime is separate.
+**读这一段就够。** tiphys.xyz 的公网站点不是 Cloudflare Pages，也不用 `wrangler`。
 
-## Build and upload
+| 角色 | 是什么 |
+| --- | --- |
+| 域名 / CDN | Cloudflare（只代理 DNS + HTTPS） |
+| 真正的源站 | `eznine@20.214.241.113` 上的 nginx，网站根目录 `/srv/tiphys-web` |
+| 上线动作 | 本地 `npm run build` → 把 **`dist/` 内容** 同步进 `/srv/tiphys-web` |
+
+推 GitHub **不会**自动更新 tiphys.xyz。没有 Cloudflare token、没有 Pages 项目、没有 `wrangler login` 都正常，**不要**去找这些。
+
+---
+
+## 一键部署（推荐）
+
+仓库里有脚本，在能 SSH 到源站的机器上跑：
+
+```bash
+# Linux / 本 bot 共享电脑
+npm run build
+npm run deploy:xyz
+# 或直接：
+bash scripts/deploy-tiphys-xyz.sh
+```
+
+```powershell
+# Windows（家用 PC）
+npm run build
+npm run deploy:xyz
+# 或：
+powershell -NoProfile -File scripts\deploy-tiphys-xyz.ps1
+```
+
+脚本会：用密钥登录 → 把 `dist/` 传到服务器 `/tmp/tiphys-dist` → `sudo` 同步进 `/srv/tiphys-web`（直接写 `/srv` 会权限失败，必须经 `/tmp`）。
+
+### 凭据放哪里（禁止进 Git）
+
+| 环境 | SSH 私钥 | sudo / 登录密码文件 |
+| --- | --- | --- |
+| Windows 家用 PC | `F:\server\eznine_deploy_b` | `F:\server\tiphys-deploy-pass.txt`（一行明文） |
+| Linux 共享电脑 | 已配好的 `~/.ssh` 或环境变量 | 环境变量 `EZNINE_SSH_PASSWORD`，或 `~/.config/tiphys/deploy.env`（gitignored） |
+
+也可以临时：
+
+```bash
+export EZNINE_SSH_HOST=20.214.241.113
+export EZNINE_SSH_USER=eznine
+export EZNINE_SSH_KEY=/path/to/eznine_deploy_b
+export EZNINE_SSH_PASSWORD='…'   # 仅用于远端 sudo；不要写进仓库
+bash scripts/deploy-tiphys-xyz.sh
+```
+
+**报「找不到密钥 / No token」时：** 不是 Cloudflare 的事。去上表路径找 `eznine_deploy_b` 和 `tiphys-deploy-pass.txt`，或设 `EZNINE_SSH_*`。本仓库永远不存密码、不存私钥。
+
+---
+
+## 手写命令（脚本坏了时对照）
+
+```bash
+npm ci && npm run build
+
+# 有 rsync + sshpass 时：
+export SSHPASS="$(cat …/tiphys-deploy-pass.txt)"   # 或已导出的 EZNINE_SSH_PASSWORD
+sshpass -e rsync -az --delete -e "ssh -i $KEY -o StrictHostKeyChecking=no" \
+  dist/ eznine@20.214.241.113:/tmp/tiphys-dist/
+sshpass -e ssh -i "$KEY" -o StrictHostKeyChecking=no eznine@20.214.241.113 \
+  "printf '%s\n' \"$SSHPASS\" | sudo -S rsync -a --delete /tmp/tiphys-dist/ /srv/tiphys-web/"
+```
+
+Windows 若没有 `rsync`，用仓库脚本（内部 tar-over-ssh，效果等同 `--delete`），不要自己发明 `wrangler pages deploy`。
+
+---
+
+## 构建产物
 
 ```bash
 npm ci
 npm run build
 ```
 
-The artifact is the **`dist/` directory in the repository root**. Upload its contents (not the parent directory) to the web root:
+上传的是仓库根目录 **`dist/` 里面的内容**（不要把 `dist` 这一层目录名本身当成站点子路径）：
 
 ```text
 dist/
-  index.html                  # SPA entry, never cache during rollout
-  logo-temp.png               # copied from public/
-  samples/beijing_points.geojson
-  licenses/frontend.md        # generated dependency notices
-  assets/*.js
-  assets/*.css
-  assets/*.wasm
-  assets/maplibre-gl-worker-*.js
+  index.html
+  logo-temp.png
+  samples/…
+  licenses/…
+  assets/*.js | *.css | *.wasm | maplibre-gl-worker-*.js
 ```
 
-Keep the generated `assets/` filenames unchanged; Vite hashes them for cache busting. The map worker URL is emitted by a `?worker&url` import in `MapCanvas.tsx`, so Vite bundles it as a `.js` asset. Do not rewrite or rename files inside `assets/`; in particular, serving the upstream `.mjs` worker as `application/octet-stream` prevents MapLibre from starting and leaves the map blank. The app must be served from the site root (`/`). If it is deployed under a subpath, set Vite's `base` and rebuild rather than moving hashed assets after the build.
+- 站点必须挂在域名根路径 `/`。
+- 不要改 `assets/` 里带 hash 的文件名。MapLibre worker 必须是 **`.js` + JavaScript MIME**；若被当成 `application/octet-stream` 或仍用上游 `.mjs`，地图会飞过去但一片空白。
+- nginx 参考：`deploy/nginx-tiphys.conf`（`index.html` no-cache，hashed assets 长缓存，`.wasm` → `application/wasm`）。
 
-Minimum server behavior:
+---
 
-- Serve `/` and unknown SPA routes from `index.html`.
-- Serve `.wasm` as `Content-Type: application/wasm`.
-- Serve `/assets/maplibre-gl-worker-*.js` as JavaScript (`text/javascript` or `application/javascript`), not `application/octet-stream`.
-- Serve `index.html` with `Cache-Control: no-cache`.
-- Serve hashed `/assets/*` files with a long immutable cache.
-- Allow large static WASM responses; do not add an application-level body size limit to GET assets.
+## Cloudflare 只做什么
 
-`deploy/nginx-tiphys.conf` is a working baseline for these rules.
+Cloudflare 管 DNS（`tiphys.xyz` / `www` → `20.214.241.113`，橙云代理）和 HTTPS。`cf-cache-status: DYNAMIC` 正常。
 
-## Current payload shape
+**当前不要：**
 
-- The lazy catalog chunk is about 1.95 MB uncompressed / 327 kB gzip in the current build. It contains tool schemas, not cartographic tiles.
-- The main app chunk is about 1.93 MB uncompressed / 586 kB gzip. It includes MapLibre and the workspace shell; the 500 kB Vite warning is expected and does not mean the page fails to load.
-- `geolibre-cli.wasm` is about 24.1 MB uncompressed / 8.2 MB gzip and `geolibre_wasm_bg.wasm` is about 6.66 MB / 2.13 MB gzip. They are fetched only for local WASM tools and are not part of the initial HTML.
-- The map starts before tool catalog hydration finishes. The toolbox shows a 39-tool shell first and reaches 997 merged tools after hydration (993 visible after hiding four engine-only controls).
-- Enable Brotli/gzip for HTML, JS, CSS and JSON. The host may also compress `.wasm`; always preserve the `application/wasm` type.
-- Cloudflare Pages has a 25 MiB per-asset limit. The current 24.1 MB CLI WASM fits, but a dependency upgrade could cross the limit. If that happens, host the WASM from R2/another static origin with CORS and update the explicit worker/fetch URL; do not silently ship a truncated file.
+- `npx wrangler pages deploy`
+- 等 Pages Git 构建
+- 因为没有 Cloudflare API token 就停住
 
-## Cloudflare Pages
+以后若改成 Pages 做源站，再另开文档；那不是现状。
 
-Use these project settings for a static Pages deployment:
+---
 
-| Setting | Value |
-| --- | --- |
-| Framework preset | None / Vite |
-| Build command | `npm ci && npm run build` |
-| Build output directory | `dist` |
-| Root directory | repository root |
-| Node version | `20.19.2` (or Node 22 LTS; pin one in the Pages project) |
-| Environment variables | none for the normal static build |
+## 上线后核对
 
-The browser build does not require a Worker, Functions, Python, Node at runtime, or an API key. `VITE_TIPHYS_GEE_DEMO=1` is optional and only enables the labelled demo path; it is not a GEE credential and does not make Earth Engine connected.
+1. `curl -s https://tiphys.xyz/ | grep -oE 'assets/index-[^"]+\.js'` 应等于本地 `dist/index.html` 里的同名文件。
+2. 浏览器强刷打开 tiphys.xyz：地球、底图、蓝浅色主题。
+3. 空地图态点「加载示例点位」（不需要 API key），应能看见点和底图。
+4. `curl -I` 检查 `maplibre-gl-worker-*.js` 是 JavaScript，`geolibre-cli-*.wasm` 是 `application/wasm`。
 
-Pages handles unknown paths with a static fallback only if configured. TIPHYS is currently a single `/` view, but if direct deep links are added, create `public/_redirects`:
+## API 密钥与 GEE
 
-```text
-/* /index.html 200
-```
-
-For cache headers, keep the entry document fresh and hashed assets immutable. A `public/_headers` template is:
-
-```text
-/index.html
-  Cache-Control: no-cache
-
-/assets/*
-  Cache-Control: public, max-age=31536000, immutable
-```
-
-Do not enable the generic "Always Online" or HTML minification transforms if they rewrite worker/WASM URLs. After upload, verify the exact MIME types with `curl -I https://tiphys.xyz/assets/geolibre-cli-*.wasm` and `curl -I https://tiphys.xyz/assets/maplibre-gl-worker-*.js`; the WASM response must be `application/wasm` and the worker must be JavaScript, not `application/octet-stream`.
-
-An optional CLI deploy (after the project exists and Cloudflare credentials are configured outside this repository) is:
-
-```bash
-npx wrangler pages deploy dist --project-name tiphys
-```
-
-No deploy is performed by `npm run build`; the build is fully static and credential-free.
-
-## COOP/COEP
-
-The current build does **not** require cross-origin isolation. MapLibre and GeoLibre use module workers, not shared-memory threads. Do not set `Cross-Origin-Opener-Policy` / `Cross-Origin-Embedder-Policy` by default: requiring COEP can break third-party basemap tiles, fonts, and attribution unless every cross-origin response opts in.
-
-If a future release introduces `SharedArrayBuffer` worker threads, add both headers and audit every remote map/style/tile/font response for CORS or CORP compatibility before enabling them:
-
-```nginx
-add_header Cross-Origin-Opener-Policy same-origin;
-add_header Cross-Origin-Embedder-Policy require-corp;
-```
-
-## API keys and GEE
-
-- Browser model keys are entered by the user and stored in that browser's IndexedDB. Never place a shared model key in the static bundle.
-- The current GEE path is an honest preparation/demo slice. Do not add a service-account key to the web root or browser environment. A future live GEE endpoint must be a trusted server-side proxy.
-- `TIPHYS_GEE_DEMO=1` is a local demo switch, not production credentials. Browser builds use the Vite-exposed `VITE_TIPHYS_GEE_DEMO=1` at build time and still report `connected: false`.
-
-## Smoke test after deploy
-
-1. Open `https://tiphys.xyz/` and confirm the globe, basemap, and blue light theme render.
-2. Open 工具箱 and wait for the count to reach the full catalog.
-3. Click 加载示例点位 in the empty map state (no API key required), confirm the basemap still renders around Beijing, then run a small buffer.
-4. Draw an AOI, verify its blue chip, then clear it.
-5. Start a long task and confirm progress, stage text, and cancel remain visible.
-
+- 模型 key 由用户在浏览器里填，进 IndexedDB；不要打进静态包。
+- 不要把 GEE 服务账号放进 web 根目录。
