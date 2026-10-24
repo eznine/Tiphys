@@ -3,9 +3,13 @@ import react from "@vitejs/plugin-react";
 // @ts-expect-error type error without @types/node package
 import process from "node:process";
 const host = process.env.TAURI_DEV_HOST;
+// Capacitor serves the bundled SPA from its local WebView origin. Relative
+// asset URLs keep workers and the WASM payload independent of that origin.
+const capacitor = process.env.CAPACITOR === "1";
 
 // https://vite.dev/config/
 export default defineConfig(() => ({
+  base: capacitor ? "./" : "/",
   plugins: [react()],
   build: { license: { fileName: "licenses/frontend.md" } },
   // maplibre-gl v6 loads its module worker relative to its own file; pre-bundling breaks that URL.

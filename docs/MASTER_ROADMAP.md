@@ -35,7 +35,7 @@
 
 | 能力 | 已有实现 | 现在的问题 |
 |---|---|---|
-| 桌面 WebView / 手机 Web / 电脑浏览器 | Tauri、React、MapLibre 和移动适配 | UI 统一不代表 Agent 与算子能力一致 |
+| 桌面 WebView / 手机 Web / 电脑浏览器 | Tauri、React、MapLibre 和移动适配；Android debug Capacitor 外壳已可构建（2026-10-25，真机 `NOT_TESTED`） | UI 统一不代表 Agent 与算子能力一致 |
 | 浏览器 GIS 算子 | `geolibre-wasm`，浏览器目录已约 958 个 WASM schema；合并目录约 997 项（见 `CLIENT_PARITY.md`） | Agent 用 `search_browser_tools` → `run_browser_tool`，检索语义和参数语境薄弱 |
 | 桌面分析 | Node Agent sidecar + Python MCP 引擎，约 34 个工具 | 桌面 Agent 原生只看到 Python MCP；用户手动能调用的 WASM 未必能由 Agent 调用 |
 | 图层系统 | 前端地图层 + 浏览器 IndexedDB 原始数据 + Python 工作空间 | 缺少跨环境逻辑 LayerRef、来源、版本、执行可见性和数据搬运 |

@@ -9,12 +9,13 @@ export type BasemapId =
   | "bright"
   | "satellite"
   | "hillshade"
-  | "opentopo";
+  | "opentopo"
+  | "offline";
 
 export type BasemapDef = {
   id: BasemapId;
   label: string;
-  kind: "style-url" | "raster";
+  kind: "style-url" | "raster" | "blank";
   url?: string;
   tiles?: string[];
   attribution: string;
@@ -84,6 +85,13 @@ export const BASEMAPS: BasemapDef[] = [
     attribution: "© OpenTopoMap (CC-BY-SA) © OpenStreetMap",
     keyRequired: false,
   },
+  {
+    id: "offline",
+    label: "离线空白",
+    kind: "blank",
+    attribution: "无在线底图瓦片；仅显示本机图层",
+    keyRequired: false,
+  },
 ];
 
 /** Would need API keys — not wired. */
@@ -124,6 +132,16 @@ export function rasterStyle(
       { id: "background", type: "background", paint: { "background-color": bg } },
       { id: "basemap", type: "raster", source: "basemap" },
     ],
+  };
+}
+
+/** A real, tile-free MapLibre style for offline use. It is not a cached basemap. */
+export function blankStyle(id: string, bg: string): StyleSpecification {
+  return {
+    version: 8,
+    name: `${id}-blank`,
+    sources: {},
+    layers: [{ id: "background", type: "background", paint: { "background-color": bg } }],
   };
 }
 

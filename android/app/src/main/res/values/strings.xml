@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TIPHYS</string>
+    <string name="title_activity_main">TIPHYS</string>
+    <string name="package_name">xyz.tiphys.app</string>
+    <string name="custom_url_scheme">xyz.tiphys.app</string>
+</resources>

@@ -10,6 +10,7 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
 import {
   BASEMAPS,
   BasemapId,
+  blankStyle,
   getBasemap,
   rasterStyle,
   TERRAIN_DEM,
@@ -162,6 +163,7 @@ function boundsFromPoints(a: maplibregl.LngLat, b: maplibregl.LngLat): number[] 
 
 export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus, selection = null, onSelect, aoi = null, onAoiChange, onOpenTable, onFilterTable, onExportIdentifyFeature, variant = "desktop", onViewChange, viewRequest = null, onFitAll }: Props) {
   const mobile = variant === "mobile";
+  const initialBasemap = useRef<BasemapId>(navigator.onLine === false ? "offline" : "liberty").current;
   const dataLayersRef = useRef(dataLayers);
   dataLayersRef.current = dataLayers;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -196,11 +198,11 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   const aoiStartRef = useRef<[number, number] | null>(null);
   const locateTimer = useRef<number | undefined>(undefined);
 
-  const [basemapId, setBasemapId] = useState<BasemapId>("liberty");
+  const [basemapId, setBasemapId] = useState<BasemapId>(initialBasemap);
   const [mode3d, setMode3d] = useState(!mobile);
   const [terrain, setTerrain] = useState(false);
   const [buildings, setBuildings] = useState(true);
-  const basemapRef = useRef<BasemapId>("liberty");
+  const basemapRef = useRef<BasemapId>(initialBasemap);
   const [menuOpen, setMenuOpen] = useState(false);
   const [drawingAoi, setDrawingAoi] = useState(false);
   const [draftAoi, setDraftAoi] = useState<number[] | null>(null);
@@ -217,7 +219,9 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   const measurePointsRef = useRef<[number, number][]>([]);
   measurePointsRef.current = measurePoints;
   const [locateStatus, setLocateStatus] = useState("");
-  const [basemapNotice, setBasemapNotice] = useState("");
+  const [basemapNotice, setBasemapNotice] = useState(initialBasemap === "offline"
+    ? "网络不可用：已使用空白底图；本机图层与 WASM 工具可用。"
+    : "");
   const [mapReady, setMapReady] = useState(false);
 
   const themeRef = useRef(theme);
@@ -301,7 +305,9 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   function loadBasemap(map: Map, id: BasemapId) {
     const def = getBasemap(id);
     const bg = themeRef.current === "dark" ? "#0B1220" : "#E2E8F0";
-    if (def.kind === "style-url" && def.url) {
+    if (def.kind === "blank") {
+      map.setStyle(blankStyle(def.id, bg));
+    } else if (def.kind === "style-url" && def.url) {
       map.setStyle(def.url, { diff: false });
     } else if (def.tiles) {
       map.setStyle(rasterStyle(def.id, def.tiles, def.attribution, bg));
@@ -313,7 +319,9 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: getBasemap("liberty").url!,
+      style: initialBasemap === "offline"
+        ? blankStyle("offline", theme === "dark" ? "#0B1220" : "#E2E8F0")
+        : getBasemap("liberty").url!,
       center: DEFAULT_CENTER,
       zoom: GLOBE_ZOOM,
       pitch: 0,
@@ -533,10 +541,14 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
       const message = String((event as unknown as { error?: { message?: string } }).error?.message ?? "");
       if (!/fetch|failed|load|ajax|style/i.test(message)) return;
       fallbackTried = true;
-      basemapRef.current = "satellite";
-      setBasemapId("satellite");
-      setBasemapNotice("街道底图加载失败，已切换到卫星影像");
-      window.setTimeout(() => setBasemapNotice(""), 5200);
+      if (navigator.onLine === false) {
+        setBasemapId("offline");
+        setBasemapNotice("网络不可用：已使用空白底图；本机图层与 WASM 工具可用。");
+      } else {
+        setBasemapId("satellite");
+        setBasemapNotice("街道底图加载失败，已切换到卫星影像");
+        window.setTimeout(() => setBasemapNotice(""), 5200);
+      }
     });
 
     map.on("style.load", () => {

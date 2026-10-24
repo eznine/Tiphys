@@ -267,3 +267,60 @@ test("basemap and imported layers render real pixels after flying", { timeout: 1
   assert.ok(!browserErrors.some(error => /Worker failed to load/i.test(error)), "MapLibre worker failed to boot");
   assert.deepEqual(browserErrors, [], browserErrors.join("\n"));
 });
+
+test("tile-free offline basemap keeps local layers renderable", { timeout: 60_000 }, async () => {
+  assert.ok(page, "browser page is available");
+  // A persistent import status can overlap desktop map controls; dispatch the
+  // style switch directly so this regression tests the basemap, not that overlay.
+  const basemapMenu = page.getByRole("button", { name: /街道/ });
+  await basemapMenu.evaluate(button => (button as HTMLButtonElement).click());
+  const offlineChoice = page.getByRole("button", { name: "离线空白" });
+  await offlineChoice.waitFor({ state: "visible", timeout: 5_000 });
+  await offlineChoice.evaluate(button => (button as HTMLButtonElement).click());
+  await page.waitForFunction(() => {
+    const map = (window as unknown as { __tiphysMap?: any }).__tiphysMap;
+    return Boolean(map?.loaded() && !map.isMoving());
+  }, null, { timeout: 30_000 });
+  await page.waitForFunction(() => {
+    const map = (window as unknown as { __tiphysMap?: any }).__tiphysMap;
+    const style = map?.getStyle();
+    const sources = Object.keys(style?.sources ?? {}).filter(id => id.startsWith("tiphys-lyr_"));
+    return sources.length >= 3 && sources.every(id => map.isSourceLoaded(id));
+  }, null, { timeout: 30_000 });
+  const rasterView = await page.evaluate(() => {
+    const map = (window as unknown as { __tiphysMap?: any }).__tiphysMap;
+    const style = map.getStyle();
+    const imageId = Object.keys(style.sources ?? {}).find(id => id.startsWith("tiphys-lyr_") && style.sources[id].type === "image");
+    const coordinates = imageId ? (style.sources[imageId] as { coordinates?: [number, number][] }).coordinates : undefined;
+    if (!imageId || !coordinates?.length) return null;
+    const lngs = coordinates.map(([lng]) => lng);
+    const lats = coordinates.map(([, lat]) => lat);
+    const bounds: [[number, number], [number, number]] = [
+      [Math.min(...lngs), Math.min(...lats)],
+      [Math.max(...lngs), Math.max(...lats)],
+    ];
+    map.fitBounds(bounds, { padding: 80, duration: 0, maxZoom: 22 });
+    return { imageId, bounds };
+  });
+  assert.ok(rasterView, "the local GeoTIFF image source has no bounds to fit");
+  await waitForMapIdle();
+  await page.waitForTimeout(500);
+  const offline = await mapProbe([], "offline");
+  const offlineState = await page.evaluate(() => {
+    const map = (window as unknown as { __tiphysMap?: any }).__tiphysMap;
+    const style = map.getStyle();
+    return {
+      zoom: map.getZoom(),
+      center: map.getCenter(),
+      layers: (style.layers ?? []).map((layer: any) => ({ id: layer.id, type: layer.type, source: layer.source, visibility: layer.layout?.visibility })),
+      sources: Object.fromEntries(Object.entries(style.sources ?? {}).map(([id, source]: [string, any]) => [id, { type: source.type, loaded: map.isSourceLoaded(id), coords: source.coordinates }])),
+    };
+  });
+  console.log("[map-render] offline-state", JSON.stringify(offlineState));
+  await page.screenshot({ path: path.join(outputDir, "map-offline-blank.png") });
+  assert.ok(!offline.sources.some(source => source.id === "basemap"), "offline style still references an online basemap source");
+  assert.ok(offline.sources.some(source => source.type === "geojson"), "offline basemap dropped local GeoJSON layers");
+  assert.ok(offline.sources.some(source => source.type === "image"), "offline basemap dropped local raster layers");
+  assert.ok(offline.uniqueColors > 12, `local raster is blank on the offline basemap (${offline.uniqueColors} colors)`);
+  assert.ok(offline.nonBackground > 100, `local layers are not visible on the offline basemap (${offline.nonBackground} changed samples)`);
+});

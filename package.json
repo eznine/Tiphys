@@ -10,6 +10,8 @@
     "desktop:build": "node scripts/build-desktop.mjs",
     "desktop:dev": "node scripts/build-desktop.mjs --dev",
     "portable:zip": "node scripts/portable-zip.mjs",
+    "android:build": "node scripts/build-android.mjs",
+    "android:sync": "npx cap sync android",
     "test:agent": "npm --prefix agent test",
     "test:engine": "node scripts/test-engine.mjs",
     "test:browser": "npm run build && node --import ./agent/node_modules/tsx/dist/loader.mjs --test tests/browser-engine.test.ts tests/map-render.test.ts",
@@ -46,6 +48,8 @@
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.87",
+    "@capacitor/android": "^6.2.2",
+    "@capacitor/core": "^6.2.2",
     "@tauri-apps/api": "2.11.1",
     "@tauri-apps/plugin-opener": "^2.5.5",
     "ai": "^6.0.312",
@@ -61,6 +65,7 @@
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^6.2.2",
     "@tauri-apps/cli": "^2",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
