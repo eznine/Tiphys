@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-24T11:27:56.278Z",
+  "generated_at": "2026-10-24T11:57:43.638Z",
   "generated_by": "scripts/catalog-audit.ts",
   "sources": {
     "python": "engine/tools.py → FastMCP.list_tools() (scripts/export_engine_catalog.py)",
@@ -7,21 +7,21 @@
     "wiring": "src/lib/browser/engine.ts string-literal dispatch scan"
   },
   "catalog": {
-    "shell": 39,
-    "initial": 39,
+    "shell": 40,
+    "initial": 40,
     "wasm": 958,
-    "total": 997,
+    "total": 998,
     "hydrated": true
   },
   "counts": {
-    "python_mcp": 34,
-    "browser_shell": 39,
+    "python_mcp": 35,
+    "browser_shell": 40,
     "browser_plugins": 5,
     "wasm": 958,
-    "merged_browser_catalog": 997,
+    "merged_browser_catalog": 998,
     "searchable_wasm": 958,
-    "desktop_agent_direct": 35,
-    "browser_agent_direct": 42
+    "desktop_agent_direct": 36,
+    "browser_agent_direct": 43
   },
   "reconciliation": {
     "common": [
@@ -40,6 +40,7 @@
       "gee_job_status",
       "gee_search_collection",
       "import_arcgis_project",
+      "inspect_layers",
       "intersection",
       "job_cancel",
       "job_status",
@@ -68,7 +69,7 @@
       "linkage_mapper_corridor",
       "whitebox_extra"
     ],
-    "browser_shell_wired": 39,
+    "browser_shell_wired": 40,
     "browser_shell_unwired": [],
     "plugins": [
       "clip_layers_to_aoi",
@@ -85,7 +86,7 @@
     ]
   },
   "engine_groups": {
-    "数据管理": 9,
+    "数据管理": 10,
     "邻近分析": 1,
     "叠加分析": 5,
     "几何处理": 4,
@@ -296,7 +297,7 @@
   },
   "surfaces": {
     "desktop-agent": {
-      "count": 35,
+      "count": 36,
       "detail": "Python MCP tools + read_tool_output. WASM/GeoLibre tools are NOT reachable from the desktop agent loop.",
       "names": [
         "add_data",
@@ -314,6 +315,7 @@
         "gee_job_status",
         "gee_search_collection",
         "import_arcgis_project",
+        "inspect_layers",
         "intersection",
         "job_cancel",
         "job_status",
@@ -337,11 +339,11 @@
       ]
     },
     "desktop-toolbox": {
-      "count": 997,
+      "count": 998,
       "detail": "ToolPanel renders python + every WASM schema + plugin tools inside the Tauri WebView."
     },
     "browser-agent": {
-      "count": 42,
+      "count": 43,
       "detail": "Direct tools = shell catalog (python-name parity + plugins); WASM only via search_browser_tools/run_browser_tool.",
       "names": [
         "add_data",
@@ -361,6 +363,7 @@
         "gee_search_collection",
         "hydrology_flow_pipeline",
         "import_arcgis_project",
+        "inspect_layers",
         "intersection",
         "job_cancel",
         "job_status",
@@ -389,7 +392,7 @@
       ]
     },
     "browser-toolbox": {
-      "count": 997,
+      "count": 998,
       "detail": "Full hydrated catalog after WASM hydration."
     },
     "browser-search": {
@@ -1358,7 +1361,7 @@
     }
   },
   "totals": {
-    "distinct_tool_ids": 992,
+    "distinct_tool_ids": 993,
     "python_desktop_only": 0,
     "wasm_browser_only": 958
   },
@@ -1724,6 +1727,27 @@
       "required": [
         "path"
       ],
+      "surfaces": {
+        "desktop-agent": true,
+        "desktop-toolbox": true,
+        "browser-agent": true,
+        "browser-toolbox": true,
+        "browser-search": false
+      }
+    },
+    {
+      "id": "inspect_layers",
+      "engines": [
+        "desktop-python"
+      ],
+      "category": "数据管理",
+      "async": false,
+      "read_only": true,
+      "destructive": false,
+      "inputs": [
+        "layer"
+      ],
+      "required": [],
       "surfaces": {
         "desktop-agent": true,
         "desktop-toolbox": true,

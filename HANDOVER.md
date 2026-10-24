@@ -2,6 +2,8 @@
 
 > **2026-10-24 起：所有开发以 [docs/MASTER_ROADMAP.md](docs/MASTER_ROADMAP.md) 为最高依据**——阶段与 Ticket 顺序（T-001 起）、架构契约、验收门槛、明确不做清单。本文件以下内容为历史交接记录。
 
+> 2026-10-24 阶段 1（T-002/T-003/T-004 先行）：共享契约 `shared/contracts`（`LayerRef/OperationSpec/ProviderCapability/ExecutionRun/Validation`，版本 1）落地，浏览器与桌面 Agent 共用同一 `planOperation()`；两端新增只读 `inspect_layers`（真实存储位置、sha256、字段空值、栅格 NoData）；双引擎 buffer/reproject 对照 4 PASS / 2 DIVERGENT（dissolve 分组语义、负距离为空），见 `docs/CROSS_ENGINE_SEMANTICS.md`；桌面 Agent 通过 `wasm_run`（子进程 WASI）首次可直接执行 WASM 工具，端到端把 WASM 结果变成桌面图层（`npm run wasm:spike`）。证据与 NOT_TESTED 见 `docs/STAGE1_CONTRACTS_AND_WASM.md`。
+
 > 2026-10-24 阶段 0（T-001）完成：工具目录对账 + 30 项可复现基线落地。新增 `scripts/export_engine_catalog.py`（FastMCP 真实内省）、`scripts/catalog-audit.ts`（各端可见性/同名对账）、`scripts/run-baseline.ts`（每任务独立进程 + 程序化断言 + 产物 sha256）、`tests/baseline/tasks.json`（10+12+8）与合成 fixtures。首轮结果 28 PASS / 2 ERROR，并定位 3 个真实缺陷：`dissolve` 继承退化 `snap_tolerance` 在投影 CRS 下产出损坏 FGB（D1）、`vector_info` 会在部分 FGB 上 panic 并毒化 WASM 实例（D2）、`buffer(dissolve:true)` 可组合性不清（D3）。完整证据与 NOT_TESTED 清单见 `docs/BASELINE_STAGE0.md`，目录矩阵见 `docs/CATALOG_AUDIT.md`。复现：`npm run audit:catalog`、`npm run baseline`。
 
 > 2026-10-24 桌面版修复批次：① API 配置持久化加固——保存时镜像到 `~/.tiphys/agent.json`，新版本首次启动自动从已有 `%APPDATA%` 配置播种备份，重装/清理应用数据后自动恢复（agent 测试 18/18 覆盖镜像、恢复与首次迁移）；② 图层右键新增「显示/隐藏图层」和「删除图层」（二次确认，删除工作副本、不动原始文件）；③ 点击地图要素弹出属性卡（图层名、几何类型、要素 id、最多 8 个字段、跳转属性表）；④ Ribbon 从 158 个动作收敛为常用项，新增「搜索全部工具」直接跳转工具箱并带入关键词。桌面 portable 已重建并部署到 `C:\Users\alex\Desktop\TIPHYS`，实测原配置与 3 个图层跨更新保留。用户需求调研见 `docs/USER_NEEDS_RESEARCH.md`。

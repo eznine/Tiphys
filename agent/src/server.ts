@@ -18,6 +18,8 @@ import { createMockModel } from "./mock.js";
 import { Session, type AgentEvent } from "./session.js";
 import { COMPACT_PROMPT, loadMemory, maybeCompact, readToolOutput, spillIfLarge, workspaceSnapshot } from "./context.js";
 import { allowedOrigins, authorized, serviceToken } from "./security.js";
+import { makeOperationSpec } from "../../shared/contracts/index.ts";
+import { runWasmTool } from "./wasm.js";
 
 let cfg = loadConfig();
 ensureSettingsBackup();
@@ -130,18 +132,62 @@ function buildTools(s: Session): ToolSet {
     }, required: ["spill_id"], additionalProperties: false }),
     execute: async input => readToolOutput(input.spill_id, input.offset, input.length),
   });
+  tools.wasm_run = tool({
+    description: "Run one geolibre/Whitebox WASM tool (from the 958-tool WASM catalog) on a local file. "
+      + "Use it only when no Python engine tool covers the job (e.g. hydrology/terrain tools). "
+      + "The result is a file path: to show it, call add_data with the returned geojson_path. "
+      + "Unknown parameters and multi-input tools are rejected instead of guessed.",
+    inputSchema: jsonSchema<{ tool: string; input_path: string; params?: Record<string, unknown> }>({
+      type: "object",
+      properties: {
+        tool: { type: "string", description: "geolibre tool id, e.g. buffer_vector or slope." },
+        input_path: { type: "string", description: "Local file path readable by the engine." },
+        params: { type: "object", description: "Tool parameters by manifest name (numbers, strings, booleans)." },
+      },
+      required: ["tool", "input_path"],
+      additionalProperties: false,
+    }),
+    execute: async (input: { tool: string; input_path: string; params?: Record<string, unknown> }, { abortSignal }) => {
+      try {
+        return await runWasmTool({ tool: input.tool, inputPath: input.input_path, params: input.params, signal: abortSignal });
+      } catch (err) {
+        return { ok: false, error_class: "INPUT_ERROR", message: err instanceof Error ? err.message : String(err) };
+      }
+    },
+  });
   for (const t of engine.tools) {
     tools[t.name] = tool({
       description: t.description ?? t.name,
       inputSchema: jsonSchema(t.inputSchema as any),
       execute: async (input: any, { toolCallId, abortSignal }) => {
-        if (t.annotations?.destructiveHint === true || DESTRUCTIVE.has(t.name) || input?.overwrite === true) {
-          const ok = await requestApproval(s, toolCallId, t.name, input, abortSignal);
+        // Shared operation contract: same unit/CRS rules as the browser engine.
+        // Reject before touching the engine, and treat a redundant reprojection
+        // as an explicit no-op instead of a second dataset.
+        let payload: any = input ?? {};
+        if (t.name === "buffer") {
+          const spec = makeOperationSpec("gis.buffer", String(payload.layer ?? ""), {
+            distance: payload.distance, units: payload.units ?? "meters",
+            ...(typeof payload.dissolve === "boolean" ? { dissolve: payload.dissolve } : {}),
+          });
+          if (!spec.ok) return { ok: false, error_class: "INPUT_ERROR", message: spec.errors.join(" ") };
+          payload = { ...payload, units: (spec.spec.params as { units?: string }).units ?? "meters" };
+        } else if (t.name === "reproject") {
+          const spec = makeOperationSpec("gis.reproject", String(payload.layer ?? ""), { targetCrs: payload.target_crs });
+          if (!spec.ok) return { ok: false, error_class: "INPUT_ERROR", message: spec.errors.join(" ") };
+          const target = (spec.spec.params as { targetCrs: string }).targetCrs;
+          const known = s.workspace.layers.find((l: any) => l.id === payload.layer || l.name === payload.layer);
+          if (known && String(known.crs ?? "").toUpperCase() === target) {
+            return { ok: true, noop: true, message: `图层已经是 ${target}，未创建新数据集。`, layer: known };
+          }
+          payload = { ...payload, target_crs: target };
+        }
+        if (t.annotations?.destructiveHint === true || DESTRUCTIVE.has(t.name) || payload?.overwrite === true) {
+          const ok = await requestApproval(s, toolCallId, t.name, payload, abortSignal);
           abortSignal?.throwIfAborted();
           emit(s, { type: "approval-result", toolCallId, approved: ok });
           if (!ok) return { denied: true, reason: "user rejected destructive action" };
         }
-        const out = await engine.call(t.name, input ?? {}, abortSignal);
+        const out = await engine.call(t.name, payload, abortSignal);
         if (out?.view) emit(s, { type: "view-command", command: out.view });
         if (out?.layer && t.name === "add_data") {
           const layer = { ...out.layer, url: layerUrl(out.layer) };
@@ -163,6 +209,7 @@ function buildTools(s: Session): ToolSet {
 function systemPrompt(s: Session) {
   return [
     "You are TIPHYS, a GIS agent. Use the engine tools for spatial work; long jobs return job_id (progress is shown to the user; do not busy-poll).",
+    "When no Python tool covers a raster/hydrology/terrain operation, use wasm_run with a geolibre tool id and a local file path; its output is a file, so add it to the map with add_data using the returned geojson_path.",
     "Reply in the user's language. Never invent layer ids; use the workspace snapshot.",
     loadMemory(),
     `## GIS workspace snapshot (refreshed each turn)\n${workspaceSnapshot(s.workspace)}`,

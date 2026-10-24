@@ -1,11 +1,12 @@
 {
   "generated_by": "scripts/export_engine_catalog.py",
   "source": "engine/tools.py via FastMCP.list_tools()",
-  "count": 34,
+  "count": 35,
   "groups": {
     "数据管理": [
       "add_data",
       "describe_layer",
+      "inspect_layers",
       "rename_layer",
       "reorder_layers",
       "reproject",
@@ -814,6 +815,43 @@
       ],
       "param_kinds": {
         "path": "file"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": true,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "inspect_layers",
+      "engine": "desktop-python",
+      "description": "Inspect real data, not the map copy: analysis location, CRS, fields, NoData, bounds, version digest.\n\nUse this before analysis when you need to know where a layer's bytes live,\nwhat its native bounds are, or whether it is vector or raster. Inspecting a\nsingle layer returns that layer's inspection; omitting `layer` returns the\nwhole workspace plus per-layer errors instead of failing entirely.\n\nArgs:\n    layer: Optional layer id or name.",
+      "category": "数据管理",
+      "groups": [
+        "数据管理"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Layer"
+          }
+        },
+        "title": "inspect_layersArguments",
+        "type": "object"
+      },
+      "required": [],
+      "param_kinds": {
+        "layer": "value"
       },
       "async": false,
       "cancellable": false,

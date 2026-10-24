@@ -1,0 +1,49 @@
+{
+  "generatedAt": "2026-10-24T11:55:13.609Z",
+  "totalMs": 1969,
+  "verdict": "PASS",
+  "selection": {
+    "chosen": "Node → WASI shim in a child process (agent sidecar)",
+    "rejected": "WebView → WASM bridge",
+    "why": [
+      "the agent loop already lives in Node; no new postMessage protocol or IndexedDB duplication",
+      "file IO is the natural interface for the 958 file-based WASI tools",
+      "one child per run gives crash isolation and process-kill cancellation that the WebView bridge cannot",
+      "cost: the UI must add the output via add_data, and WASM work is not visible in the existing browser job cards"
+    ]
+  },
+  "steps": [
+    {
+      "step": "reproject_vector",
+      "ok": true,
+      "ms": 249,
+      "outputs": [
+        "output.fgb",
+        "converted.geojson"
+      ]
+    },
+    {
+      "step": "buffer_vector",
+      "ok": true,
+      "ms": 213,
+      "outputs": [
+        "output.fgb",
+        "converted.geojson"
+      ]
+    },
+    {
+      "step": "python add_data + inspect",
+      "ok": true,
+      "layer": "lyr_ae0190dfaee7",
+      "featureCount": 3,
+      "crs": "EPSG:4326",
+      "dataLocation": "C:\\Users\\alex\\AppData\\Local\\Temp\\tiphys-spike-hz_wiwzz\\lyr_ae0190dfaee7_fef9778b.gpkg"
+    }
+  ],
+  "assertion": {
+    "featureCount": 3,
+    "crs": "EPSG:4326",
+    "url": "/layers/lyr_ae0190dfaee7.geojson",
+    "sha256": "sha256:7fd9a3384495f8be7ed11ba56716d183579dc5f1204554575bc43bf39ba24b4a"
+  }
+}

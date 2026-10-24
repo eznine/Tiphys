@@ -1,0 +1,339 @@
+{
+  "generatedAt": "2026-10-24T11:59:01.574Z",
+  "measureCrs": "EPSG:32650",
+  "tolerance": {
+    "areaPercent": 0.5,
+    "radiusMetres": 2,
+    "boundsMetres": 1
+  },
+  "engineCounts": {
+    "browser": 6,
+    "python": 6
+  },
+  "totals": {
+    "pass": 4,
+    "divergent": 2,
+    "bothFailed": 0,
+    "notTested": 0
+  },
+  "rows": [
+    {
+      "case": "buffer_points_500m",
+      "verdict": "PASS",
+      "browser": {
+        "case": "buffer_points_500m",
+        "ok": true,
+        "outputCrs": "EPSG:32650",
+        "analysisCrs": "EPSG:32650",
+        "featureCount": 3,
+        "emptyGeometries": 0,
+        "areaTotalM2": 2352411.368286133,
+        "measureBounds": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "displayBounds": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "radiusErrorMaxM": 1.0651626903235751
+      },
+      "python": {
+        "case": "buffer_points_500m",
+        "ok": true,
+        "outputCrs": "EPSG:32650",
+        "analysisCrs": "EPSG:32650",
+        "displayBounds": [
+          116.34415558553094,
+          39.845495270428955,
+          116.45585303191322,
+          39.954504730644416
+        ],
+        "featureCount": 3,
+        "emptyGeometries": 0,
+        "areasM2": [
+          784137.1226362893,
+          784137.1226362893,
+          784137.1226362893
+        ],
+        "areaTotalM2": 2352411.367908868,
+        "measureCrs": "EPSG:32650",
+        "measureBounds": [
+          443894.76611118566,
+          4410811.015555772,
+          453517.81282648083,
+          4422852.530967693
+        ],
+        "radiusErrorMaxM": 0.6022718976775536
+      },
+      "areaDeltaPercent": 1.603736533008993e-8,
+      "countMatch": true,
+      "crsMatch": true
+    },
+    {
+      "case": "buffer_points_500m_dissolve",
+      "verdict": "DIVERGENT",
+      "browser": {
+        "case": "buffer_points_500m_dissolve",
+        "ok": true,
+        "outputCrs": "EPSG:32650",
+        "analysisCrs": "EPSG:32650",
+        "featureCount": 3,
+        "emptyGeometries": 0,
+        "areaTotalM2": 2352411.368286133,
+        "measureBounds": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "displayBounds": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "radiusErrorMaxM": null
+      },
+      "python": {
+        "case": "buffer_points_500m_dissolve",
+        "ok": true,
+        "outputCrs": "EPSG:32650",
+        "analysisCrs": "EPSG:32650",
+        "displayBounds": [
+          116.34415558553094,
+          39.845495270428955,
+          116.45585303191322,
+          39.954504730644416
+        ],
+        "featureCount": 1,
+        "emptyGeometries": 0,
+        "areasM2": [
+          2352411.367908868
+        ],
+        "areaTotalM2": 2352411.367908868,
+        "measureCrs": "EPSG:32650",
+        "measureBounds": [
+          443894.76611118566,
+          4410811.015555772,
+          453517.81282648083,
+          4422852.530967693
+        ],
+        "radiusErrorMaxM": null
+      },
+      "areaDeltaPercent": 1.603736533008993e-8,
+      "countMatch": false,
+      "crsMatch": true
+    },
+    {
+      "case": "buffer_zones_2km",
+      "verdict": "PASS",
+      "browser": {
+        "case": "buffer_zones_2km",
+        "ok": true,
+        "outputCrs": "EPSG:32650",
+        "analysisCrs": "EPSG:32650",
+        "featureCount": 3,
+        "emptyGeometries": 0,
+        "areaTotalM2": 583744422.203125,
+        "measureBounds": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "displayBounds": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "radiusErrorMaxM": null
+      },
+      "python": {
+        "case": "buffer_zones_2km",
+        "ok": true,
+        "outputCrs": "EPSG:32650",
+        "analysisCrs": "EPSG:32650",
+        "displayBounds": [
+          116.2765878736838,
+          39.781980060474446,
+          116.58338558589003,
+          40.00801923238204
+        ],
+        "featureCount": 3,
+        "emptyGeometries": 0,
+        "areasM2": [
+          211838188.20028067,
+          227576793.9668366,
+          144328865.65078002
+        ],
+        "areaTotalM2": 583743847.8178973,
+        "measureCrs": "EPSG:32650",
+        "measureBounds": [
+          438117.46467995865,
+          4403652.171300113,
+          464370.5145974258,
+          4428819.647510141
+        ],
+        "radiusErrorMaxM": null
+      },
+      "areaDeltaPercent": 0.00009839679335847828,
+      "countMatch": true,
+      "crsMatch": true
+    },
+    {
+      "case": "buffer_points_negative",
+      "verdict": "DIVERGENT",
+      "browser": {
+        "case": "buffer_points_negative",
+        "ok": false,
+        "error": "failed: Error: 距离必须为正数（v1 不支持负距离内缩；引擎行为尚不一致）。"
+      },
+      "python": {
+        "case": "buffer_points_negative",
+        "ok": true,
+        "outputCrs": "EPSG:32650",
+        "analysisCrs": "EPSG:32650",
+        "displayBounds": null,
+        "featureCount": 3,
+        "emptyGeometries": 3,
+        "areasM2": [],
+        "areaTotalM2": 0,
+        "measureCrs": "EPSG:32650",
+        "measureBounds": null,
+        "radiusErrorMaxM": null
+      },
+      "areaDeltaPercent": null,
+      "countMatch": null,
+      "crsMatch": null
+    },
+    {
+      "case": "reproject_points_3857",
+      "verdict": "PASS",
+      "browser": {
+        "case": "reproject_points_3857",
+        "ok": true,
+        "outputCrs": "EPSG:3857",
+        "analysisCrs": "EPSG:3857",
+        "featureCount": 3,
+        "emptyGeometries": 0,
+        "areaTotalM2": 0,
+        "measureBounds": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "displayBounds": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "radiusErrorMaxM": null
+      },
+      "python": {
+        "case": "reproject_points_3857",
+        "ok": true,
+        "outputCrs": "EPSG:3857",
+        "analysisCrs": "EPSG:3857",
+        "displayBounds": [
+          116.35,
+          39.849999999999994,
+          116.45,
+          39.95
+        ],
+        "featureCount": 3,
+        "emptyGeometries": 0,
+        "areasM2": [
+          0,
+          0,
+          0
+        ],
+        "areaTotalM2": 0,
+        "measureCrs": "EPSG:32650",
+        "measureBounds": [
+          444394.76611118566,
+          4411311.015555771,
+          453017.81282648083,
+          4422352.530967693
+        ],
+        "radiusErrorMaxM": null
+      },
+      "areaDeltaPercent": null,
+      "countMatch": true,
+      "crsMatch": true
+    },
+    {
+      "case": "reproject_zones_32650",
+      "verdict": "PASS",
+      "browser": {
+        "case": "reproject_zones_32650",
+        "ok": true,
+        "outputCrs": "EPSG:32650",
+        "analysisCrs": "EPSG:32650",
+        "featureCount": 3,
+        "emptyGeometries": 0,
+        "areaTotalM2": 305521748.7766113,
+        "measureBounds": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "displayBounds": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "radiusErrorMaxM": null
+      },
+      "python": {
+        "case": "reproject_zones_32650",
+        "ok": true,
+        "outputCrs": "EPSG:32650",
+        "analysisCrs": "EPSG:32650",
+        "displayBounds": [
+          116.3,
+          39.79999999999999,
+          116.56,
+          39.99
+        ],
+        "featureCount": 3,
+        "emptyGeometries": 0,
+        "areasM2": [
+          113861164.4365211,
+          125181620.81998153,
+          66478963.46972164
+        ],
+        "areaTotalM2": 305521748.72622424,
+        "measureCrs": "EPSG:32650",
+        "measureBounds": [
+          440117.40326143923,
+          4405652.141331439,
+          462370.5387973834,
+          4426819.684197029
+        ],
+        "radiusErrorMaxM": null
+      },
+      "areaDeltaPercent": 1.6492143257942608e-8,
+      "countMatch": true,
+      "crsMatch": true
+    }
+  ],
+  "previous": {
+    "generatedAt": "2026-10-24T11:51:22.667Z",
+    "totals": {
+      "pass": 4,
+      "divergent": 2,
+      "bothFailed": 0,
+      "notTested": 0
+    }
+  }
+}

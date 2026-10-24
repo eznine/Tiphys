@@ -11,7 +11,7 @@ from jobs import JobRegistry
 from layers import LayerStore
 
 TOOL_GROUPS = {
-    "数据管理": ("add_data", "describe_layer", "rename_layer", "reorder_layers", "reproject", "export_features", "remove_layer",
+    "数据管理": ("add_data", "describe_layer", "inspect_layers", "rename_layer", "reorder_layers", "reproject", "export_features", "remove_layer",
                "list_supported_formats", "import_arcgis_project"),
     "邻近分析": ("buffer",),
     "叠加分析": ("clip", "intersection", "union_layers", "erase", "spatial_join"),
@@ -53,6 +53,22 @@ def register_tools(mcp: FastMCP, store: LayerStore, jobs: JobRegistry) -> None:
         """
         lid = store.resolve(layer)
         return store.describe(lid)
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    def inspect_layers(layer: str | None = None) -> dict[str, Any]:
+        """Inspect real data, not the map copy: analysis location, CRS, fields, NoData, bounds, version digest.
+
+        Use this before analysis when you need to know where a layer's bytes live,
+        what its native bounds are, or whether it is vector or raster. Inspecting a
+        single layer returns that layer's inspection; omitting `layer` returns the
+        whole workspace plus per-layer errors instead of failing entirely.
+
+        Args:
+            layer: Optional layer id or name.
+        """
+        if layer is None:
+            return store.inspect_workspace()
+        return store.inspect(store.resolve(layer))
 
     @mcp.tool()
     def rename_layer(layer: str, name: str) -> dict[str, Any]:

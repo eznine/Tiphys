@@ -2309,10 +2309,10 @@ test("field_statistics reports numeric moments or top values with null counts", 
 
 test("catalog union, dedupe, L1 folders and every WASM L2 translation", async () => {
   await ensureBrowserCatalog();
-  assert.equal(browserCatalog.length, 997, "34 shell/common tools + 958 WASM schemas + 5 plugin tools");
+  assert.equal(browserCatalog.length, 998, "35 shell/common tools + 958 WASM schemas + 5 plugin tools");
   assert.equal(new Set(browserCatalog.map(t => t.name)).size, browserCatalog.length);
   const desktop = desktopToolCatalog([{ name: "buffer", category: "邻近分析", parameters: { properties: {} } }]);
-  assert.equal(desktop.length, 997, "desktop Python + WASM + shell-only stubs");
+  assert.equal(desktop.length, 998, "desktop Python + WASM + shell-only stubs");
   assert.equal(new Set(desktop.map(t => t.name)).size, desktop.length);
   assert.ok(desktop.some(t => t.name === "gee_search_collection"));
   const l1 = new Set(browserCatalog.map(zhToolL1));
@@ -2444,7 +2444,7 @@ test("catalog shell is immediately usable and async hydration reaches the honest
   assert.ok(shellToolCatalog.some(tool => tool.name === "gee_auth_status"));
   assert.ok(!shellToolCatalog.some(tool => tool.name.startsWith("wasm_")));
   assert.equal(state.wasm, 958);
-  assert.equal(state.total, 997);
+  assert.equal(state.total, 998);
   assert.equal(state.hydrated, true);
 });
 
@@ -2539,4 +2539,36 @@ test("browser context trims old tool output, then compacts with GIS state and a 
   const archive = await readBrowserContextRecord("compact-test", archiveId, 0, 120);
   assert.equal(archive.kind, "message-archive");
   assert.match(archive.text, /轮决策/);
+});
+
+test("inspect_layers reports real storage, digest and raster facts instead of the display URL", async () => {
+  const input = await sample("inspected");
+  const single = await runBrowserTool("inspect_layers", { layer: input.id });
+  assert.equal(single.layer.kind, "vector");
+  assert.equal(single.layer.crs, "EPSG:4326");
+  assert.equal(single.layer.displayCrs, "EPSG:4326");
+  assert.equal(single.layer.data.engine, "browser-wasm");
+  assert.equal(single.layer.data.storage, "indexeddb");
+  assert.equal(single.layer.data.location, `indexeddb:layer:${input.id}`);
+  assert.match(single.layer.data.sha256, /^sha256:[0-9a-f]{64}$/);
+  assert.ok(single.layer.data.bytes > 0);
+  assert.match(single.layer.data.revision, /^sha256:[0-9a-f]{12}:\d+$/);
+  const names = single.fields.map((field: any) => field.name);
+  assert.ok(names.includes("id") && names.includes("name"));
+  assert.equal(single.fields.find((field: any) => field.name === "id").type, "integer");
+
+  const workspace = await runBrowserTool("inspect_layers", {});
+  assert.equal(workspace.engine, "browser-wasm");
+  assert.deepEqual(workspace.errors, []);
+  assert.ok(workspace.layers.some((entry: any) => entry.layer.id === input.id));
+
+  const tif = fs.readFileSync(new URL("../tests/fixtures/dem_hills.tif", import.meta.url));
+  const raster = (await importBrowserFile(new Blob([tif]), "dem_hills.tif")).layer;
+  const inspected = await runBrowserTool("inspect_layers", { layer: raster.id });
+  assert.equal(inspected.layer.kind, "raster");
+  assert.equal(inspected.layer.raster.width, 120);
+  assert.equal(inspected.layer.raster.height, 100);
+  assert.equal(inspected.layer.raster.bands, 1);
+  assert.deepEqual(inspected.fields, []);
+  assert.match(inspected.layer.data.sha256, /^sha256:[0-9a-f]{64}$/);
 });

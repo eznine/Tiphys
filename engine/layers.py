@@ -1,6 +1,7 @@
 """Persistent analysis datasets with separate WGS84 map representations."""
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
@@ -8,6 +9,7 @@ import re
 import threading
 import uuid
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -78,6 +80,89 @@ class LayerStore:
             cols = [c for c in gdf.columns if c != gdf.geometry.name]
             rows = json.loads(gdf.head(3).to_json(na="null", drop_id=True))["features"]
             return {**self._public(layer), "columns": cols, "sample": [r["properties"] for r in rows]}
+
+    def inspect(self, layer_id: str, max_hash_bytes: int = 64 * 1024 * 1024) -> dict[str, Any]:
+        """Read-only facts about where a layer really lives and what it contains.
+
+        The map representation (`url`) is a WGS84 display copy; `data.location`
+        is the analysis dataset an executor must read. Callers must not infer
+        the latter from the former.
+        """
+        with self._lock:
+            layer = self._layers.get(layer_id)
+            if layer is None:
+                raise KeyError(f"unknown layer: {layer_id}")
+            dataset = Path(layer.meta["dataset_path"])
+            stat = dataset.stat()
+            suffix = dataset.suffix.lower().lstrip(".") or "unknown"
+            sha256 = None
+            if stat.st_size <= max_hash_bytes:
+                digest = hashlib.sha256()
+                with dataset.open("rb") as handle:
+                    for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                        digest.update(chunk)
+                sha256 = f"sha256:{digest.hexdigest()}"
+            revision = datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+            data_ref = {
+                "engine": "desktop-python", "storage": "file", "location": str(dataset),
+                "sourcePath": layer.source_path, "format": suffix, "bytes": stat.st_size,
+                "sha256": sha256, "revision": f"{revision}:{stat.st_size}" + (f":{sha256[7:15]}" if sha256 else ""),
+            }
+            if suffix in {"tif", "tiff"}:
+                import rasterio
+
+                with rasterio.open(dataset) as src:
+                    raster = {"width": src.width, "height": src.height, "bands": src.count,
+                              "nodata": src.nodata, "dtype": src.dtypes[0],
+                              "pixelSize": [abs(float(src.res[0])), abs(float(src.res[1]))]}
+                    crs = f"EPSG:{src.crs.to_epsg()}" if src.crs and src.crs.to_epsg() else (str(src.crs) if src.crs else "")
+                    native_bounds = [float(v) for v in src.bounds]
+                return {"layer": {"id": layer.id, "name": layer.name, "kind": "raster", "crs": crs,
+                                  "displayCrs": "EPSG:4326", "geometryTypes": [], "featureCount": 0,
+                                  "bounds": layer.bounds, "raster": raster, "data": data_ref},
+                        "fields": [], "rasterStats": None,
+                        "extra": {"nativeBounds": native_bounds, "displayUrl": layer.url}}
+
+            gdf = self.get_gdf(layer_id)
+            assert gdf is not None
+            fields: list[dict[str, Any]] = []
+            for column in gdf.columns:
+                if column == gdf.geometry.name:
+                    continue
+                series = gdf[column]
+                kind = "string"
+                if series.dtype.kind in "iu":
+                    kind = "integer"
+                elif series.dtype.kind == "f":
+                    kind = "number"
+                elif series.dtype.kind == "b":
+                    kind = "boolean"
+                elif series.dtype.kind in "mM":
+                    kind = "date"
+                sample = series.dropna().iloc[0] if series.notna().any() else None
+                if hasattr(sample, "item"):
+                    sample = sample.item()
+                fields.append({"name": str(column), "type": kind, "nullCount": int(series.isna().sum()),
+                               "sample": sample})
+            native = [float(v) for v in gdf.total_bounds] if len(gdf) else None
+            if native and not all(math.isfinite(v) for v in native):
+                native = None
+            return {"layer": {"id": layer.id, "name": layer.name, "kind": "vector", "crs": layer.crs,
+                              "displayCrs": "EPSG:4326", "geometryTypes": list(layer.geometry_types),
+                              "featureCount": int(layer.feature_count), "bounds": layer.bounds,
+                              "data": data_ref},
+                    "fields": fields, "rasterStats": None,
+                    "extra": {"nativeBounds": native, "displayUrl": layer.url, "columns": len(fields)}}
+
+    def inspect_workspace(self) -> dict[str, Any]:
+        layers: list[dict[str, Any]] = []
+        errors: list[dict[str, str]] = []
+        for layer in self.list():
+            try:
+                layers.append(self.inspect(layer["id"]))
+            except Exception as exc:  # keep the rest of the workspace inspectable
+                errors.append({"layerId": layer["id"], "message": str(exc)})
+        return {"engine": "desktop-python", "layers": layers, "errors": errors}
 
     def add_from_path(self, path: str, name: str | None = None, source_crs: str | None = None) -> dict[str, Any]:
         p = Path(path).expanduser()

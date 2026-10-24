@@ -36,6 +36,8 @@ npm run baseline                                                    # 30 项参�
 
 **核心不对称**：桌面 Agent 循环只连 Python MCP，958 个 WASM 工具在桌面端只能由用户手动调用；浏览器 Agent 反向够不到 Python 的栅格/GEE/导出能力。这正是路线图“首要判断”里要消除的差距，也是阶段 1 `T-002/T-004` 的直接理由。
 
+> 阶段 1 追加了只读工具 `inspect_layers`（Python + 浏览器各 1 个），因此当前数字为 Python 35 / 浏览器 shell 40 / 合并 998；本表保留阶段 0 的快照口径，最新数字见 [CATALOG_AUDIT.md](CATALOG_AUDIT.md)。
+
 其他核对结果：
 - Python 与浏览器 shell 的 34 个同名工具**名称级 100% 对齐**，浏览器侧没有实现缺口（全部有分发分支）；
 - 5 个插件工具（`clip_layers_to_aoi`、`hydrology_flow_pipeline`、`least_cost_path_pipeline`、`linkage_mapper_corridor`、`whitebox_extra`）只存在于浏览器，Python 侧无对应物；

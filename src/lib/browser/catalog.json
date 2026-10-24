@@ -84,6 +84,31 @@
     "annotations": {}
   },
   {
+    "name": "inspect_layers",
+    "description": "Inspect real data, not the map copy: analysis location, CRS, fields, NoData, bounds, version digest.\n\nUse this before analysis when you need to know where a layer's bytes live, what its native bounds are, or whether it is vector or raster. Inspecting a single layer returns that layer's inspection; omitting `layer` returns the whole workspace plus per-layer errors instead of failing entirely.\n\nArgs:\n    layer: Optional layer id or name.\n",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Layer"
+        }
+      },
+      "title": "inspect_layersArguments",
+      "type": "object"
+    },
+    "category": "数据管理",
+    "annotations": {
+      "readOnlyHint": true
+    }
+  },
+  {
     "name": "buffer",
     "description": "Buffer a layer (GeoLibre WASM). Returns a job_id immediately; poll job_status / job_cancel.\n\nParameter shape follows RustGIS analysis buffer (input/distance/units/dissolve/output)\nand GeoLibre unit names (meters|kilometers|miles). Implementation is GeoLibre WASM.\n\nArgs:\n    layer: Source layer id or name.\n    distance: Buffer distance.\n    units: meters (default), kilometers, or miles.\n    dissolve: Merge all buffers into one polygon.\n    output_name: Optional output layer name.\n",
     "parameters": {

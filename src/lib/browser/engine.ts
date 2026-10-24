@@ -7,6 +7,7 @@ import { deleteRecord, readRecord, records, writeRecord } from "./storage";
 import { fileInfo, loadWasmManifests, originalGeojson, wasmTool } from "./wasm";
 import { browserCatalogState, browserToolCatalog, ensureBrowserCatalog, hydrateWasmCatalog, isWasmInputParam, isWasmOutputParam, wasmInputKind } from "./catalog-schema";
 import { pluginToolNames, runPluginTool } from "../plugins/registry";
+import { planOperation } from "../../../shared/contracts/index.ts";
 import type { GeeAuthStatus } from "../gee";
 import { assertShapefileParts, groupShapefileParts, SHAPEFILE_EXTENSIONS } from "../shapefile";
 
@@ -661,14 +662,33 @@ async function execute(name: string, args: Record<string, any>, signal?: AbortSi
   let tool = name, params: Record<string, string | number | boolean> = {};
   const inputs: Record<string, Uint8Array> = {};
   if (["buffer", "simplify"].includes(name)) {
+    if (name === "buffer") {
+      // Single command semantics with the desktop engine: units, distance and
+      // dissolve rules come from the shared contract, not from this file.
+      const plan = planOperation({
+        operation: "gis.buffer", version: 1, input: record.info.id,
+        params: { distance: Number(args.distance), units: (args.units ?? "meters") as never, dissolve: Boolean(args.dissolve) },
+      }, { id: record.info.id, crs: record.info.crs ?? "", kind: "vector" });
+      if (plan.action === "reject") throw new Error(plan.errors.join(" "));
+      args = { ...args, ...plan.action === "invoke" ? plan.args : {} };
+    }
     const distance = metricDistance(name === "buffer" ? args.distance : args.tolerance, args.units);
     inputBytes = await project(record, metricCrs(record.geojson!, name === "buffer" ? distance : 0), signal); extension = "fgb";
     tool = name === "buffer" ? "buffer_vector" : "simplify_features";
     params = name === "buffer" ? { distance, dissolve: args.dissolve ?? false, quadrant_segments: 16 } : { tolerance: distance };
   } else if (name === "reproject") {
-    const match = /^EPSG:(\d+)$/i.exec(args.target_crs);
-    if (!match) throw new Error("浏览器重投影请使用 EPSG:编号。");
-    return adopt(await project(record, Number(match[1]), signal), "fgb", outputName, signal);
+    const plan = planOperation({
+      operation: "gis.reproject", version: 1, input: record.info.id,
+      params: { targetCrs: String(args.target_crs ?? "") },
+    }, { id: record.info.id, crs: record.info.crs ?? "", kind: "vector" });
+    if (plan.action === "reject") throw new Error(plan.errors.join(" "));
+    if (plan.action === "noop") {
+      // Contract: a redundant reprojection is explicitly a no-op, never a
+      // second dataset that pretends something was transformed.
+      return { ok: true, noop: true, message: plan.reason, layer: publicLayer(record) };
+    }
+    const target = Number(String(plan.args.target_crs).split(":")[1]);
+    return adopt(await project(record, target, signal), "fgb", outputName, signal);
   } else if (name === "convex_hull") { tool = "minimum_convex_hull"; params.individual_feature_hulls = false; }
   else if (name === "dissolve") { tool = "dissolve"; if (args.by_field) { if (!fields(record).includes(args.by_field)) throw new Error("找不到融合字段。"); params.dissolve_field = args.by_field; } }
   else if (name === "calculate_geometry") {
@@ -782,6 +802,7 @@ export async function runBrowserTool(name: string, args: Record<string, any> = {
   if (name === "job_status") return readBrowserJob(args.job_id);
   if (name === "job_cancel") return cancelBrowserJob(args.job_id);
   if (name === "describe_layer") return describe(await resolve(args.layer));
+  if (name === "inspect_layers") return inspectLayers(args.layer);
   if (["list_supported_formats", "import_arcgis_project", "gee_auth_status", "gee_search_collection", "gee_job_status"].includes(name))
     return execute(name, args);
   if (name === "remove_layer") return removeLayer(args.layer);
@@ -885,6 +906,57 @@ export async function readBrowserJob(id: string): Promise<Job> {
   return job;
 }
 export async function cancelBrowserJob(id: string) { const job = await readBrowserJob(id); const control = controllers.get(id); if (control) { job.status = "cancelling"; job.message = "正在取消浏览器计算"; control.abort(); } else if (["running", "queued"].includes(job.status)) throw new Error("任务在另一个页面运行，请在那里取消。"); return job; }
+const HASH_LIMIT = 64 * 1024 * 1024;
+async function sha256Hex(bytes: Uint8Array): Promise<string | null> {
+  if (bytes.length > HASH_LIMIT) return null;
+  const digest = await crypto.subtle.digest("SHA-256", bytes.slice().buffer);
+  return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+}
+function fieldInfo(record: LayerRecord) {
+  const features = record.geojson?.features ?? [];
+  return fields(record).map(name => {
+    const values = features.map(f => f.properties?.[name]);
+    const present = values.find(value => value != null);
+    const type = typeof present === "number" ? (Number.isInteger(present) ? "integer" : "number")
+      : typeof present === "boolean" ? "boolean"
+        : typeof present === "string" ? /^\d{4}-\d{2}-\d{2}/.test(present) ? "date" : "string" : "unknown";
+    return { name, type, nullCount: values.filter(value => value == null).length, sample: present ?? null };
+  });
+}
+/** Read-only answer to "where do these bytes live and what are they?" — never the display URL. */
+async function inspectLayerRecord(record: LayerRecord) {
+  const kind = record.info.kind ?? "vector";
+  const sha256 = await sha256Hex(record.bytes);
+  const digest = sha256 ? `sha256:${sha256}` : undefined;
+  const data: Record<string, any> = {
+    engine: "browser-wasm", storage: "indexeddb", location: `indexeddb:layer:${record.info.id}`,
+    format: record.extension, bytes: record.bytes.length, sha256: digest,
+    revision: digest ? `sha256:${sha256!.slice(0, 12)}:${record.bytes.length}` : `size:${record.bytes.length}`,
+  };
+  const layer: Record<string, any> = {
+    id: record.info.id, name: record.info.name, kind, crs: record.info.crs ?? "", displayCrs: "EPSG:4326",
+    geometryTypes: record.info.geometry_types ?? [], featureCount: record.info.feature_count ?? 0,
+    bounds: record.info.bounds ?? null, data,
+  };
+  if (kind === "raster" && record.info.raster) {
+    layer.raster = { width: record.info.raster.width, height: record.info.raster.height, bands: record.info.raster.bands };
+    return { layer, fields: [], rasterStats: null, extra: { previewPngBytes: record.preview?.length ?? 0 } };
+  }
+  const info = fieldInfo(record);
+  return { layer, fields: info, rasterStats: null, extra: { columns: info.length } };
+}
+async function inspectLayers(value?: unknown) {
+  if (value === undefined || value === null || value === "") {
+    const all = await records<LayerRecord>("layer:");
+    const layers: any[] = [], errors: { layerId: string; message: string }[] = [];
+    for (const record of all) {
+      try { layers.push(await inspectLayerRecord(record)); }
+      catch (err) { errors.push({ layerId: record.info.id, message: err instanceof Error ? err.message : String(err) }); }
+    }
+    return { engine: "browser-wasm", layers, errors };
+  }
+  return inspectLayerRecord(await resolve(value));
+}
 function describe(record: LayerRecord) {
   const kind = record.info.kind ?? "vector";
   const path = kind === "raster" ? `此浏览器 / ${record.info.name}.tif（${record.info.raster?.width}×${record.info.raster?.height}，${record.info.raster?.bands} 波段）`
