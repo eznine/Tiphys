@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { defaultLayerStyle, type DataLayer } from "../lib/dataLayers";
+import { defaultLayerStyle, rampGradient, type DataLayer } from "../lib/dataLayers";
+import { classRangeLabel } from "../lib/graduatedSymbology";
 import { layerExportUnavailableReason, layerReloadUnavailableReason, layerSourcePath } from "../lib/layer-actions";
 import { ChevronDown, ChevronRight, Search, Map, FolderPlus, Layers } from "lucide-react";
 
@@ -66,8 +67,10 @@ export function LayerRail({ layers, onToggle, onAdd, importing, onZoom, onTable,
       {layers.filter(l => l.name.toLocaleLowerCase().includes(search.toLocaleLowerCase())).map((l) => {
         const style = l.style ?? defaultLayerStyle(l.id);
         const geometryLabels: Record<string, string> = { Point: "点", MultiPoint: "多点", LineString: "线", MultiLineString: "多线", Polygon: "面", MultiPolygon: "多面" };
+        const classes = style.classField && style.classBreaks?.length ? style.classBreaks : null;
         const legend = l.kind === "raster" ? [{ text: `栅格 · ${l.raster?.width}×${l.raster?.height} · ${l.raster?.bands} 波段`, color: "#64748b" }]
           : l.kind === "table" ? [{ text: `表格 · ${l.feature_count} 行`, color: "#64748b" }]
+          : classes ? classes.map(item => ({ text: item.label || classRangeLabel(item), color: item.color }))
           : style.categoryField && style.categories?.length ? style.categories.map(c => ({ text: String(c.value ?? "空值"), color: c.color })) : [{ text: l.geometry_types.map(t => geometryLabels[t] ?? t).join("、") || "要素", color: style.color }];
         return <div key={l.id} className="contents-layer" data-selected={l.id === selectedId} data-drop={dropTarget === l.id}
           draggable={!search && editing?.id !== l.id}
@@ -80,7 +83,7 @@ export function LayerRail({ layers, onToggle, onAdd, importing, onZoom, onTable,
           <button type="button" className="plain-icon legend-toggle" aria-label={`${collapsed[l.id] ? "展开" : "折叠"} ${l.name} 图例`} onClick={() => setCollapsed(c => ({ ...c, [l.id]: !c[l.id] }))}>{collapsed[l.id] ? <ChevronRight size={12} /> : <ChevronDown size={12} />}</button>
           <input type="checkbox" aria-label={`显示 ${l.name}`} checked={l.visible !== false} onChange={() => onToggle(l.id)} />
           <button type="button" className="layer-symbol-btn" aria-label={`${l.name} 符号化`} onClick={() => onProperties(l.id, "style")}>
-            <span className="layer-swatch" style={{ background: (l.style ?? defaultLayerStyle(l.id)).color }} /></button>
+            <span className="layer-swatch" style={{ background: classes ? rampGradient(classes.map(item => item.color)) : style.color }} /></button>
           {editing?.id === l.id ? <input ref={editRef} autoFocus className="layer-rename-input" aria-label="编辑图层名称" value={editing.draft}
               onChange={e => setEditing({ id: l.id, draft: e.target.value })}
               onBlur={commitRename} onKeyDown={e => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") setEditing(null); }} />
@@ -88,7 +91,7 @@ export function LayerRail({ layers, onToggle, onAdd, importing, onZoom, onTable,
           <span className="layer-meta">{l.kind === "raster" ? "栅格" : l.kind === "table" ? "表格" : l.feature_count}</span>
           <button type="button" className="layer-more" aria-label={`${l.name} 操作`} onClick={e => { const rect = e.currentTarget.getBoundingClientRect(); openMenu(l, rect.right, rect.top); }}>⋯</button>
         </div>
-        {!collapsed[l.id] && <div className="contents-legend">{style.categoryField && <strong>{style.categoryField}</strong>}{legend.map((item, index) => <button type="button" key={index} onClick={() => onProperties(l.id, "style")}><span className="legend-symbol" data-geometry={l.geometry_types.some(t => t.includes("Polygon")) ? "polygon" : l.geometry_types.some(t => t.includes("Line")) ? "line" : "point"} style={{ background: item.color, borderColor: item.color }} /><span>{item.text}</span></button>)}{style.labelField && <span className="legend-label">标注 · {style.labelField}</span>}</div>}
+        {!collapsed[l.id] && <div className="contents-legend">{(style.classField || style.categoryField) && <strong>{style.classField ? `${style.classField} · ${legend.length} 级` : style.categoryField}</strong>}{legend.map((item, index) => <button type="button" key={index} onClick={() => onProperties(l.id, "style")}><span className="legend-symbol" data-geometry={l.geometry_types.some(t => t.includes("Polygon")) ? "polygon" : l.geometry_types.some(t => t.includes("Line")) ? "line" : "point"} style={{ background: item.color, borderColor: item.color }} /><span>{item.text}</span></button>)}{style.labelField && <span className="legend-label">标注 · {style.labelField}</span>}</div>}
         </div>;
       })}
       </div>

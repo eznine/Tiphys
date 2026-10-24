@@ -17,7 +17,8 @@ import { compactBrowserMessages, estimateBrowserTokens, readBrowserContextRecord
 import { buildBrowserSystemPrompt } from "../src/lib/browser/prompt.ts";
 import { mapExportFilename, mapPngDataUrl } from "../src/lib/map-export.ts";
 import { geeExecutionAllowed } from "../src/lib/gee.ts";
-import { defaultLayerStyle, PALETTE, type DataLayer } from "../src/lib/dataLayers.ts";
+import { defaultLayerStyle, layerColor, PALETTE, symbologyMode, withSymbologyMode, type DataLayer, type LayerStyle } from "../src/lib/dataLayers.ts";
+import { buildGraduatedBreaks, equalIntervalRanges, quantileRanges } from "../src/lib/graduatedSymbology.ts";
 import { formatLayerBytes, layerExportTarget, layerReloadUnavailableReason, layerSourcePath } from "../src/lib/layer-actions.ts";
 import { releaseIdleWasmToolWorkers, warmWasmToolRunner } from "../src/lib/browser/wasm-tool-runner.ts";
 import { AGENT_GOAL_LIMIT, buildAgentSessionStub, buildWorkspaceSnapshot, normalizeWorkspaceRecovery, normalizeWorkspaceSnapshot, WORKSPACE_SCHEMA, WORKSPACE_VERSION } from "../src/lib/workspace.ts";
@@ -25,6 +26,7 @@ import { identifyGeoJsonFilename, selectedFeaturesGeoJson, selectedGeoJsonFilena
 import { identifyPropertiesTsv, identifyValueText } from "../src/lib/identify.ts";
 import { pipelineResult } from "../src/components/ToolResultDetails.tsx";
 import type { ModelMessage } from "ai";
+import { validateStyleMin } from "@maplibre/maplibre-gl-style-spec";
 
 before(async () => {
   await initTools(fs.readFileSync(new URL("../node_modules/geolibre-wasm/geolibre-cli.wasm", import.meta.url)));
@@ -2503,6 +2505,57 @@ test("default symbology stays in the blue family for helper outputs", () => {
   for (const name of ["AOI", "生态廊道", "最小成本路径", "水文分析_D8流向"]) {
     assert.match(defaultLayerStyle("lyr_test", name).color, /^#(2563eb|1d4ed8|0284c7|3b82f6|0369a1|4f46e5)$/);
   }
+});
+
+test("graduated breaks use equal or quantile ranges without inventing observations", () => {
+  assert.deepEqual(equalIntervalRanges(0, 100, 5), [
+    { min: 0, max: 20 }, { min: 20, max: 40 }, { min: 40, max: 60 }, { min: 60, max: 80 }, { min: 80, max: 100 },
+  ]);
+  assert.deepEqual(equalIntervalRanges(10, 10, 5), []);
+  assert.deepEqual(quantileRanges([0, 10, 20, 30, 40, 50, 60, 70, 80, 90], 4), [
+    { min: 0, max: 22.5 }, { min: 22.5, max: 45 }, { min: 45, max: 67.5 }, { min: 67.5, max: 90 },
+  ]);
+  assert.equal(quantileRanges([1, 1, 1, 1, 1, 2, 3, 4], 5).length, 3, "duplicate cuts collapse to real classes");
+  const breaks = buildGraduatedBreaks([], "manual", 3, "slate", -10, 20);
+  assert.deepEqual(breaks.map(item => [item.min, item.max]), [[-10, 0], [0, 10], [10, 20]]);
+  assert.equal(breaks.length, 3);
+  assert.deepEqual(breaks.map(item => item.color), ["#334155", "#475569", "#64748b"]);
+});
+
+test("graduated style emits a numeric step expression and keeps modes exclusive", () => {
+  const base = defaultLayerStyle("lyr_grad", "人口");
+  const unique: LayerStyle = { ...base, categoryField: "class", categories: [{ value: "A", color: "#2563eb" }] };
+  const graduated = withSymbologyMode(unique, "graduated");
+  assert.equal(graduated.categoryField, undefined);
+  assert.equal(graduated.categories, undefined);
+  const breaks = buildGraduatedBreaks([], "manual", 3, "blue", 0, 30);
+  const styled: LayerStyle = { ...graduated, classField: "population", classBreaks: breaks };
+  assert.equal(symbologyMode(styled), "graduated");
+  const expression = layerColor(styled) as any[];
+  assert.equal(expression[0], "case");
+  assert.equal(expression[1][0], "==");
+  assert.equal(expression[1][1][0], "typeof");
+  assert.equal(expression[2][0], "step");
+  assert.deepEqual(expression[2][1], ["min", ["max", ["get", "population"], 0], 30]);
+  assert.deepEqual(expression[2].slice(2), ["#2563eb", 10, "#0284c7", 20, "#0369a1"]);
+  const styleErrors = validateStyleMin({
+    version: 8,
+    sources: { sample: { type: "geojson", data: { type: "FeatureCollection", features: [] } } },
+    layers: [{ id: "sample", type: "fill", source: "sample", paint: { "fill-color": expression as any } }],
+  });
+  assert.deepEqual(styleErrors, [], "MapLibre accepts the graduated fill expression");
+  const cleared = withSymbologyMode(styled, "single");
+  assert.equal(cleared.classField, undefined);
+  assert.equal(cleared.classBreaks, undefined);
+  assert.equal(symbologyMode(cleared), "single");
+
+  const roundTrip = JSON.parse(JSON.stringify(styled)) as LayerStyle;
+  assert.deepEqual(roundTrip.classBreaks, breaks);
+  assert.equal(roundTrip.classField, "population");
+  assert.equal(roundTrip.classCount, undefined);
+  const legacy = JSON.parse(JSON.stringify(unique)) as LayerStyle;
+  assert.equal(symbologyMode(legacy), "unique");
+  assert.equal((layerColor(legacy) as any[])[0], "case");
 });
 
 test("browser context trims old tool output, then compacts with GIS state and a retrievable archive", async () => {

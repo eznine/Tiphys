@@ -6,12 +6,21 @@ export type LayerStyle = {
   ramp?: VectorRamp;
   categoryField?: string;
   categories?: { value: string | number | boolean | null; color: string }[];
+  classField?: string;
+  classBreaks?: ClassBreak[];
+  classMethod?: ClassMethod;
+  classCount?: number;
+  classMin?: number;
+  classMax?: number;
   labelField?: string; labelSize: number; labelColor: string;
   rasterStretch?: RasterStretch;
 };
 
 export type VectorRamp = "blue" | "slate" | "earth";
 export type RasterStretch = "auto" | "soft" | "high";
+export type ClassMethod = "manual" | "equal" | "quantile";
+export type ClassBreak = { min: number; max: number; color: string; label?: string };
+export type SymbologyMode = "single" | "unique" | "graduated";
 
 export type DataLayer = {
   id: string;
@@ -74,11 +83,55 @@ export function defaultLayerStyle(id: string, name = ""): LayerStyle {
 }
 
 export function layerColor(style: LayerStyle): string | ExpressionSpecification {
+  if (style.classField && style.classBreaks?.length) return graduatedColorExpression(style.classField, style.classBreaks, style.color);
   if (!style.categoryField || !style.categories?.length) return style.color;
   // Boolean predicates preserve the distinction between null, numeric and text values.
   return ["case", ...style.categories.flatMap(item => [
     ["==", ["get", style.categoryField!], item.value], item.color,
   ]), style.color] as ExpressionSpecification;
+}
+
+/** Numeric class renderer: values outside the manual range clamp to the nearest class. */
+export function graduatedColorExpression(field: string, breaks: ClassBreak[], fallback: string): ExpressionSpecification {
+  const classes = breaks
+    .filter(item => Number.isFinite(item.min) && Number.isFinite(item.max) && item.max > item.min)
+    .sort((a, b) => a.min - b.min);
+  if (!classes.length) return fallback as unknown as ExpressionSpecification;
+  const lower = classes[0].min;
+  const upper = classes[classes.length - 1].max;
+  const value = ["min", ["max", ["get", field], lower], upper];
+  const step: unknown[] = ["step", value, classes[0].color];
+  let previous = lower;
+  for (const item of classes.slice(1)) {
+    if (item.min <= previous) continue;
+    step.push(item.min, item.color);
+    previous = item.min;
+  }
+  // Null, text and malformed values keep the ordinary fallback instead of joining class one.
+  return ["case", ["==", ["typeof", ["get", field]], "number"], step as unknown as ExpressionSpecification, fallback] as ExpressionSpecification;
+}
+
+/** A mode switch must never leave a unique-value and a graduated renderer both active. */
+export function symbologyMode(style: LayerStyle): SymbologyMode {
+  if (style.classField) return "graduated";
+  if (style.categoryField) return "unique";
+  return "single";
+}
+
+export function withSymbologyMode(style: LayerStyle, mode: SymbologyMode): LayerStyle {
+  const next = { ...style };
+  if (mode !== "unique") { next.categoryField = undefined; next.categories = undefined; }
+  if (mode !== "graduated") {
+    next.classField = undefined; next.classBreaks = undefined; next.classMethod = undefined;
+    next.classCount = undefined; next.classMin = undefined; next.classMax = undefined;
+  }
+  return next;
+}
+
+export function rampGradient(colors: string[]): string {
+  if (!colors.length) return "transparent";
+  if (colors.length === 1) return colors[0];
+  return `linear-gradient(90deg, ${colors.map((color, index) => `${color} ${(index / (colors.length - 1) * 100).toFixed(1)}%`).join(", ")})`;
 }
 
 export function syncDataLayers(map: Map, layers: DataLayer[]) {
@@ -116,7 +169,8 @@ export function syncDataLayers(map: Map, layers: DataLayer[]) {
       return;
     }
     const color = layerColor(style);
-    const strokeColor = style.strokeColor ?? style.color;
+    const graduated = !!(style.classField && style.classBreaks?.length);
+    const strokeColor = graduated ? color : style.strokeColor ?? style.color;
     if (!map.getSource(sid)) map.addSource(sid, { type: "geojson", data: l.url, generateId: true });
     // Geometry filters adapted from GeoLibre map-controller.ts (MIT, Qiusheng Wu).
     // Always provide all three representations: mixed datasets must not lose features.
