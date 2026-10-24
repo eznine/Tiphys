@@ -6,6 +6,8 @@ import type { TaskRecord } from "../lib/mobile/taskStore";
 import { TASK_STATUS_LABEL } from "../lib/mobile/taskStore";
 import { ChatTimeline } from "../components/ChatTimeline";
 import { MobileComposer } from "../components/MobileComposer";
+import { MobileBottomCard } from "./MobileBottomCard";
+import type { MobileTab } from "./MobileDock";
 import type { TaskCardEvent } from "../components/TaskCards";
 import { ChevronRight, FolderKanban, Layers, ListChecks, Settings2, Shapes, X } from "lucide-react";
 
@@ -37,13 +39,17 @@ type Props = {
   onOpenTasks: () => void;
   onOpenSettings: () => void;
   onOpenActions: () => void;
+  onTab: (tab: MobileTab) => void;
+  running: number;
+  pending: number;
 };
 
 const ACTIVE = new Set(["queued", "running", "validating", "waiting", "pending_approval"]);
 
 export function MobileChatPage(props: Props) {
   const { projectName, items, layers, recovery, busy, connected, unconfigured, providerLabel, activeLayer, selectionCount, hasAoi, tasks,
-    draft, onDraft, onSend, onCancelTurn, onOpenTool, onInsertPrompt, onApprove, onCancelJob, onTask, onOpenTask, onOpenTasks, onOpenSettings, onOpenActions } = props;
+    draft, onDraft, onSend, onCancelTurn, onOpenTool, onInsertPrompt, onApprove, onCancelJob, onTask, onOpenTask, onOpenTasks, onOpenSettings, onOpenActions,
+    onTab, running, pending } = props;
   const [includeLayer, setIncludeLayer] = useState(true);
   const [includeSelection, setIncludeSelection] = useState(true);
   const [includeAoi, setIncludeAoi] = useState(true);
@@ -100,15 +106,15 @@ export function MobileChatPage(props: Props) {
         </button>}
       </div>
 
-      <div className="m-chat-composer">
-        <div className="m-agent-state">
+      <MobileBottomCard active="chat" onChange={onTab} running={running} pending={pending}
+        status={<div className="m-bottom-status">
           <span className="m-status-dot" data-state={connected ? (unconfigured ? "warn" : "ok") : "error"} />
-          <span>{providerLabel}</span>
-        </div>
+          <span className="m-bottom-status-text">{providerLabel}</span>
+        </div>}>
         <MobileComposer value={draft} onChange={onDraft} busy={busy} connected={connected} unconfigured={unconfigured}
           onSend={async text => onSend(text, { includeLayer, includeSelection, includeAoi })} onCancelTurn={onCancelTurn}
           onActions={onOpenActions} placeholder="描述空间分析目标，或追问上一步…" />
-      </div>
+      </MobileBottomCard>
     </section>
   );
 }

@@ -1,11 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { X } from "lucide-react";
+import { ChevronLeft, X } from "lucide-react";
 
 type Props = {
   open: boolean;
   title: string;
   subtitle?: ReactNode;
   onClose: () => void;
+  /** Drill-down back action; shows a back chevron before the title. */
+  onBack?: () => void;
   children: ReactNode;
   footer?: ReactNode;
   /** Initial snap index into snapPoints. */
@@ -23,8 +25,9 @@ const DEFAULT_SNAPS = [0.28, 0.56, 0.93];
  * map gestures do not fight it. Heights use dvh-safe measurements and re-measure
  * on keyboard/viewport changes.
  */
-export function MobileSheet({ open, title, subtitle, onClose, children, footer, initialSnap = 1, snapPoints = DEFAULT_SNAPS, level = 0 }: Props) {
+export function MobileSheet({ open, title, subtitle, onClose, onBack, children, footer, initialSnap = 1, snapPoints = DEFAULT_SNAPS, level = 0 }: Props) {
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const bodyRef = useRef<HTMLDivElement | null>(null);
   const startRef = useRef<{ y: number; offset: number } | null>(null);
   const [offset, setOffset] = useState<number | null>(null);
   const offsetRef = useRef<number | null>(null);
@@ -49,7 +52,11 @@ export function MobileSheet({ open, title, subtitle, onClose, children, footer, 
     setOffset(offsets[initialSnap] ?? 0);
     offsetRef.current = offsets[initialSnap] ?? 0;
     const previous = document.activeElement as HTMLElement | null;
-    const timer = window.setTimeout(() => panelRef.current?.focus({ preventScroll: true }), 30);
+    const timer = window.setTimeout(() => {
+      const active = document.activeElement;
+      if (panelRef.current && active instanceof HTMLElement && panelRef.current.contains(active)) return;
+      panelRef.current?.focus({ preventScroll: true });
+    }, 30);
     return () => {
       window.clearTimeout(timer);
       previous?.focus?.({ preventScroll: true });
@@ -57,6 +64,24 @@ export function MobileSheet({ open, title, subtitle, onClose, children, footer, 
     // The sheet is remounted when opened, so these deps only need the open flag.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const update = () => {
+      const body = bodyRef.current;
+      if (!body) return;
+      const viewport = window.visualViewport?.height ?? window.innerHeight;
+      const top = body.getBoundingClientRect().top;
+      body.style.maxHeight = `${Math.max(120, viewport - top - 8)}px`;
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("resize", update);
+    };
+  }, [open, offset, title]);
 
   useEffect(() => {
     if (!open) return;
@@ -136,6 +161,9 @@ export function MobileSheet({ open, title, subtitle, onClose, children, footer, 
         <div className="m-sheet-grab" onPointerDown={beginDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag}>
           <span className="m-sheet-handle" aria-hidden="true" />
           <div className="m-sheet-head">
+            {onBack && <button type="button" className="m-sheet-back" aria-label="返回上一级" onPointerDown={event => event.stopPropagation()} onClick={onBack}>
+              <ChevronLeft size={20} />
+            </button>}
             <div className="m-sheet-heading">
               <h2>{title}</h2>
               {subtitle && <div className="m-sheet-subtitle">{subtitle}</div>}
@@ -145,7 +173,7 @@ export function MobileSheet({ open, title, subtitle, onClose, children, footer, 
             </button>
           </div>
         </div>
-        <div className="m-sheet-body">{children}</div>
+        <div ref={bodyRef} className="m-sheet-body">{children}</div>
         {footer && <div className="m-sheet-footer">{footer}</div>}
         <div className="m-sheet-snaps" aria-hidden="true">
           {snapPoints.map((_, index) => <span key={index} data-active={index === snap} />)}

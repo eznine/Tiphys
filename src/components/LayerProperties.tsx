@@ -3,8 +3,8 @@ import { categoryColors, defaultLayerStyle, type DataLayer, type LayerStyle, typ
 import { engineRequest } from "../lib/service";
 
 type Tab = "style" | "labels" | "info";
-export function LayerProperties({ layer, tab, onTab, onStyle, onClose }: {
-  layer: DataLayer; tab: Tab; onTab: (tab: Tab) => void; onStyle: (style: LayerStyle) => void; onClose: () => void;
+export function LayerProperties({ layer, tab, onTab, onStyle, onClose, embedded = false }: {
+  layer: DataLayer; tab: Tab; onTab: (tab: Tab) => void; onStyle: (style: LayerStyle) => void; onClose: () => void; embedded?: boolean;
 }) {
   const style = layer.style ?? defaultLayerStyle(layer.id, layer.name);
   const [description, setDescription] = useState<{ columns: string[]; [key: string]: any } | null>(null);
@@ -31,8 +31,8 @@ export function LayerProperties({ layer, tab, onTab, onStyle, onClose }: {
     } catch (err) { setError(String(err)); }
     finally { setClassifying(false); }
   };
-  return <aside className="layer-properties" aria-label="图层设置">
-    <header className="attribute-header"><strong title={layer.name}>{layer.name}</strong><button type="button" className="icon-btn" aria-label="关闭图层设置" onClick={onClose}>×</button></header>
+  return <aside className={"layer-properties" + (embedded ? " layer-properties-embedded" : "")} aria-label="图层设置">
+    {!embedded && <header className="attribute-header"><strong title={layer.name}>{layer.name}</strong><button type="button" className="icon-btn" aria-label="关闭图层设置" onClick={onClose}>×</button></header>}
     <div className="property-tabs" role="tablist" aria-label="图层设置页签">
       {([["style", "符号化"], ["labels", "标注"], ["info", "属性"]] as const).map(([value, label]) =>
         <button key={value} type="button" role="tab" aria-selected={tab === value} onClick={() => onTab(value)}>{label}</button>)}

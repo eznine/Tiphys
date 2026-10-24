@@ -3,7 +3,7 @@ import type { DataLayer } from "../lib/dataLayers";
 import { engineRequest } from "../lib/service";
 import { zhCategory, zhToolL1 } from "../lib/i18n/tools";
 import { favouriteTools, recentTools, rememberTool, toggleFavourite } from "../lib/mobile/toolPrefs";
-import { MobilePage } from "./MobilePage";
+import { MobileSheet } from "./MobileSheet";
 import { ToolPanel, toolDesc, toolTitle, type ToolTaskEvent } from "../components/ToolPanel";
 import { ChevronRight, Search, Star, Wrench } from "lucide-react";
 
@@ -129,13 +129,9 @@ export function MobileToolbox({ open, onClose, layers, selectedLayer, initialToo
   </div>;
 
   return (
-    <MobilePage open={open} onBack={selectedTool ? () => setSelectedTool(null) : onClose} overlay
+    <MobileSheet open={open} onClose={onClose} onBack={selectedTool ? () => setSelectedTool(null) : undefined}
       title={selectedItem ? titleOf(selectedItem) : "工具箱"} subtitle={subtitle}
-      actions={selectedItem
-        ? <button type="button" className="m-icon-btn" aria-label="收藏此工具" onClick={() => toggleFav(selectedItem.name)}>
-          <Star size={18} fill={favourites.includes(selectedItem.name) ? "currentColor" : "none"} />
-        </button>
-        : <button type="button" className="m-icon-btn" aria-label="关闭工具箱" onClick={onClose}>×</button>}>
+      initialSnap={0} snapPoints={[0.55, 0.93]}>
 
       {!selectedTool && <>
         <label className="m-search m-search-sticky">
@@ -170,6 +166,13 @@ export function MobileToolbox({ open, onClose, layers, selectedLayer, initialToo
       </>}
 
       {selectedTool && <>
+        <div className="m-tool-form-head">
+          <span>{selectedItem ? zhCategory(selectedItem) : ""}</span>
+          <button type="button" data-active={favourites.includes(selectedTool)} onClick={() => toggleFav(selectedTool)}>
+            <Star size={14} fill={favourites.includes(selectedTool) ? "currentColor" : "none"} />
+            {favourites.includes(selectedTool) ? "已收藏" : "收藏"}
+          </button>
+        </div>
         {lastTaskId && <button type="button" className="m-task-linkbar" onClick={() => onOpenTask(lastTaskId)}>
           <span>本次运行已计入任务中心</span><strong>查看任务详情 →</strong>
         </button>}
@@ -180,6 +183,6 @@ export function MobileToolbox({ open, onClose, layers, selectedLayer, initialToo
             onTask={event => { setLastTaskId(event.taskId); onTask(event); }} />
         </div>
       </>}
-    </MobilePage>
+    </MobileSheet>
   );
 }

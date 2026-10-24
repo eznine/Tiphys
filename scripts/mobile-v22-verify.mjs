@@ -123,10 +123,10 @@ async function main() {
     } else {
       check("工具箱可检索缓冲区", false, "搜索无结果");
     }
-    const back = page.locator(".m-page-back");
+    const back = page.locator(".m-sheet-back");
     if (await back.count()) await back.first().click();
     await page.waitForTimeout(400);
-    if (await back.count()) await back.first().click();
+    await page.locator(".m-sheet-close").first().click();
     await page.waitForTimeout(3600);
 
     // Task centre

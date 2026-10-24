@@ -108,6 +108,18 @@
 - **放置**：桌面顶栏（徽章 + 字标）、桌面 Agent 面板标题、移动地图左上角工程胶囊（徽章 + 字标 + 工程名）；favicon 与 Tauri 应用图标（`src-tauri/icons`）同样使用徽章。字标用 CSS mask + `currentColor` 渲染，明暗主题自动取色，不重复导出两套位图。
 - **底部操作区**：按参考图改为实体表面（浅色白面、深色 `--m-surface`）。输入台高 56px、圆角 28px，加号为中性浅灰圆钮；Dock 高 64px、圆角 28px，选中态只改强调色，不铺胶囊底。玻璃仅保留在顶部胶囊与抽屉头，减少合成开销。
 
+### 2.8 v2.3 真机反馈精修
+
+用户在真机上复核 v2.2.1 后指出七处断层，本轮逐条修复，仍限定在 `.app-shell.mobile`：
+
+1. **底部只有一张卡**。新增 `MobileBottomCard`：状态行、AI 输入框、四入口 Dock 共用一个实体卡片（地图页与对话页复用），去掉输入框和 Dock 之间的大片空白与重复聊天按钮。
+2. **输入时只留输入框**。卡片内 `data-input-focused` 折叠状态行与 Dock；卡片外的任何文本/下拉/多行输入聚焦时，`.m-shell[data-form-focused]` 同时隐藏浮动 Dock（工程页、抽屉表单等），失焦后恢复。
+3. **图例与坐标贴边**。两者改为固定在底部卡片上方（图例 +40px、坐标读数 +6px），不再悬浮在地图中部；横屏隐藏图例，只保留下方横向卡片。
+4. **符号化抽屉化**。`LayerProperties` 以 55%/92% 两档 `MobileSheet` 打开，地图仍可见；关闭抽屉回到图层列表，不再出现“看不到地图也看不到图层”的空白页。
+5. **工具箱全程抽屉**。工具目录与具体工具表单共用同一个可拖动抽屉（55%/93%），表单头带返回箭头；目录 hydrate 时不再清空正在填写的工具（去掉 `ToolPanel` 载入完成后的 `setToolName("")`）。
+6. **属性表铺满屏幕**。移动端 `.m-fullscreen-panel .attribute-table` 强制 `height: 100%`，属性行恢复可见；从图层抽屉打开属性表时先关闭抽屉，避免遮罩压住全屏面板。
+7. **抽屉内容可滚**。`MobileSheet` 将正文最大高度限制在当前可见区域内，半屏抽屉里的长表单可以滚动到“运行”，不用先拖高；同时避免面板自动聚焦抢走表单字段的焦点。
+
 ## 3. 实施顺序
 
 1. **P0** 本文档。
@@ -122,6 +134,7 @@
 
 - 构建：`npm run build`（tsc + vite）。
 - 回归：`npm run test:contracts`、`npm run test:plans`、`npm run test:browser`（Chrome 可用时）。
-- 手机：Playwright iPhone 12 仿真 390×844，真实点击/拖动/输入；截图落在 `docs/screens/mobile-v22/`（v2.2.1 已用新品牌、输入台与 Dock 复跑并更新）。
+- 手机：Playwright iPhone 12 仿真 390×844，真实点击/拖动/输入；截图落在 `docs/screens/mobile-v22/`（v2.3 已复跑更新）与 `docs/screens/mobile-v23/`（本轮七项精修）。
 - 交互回归：`MOBILE_APP=http://127.0.0.1:1426/ node scripts/mobile-v22-verify.mjs` → 17/17，通过真实缓冲区任务与任务卡执行。
+- v2.3 视觉/交互回归：`MOBILE_APP=http://127.0.0.1:1426/ node scripts/mobile-v23-verify.mjs` → 22/22，覆盖单卡、贴边读数、两档抽屉、属性表、全局聚焦隐藏与横屏卡片。
 - 现有 `npm run baseline:mobile` 保留（聊天手柄、任务卡选择器兼容）。未验证项会在交付报告中逐条列出，不写“已完成”。

@@ -1,0 +1,117 @@
+{
+  "checks": [
+    {
+      "name": "底部卡片为整体单卡",
+      "ok": true,
+      "detail": "{\"card\":{\"x\":10,\"y\":697,\"w\":370,\"h\":139},\"cardStyle\":{\"borderRadius\":\"28px\",\"background\":\"rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box\",\"position\":\"fixed\",\"bottom\":\"8px\"}}"
+    },
+    {
+      "name": "Dock 嵌在卡片内",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "地图页无独立悬浮 Dock",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "坐标读数贴近底部",
+      "ok": true,
+      "detail": "{\"x\":12,\"y\":661,\"w\":165,\"h\":23}"
+    },
+    {
+      "name": "图例贴近底部",
+      "ok": true,
+      "detail": "{\"x\":12,\"y\":616,\"w\":105,\"h\":34}"
+    },
+    {
+      "name": "图例在坐标上方不重叠",
+      "ok": true,
+      "detail": "{\"legend\":{\"x\":12,\"y\":616,\"w\":105,\"h\":34},\"readout\":{\"x\":12,\"y\":661,\"w\":165,\"h\":23}}"
+    },
+    {
+      "name": "输入聚焦后仅留输入框",
+      "ok": true,
+      "detail": "{\"typing\":\"true\",\"dockDisplay\":\"none\",\"statusDisplay\":\"none\",\"cardBox\":{\"x\":10,\"y\":772,\"width\":370,\"height\":64,\"top\":772,\"right\":380,\"bottom\":836,\"left\":10}}"
+    },
+    {
+      "name": "失焦后卡片恢复",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "符号化以抽屉打开且地图仍可见",
+      "ok": true,
+      "detail": "{\"sheetCount\":1,\"propSheet\":{\"x\":0,\"y\":379,\"w\":390,\"h\":793},\"mapVisible\":true}"
+    },
+    {
+      "name": "符号化抽屉含颜色/大小字段",
+      "ok": true,
+      "detail": "beijing_points 符号化 · 拖动调整高度，关闭返回图层 符号化 标注 属性 符号方式 单一符号 唯一值 · name 唯一值 · id 填充 / "
+    },
+    {
+      "name": "关闭符号化回到图层抽屉",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "属性表铺满面板且行可见",
+      "ok": true,
+      "detail": "{\"table\":{\"x\":0,\"y\":0,\"width\":390,\"height\":844,\"top\":0,\"right\":390,\"bottom\":844,\"left\":0},\"scroll\":{\"x\":0,\"y\":149,\"width\":390,\"height\":583,\"top\":149,\"right\":390,\"bottom\":732,\"left\":0},\"rows\":5,\"firstRow\":{\"x\":0,\"y\":178,\"width\":390,\"height\":34,\"top\":178,\"right\":390,\"bottom\":212,\"left\":0},\"panel\":{\"x\":0,\"y\":0,\"width\":390,\"height\":844,\"top\":0,\"right\":390,\"bottom\":844,\"left\":0},\"total\":\"5 条记录\"}"
+    },
+    {
+      "name": "关闭属性表回到地图",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "工具箱是半屏抽屉",
+      "ok": true,
+      "detail": "{\"x\":0,\"y\":379,\"w\":390,\"h\":793}"
+    },
+    {
+      "name": "工具表单仍是同一可调抽屉",
+      "ok": true,
+      "detail": "{\"x\":0,\"y\":379,\"w\":390,\"h\":793}"
+    },
+    {
+      "name": "工具表单可在抽屉内滚动到运行",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "工具表单返回工具列表",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "工程表单聚焦时底栏隐藏",
+      "ok": true,
+      "detail": "{\"formFocused\":\"true\",\"dockVisibility\":\"hidden\",\"dockOpacity\":\"0\",\"cardVisibility\":\"absent\",\"activePlaceholder\":\"如：河流廊道韧性研究\",\"activeTag\":\"INPUT\"}"
+    },
+    {
+      "name": "新建工程输入框保持焦点",
+      "ok": true,
+      "detail": "{\"formFocused\":\"true\",\"dockVisibility\":\"hidden\",\"dockOpacity\":\"0\",\"cardVisibility\":\"absent\",\"activePlaceholder\":\"如：河流廊道韧性研究\",\"activeTag\":\"INPUT\"}"
+    },
+    {
+      "name": "关闭表单后底栏恢复",
+      "ok": true,
+      "detail": "{\"formFocused\":null,\"visibility\":\"visible\"}"
+    },
+    {
+      "name": "对话页复用同一张底部卡片",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "对话输入聚焦收起 Dock",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "errors": [
+    "console: Failed to load resource: net::ERR_CONNECTION_REFUSED"
+  ]
+}

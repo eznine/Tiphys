@@ -14,12 +14,14 @@ type Props = {
   onChange: (tab: MobileTab) => void;
   running: number;
   pending: number;
+  /** Rendered inside the bottom card, not fixed to the viewport. */
+  embedded?: boolean;
 };
 
-/** Floating four-entry dock. Badges show real counts, not decoration. */
-export function MobileDock({ active, onChange, running, pending }: Props) {
+/** Four-entry dock. Badges show real counts, not decoration. */
+export function MobileDock({ active, onChange, running, pending, embedded = false }: Props) {
   return (
-    <nav className="m-dock" aria-label="主要导航">
+    <nav className={"m-dock" + (embedded ? " m-dock-embedded" : "")} aria-label="主要导航">
       {TABS.map(({ id, label, Icon }) => {
         const badge = id === "tasks" ? running + pending : 0;
         return (

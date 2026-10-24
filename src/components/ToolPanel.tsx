@@ -178,7 +178,6 @@ export function ToolPanel({ layers, onResult, request, selectedLayer, onTask }: 
         setCatalog(tools);
         setCatalogHydrated(full.catalog?.hydrated !== false);
       }
-      setToolName("");
     } catch (err) { if (!signal?.aborted) setLoadError(String(err)); }
   }, []);
   useEffect(() => {

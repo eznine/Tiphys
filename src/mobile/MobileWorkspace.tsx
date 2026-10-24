@@ -10,6 +10,7 @@ import { MapLegend } from "../components/MapLegend";
 import { AttributeTable } from "../components/AttributeTable";
 import { LayerProperties } from "../components/LayerProperties";
 import { MobileDock, type MobileTab } from "./MobileDock";
+import { MobileBottomCard } from "./MobileBottomCard";
 import { MobileMapChrome } from "./MobileMapChrome";
 import { MobileMapAskBar } from "./MobileMapAskBar";
 import { MobileLayersSheet } from "./MobileLayersSheet";
@@ -101,6 +102,45 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
   const [viewRequest, setViewRequest] = useState<{ token: number; view: TiphysMapView | null } | null>(null);
   const [bootDelay, setBootDelay] = useState(false);
   const [effects, setEffects] = useState<"full" | "lite">("full");
+  const [formFocused, setFormFocused] = useState(false);
+
+  const openTable = (id: string) => {
+    setLayersOpen(false);
+    setActionsOpen(false);
+    setToolboxOpen(false);
+    onTable(id);
+  };
+
+  useEffect(() => {
+    const editable = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) return false;
+      if (target.isContentEditable) return true;
+      if (target instanceof HTMLTextAreaElement) return true;
+      if (target instanceof HTMLSelectElement) return true;
+      if (target instanceof HTMLInputElement) {
+        return !["checkbox", "radio", "range", "color", "file", "button", "submit", "reset"].includes(target.type);
+      }
+      return false;
+    };
+    const focusin = (event: FocusEvent) => {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (target?.closest(".m-bottom-card")) { setFormFocused(false); return; }
+      setFormFocused(editable(target));
+    };
+    const focusout = () => {
+      window.requestAnimationFrame(() => {
+        const active = document.activeElement;
+        if (active instanceof HTMLElement && active.closest(".m-bottom-card")) { setFormFocused(false); return; }
+        setFormFocused(editable(active));
+      });
+    };
+    document.addEventListener("focusin", focusin);
+    document.addEventListener("focusout", focusout);
+    return () => {
+      document.removeEventListener("focusin", focusin);
+      document.removeEventListener("focusout", focusout);
+    };
+  }, []);
 
   const [storesReady, setStoresReady] = useState(false);
   const tasks = useTasks();
@@ -615,10 +655,10 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
     if (item.kind === "msg" && item.role === "agent") { lastAgentMessage = item.text.replace(/\s+/g, " "); break; }
   }
 
-  return <div className={"m-shell" + (effects === "lite" ? " m-shell-lite" : "")} data-tab={tab}>
+  return <div className={"m-shell" + (effects === "lite" ? " m-shell-lite" : "")} data-tab={tab} data-form-focused={formFocused || undefined}>
     <div className="m-map-stage" aria-hidden={tab !== "map"}>
       <MapCanvas variant="mobile" theme={theme} dataLayers={layers} focusBounds={focus} onStatus={onMapStatus}
-        selection={selection} onSelect={onSelection} aoi={aoi} onAoiChange={onAoi} onOpenTable={id => onTable(id)}
+        selection={selection} onSelect={onSelection} aoi={aoi} onAoiChange={onAoi} onOpenTable={openTable}
         onViewChange={handleViewChange} viewRequest={viewRequest} onFitAll={onFocusAll} />
       <MapLegend layers={layers} onStyle={id => onPropertiesChange({ id, tab: "style" })} />
     </div>
@@ -639,19 +679,18 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
         <button type="button" className="m-icon-btn" aria-label="关闭提示" onClick={onDismissNotice}>×</button>
       </div>}
 
-      <div className="m-map-ask">
-        <button type="button" className="mobile-chat-handle m-map-chat-handle" onClick={() => setTab("chat")}>
+      <MobileBottomCard active={tab} onChange={next => { setTab(next); if (next !== "map") setLayersOpen(false); }} running={runningCount} pending={pendingCount}
+        status={<button type="button" className="m-bottom-status" onClick={() => setTab("chat")}>
           <span className="status-dot" data-state={agent.state.busy ? "pending" : agent.state.connected ? "ok" : "error"} />
-          <span className="mobile-chat-handle-text">
+          <span className="m-bottom-status-text">
             {agent.state.busy ? "TIPHYS 正在处理…" : lastAgentMessage ? lastAgentMessage.slice(0, 64) : agent.state.items.length ? `对话 · ${agent.state.items.length} 条` : "对话与任务卡"}
           </span>
-          <MessageSquareText size={15} />
-        </button>
+          <MessageSquareText size={14} />
+        </button>}>
         <MobileMapAskBar value={draft} onChange={setDraft} busy={agent.state.busy} connected={agent.state.connected} unconfigured={agentUnconfigured}
           onSend={async text => { const ok = await send(text, { includeLayer: true, includeSelection: true, includeAoi: true }); if (ok) setTab("chat"); return ok; }}
-          onCancelTurn={agent.cancelTurn}
-          onOpenChat={() => setTab("chat")} onOpenActions={openActions} />
-      </div>
+          onCancelTurn={agent.cancelTurn} onOpenActions={openActions} />
+      </MobileBottomCard>
     </>}
 
     {tab === "chat" && <MobileChatPage
@@ -680,6 +719,9 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
       onOpenTasks={() => setTab("tasks")}
       onOpenSettings={onOpenSettings}
       onOpenActions={openActions}
+      onTab={next => { setTab(next); if (next !== "map") setLayersOpen(false); }}
+      running={runningCount}
+      pending={pendingCount}
     />}
 
     {tab === "tasks" && <MobileTasksPage
@@ -692,7 +734,7 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
       <TaskDetail task={detailTask} layers={layers} connected={agent.state.connected}
         projectName={projects.find(project => project.id === detailTask.projectId)?.name ?? "未归属工程"}
         onApprove={approveTask} onCancel={cancelTask} onRetry={task => void retryTask(task)}
-        onLocate={locateLayer} onTable={onTable}
+        onLocate={locateLayer} onTable={openTable}
         onOpenChat={() => { setDetailTaskId(null); setTab("chat"); }} />
     </MobilePage>}
 
@@ -734,13 +776,13 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
         });
         agent.setLayerVisibility(id, false);
       }}
-      onLocate={layer => locateLayer(layer.id)} onTable={onTable}
+      onLocate={layer => locateLayer(layer.id)} onTable={openTable}
       onOpenTask={id => { setDetailTaskId(id); setTab("tasks"); }} />}
 
     <MobileLayersSheet open={layersOpen} onClose={() => setLayersOpen(false)} layers={layers} selectedId={activeLayer?.id}
       onSelect={onSelectLayer} onToggle={agent.toggleLayer} onAdd={onAddData} importing={importing}
       importNotice={importNotice} onDismissNotice={onDismissNotice}
-      onZoom={onZoomLayer} onTable={onTable} onProperties={(id, tab) => onPropertiesChange({ id, tab })}
+      onZoom={onZoomLayer} onTable={openTable} onProperties={(id, tab) => { setLayersOpen(false); onPropertiesChange({ id, tab }); }}
       onRename={onRenameLayer} onReorder={onReorderLayers} onRemove={onRemoveLayer}
       onOpenTool={(tool, layerId) => openToolbox(tool || null, layerId)} />
 
@@ -755,7 +797,7 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
         <button type="button" onClick={() => { setActionsOpen(false); openToolbox(null); }}><Wrench size={20} /><span>工具箱</span></button>
         <button type="button" onClick={() => { setActionsOpen(false); setTab("tasks"); }}><ListChecks size={20} /><span>任务中心</span></button>
         <button type="button" onClick={() => { setActionsOpen(false); setTab("project"); }}><FolderKanban size={20} /><span>工程</span></button>
-        {activeLayer && <button type="button" onClick={() => { setActionsOpen(false); onTable(activeLayer.id); }}><Table2 size={20} /><span>属性表</span></button>}
+        {activeLayer && <button type="button" onClick={() => openTable(activeLayer.id)}><Table2 size={20} /><span>属性表</span></button>}
         {activeLayer && <button type="button" onClick={() => { setActionsOpen(false); onPropertiesChange({ id: activeLayer.id, tab: "style" }); }}><Palette size={20} /><span>符号化</span></button>}
         {activeLayer && <button type="button" onClick={() => { setActionsOpen(false); onPropertiesChange({ id: activeLayer.id, tab: "labels" }); }}><Tags size={20} /><span>标注</span></button>}
         {aoi && activeLayer && <button type="button" onClick={() => { setActionsOpen(false); onClipAoi(); }}><Scissors size={20} /><span>AOI 裁剪</span></button>}
@@ -771,14 +813,17 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
         onSelectionChange={onTableSelection} onClearSelection={onClearSelection} onClose={onTableClose} onZoom={onZoomBounds} />
     </div>}
 
-    {propertyLayer && properties && <div className="m-fullscreen-panel" role="dialog" aria-modal="true" aria-label={`${propertyLayer.name} 图层设置`}>
-      <LayerProperties key={propertyLayer.id} layer={propertyLayer} tab={propertyTab ?? "style"}
+    {propertyLayer && properties && <MobileSheet open title={propertyLayer.name}
+      subtitle={`${propertyTab === "style" ? "符号化" : propertyTab === "labels" ? "标注" : "属性"} · 拖动调整高度，关闭返回图层`}
+      initialSnap={0} snapPoints={[0.55, 0.92]}
+      onClose={() => { onPropertiesChange(null); setLayersOpen(true); }}>
+      <LayerProperties key={propertyLayer.id} embedded layer={propertyLayer} tab={propertyTab ?? "style"}
         onTab={tabValue => onPropertiesChange({ id: propertyLayer.id, tab: tabValue })}
         onStyle={style => onLayerStyle(propertyLayer.id, style)}
-        onClose={() => onPropertiesChange(null)} />
-    </div>}
+        onClose={() => { onPropertiesChange(null); setLayersOpen(true); }} />
+    </MobileSheet>}
 
-    <MobileDock active={tab} onChange={next => { setTab(next); if (next !== "map") setLayersOpen(false); }} running={runningCount} pending={pendingCount} />
+    {(tab === "tasks" || tab === "project") && <MobileDock active={tab} onChange={next => { setTab(next); if (next !== "map") setLayersOpen(false); }} running={runningCount} pending={pendingCount} />}
     <span className="sr-only" aria-live="polite">{TAB_LABEL[tab]}</span>
   </div>;
 }
