@@ -11,7 +11,7 @@ const TOOL_ALIASES: Record<string, string[]> = {
   aggregate_polygons: ["面聚合", "聚合面", "聚合多边形", "合并邻近面", "形态学闭运算"],
   average_flowpath_slope: ["平均流路坡度", "平均流径坡度", "流路坡度", "flowpath slope"],
   balance_contrast_enhancement: ["对比度均衡", "平衡对比度增强", "色彩偏差校正", "BCE"],
-  basins: ["集水区", "流域盆地", "流域划分", "D8 流域", "盆地划分"],
+  basins: ["集水区", "流域", "分水岭", "流域盆地", "流域划分", "D8 流域", "盆地划分", "watershed", "basin"],
   bilateral_filter: ["双边滤波", "保边平滑", "边缘保持平滑", "bilateral"],
   boundary_clean: ["边界清理", "分类边界清理", "平滑分类栅格"],
   buffer_raster: ["栅格缓冲", "像元缓冲", "栅格距离缓冲"],

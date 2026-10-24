@@ -170,6 +170,17 @@ export const PARAM_ZH: Record<string, string> = {
   min_scale: "最小尺度", max_scale: "最大尺度", step_size: "尺度步长", min_vertical: "最小高差",
   sca: "比集水面积栅格", slope: "坡度栅格", sca_exponent: "SCA 指数", slope_exponent: "坡度指数",
   num_components: "主成分数量", standardized: "标准化相关矩阵",
+  // WASM hydrology wire names. Keep the raw name in the catalog/agent card;
+  // these labels are only the human-facing meaning.
+  d8_pntr: "上游 D8 流向栅格", dinf_pntr: "上游 D-Infinity 流向栅格",
+  pntr: "上游流向栅格", pointer: "流向栅格", esri_pntr: "使用 ESRI 流向编码",
+  streams: "河网栅格", streams_raster: "河网栅格", stream_raster: "河网栅格",
+  pour_pts: "汇水点图层", pour_points: "汇水点", flow_accumulation: "汇流累积栅格",
+  flow_accum: "汇流累积栅格", flow_dir: "流向栅格", watersheds: "流域栅格",
+  snap_dist: "汇水点吸附距离", input_is_pointer: "输入是流向栅格",
+  out_type: "输出类型", fix_flats: "填平平地",
+  flat_increment: "平地增量", flow_dir_output: "流向输出栅格",
+  output_pointer: "流向输出栅格", output_flow_direction: "流向输出栅格",
 };
 
 /** Chinese label for a parameter, falling back to the raw name. */

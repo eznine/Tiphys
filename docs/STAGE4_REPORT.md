@@ -98,7 +98,7 @@ iPhone 12 仿真（390×844，touch，deviceScaleFactor 3）× 真实 WASM 引�
 ## 6. 阶段 5 的输入
 
 1. ✅ 预算制替代 8 步上限：已实现（`src/lib/browser/budget.ts` + agent 循环），A/B 验证见 §7。
-2. 检索候选的参数卡呈现（`d8_pntr` 类参数名）需要产品化——M11 在 B 臂仍败于此。
+2. ✅ 检索候选的参数卡呈现（`d8_pntr` 类参数名）已于 2026-10-25 产品化：层参数以精确 wire name + raster/vector + required + 中文标签返回。单次 M11 复跑不再出现“缺少参数：d8_pntr”，模型已生成 `Basins` 栅格；仍 FAIL 于后续栅格转面检索/预算与独立的 `run_plan` 内部错误。
 3. ✅ A/B 驱动器（`--arm`、`--only`、`--merge`）+ 对照报告生成器（`npm run compare:arms`）。
 4. ✅ 任务卡预设已扩展为阶段 5 配方入口：`hydro-network`（5A）与 `service-zone`（5B），移动基线新增 M8/M9 场景（9/9）。
 

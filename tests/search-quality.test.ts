@@ -12,7 +12,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { evaluate, preview } from "../scripts/search-eval.ts";
 import { catalogForEvaluation } from "../scripts/search-eval.ts";
-import { searchBrowserTools } from "../src/lib/browser/search.ts";
+import { searchBrowserToolCandidates, searchBrowserTools } from "../src/lib/browser/search.ts";
 import { compactTool, toolCapabilities } from "../src/lib/browser/candidates.ts";
 
 const DATASET = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "search", "labeled-queries.json");
@@ -45,8 +45,40 @@ test("candidates are capability-annotated and much smaller than full schemas", (
   // promises raster inputs; we do not upgrade that claim here.
   assert.deepEqual(zonal!.inputKinds, ["raster"]);
   assert.ok(zonal!.params.some(param => param.name === "stat_type"));
-  // Layer parameters are implied by inputKinds, not repeated as parameters.
-  assert.ok(!zonal!.params.some(param => param.name === "input" || param.name === "layer"));
+  // Layer parameters must keep their exact callable names; inputKinds alone
+  // cannot tell the model whether to send `input`, `features` or `d8_pntr`.
+  const input = zonal!.params.find(param => param.name === "input");
+  assert.equal(input?.kind, "raster");
+  assert.equal(input?.required, true);
+});
+
+test("layer parameter cards expose hydrology wire names", () => {
+  const { tools, searchable } = catalogForEvaluation();
+  const basins = compactTool(tools.find(tool => tool.name === "wasm_basins")!);
+  const d8 = basins.params.find(param => param.name === "d8_pntr");
+  assert.deepEqual(
+    { kind: d8?.kind, required: d8?.required, label: d8?.label },
+    { kind: "raster", required: true, label: "上游 D8 流向栅格" },
+  );
+  assert.equal(basins.params[0].name, "d8_pntr", "required layer params come first");
+
+  const watershed = compactTool(tools.find(tool => tool.name === "wasm_watershed")!);
+  const pour = watershed.params.find(param => param.name === "pour_pts");
+  assert.equal(pour?.kind, "vector");
+  assert.equal(pour?.required, true);
+  assert.equal(pour?.label, "汇水点图层");
+
+  const hillslopes = compactTool(tools.find(tool => tool.name === "wasm_hillslopes")!);
+  const streams = hillslopes.params.find(param => param.name === "streams");
+  assert.equal(streams?.kind, "raster");
+  assert.equal(streams?.required, true);
+
+  for (const query of ["流域", "basins", "分水岭"]) {
+    const candidates = searchBrowserToolCandidates(tools, query, { searchable, limit: 5 });
+    const found = candidates.find(candidate => candidate.name === "wasm_basins");
+    assert.ok(found, `${query} must surface wasm_basins`);
+    assert.ok(found.params.some(param => param.name === "d8_pntr" && param.required));
+  }
 });
 
 test("input-kind filters exclude tools whose data contract does not fit", () => {

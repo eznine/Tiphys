@@ -36,7 +36,7 @@ export const INTENTS: Intent[] = [
   { match: /汇流累积|流量累积|汇水面积|上游面积/, tools: ["d8_flow_accum"] },
   { match: /流向|汇流方向/, tools: ["d8_pointer"] },
   { match: /河网|水系|河流提取/, tools: ["extract_streams", "raster_streams_to_vector"] },
-  { match: /流域|集水区|子流域/, tools: ["watershed", "basins"] },
+  { match: /流域|集水区|子流域|分水岭|watershed|basins?/i, tools: ["watershed", "basins"] },
   { match: /河网分级|河流分级|strahler|horton/i, tools: ["hack_stream_order", "horton_stream_order"] },
   { match: /等高线|等值线|contour/i, tools: ["contours_from_raster", "contour_list"] },
   { match: /矢量化|栅格转.*(矢量|面)/, tools: ["polygonize"] },

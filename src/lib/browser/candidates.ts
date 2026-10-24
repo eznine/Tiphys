@@ -5,7 +5,9 @@
  * are several thousand tokens of descriptions, defaults and titles the model
  * cannot use, and nothing said which tools accept a raster or need a table.
  * Search now returns this view: identity, one-line summary, input kinds and the
- * parameters that actually decide whether a call can be built.
+ * parameters that actually decide whether a call can be built. Layer inputs are
+ * included by their exact wire name: `inputKinds` says "this tool takes a
+ * raster", but only the parameter card tells the model to send `d8_pntr`.
  *
  * The annotations are not invented here: `x-layer-kind` and `x-layer-multiple`
  * come from the catalog itself (WASM manifests and the hand-written shell
@@ -13,6 +15,7 @@
  */
 import type { CatalogTool, CatalogSchema } from "./catalog-schema";
 import { pluginToolNames } from "../plugins/registry";
+import { zhParam } from "../i18n/tools";
 
 export type InputKind = "vector" | "raster" | "table" | "any";
 export type ToolProvider = "local" | "gee" | "plugin";
@@ -28,6 +31,12 @@ export type ToolParameter = {
   name: string;
   type: string;
   required: boolean;
+  /** Present for layer inputs; the callable wire name is always `name`. */
+  kind?: InputKind | "file" | "mixed";
+  /** Short Chinese label, e.g. `d8_pntr` → "上游 D8 流向栅格". */
+  label?: string;
+  hint?: string;
+  multiple?: boolean;
   enum?: string[];
   default?: unknown;
 };
@@ -92,11 +101,22 @@ function summarise(tool: CatalogTool, limit = 110): string {
 
 function parameter(schema: CatalogSchema, name: string, required: boolean): ToolParameter {
   const type = schema.type ?? (schema.anyOf ? "any" : "string");
-  return {
+  const param: ToolParameter = {
     name, type, required,
     ...(schema.enum?.length ? { enum: schema.enum } : {}),
     ...(schema.default !== undefined ? { default: schema.default } : {}),
   };
+  if (schema["x-layer"]) {
+    const kind = normalKind(schema["x-layer-kind"]) ?? schema["x-layer-kind"];
+    if (kind) param.kind = kind as ToolParameter["kind"];
+    param.label = zhParam(name);
+    const hint = (schema.description ?? "").replace(/\s+/g, " ").trim();
+    // English manifest blurbs repeat the Chinese label; keep hints only when
+    // they add Chinese context, so the cards stay within the old token budget.
+    if (/[\u4e00-\u9fff]/.test(hint)) param.hint = hint.length > 60 ? `${hint.slice(0, 60)}…` : hint;
+    if (schema["x-layer-multiple"]) param.multiple = true;
+  }
+  return param;
 }
 
 export function compactTool(tool: CatalogTool): ToolCandidate {
@@ -105,10 +125,13 @@ export function compactTool(tool: CatalogTool): ToolCandidate {
   const required = new Set(capabilities.required);
   const params: ToolParameter[] = [];
   for (const [name, schema] of Object.entries(properties)) {
-    if (schema["x-layer"]) continue; // layer parameters are implied by inputKinds
     if (name === "output_name") continue; // every tool has it; not a decision
     params.push(parameter(schema, name, required.has(name)));
   }
+  // Put the arguments that bind data first, required ones first: a model that
+  // stops reading after the first line still sees `d8_pntr (raster, required)`.
+  const rank = (param: ToolParameter) => param.kind ? (param.required ? 0 : 2) : (param.required ? 1 : 3);
+  params.sort((a, b) => rank(a) - rank(b));
   return {
     name: tool.name,
     label: tool.label ?? tool.name,
