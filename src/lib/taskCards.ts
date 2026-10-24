@@ -220,6 +220,51 @@ export const TASK_CARDS: TaskCardPreset[] = [
       } };
     },
   },
+  {
+    id: "hydro-network",
+    title: "DEM 河网提取",
+    detail: "填洼 → D8 流向 → 汇流累积 → 阈值河网 → 转面（5 步链，带验收）",
+    slots: [{ key: "dem", label: "DEM 栅格", kind: "raster" }],
+    needsNumeric: { label: "河网阈值（上游汇流像元数）", default: 50, min: 1, max: 100000, unit: "像元" },
+    defaultGoal: draft => `从 DEM 提取河网（阈值 ${draft.numeric ?? 50} 像元汇流）并转为面图层`,
+    build: (draft, layers) => {
+      const dem = rasterOf(layers, draft.inputs.dem);
+      if (!dem) return { ok: false, reason: "请选择一个 DEM 栅格图层。", degrade: "手机端暂只支持 GeoTIFF DEM。" };
+      const pixels = dem.raster!.width * dem.raster!.height;
+      if (pixels > MOBILE_MAX_PIXELS) {
+        return {
+          ok: false,
+          reason: `栅格 ${dem.raster!.width}×${dem.raster!.height}＝${(pixels / 1e6).toFixed(1)} 百万像素，超出手机端预算（${(MOBILE_MAX_PIXELS / 1e6).toFixed(1)} 百万）。`,
+          degrade: "先裁剪研究区或降采样后重试；或在桌面端执行同一任务。",
+        };
+      }
+      const threshold = Math.max(1, Math.round(Number(draft.numeric ?? 50)));
+      const plan: Plan = {
+        goal: draft.goal || `从 ${dem.name} 提取河网并转为面图层`,
+        steps: [
+          // Whitebox D8 chain; parameter names follow the WASM manifests exactly
+          // (d8_pntr / flow_accumulation are raster inputs, not commands).
+          step("fill", { kind: "tool", tool: "wasm_fill_depressions", args: { dem: dem.id } }, [], [
+            { type: "raster_dims" },
+          ]),
+          step("d8", { kind: "tool", tool: "wasm_d8_pointer", args: { dem: "@fill" } }, ["fill"], []),
+          step("acc", { kind: "tool", tool: "wasm_d8_flow_accum", args: { input: "@d8" } }, ["d8"], [
+            { type: "raster_dims", ref: "fill" },
+          ]),
+          step("streams", { kind: "tool", tool: "wasm_extract_streams", args: { flow_accumulation: "@acc", threshold } }, ["acc"], []),
+          step("poly", { kind: "tool", tool: "wasm_raster_to_vector_polygons", args: { input: "@streams" } }, ["streams"], [
+            { type: "feature_count", op: "gte", value: 1 },
+            { type: "geometry_types", contains: ["Polygon", "MultiPolygon"] },
+          ]),
+        ],
+      };
+      return { ok: true, plan, explanation: {
+        engine: "浏览器本地 GeoLibre WASM（Whitebox D8 链），数据不出设备。",
+        estimate: `输入「${dem.name}」${dem.raster!.width}×${dem.raster!.height}；阈值 ${threshold} 像元（阈值越大河网越稀疏）；5 步链每步有验收。`,
+        budget: `手机端预算 ${MOBILE_MAX_PIXELS / 1e6} 百万像素，本次占用 ${((pixels / MOBILE_MAX_PIXELS) * 100).toFixed(0)}%。`,
+      } };
+    },
+  },
 ];
 
 export function cardById(id: string) {

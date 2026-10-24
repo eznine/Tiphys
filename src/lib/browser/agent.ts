@@ -4,9 +4,11 @@ import { browserCatalog, browserLayers, browserLogs, cancelBrowserJob, engineEve
 import { ensureBrowserCatalog } from "./catalog-schema";
 import { readRecord, writeRecord } from "./storage";
 import { pluginToolNames } from "../plugins/registry";
-import { compactBrowserMessages, readBrowserContextRecord, type BrowserWorkspace } from "./context";
+import { compactBrowserMessages, estimateBrowserTokens, readBrowserContextRecord, type BrowserWorkspace } from "./context";
 import { browserProjectMemory } from "./memory";
 import { buildBrowserSystemPrompt } from "./prompt";
+import { findMethods } from "../methods";
+import { budgetVerdict, contextBudget, DEFAULT_BUDGET } from "./budget";
 import { isBrowserSearchable, searchBrowserToolCandidates } from "./search";
 import { normalizeAgentSessionStub, normalizeWorkspaceRecovery } from "../workspace";
 import { BUILTIN_API } from "../defaults";
@@ -82,8 +84,8 @@ function validSelection(value: unknown): { layerId: string; featureIds: number[]
   return featureIds.length ? { layerId, featureIds } : null;
 }
 
-export const systemPrompt = (layers: Array<Record<string, unknown>>, workspace: Parameters<typeof buildBrowserSystemPrompt>[1] = {}) =>
-  buildBrowserSystemPrompt(layers, workspace, browserProjectMemory());
+export const systemPrompt = (layers: Array<Record<string, unknown>>, workspace: Parameters<typeof buildBrowserSystemPrompt>[1] = {}, methods: Parameters<typeof buildBrowserSystemPrompt>[3] = []) =>
+  buildBrowserSystemPrompt(layers, workspace, browserProjectMemory(), methods);
 function modelFor(config: Config) {
   if (!settings(config).hasApiKey) throw new Error("请打开设置，配置 API 地址、模型和密钥。GIS 工具可直接在浏览器使用。");
   let index = 0;
@@ -174,6 +176,7 @@ async function callTool(s: Session, name: string, input: Record<string, any>, id
 async function runTurn(s: Session, text: string) {
   s.busy = true; s.controller = new AbortController(); const signal = s.controller.signal, turnId = crypto.randomUUID();
   const config = await getConfig();
+  let budgetStop: { stop: false } | { stop: true; dimension: "context" | "time" | "steps"; reason: string; advice: string } = { stop: false };
   await emit(s, { type: "user", text, turnId });
   try {
     const model = modelFor(config);
@@ -195,20 +198,36 @@ async function runTurn(s: Session, text: string) {
     s.messages.push({ role: "user", content: text }); await checkpoint(s);
     const layers = (await browserLayers()).map(({ url: _url, ...layer }) => layer);
     const workspace = s.workspace ?? {};
-    const system = systemPrompt(layers, workspace);
+    const system = systemPrompt(layers, workspace, findMethods(text));
     const context = await compactBrowserMessages(s.messages, system, config.contextWindow,
       { layers, pendingJobs: [], outputs: [], aoi: workspace.aoi ?? null, aoi_bbox: workspace.aoi_bbox ?? workspace.aoi ?? null,
         selectedLayerId: workspace.selectedLayerId ?? null, selectedLayerName: workspace.selectedLayerName ?? null, selection: workspace.selection ?? null }, s.id, config.maxToolOutputChars);
     s.messages = context.messages;
     if (context.compacted) await emit(s, { type: "compaction", before: context.before, after: context.after, summary: context.summary });
     else if (context.trimmed) recordLog("context-trim", "旧工具输出已精简", { before: context.before, after: context.after });
+    // Turn budgets (stage 4): steps/time/context replace the static 8-step cap.
+    const budget = { ...DEFAULT_BUDGET, maxContextTokens: contextBudget(config.contextWindow) };
+    const turnStarted = Date.now();
+    let toolSteps = 0;
     const result = streamText({ model, system,
-      messages: s.messages, tools, stopWhen: stepCountIs(8), abortSignal: signal, maxRetries: 0 });
+      messages: s.messages, tools, stopWhen: stepCountIs(budget.maxToolSteps + 4), abortSignal: signal, maxRetries: 0 });
     let buffer = "";
     for await (const event of result.fullStream as AsyncIterable<any>) {
       if (event.type === "text-delta") { buffer += event.text; await emit(s, { type: "text-delta", text: event.text, turnId }); }
       else if (event.type === "tool-call") await emit(s, { type: "tool-call", toolCallId: event.toolCallId, toolName: event.toolName, input: event.input, turnId });
-      else if (event.type === "tool-result") await emit(s, { type: "tool-result", toolCallId: event.toolCallId, toolName: event.toolName, output: event.output });
+      else if (event.type === "tool-result") {
+        toolSteps++;
+        await emit(s, { type: "tool-result", toolCallId: event.toolCallId, toolName: event.toolName, output: event.output });
+        budgetStop = budgetVerdict({ toolSteps, elapsedMs: Date.now() - turnStarted, estimatedTokens: 0 }, budget);
+        if (!budgetStop.stop && toolSteps % 3 === 0) {
+          // Context is measured occasionally: the estimator walks every message.
+          budgetStop = budgetVerdict({ toolSteps, elapsedMs: Date.now() - turnStarted, estimatedTokens: estimateBrowserTokens(s.messages, system) }, budget);
+        }
+        if (budgetStop.stop) {
+          await emit(s, { type: "notice", text: `预算停止：${budgetStop.reason}${budgetStop.advice}` });
+          s.controller?.abort();
+        }
+      }
       else if (event.type === "tool-error") await emit(s, { type: "tool-error", toolCallId: event.toolCallId, toolName: event.toolName, error: cleanError(event.error, config) });
       else if (event.type === "error") throw event.error;
       else if (event.type === "finish-step" && buffer) { await emit(s, { type: "assistant-text", text: buffer, turnId }); buffer = ""; }
@@ -221,8 +240,8 @@ async function runTurn(s: Session, text: string) {
       if (usage) await emit(s, { type: "usage", turnId,
         inputTokens: usage.inputTokens ?? null, outputTokens: usage.outputTokens ?? null, totalTokens: usage.totalTokens ?? null });
     } catch { /* no usage from provider */ }
-    if (await result.finishReason === "tool-calls") await emit(s, { type: "notice", text: "本轮达到工具步骤上限，已有结果已保留；任务可能尚未完成。" });
-  } catch (error) { await emit(s, { type: "error", error: signal.aborted ? "已停止当前回复。" : cleanError(error, config) }); }
+    if (await result.finishReason === "tool-calls") await emit(s, { type: "notice", text: "本轮达到步数预算上限，已有结果已保留；任务可能尚未完成，可继续发消息接续。" });
+  } catch (error) { await emit(s, { type: "error", error: signal.aborted ? (budgetStop.stop ? `预算停止：${budgetStop.reason}` : "已停止当前回复。") : cleanError(error, config) }); }
   finally { s.busy = false; s.controller = undefined; await emit(s, { type: "turn-end", turnId }); }
 }
 export async function browserAgentRequest(path: string, init: RequestInit = {}): Promise<Response> {

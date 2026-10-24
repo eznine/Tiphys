@@ -191,7 +191,7 @@ export function resolveRefs(value: unknown, outputs: Map<string, LayerLite>): un
 /** Collect literal (non-@) layer references from a step, for plan-time checks. */
 export function layerRefs(step: PlanStep): { field: string; ref: string }[] {
   const found: { field: string; ref: string }[] = [];
-  const inputFields = new Set(["input", "layer", "maskLayerId", "zonesLayerId", "mask_layer", "join_layer", "other_layer", "filter_layer"]);
+  const inputFields = new Set(["input", "layer", "maskLayerId", "zonesLayerId", "mask_layer", "join_layer", "other_layer", "filter_layer", "dem", "d8_pntr", "flow_accumulation"]);
   const visit = (value: unknown, field: string) => {
     if (typeof value !== "string") {
       if (Array.isArray(value)) { value.forEach(item => visit(item, field)); return; }
@@ -212,7 +212,7 @@ export function layerRefs(step: PlanStep): { field: string; ref: string }[] {
 /** Collect "@stepId" references from a step's input fields, for dependency checks. */
 export function stepRefs(step: PlanStep): string[] {
   const found: string[] = [];
-  const inputFields = new Set(["input", "layer", "maskLayerId", "zonesLayerId", "mask_layer", "join_layer", "other_layer", "filter_layer", "dem", "overlay"]);
+  const inputFields = new Set(["input", "layer", "maskLayerId", "zonesLayerId", "mask_layer", "join_layer", "other_layer", "filter_layer", "dem", "overlay", "d8_pntr", "flow_accumulation"]);
   const visit = (value: unknown, field: string) => {
     if (typeof value !== "string") {
       if (Array.isArray(value)) { value.forEach(item => visit(item, field)); return; }
@@ -428,8 +428,11 @@ async function evaluateAcceptance(
         break;
       }
       case "raster_dims": {
+        // With `ref`: match a prior step's raster. Without: match the step's own
+        // input layer — "same grid as what I read" is the invariant that matters.
         const ref = check.ref ? priorOutputs.get(check.ref) : undefined;
-        const own = layer?.raster, other = ref?.raster;
+        const own = layer?.raster;
+        const other = ref?.raster ?? (step.input?.layerId ? await adapter.getLayer(step.input.layerId) : undefined)?.raster;
         ok = !!own && !!other && own.width === other.width && own.height === other.height;
         detail = `${own?.width ?? "?"}x${own?.height ?? "?"} vs ${other?.width ?? "?"}x${other?.height ?? "?"}`;
         break;

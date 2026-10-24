@@ -1,0 +1,2050 @@
+{
+  "generated_at": "2026-10-24T15:09:32.528Z",
+  "datasets": [
+    "dem_hills",
+    "dem_large"
+  ],
+  "thresholds": [
+    20,
+    50,
+    100,
+    200
+  ],
+  "totals": {
+    "cells": 8,
+    "completed": 8,
+    "structuralFailures": 0
+  },
+  "sensitivity": {
+    "invariant": "阈值↑ ⇒ 河网总面积（∝河网像元数）不增",
+    "violations": []
+  },
+  "audit": {
+    "ok": true,
+    "violations": []
+  },
+  "results": [
+    {
+      "dem": "dem_hills",
+      "threshold": 20,
+      "status": "completed",
+      "runId": "hydro_dem_hills_t20",
+      "durationMs": 210,
+      "streamPolygons": 1,
+      "streamAreaDeg2": 0.0011395178939892503,
+      "acceptanceFailed": [],
+      "inBounds": true,
+      "headline": "计划完成：5 个步骤全部成功，5 个可交付图层。",
+      "exportInfo": null
+    },
+    {
+      "dem": "dem_hills",
+      "threshold": 50,
+      "status": "completed",
+      "runId": "hydro_dem_hills_t50",
+      "durationMs": 223,
+      "streamPolygons": 58,
+      "streamAreaDeg2": 0.00009819038768910104,
+      "acceptanceFailed": [],
+      "inBounds": true,
+      "headline": "计划完成：5 个步骤全部成功，5 个可交付图层。",
+      "exportInfo": {
+        "path": "hydro_dem_hills_t50.geojson",
+        "bytes": 48931,
+        "sha256": "601c17b302e1afa8dab29718bc6b342163713d963a6f6aadcb561bafa00a8400"
+      }
+    },
+    {
+      "dem": "dem_hills",
+      "threshold": 100,
+      "status": "completed",
+      "runId": "hydro_dem_hills_t100",
+      "durationMs": 216,
+      "streamPolygons": 59,
+      "streamAreaDeg2": 0.000005982456968922634,
+      "acceptanceFailed": [],
+      "inBounds": true,
+      "headline": "计划完成：5 个步骤全部成功，5 个可交付图层。",
+      "exportInfo": null
+    },
+    {
+      "dem": "dem_hills",
+      "threshold": 200,
+      "status": "completed",
+      "runId": "hydro_dem_hills_t200",
+      "durationMs": 210,
+      "streamPolygons": 1,
+      "streamAreaDeg2": 1.899129529192578e-7,
+      "acceptanceFailed": [],
+      "inBounds": true,
+      "headline": "计划完成：5 个步骤全部成功，5 个可交付图层。",
+      "exportInfo": null
+    },
+    {
+      "dem": "dem_large",
+      "threshold": 20,
+      "status": "completed",
+      "runId": "hydro_dem_large_t20",
+      "durationMs": 489,
+      "streamPolygons": 1,
+      "streamAreaDeg2": 0.02846642129634347,
+      "acceptanceFailed": [],
+      "inBounds": true,
+      "headline": "计划完成：5 个步骤全部成功，5 个可交付图层。",
+      "exportInfo": null
+    },
+    {
+      "dem": "dem_large",
+      "threshold": 50,
+      "status": "completed",
+      "runId": "hydro_dem_large_t50",
+      "durationMs": 780,
+      "streamPolygons": 2035,
+      "streamAreaDeg2": 0.0014050021627554088,
+      "acceptanceFailed": [],
+      "inBounds": true,
+      "headline": "计划完成：5 个步骤全部成功，5 个可交付图层。",
+      "exportInfo": {
+        "path": "hydro_dem_large_t50.geojson",
+        "bytes": 1535919,
+        "sha256": "934270f6bc92bdfb5f52f36c03109103a18d3ae06a8c58a867b620aa80456ece"
+      }
+    },
+    {
+      "dem": "dem_large",
+      "threshold": 100,
+      "status": "completed",
+      "runId": "hydro_dem_large_t100",
+      "durationMs": 560,
+      "streamPolygons": 2420,
+      "streamAreaDeg2": 0.00023248014531418448,
+      "acceptanceFailed": [],
+      "inBounds": true,
+      "headline": "计划完成：5 个步骤全部成功，5 个可交付图层。",
+      "exportInfo": null
+    },
+    {
+      "dem": "dem_large",
+      "threshold": 200,
+      "status": "completed",
+      "runId": "hydro_dem_large_t200",
+      "durationMs": 439,
+      "streamPolygons": 2,
+      "streamAreaDeg2": 1.8970240489579737e-7,
+      "acceptanceFailed": [],
+      "inBounds": true,
+      "headline": "计划完成：5 个步骤全部成功，5 个可交付图层。",
+      "exportInfo": null
+    }
+  ],
+  "runs": [
+    {
+      "runId": "hydro_dem_hills_t20",
+      "planVersion": 1,
+      "goal": "阶段 5A 水文纵向：dem_hills 阈值 20 像元的河网提取",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T15:09:26.869Z",
+      "steps": [
+        {
+          "stepId": "fill",
+          "kind": "tool",
+          "label": "wasm_fill_depressions",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:26.873Z",
+          "args": {
+            "dem": "lyr_56bd556db0c7422691cc3b165442ffba"
+          },
+          "input": {
+            "layerId": "lyr_56bd556db0c7422691cc3b165442ffba",
+            "crs": "EPSG:32650",
+            "sha256": "c324485ea4b0a5dedac4d1ec2274be8852112ca2195253c35ab7096d320a98ad"
+          },
+          "outputLayer": {
+            "id": "lyr_0675e0c507ea4359a0ec3ce98cf5b958",
+            "name": "Fill Depressions",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 120,
+              "height": 100,
+              "bands": 1
+            },
+            "sha256": "e183d555d2851c32da96185e0c607deb75dce555b90c473f422cf1b57e679854"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 135,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "120x100 vs 120x100"
+            }
+          ]
+        },
+        {
+          "stepId": "d8",
+          "kind": "tool",
+          "label": "wasm_d8_pointer",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:27.009Z",
+          "args": {
+            "dem": "lyr_0675e0c507ea4359a0ec3ce98cf5b958"
+          },
+          "input": {
+            "layerId": "lyr_0675e0c507ea4359a0ec3ce98cf5b958",
+            "crs": "EPSG:32650",
+            "sha256": "e183d555d2851c32da96185e0c607deb75dce555b90c473f422cf1b57e679854"
+          },
+          "outputLayer": {
+            "id": "lyr_396ab3ab81124d1dbbec8e23c67eb4f6",
+            "name": "D8 Pointer",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 120,
+              "height": 100,
+              "bands": 1
+            },
+            "sha256": "42e29712fbb02cccde3213b09d3884d0cbebf1fd4b4d0090cca4d8f38228d32b"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 13,
+          "acceptance": []
+        },
+        {
+          "stepId": "acc",
+          "kind": "tool",
+          "label": "wasm_d8_flow_accum",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:27.022Z",
+          "args": {
+            "input": "lyr_396ab3ab81124d1dbbec8e23c67eb4f6"
+          },
+          "input": {
+            "layerId": "lyr_396ab3ab81124d1dbbec8e23c67eb4f6",
+            "crs": "EPSG:32650",
+            "sha256": "42e29712fbb02cccde3213b09d3884d0cbebf1fd4b4d0090cca4d8f38228d32b"
+          },
+          "outputLayer": {
+            "id": "lyr_2052e0ec2b6d46679ffb545081c1d354",
+            "name": "D8 Flow Accumulation",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 120,
+              "height": 100,
+              "bands": 1
+            },
+            "sha256": "b3bc9f708ea09e1c98b4019c3fefc6963610f666b8ed044442b0ad09a7c4c205"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 19,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "120x100 vs 120x100"
+            }
+          ]
+        },
+        {
+          "stepId": "streams",
+          "kind": "tool",
+          "label": "wasm_extract_streams",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:27.041Z",
+          "args": {
+            "flow_accumulation": "lyr_2052e0ec2b6d46679ffb545081c1d354",
+            "threshold": 20
+          },
+          "outputLayer": {
+            "id": "lyr_6a76eec147ba4277a99cfbeb5e90d5a6",
+            "name": "Extract Streams",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 120,
+              "height": 100,
+              "bands": 1
+            },
+            "sha256": "e7f705d80a845c97ca0a30e2ea22725a4dca1e0b84f955e5e09a8b5684d6945f"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 12,
+          "acceptance": []
+        },
+        {
+          "stepId": "poly",
+          "kind": "tool",
+          "label": "wasm_raster_to_vector_polygons",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:27.053Z",
+          "args": {
+            "input": "lyr_6a76eec147ba4277a99cfbeb5e90d5a6"
+          },
+          "input": {
+            "layerId": "lyr_6a76eec147ba4277a99cfbeb5e90d5a6",
+            "crs": "EPSG:32650",
+            "sha256": "e7f705d80a845c97ca0a30e2ea22725a4dca1e0b84f955e5e09a8b5684d6945f"
+          },
+          "outputLayer": {
+            "id": "lyr_a0e8197f446e4f6ba9dce4ac7fbd92c5",
+            "name": "RasterToVectorPolygons",
+            "kind": "vector",
+            "crs": "EPSG:4326",
+            "featureCount": 1,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "08a223d328b733726a53ad2b2b0913437f69e860a04f0a260a1b904156ee5a89"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 26,
+          "acceptance": [
+            {
+              "type": "feature_count",
+              "ok": true,
+              "detail": "feature_count=1（要求 gte 1）"
+            },
+            {
+              "type": "geometry_types",
+              "ok": true,
+              "detail": "geometry_types=Polygon"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：5 个步骤全部成功，5 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "fill",
+            "layerId": "lyr_0675e0c507ea4359a0ec3ce98cf5b958",
+            "name": "Fill Depressions"
+          },
+          {
+            "stepId": "d8",
+            "layerId": "lyr_396ab3ab81124d1dbbec8e23c67eb4f6",
+            "name": "D8 Pointer"
+          },
+          {
+            "stepId": "acc",
+            "layerId": "lyr_2052e0ec2b6d46679ffb545081c1d354",
+            "name": "D8 Flow Accumulation"
+          },
+          {
+            "stepId": "streams",
+            "layerId": "lyr_6a76eec147ba4277a99cfbeb5e90d5a6",
+            "name": "Extract Streams"
+          },
+          {
+            "stepId": "poly",
+            "layerId": "lyr_a0e8197f446e4f6ba9dce4ac7fbd92c5",
+            "name": "RasterToVectorPolygons"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T15:09:27.079Z",
+      "durationMs": 210
+    },
+    {
+      "runId": "hydro_dem_hills_t50",
+      "planVersion": 1,
+      "goal": "阶段 5A 水文纵向：dem_hills 阈值 50 像元的河网提取",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T15:09:27.400Z",
+      "steps": [
+        {
+          "stepId": "fill",
+          "kind": "tool",
+          "label": "wasm_fill_depressions",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:27.404Z",
+          "args": {
+            "dem": "lyr_8049c96afd8f486d8ecc9f23a1a198c8"
+          },
+          "input": {
+            "layerId": "lyr_8049c96afd8f486d8ecc9f23a1a198c8",
+            "crs": "EPSG:32650",
+            "sha256": "c324485ea4b0a5dedac4d1ec2274be8852112ca2195253c35ab7096d320a98ad"
+          },
+          "outputLayer": {
+            "id": "lyr_b779898aed6c4999aa95a40696a68a78",
+            "name": "Fill Depressions",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 120,
+              "height": 100,
+              "bands": 1
+            },
+            "sha256": "e183d555d2851c32da96185e0c607deb75dce555b90c473f422cf1b57e679854"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 132,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "120x100 vs 120x100"
+            }
+          ]
+        },
+        {
+          "stepId": "d8",
+          "kind": "tool",
+          "label": "wasm_d8_pointer",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:27.537Z",
+          "args": {
+            "dem": "lyr_b779898aed6c4999aa95a40696a68a78"
+          },
+          "input": {
+            "layerId": "lyr_b779898aed6c4999aa95a40696a68a78",
+            "crs": "EPSG:32650",
+            "sha256": "e183d555d2851c32da96185e0c607deb75dce555b90c473f422cf1b57e679854"
+          },
+          "outputLayer": {
+            "id": "lyr_da18865c9e0e47f6a0bf4eb6013d5a86",
+            "name": "D8 Pointer",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 120,
+              "height": 100,
+              "bands": 1
+            },
+            "sha256": "42e29712fbb02cccde3213b09d3884d0cbebf1fd4b4d0090cca4d8f38228d32b"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 13,
+          "acceptance": []
+        },
+        {
+          "stepId": "acc",
+          "kind": "tool",
+          "label": "wasm_d8_flow_accum",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:27.550Z",
+          "args": {
+            "input": "lyr_da18865c9e0e47f6a0bf4eb6013d5a86"
+          },
+          "input": {
+            "layerId": "lyr_da18865c9e0e47f6a0bf4eb6013d5a86",
+            "crs": "EPSG:32650",
+            "sha256": "42e29712fbb02cccde3213b09d3884d0cbebf1fd4b4d0090cca4d8f38228d32b"
+          },
+          "outputLayer": {
+            "id": "lyr_0a78650346f1481ab3caf8f94c10878b",
+            "name": "D8 Flow Accumulation",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 120,
+              "height": 100,
+              "bands": 1
+            },
+            "sha256": "b3bc9f708ea09e1c98b4019c3fefc6963610f666b8ed044442b0ad09a7c4c205"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 20,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "120x100 vs 120x100"
+            }
+          ]
+        },
+        {
+          "stepId": "streams",
+          "kind": "tool",
+          "label": "wasm_extract_streams",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:27.571Z",
+          "args": {
+            "flow_accumulation": "lyr_0a78650346f1481ab3caf8f94c10878b",
+            "threshold": 50
+          },
+          "outputLayer": {
+            "id": "lyr_1742eadfe578454b99adee80c5c2cb8c",
+            "name": "Extract Streams",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 120,
+              "height": 100,
+              "bands": 1
+            },
+            "sha256": "d23da51d0b3441d92c16becbee62917716eb4104cced9188ba4144c6e66eaffd"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 11,
+          "acceptance": []
+        },
+        {
+          "stepId": "poly",
+          "kind": "tool",
+          "label": "wasm_raster_to_vector_polygons",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:27.582Z",
+          "args": {
+            "input": "lyr_1742eadfe578454b99adee80c5c2cb8c"
+          },
+          "input": {
+            "layerId": "lyr_1742eadfe578454b99adee80c5c2cb8c",
+            "crs": "EPSG:32650",
+            "sha256": "d23da51d0b3441d92c16becbee62917716eb4104cced9188ba4144c6e66eaffd"
+          },
+          "outputLayer": {
+            "id": "lyr_fa9ba0f706bd46e1882d9ebcaf7d5778",
+            "name": "RasterToVectorPolygons",
+            "kind": "vector",
+            "crs": "EPSG:4326",
+            "featureCount": 58,
+            "geometryTypes": [
+              "Polygon",
+              "MultiPolygon"
+            ],
+            "raster": null,
+            "sha256": "601c17b302e1afa8dab29718bc6b342163713d963a6f6aadcb561bafa00a8400"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 41,
+          "acceptance": [
+            {
+              "type": "feature_count",
+              "ok": true,
+              "detail": "feature_count=58（要求 gte 1）"
+            },
+            {
+              "type": "geometry_types",
+              "ok": true,
+              "detail": "geometry_types=Polygon,MultiPolygon"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：5 个步骤全部成功，5 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "fill",
+            "layerId": "lyr_b779898aed6c4999aa95a40696a68a78",
+            "name": "Fill Depressions"
+          },
+          {
+            "stepId": "d8",
+            "layerId": "lyr_da18865c9e0e47f6a0bf4eb6013d5a86",
+            "name": "D8 Pointer"
+          },
+          {
+            "stepId": "acc",
+            "layerId": "lyr_0a78650346f1481ab3caf8f94c10878b",
+            "name": "D8 Flow Accumulation"
+          },
+          {
+            "stepId": "streams",
+            "layerId": "lyr_1742eadfe578454b99adee80c5c2cb8c",
+            "name": "Extract Streams"
+          },
+          {
+            "stepId": "poly",
+            "layerId": "lyr_fa9ba0f706bd46e1882d9ebcaf7d5778",
+            "name": "RasterToVectorPolygons"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T15:09:27.623Z",
+      "durationMs": 223
+    },
+    {
+      "runId": "hydro_dem_hills_t100",
+      "planVersion": 1,
+      "goal": "阶段 5A 水文纵向：dem_hills 阈值 100 像元的河网提取",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T15:09:27.983Z",
+      "steps": [
+        {
+          "stepId": "fill",
+          "kind": "tool",
+          "label": "wasm_fill_depressions",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:27.987Z",
+          "args": {
+            "dem": "lyr_5ed8f9c5ad854f4ebedc659091200285"
+          },
+          "input": {
+            "layerId": "lyr_5ed8f9c5ad854f4ebedc659091200285",
+            "crs": "EPSG:32650",
+            "sha256": "c324485ea4b0a5dedac4d1ec2274be8852112ca2195253c35ab7096d320a98ad"
+          },
+          "outputLayer": {
+            "id": "lyr_f2a3fb7871ca4ed08dba9cd94c661e81",
+            "name": "Fill Depressions",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 120,
+              "height": 100,
+              "bands": 1
+            },
+            "sha256": "e183d555d2851c32da96185e0c607deb75dce555b90c473f422cf1b57e679854"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 139,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "120x100 vs 120x100"
+            }
+          ]
+        },
+        {
+          "stepId": "d8",
+          "kind": "tool",
+          "label": "wasm_d8_pointer",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:28.127Z",
+          "args": {
+            "dem": "lyr_f2a3fb7871ca4ed08dba9cd94c661e81"
+          },
+          "input": {
+            "layerId": "lyr_f2a3fb7871ca4ed08dba9cd94c661e81",
+            "crs": "EPSG:32650",
+            "sha256": "e183d555d2851c32da96185e0c607deb75dce555b90c473f422cf1b57e679854"
+          },
+          "outputLayer": {
+            "id": "lyr_348ad3c2932e49e896ea36d9e80a764d",
+            "name": "D8 Pointer",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 120,
+              "height": 100,
+              "bands": 1
+            },
+            "sha256": "42e29712fbb02cccde3213b09d3884d0cbebf1fd4b4d0090cca4d8f38228d32b"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 12,
+          "acceptance": []
+        },
+        {
+          "stepId": "acc",
+          "kind": "tool",
+          "label": "wasm_d8_flow_accum",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:28.139Z",
+          "args": {
+            "input": "lyr_348ad3c2932e49e896ea36d9e80a764d"
+          },
+          "input": {
+            "layerId": "lyr_348ad3c2932e49e896ea36d9e80a764d",
+            "crs": "EPSG:32650",
+            "sha256": "42e29712fbb02cccde3213b09d3884d0cbebf1fd4b4d0090cca4d8f38228d32b"
+          },
+          "outputLayer": {
+            "id": "lyr_0b60aaeb2c1f4cc08939c0837a9e4c25",
+            "name": "D8 Flow Accumulation",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 120,
+              "height": 100,
+              "bands": 1
+            },
+            "sha256": "b3bc9f708ea09e1c98b4019c3fefc6963610f666b8ed044442b0ad09a7c4c205"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 19,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "120x100 vs 120x100"
+            }
+          ]
+        },
+        {
+          "stepId": "streams",
+          "kind": "tool",
+          "label": "wasm_extract_streams",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:28.158Z",
+          "args": {
+            "flow_accumulation": "lyr_0b60aaeb2c1f4cc08939c0837a9e4c25",
+            "threshold": 100
+          },
+          "outputLayer": {
+            "id": "lyr_00a38b93a93248c297baea9e95b2ab0f",
+            "name": "Extract Streams",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 120,
+              "height": 100,
+              "bands": 1
+            },
+            "sha256": "e4deee19a5bbee0ca0c170dd5681f650aa40f3ef8e2b7f04838b4eb5b9f81c6b"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 12,
+          "acceptance": []
+        },
+        {
+          "stepId": "poly",
+          "kind": "tool",
+          "label": "wasm_raster_to_vector_polygons",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:28.170Z",
+          "args": {
+            "input": "lyr_00a38b93a93248c297baea9e95b2ab0f"
+          },
+          "input": {
+            "layerId": "lyr_00a38b93a93248c297baea9e95b2ab0f",
+            "crs": "EPSG:32650",
+            "sha256": "e4deee19a5bbee0ca0c170dd5681f650aa40f3ef8e2b7f04838b4eb5b9f81c6b"
+          },
+          "outputLayer": {
+            "id": "lyr_70ad17e189b64a9daf2491e38ce76e95",
+            "name": "RasterToVectorPolygons",
+            "kind": "vector",
+            "crs": "EPSG:4326",
+            "featureCount": 59,
+            "geometryTypes": [
+              "Polygon",
+              "MultiPolygon"
+            ],
+            "raster": null,
+            "sha256": "fa7c262e088178071804e4372caed7ec92e15e01269e7344ac59a07bbaa14b45"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 28,
+          "acceptance": [
+            {
+              "type": "feature_count",
+              "ok": true,
+              "detail": "feature_count=59（要求 gte 1）"
+            },
+            {
+              "type": "geometry_types",
+              "ok": true,
+              "detail": "geometry_types=Polygon,MultiPolygon"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：5 个步骤全部成功，5 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "fill",
+            "layerId": "lyr_f2a3fb7871ca4ed08dba9cd94c661e81",
+            "name": "Fill Depressions"
+          },
+          {
+            "stepId": "d8",
+            "layerId": "lyr_348ad3c2932e49e896ea36d9e80a764d",
+            "name": "D8 Pointer"
+          },
+          {
+            "stepId": "acc",
+            "layerId": "lyr_0b60aaeb2c1f4cc08939c0837a9e4c25",
+            "name": "D8 Flow Accumulation"
+          },
+          {
+            "stepId": "streams",
+            "layerId": "lyr_00a38b93a93248c297baea9e95b2ab0f",
+            "name": "Extract Streams"
+          },
+          {
+            "stepId": "poly",
+            "layerId": "lyr_70ad17e189b64a9daf2491e38ce76e95",
+            "name": "RasterToVectorPolygons"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T15:09:28.199Z",
+      "durationMs": 216
+    },
+    {
+      "runId": "hydro_dem_hills_t200",
+      "planVersion": 1,
+      "goal": "阶段 5A 水文纵向：dem_hills 阈值 200 像元的河网提取",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T15:09:28.514Z",
+      "steps": [
+        {
+          "stepId": "fill",
+          "kind": "tool",
+          "label": "wasm_fill_depressions",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:28.518Z",
+          "args": {
+            "dem": "lyr_fad9a744822a480cbd232ce08af12053"
+          },
+          "input": {
+            "layerId": "lyr_fad9a744822a480cbd232ce08af12053",
+            "crs": "EPSG:32650",
+            "sha256": "c324485ea4b0a5dedac4d1ec2274be8852112ca2195253c35ab7096d320a98ad"
+          },
+          "outputLayer": {
+            "id": "lyr_169e32312eb444c485d850c3e2e4d40f",
+            "name": "Fill Depressions",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 120,
+              "height": 100,
+              "bands": 1
+            },
+            "sha256": "e183d555d2851c32da96185e0c607deb75dce555b90c473f422cf1b57e679854"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 138,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "120x100 vs 120x100"
+            }
+          ]
+        },
+        {
+          "stepId": "d8",
+          "kind": "tool",
+          "label": "wasm_d8_pointer",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:28.657Z",
+          "args": {
+            "dem": "lyr_169e32312eb444c485d850c3e2e4d40f"
+          },
+          "input": {
+            "layerId": "lyr_169e32312eb444c485d850c3e2e4d40f",
+            "crs": "EPSG:32650",
+            "sha256": "e183d555d2851c32da96185e0c607deb75dce555b90c473f422cf1b57e679854"
+          },
+          "outputLayer": {
+            "id": "lyr_88c68acbd10b4001bf0f411491d0a79e",
+            "name": "D8 Pointer",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 120,
+              "height": 100,
+              "bands": 1
+            },
+            "sha256": "42e29712fbb02cccde3213b09d3884d0cbebf1fd4b4d0090cca4d8f38228d32b"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 12,
+          "acceptance": []
+        },
+        {
+          "stepId": "acc",
+          "kind": "tool",
+          "label": "wasm_d8_flow_accum",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:28.670Z",
+          "args": {
+            "input": "lyr_88c68acbd10b4001bf0f411491d0a79e"
+          },
+          "input": {
+            "layerId": "lyr_88c68acbd10b4001bf0f411491d0a79e",
+            "crs": "EPSG:32650",
+            "sha256": "42e29712fbb02cccde3213b09d3884d0cbebf1fd4b4d0090cca4d8f38228d32b"
+          },
+          "outputLayer": {
+            "id": "lyr_d745cbb464474c4e89be47e946245951",
+            "name": "D8 Flow Accumulation",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 120,
+              "height": 100,
+              "bands": 1
+            },
+            "sha256": "b3bc9f708ea09e1c98b4019c3fefc6963610f666b8ed044442b0ad09a7c4c205"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 19,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "120x100 vs 120x100"
+            }
+          ]
+        },
+        {
+          "stepId": "streams",
+          "kind": "tool",
+          "label": "wasm_extract_streams",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:28.690Z",
+          "args": {
+            "flow_accumulation": "lyr_d745cbb464474c4e89be47e946245951",
+            "threshold": 200
+          },
+          "outputLayer": {
+            "id": "lyr_21cb847189f84635874b5fc12e87fc44",
+            "name": "Extract Streams",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 120,
+              "height": 100,
+              "bands": 1
+            },
+            "sha256": "08d6d3a1c162558c38232ed31977af44a437dad3e29c399ed09fbbe68c895e49"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 11,
+          "acceptance": []
+        },
+        {
+          "stepId": "poly",
+          "kind": "tool",
+          "label": "wasm_raster_to_vector_polygons",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:28.701Z",
+          "args": {
+            "input": "lyr_21cb847189f84635874b5fc12e87fc44"
+          },
+          "input": {
+            "layerId": "lyr_21cb847189f84635874b5fc12e87fc44",
+            "crs": "EPSG:32650",
+            "sha256": "08d6d3a1c162558c38232ed31977af44a437dad3e29c399ed09fbbe68c895e49"
+          },
+          "outputLayer": {
+            "id": "lyr_28279abdfdac4082b7a6c1df63ef733f",
+            "name": "RasterToVectorPolygons",
+            "kind": "vector",
+            "crs": "EPSG:4326",
+            "featureCount": 1,
+            "geometryTypes": [
+              "MultiPolygon"
+            ],
+            "raster": null,
+            "sha256": "c84d9ddd510375c8a308842511438bc4e6fc489c3a309ea3596f78331af895f1"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 23,
+          "acceptance": [
+            {
+              "type": "feature_count",
+              "ok": true,
+              "detail": "feature_count=1（要求 gte 1）"
+            },
+            {
+              "type": "geometry_types",
+              "ok": true,
+              "detail": "geometry_types=MultiPolygon"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：5 个步骤全部成功，5 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "fill",
+            "layerId": "lyr_169e32312eb444c485d850c3e2e4d40f",
+            "name": "Fill Depressions"
+          },
+          {
+            "stepId": "d8",
+            "layerId": "lyr_88c68acbd10b4001bf0f411491d0a79e",
+            "name": "D8 Pointer"
+          },
+          {
+            "stepId": "acc",
+            "layerId": "lyr_d745cbb464474c4e89be47e946245951",
+            "name": "D8 Flow Accumulation"
+          },
+          {
+            "stepId": "streams",
+            "layerId": "lyr_21cb847189f84635874b5fc12e87fc44",
+            "name": "Extract Streams"
+          },
+          {
+            "stepId": "poly",
+            "layerId": "lyr_28279abdfdac4082b7a6c1df63ef733f",
+            "name": "RasterToVectorPolygons"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T15:09:28.724Z",
+      "durationMs": 210
+    },
+    {
+      "runId": "hydro_dem_large_t20",
+      "planVersion": 1,
+      "goal": "阶段 5A 水文纵向：dem_large 阈值 20 像元的河网提取",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T15:09:29.041Z",
+      "steps": [
+        {
+          "stepId": "fill",
+          "kind": "tool",
+          "label": "wasm_fill_depressions",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:29.048Z",
+          "args": {
+            "dem": "lyr_6c289b65e87b46c48cf0734d85d92231"
+          },
+          "input": {
+            "layerId": "lyr_6c289b65e87b46c48cf0734d85d92231",
+            "crs": "EPSG:32650",
+            "sha256": "f692dd647d6c3857c723a00d439082e023dabf6359545c93a14e0ef9c8039d53"
+          },
+          "outputLayer": {
+            "id": "lyr_a31fd0cebd7c4ca8b50d23d989ffc4c9",
+            "name": "Fill Depressions",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 600,
+              "height": 500,
+              "bands": 1
+            },
+            "sha256": "6bb4896253a9b4dac6f66683f376b761177bb082faeb11611fc5951e11f2789a"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 240,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "600x500 vs 600x500"
+            }
+          ]
+        },
+        {
+          "stepId": "d8",
+          "kind": "tool",
+          "label": "wasm_d8_pointer",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:29.296Z",
+          "args": {
+            "dem": "lyr_a31fd0cebd7c4ca8b50d23d989ffc4c9"
+          },
+          "input": {
+            "layerId": "lyr_a31fd0cebd7c4ca8b50d23d989ffc4c9",
+            "crs": "EPSG:32650",
+            "sha256": "6bb4896253a9b4dac6f66683f376b761177bb082faeb11611fc5951e11f2789a"
+          },
+          "outputLayer": {
+            "id": "lyr_e3ea8c2879ee4e6cb87e94fdd3080905",
+            "name": "D8 Pointer",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 600,
+              "height": 500,
+              "bands": 1
+            },
+            "sha256": "642782c9a2546f346cd194397559f4f27a38434df09e4304ecc4abe29c8c66d4"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 60,
+          "acceptance": []
+        },
+        {
+          "stepId": "acc",
+          "kind": "tool",
+          "label": "wasm_d8_flow_accum",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:29.356Z",
+          "args": {
+            "input": "lyr_e3ea8c2879ee4e6cb87e94fdd3080905"
+          },
+          "input": {
+            "layerId": "lyr_e3ea8c2879ee4e6cb87e94fdd3080905",
+            "crs": "EPSG:32650",
+            "sha256": "642782c9a2546f346cd194397559f4f27a38434df09e4304ecc4abe29c8c66d4"
+          },
+          "outputLayer": {
+            "id": "lyr_2e0456b6bc18433e9132c2bc77db167b",
+            "name": "D8 Flow Accumulation",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 600,
+              "height": 500,
+              "bands": 1
+            },
+            "sha256": "eac8834bf542cdf8beac397026a7dd8ae3341580eb2d83f536bf70786b10529c"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 72,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "600x500 vs 600x500"
+            }
+          ]
+        },
+        {
+          "stepId": "streams",
+          "kind": "tool",
+          "label": "wasm_extract_streams",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:29.429Z",
+          "args": {
+            "flow_accumulation": "lyr_2e0456b6bc18433e9132c2bc77db167b",
+            "threshold": 20
+          },
+          "outputLayer": {
+            "id": "lyr_95807d4ba65949888b6b61003aa94791",
+            "name": "Extract Streams",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 600,
+              "height": 500,
+              "bands": 1
+            },
+            "sha256": "b831b0f553773b472faaedfa9f44b06dce963ad390e8a27988f90420993a54f6"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 29,
+          "acceptance": []
+        },
+        {
+          "stepId": "poly",
+          "kind": "tool",
+          "label": "wasm_raster_to_vector_polygons",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:29.459Z",
+          "args": {
+            "input": "lyr_95807d4ba65949888b6b61003aa94791"
+          },
+          "input": {
+            "layerId": "lyr_95807d4ba65949888b6b61003aa94791",
+            "crs": "EPSG:32650",
+            "sha256": "b831b0f553773b472faaedfa9f44b06dce963ad390e8a27988f90420993a54f6"
+          },
+          "outputLayer": {
+            "id": "lyr_b955c4d87c6e4b40b2a33f4e7fca9194",
+            "name": "RasterToVectorPolygons",
+            "kind": "vector",
+            "crs": "EPSG:4326",
+            "featureCount": 1,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "252bca15ebc863c16c758a7b94558d7f81a699e473042b079c141618f3025761"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 71,
+          "acceptance": [
+            {
+              "type": "feature_count",
+              "ok": true,
+              "detail": "feature_count=1（要求 gte 1）"
+            },
+            {
+              "type": "geometry_types",
+              "ok": true,
+              "detail": "geometry_types=Polygon"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：5 个步骤全部成功，5 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "fill",
+            "layerId": "lyr_a31fd0cebd7c4ca8b50d23d989ffc4c9",
+            "name": "Fill Depressions"
+          },
+          {
+            "stepId": "d8",
+            "layerId": "lyr_e3ea8c2879ee4e6cb87e94fdd3080905",
+            "name": "D8 Pointer"
+          },
+          {
+            "stepId": "acc",
+            "layerId": "lyr_2e0456b6bc18433e9132c2bc77db167b",
+            "name": "D8 Flow Accumulation"
+          },
+          {
+            "stepId": "streams",
+            "layerId": "lyr_95807d4ba65949888b6b61003aa94791",
+            "name": "Extract Streams"
+          },
+          {
+            "stepId": "poly",
+            "layerId": "lyr_b955c4d87c6e4b40b2a33f4e7fca9194",
+            "name": "RasterToVectorPolygons"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T15:09:29.530Z",
+      "durationMs": 489
+    },
+    {
+      "runId": "hydro_dem_large_t50",
+      "planVersion": 1,
+      "goal": "阶段 5A 水文纵向：dem_large 阈值 50 像元的河网提取",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T15:09:29.852Z",
+      "steps": [
+        {
+          "stepId": "fill",
+          "kind": "tool",
+          "label": "wasm_fill_depressions",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:29.858Z",
+          "args": {
+            "dem": "lyr_b5be4d4f3ef24a2fa2e29f511359d7a6"
+          },
+          "input": {
+            "layerId": "lyr_b5be4d4f3ef24a2fa2e29f511359d7a6",
+            "crs": "EPSG:32650",
+            "sha256": "f692dd647d6c3857c723a00d439082e023dabf6359545c93a14e0ef9c8039d53"
+          },
+          "outputLayer": {
+            "id": "lyr_7f5fb9833e954afcae2679f11c6ad544",
+            "name": "Fill Depressions",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 600,
+              "height": 500,
+              "bands": 1
+            },
+            "sha256": "6bb4896253a9b4dac6f66683f376b761177bb082faeb11611fc5951e11f2789a"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 231,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "600x500 vs 600x500"
+            }
+          ]
+        },
+        {
+          "stepId": "d8",
+          "kind": "tool",
+          "label": "wasm_d8_pointer",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:30.095Z",
+          "args": {
+            "dem": "lyr_7f5fb9833e954afcae2679f11c6ad544"
+          },
+          "input": {
+            "layerId": "lyr_7f5fb9833e954afcae2679f11c6ad544",
+            "crs": "EPSG:32650",
+            "sha256": "6bb4896253a9b4dac6f66683f376b761177bb082faeb11611fc5951e11f2789a"
+          },
+          "outputLayer": {
+            "id": "lyr_1759fb4a3daf4c46ad20fd48c2ddf07d",
+            "name": "D8 Pointer",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 600,
+              "height": 500,
+              "bands": 1
+            },
+            "sha256": "642782c9a2546f346cd194397559f4f27a38434df09e4304ecc4abe29c8c66d4"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 66,
+          "acceptance": []
+        },
+        {
+          "stepId": "acc",
+          "kind": "tool",
+          "label": "wasm_d8_flow_accum",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:30.161Z",
+          "args": {
+            "input": "lyr_1759fb4a3daf4c46ad20fd48c2ddf07d"
+          },
+          "input": {
+            "layerId": "lyr_1759fb4a3daf4c46ad20fd48c2ddf07d",
+            "crs": "EPSG:32650",
+            "sha256": "642782c9a2546f346cd194397559f4f27a38434df09e4304ecc4abe29c8c66d4"
+          },
+          "outputLayer": {
+            "id": "lyr_7ac55fc66ff941cea57b68e14ace4976",
+            "name": "D8 Flow Accumulation",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 600,
+              "height": 500,
+              "bands": 1
+            },
+            "sha256": "eac8834bf542cdf8beac397026a7dd8ae3341580eb2d83f536bf70786b10529c"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 75,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "600x500 vs 600x500"
+            }
+          ]
+        },
+        {
+          "stepId": "streams",
+          "kind": "tool",
+          "label": "wasm_extract_streams",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:30.236Z",
+          "args": {
+            "flow_accumulation": "lyr_7ac55fc66ff941cea57b68e14ace4976",
+            "threshold": 50
+          },
+          "outputLayer": {
+            "id": "lyr_6a34d8bfec7b49538ed330aa7e2e2bd4",
+            "name": "Extract Streams",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 600,
+              "height": 500,
+              "bands": 1
+            },
+            "sha256": "8409bc4de4aeff7fa74621f9f843197e294719cb00633480fe9fa06392133603"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 35,
+          "acceptance": []
+        },
+        {
+          "stepId": "poly",
+          "kind": "tool",
+          "label": "wasm_raster_to_vector_polygons",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:30.271Z",
+          "args": {
+            "input": "lyr_6a34d8bfec7b49538ed330aa7e2e2bd4"
+          },
+          "input": {
+            "layerId": "lyr_6a34d8bfec7b49538ed330aa7e2e2bd4",
+            "crs": "EPSG:32650",
+            "sha256": "8409bc4de4aeff7fa74621f9f843197e294719cb00633480fe9fa06392133603"
+          },
+          "outputLayer": {
+            "id": "lyr_0d9207bfeeae4bb99b071690f0369697",
+            "name": "RasterToVectorPolygons",
+            "kind": "vector",
+            "crs": "EPSG:4326",
+            "featureCount": 2035,
+            "geometryTypes": [
+              "Polygon",
+              "MultiPolygon"
+            ],
+            "raster": null,
+            "sha256": "934270f6bc92bdfb5f52f36c03109103a18d3ae06a8c58a867b620aa80456ece"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 360,
+          "acceptance": [
+            {
+              "type": "feature_count",
+              "ok": true,
+              "detail": "feature_count=2035（要求 gte 1）"
+            },
+            {
+              "type": "geometry_types",
+              "ok": true,
+              "detail": "geometry_types=Polygon,MultiPolygon"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：5 个步骤全部成功，5 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "fill",
+            "layerId": "lyr_7f5fb9833e954afcae2679f11c6ad544",
+            "name": "Fill Depressions"
+          },
+          {
+            "stepId": "d8",
+            "layerId": "lyr_1759fb4a3daf4c46ad20fd48c2ddf07d",
+            "name": "D8 Pointer"
+          },
+          {
+            "stepId": "acc",
+            "layerId": "lyr_7ac55fc66ff941cea57b68e14ace4976",
+            "name": "D8 Flow Accumulation"
+          },
+          {
+            "stepId": "streams",
+            "layerId": "lyr_6a34d8bfec7b49538ed330aa7e2e2bd4",
+            "name": "Extract Streams"
+          },
+          {
+            "stepId": "poly",
+            "layerId": "lyr_0d9207bfeeae4bb99b071690f0369697",
+            "name": "RasterToVectorPolygons"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T15:09:30.632Z",
+      "durationMs": 780
+    },
+    {
+      "runId": "hydro_dem_large_t100",
+      "planVersion": 1,
+      "goal": "阶段 5A 水文纵向：dem_large 阈值 100 像元的河网提取",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T15:09:31.143Z",
+      "steps": [
+        {
+          "stepId": "fill",
+          "kind": "tool",
+          "label": "wasm_fill_depressions",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:31.149Z",
+          "args": {
+            "dem": "lyr_495046bcee0240b68f6061d734a33288"
+          },
+          "input": {
+            "layerId": "lyr_495046bcee0240b68f6061d734a33288",
+            "crs": "EPSG:32650",
+            "sha256": "f692dd647d6c3857c723a00d439082e023dabf6359545c93a14e0ef9c8039d53"
+          },
+          "outputLayer": {
+            "id": "lyr_7f1365752db54d6687a0b34bb271be08",
+            "name": "Fill Depressions",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 600,
+              "height": 500,
+              "bands": 1
+            },
+            "sha256": "6bb4896253a9b4dac6f66683f376b761177bb082faeb11611fc5951e11f2789a"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 234,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "600x500 vs 600x500"
+            }
+          ]
+        },
+        {
+          "stepId": "d8",
+          "kind": "tool",
+          "label": "wasm_d8_pointer",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:31.390Z",
+          "args": {
+            "dem": "lyr_7f1365752db54d6687a0b34bb271be08"
+          },
+          "input": {
+            "layerId": "lyr_7f1365752db54d6687a0b34bb271be08",
+            "crs": "EPSG:32650",
+            "sha256": "6bb4896253a9b4dac6f66683f376b761177bb082faeb11611fc5951e11f2789a"
+          },
+          "outputLayer": {
+            "id": "lyr_9bb4e297c8334d9b941933e246366aa3",
+            "name": "D8 Pointer",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 600,
+              "height": 500,
+              "bands": 1
+            },
+            "sha256": "642782c9a2546f346cd194397559f4f27a38434df09e4304ecc4abe29c8c66d4"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 62,
+          "acceptance": []
+        },
+        {
+          "stepId": "acc",
+          "kind": "tool",
+          "label": "wasm_d8_flow_accum",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:31.452Z",
+          "args": {
+            "input": "lyr_9bb4e297c8334d9b941933e246366aa3"
+          },
+          "input": {
+            "layerId": "lyr_9bb4e297c8334d9b941933e246366aa3",
+            "crs": "EPSG:32650",
+            "sha256": "642782c9a2546f346cd194397559f4f27a38434df09e4304ecc4abe29c8c66d4"
+          },
+          "outputLayer": {
+            "id": "lyr_faa4154a88924ebdb47a4a4869b4f003",
+            "name": "D8 Flow Accumulation",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 600,
+              "height": 500,
+              "bands": 1
+            },
+            "sha256": "eac8834bf542cdf8beac397026a7dd8ae3341580eb2d83f536bf70786b10529c"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 74,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "600x500 vs 600x500"
+            }
+          ]
+        },
+        {
+          "stepId": "streams",
+          "kind": "tool",
+          "label": "wasm_extract_streams",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:31.526Z",
+          "args": {
+            "flow_accumulation": "lyr_faa4154a88924ebdb47a4a4869b4f003",
+            "threshold": 100
+          },
+          "outputLayer": {
+            "id": "lyr_44f777f75792443191036bb25cf711f7",
+            "name": "Extract Streams",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 600,
+              "height": 500,
+              "bands": 1
+            },
+            "sha256": "74ade3997ed4bd4c4edb0a4c5d76e9d5e55e79174ba7400c4013e4058ec9300c"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 30,
+          "acceptance": []
+        },
+        {
+          "stepId": "poly",
+          "kind": "tool",
+          "label": "wasm_raster_to_vector_polygons",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:31.556Z",
+          "args": {
+            "input": "lyr_44f777f75792443191036bb25cf711f7"
+          },
+          "input": {
+            "layerId": "lyr_44f777f75792443191036bb25cf711f7",
+            "crs": "EPSG:32650",
+            "sha256": "74ade3997ed4bd4c4edb0a4c5d76e9d5e55e79174ba7400c4013e4058ec9300c"
+          },
+          "outputLayer": {
+            "id": "lyr_05fab511be704bc08059c9cc18c756ec",
+            "name": "RasterToVectorPolygons",
+            "kind": "vector",
+            "crs": "EPSG:4326",
+            "featureCount": 2420,
+            "geometryTypes": [
+              "Polygon",
+              "MultiPolygon"
+            ],
+            "raster": null,
+            "sha256": "964d3a5dbbacd31936ea2e1a7bc621707c8cb1a61eb4bbd245191fda52658425"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 147,
+          "acceptance": [
+            {
+              "type": "feature_count",
+              "ok": true,
+              "detail": "feature_count=2420（要求 gte 1）"
+            },
+            {
+              "type": "geometry_types",
+              "ok": true,
+              "detail": "geometry_types=Polygon,MultiPolygon"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：5 个步骤全部成功，5 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "fill",
+            "layerId": "lyr_7f1365752db54d6687a0b34bb271be08",
+            "name": "Fill Depressions"
+          },
+          {
+            "stepId": "d8",
+            "layerId": "lyr_9bb4e297c8334d9b941933e246366aa3",
+            "name": "D8 Pointer"
+          },
+          {
+            "stepId": "acc",
+            "layerId": "lyr_faa4154a88924ebdb47a4a4869b4f003",
+            "name": "D8 Flow Accumulation"
+          },
+          {
+            "stepId": "streams",
+            "layerId": "lyr_44f777f75792443191036bb25cf711f7",
+            "name": "Extract Streams"
+          },
+          {
+            "stepId": "poly",
+            "layerId": "lyr_05fab511be704bc08059c9cc18c756ec",
+            "name": "RasterToVectorPolygons"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T15:09:31.703Z",
+      "durationMs": 560
+    },
+    {
+      "runId": "hydro_dem_large_t200",
+      "planVersion": 1,
+      "goal": "阶段 5A 水文纵向：dem_large 阈值 200 像元的河网提取",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T15:09:32.053Z",
+      "steps": [
+        {
+          "stepId": "fill",
+          "kind": "tool",
+          "label": "wasm_fill_depressions",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:32.059Z",
+          "args": {
+            "dem": "lyr_b65c59640ae740f5b86015b766b80fe1"
+          },
+          "input": {
+            "layerId": "lyr_b65c59640ae740f5b86015b766b80fe1",
+            "crs": "EPSG:32650",
+            "sha256": "f692dd647d6c3857c723a00d439082e023dabf6359545c93a14e0ef9c8039d53"
+          },
+          "outputLayer": {
+            "id": "lyr_c03246ee893a4fef8b6ebbf0f33accc3",
+            "name": "Fill Depressions",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 600,
+              "height": 500,
+              "bands": 1
+            },
+            "sha256": "6bb4896253a9b4dac6f66683f376b761177bb082faeb11611fc5951e11f2789a"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 229,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "600x500 vs 600x500"
+            }
+          ]
+        },
+        {
+          "stepId": "d8",
+          "kind": "tool",
+          "label": "wasm_d8_pointer",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:32.293Z",
+          "args": {
+            "dem": "lyr_c03246ee893a4fef8b6ebbf0f33accc3"
+          },
+          "input": {
+            "layerId": "lyr_c03246ee893a4fef8b6ebbf0f33accc3",
+            "crs": "EPSG:32650",
+            "sha256": "6bb4896253a9b4dac6f66683f376b761177bb082faeb11611fc5951e11f2789a"
+          },
+          "outputLayer": {
+            "id": "lyr_560bbb05417b416391285a47d328aaca",
+            "name": "D8 Pointer",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 600,
+              "height": 500,
+              "bands": 1
+            },
+            "sha256": "642782c9a2546f346cd194397559f4f27a38434df09e4304ecc4abe29c8c66d4"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 65,
+          "acceptance": []
+        },
+        {
+          "stepId": "acc",
+          "kind": "tool",
+          "label": "wasm_d8_flow_accum",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:32.358Z",
+          "args": {
+            "input": "lyr_560bbb05417b416391285a47d328aaca"
+          },
+          "input": {
+            "layerId": "lyr_560bbb05417b416391285a47d328aaca",
+            "crs": "EPSG:32650",
+            "sha256": "642782c9a2546f346cd194397559f4f27a38434df09e4304ecc4abe29c8c66d4"
+          },
+          "outputLayer": {
+            "id": "lyr_4967a0dd754e472da1c7c47ec93ae66b",
+            "name": "D8 Flow Accumulation",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 600,
+              "height": 500,
+              "bands": 1
+            },
+            "sha256": "eac8834bf542cdf8beac397026a7dd8ae3341580eb2d83f536bf70786b10529c"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 70,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "600x500 vs 600x500"
+            }
+          ]
+        },
+        {
+          "stepId": "streams",
+          "kind": "tool",
+          "label": "wasm_extract_streams",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:32.428Z",
+          "args": {
+            "flow_accumulation": "lyr_4967a0dd754e472da1c7c47ec93ae66b",
+            "threshold": 200
+          },
+          "outputLayer": {
+            "id": "lyr_13658cf7aca4490b8630250990e12dbe",
+            "name": "Extract Streams",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 600,
+              "height": 500,
+              "bands": 1
+            },
+            "sha256": "e3d88baf94969030057434c15c958a448b1c8488841d0e1bf76d59fcac530a35"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 28,
+          "acceptance": []
+        },
+        {
+          "stepId": "poly",
+          "kind": "tool",
+          "label": "wasm_raster_to_vector_polygons",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:09:32.456Z",
+          "args": {
+            "input": "lyr_13658cf7aca4490b8630250990e12dbe"
+          },
+          "input": {
+            "layerId": "lyr_13658cf7aca4490b8630250990e12dbe",
+            "crs": "EPSG:32650",
+            "sha256": "e3d88baf94969030057434c15c958a448b1c8488841d0e1bf76d59fcac530a35"
+          },
+          "outputLayer": {
+            "id": "lyr_f3524e2bf94c4ae48e55b54996bea9dc",
+            "name": "RasterToVectorPolygons",
+            "kind": "vector",
+            "crs": "EPSG:4326",
+            "featureCount": 2,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "fd1cc3717129046fd80ae6a38bf74cb79e5d3e26e1faba18846ac49b3a3784a4"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 35,
+          "acceptance": [
+            {
+              "type": "feature_count",
+              "ok": true,
+              "detail": "feature_count=2（要求 gte 1）"
+            },
+            {
+              "type": "geometry_types",
+              "ok": true,
+              "detail": "geometry_types=Polygon"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：5 个步骤全部成功，5 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "fill",
+            "layerId": "lyr_c03246ee893a4fef8b6ebbf0f33accc3",
+            "name": "Fill Depressions"
+          },
+          {
+            "stepId": "d8",
+            "layerId": "lyr_560bbb05417b416391285a47d328aaca",
+            "name": "D8 Pointer"
+          },
+          {
+            "stepId": "acc",
+            "layerId": "lyr_4967a0dd754e472da1c7c47ec93ae66b",
+            "name": "D8 Flow Accumulation"
+          },
+          {
+            "stepId": "streams",
+            "layerId": "lyr_13658cf7aca4490b8630250990e12dbe",
+            "name": "Extract Streams"
+          },
+          {
+            "stepId": "poly",
+            "layerId": "lyr_f3524e2bf94c4ae48e55b54996bea9dc",
+            "name": "RasterToVectorPolygons"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T15:09:32.492Z",
+      "durationMs": 439
+    }
+  ]
+}
