@@ -18,6 +18,9 @@ const FACTS: CardLayerFacts[] = [
   layer({ id: "mask", name: "zone_a", featureCount: 1 }),
   { id: "dem", name: "dem_hills", kind: "raster", raster: { width: 120, height: 100 } },
   { id: "big", name: "dem_over_budget", kind: "raster", raster: { width: 1600, height: 1400 } },
+  { id: "resistance", name: "resistance_a", kind: "raster", crs: "EPSG:32650", raster: { width: 80, height: 60 } },
+  { id: "sources", name: "habitat_sources", kind: "raster", crs: "EPSG:32650", raster: { width: 80, height: 60 } },
+  { id: "destination", name: "habitat_dest", kind: "raster", crs: "EPSG:32650", raster: { width: 80, height: 60 } },
 ];
 
 const adapter: PlanAdapter = {
@@ -34,15 +37,22 @@ const draftFor = (id: string, facts = FACTS) => {
 };
 
 test("all presets build plans that pass plan-time validation", async () => {
-  assert.equal(TASK_CARDS.length, 7, "task cards: five first-batch + hydrology + service zone");
-  const cases: string[] = ["buffer-points", "clip-polygons", "intersect-area", "dem-slope", "hydro-network", "service-zone"];
+  assert.equal(TASK_CARDS.length, 8, "task cards: five first-batch + hydrology + service zone + ecology corridor");
+  const cases: string[] = ["buffer-points", "clip-polygons", "intersect-area", "dem-slope", "hydro-network", "service-zone", "ecology-corridor"];
   for (const id of cases) {
     const { preset, draft } = draftFor(id);
+    if (id === "ecology-corridor") draft.inputs = { resistance: "resistance", sources: "sources", destination: "destination" };
     const built = preset.build(draft, FACTS);
     assert.ok(built.ok, `${id} should build: ${built.ok ? "" : built.reason}`);
     const issues = await validatePlan(built.plan, adapter);
     assert.deepEqual(issues, [], `${id} plan must pass validation`);
     assert.match(built.explanation.engine, /本地/);
+    if (id === "ecology-corridor") {
+      assert.deepEqual(built.plan.steps.map(item => item.kind === "tool" ? item.tool : item.spec.operation), ["wasm_cost_distance", "wasm_cost_distance", "wasm_corridor"]);
+      assert.match(built.explanation.budget ?? "", /用户给定/);
+      assert.match(built.explanation.budget ?? "", /Circuitscape/);
+      assert.match(built.explanation.budget ?? "", /Linkage Mapper/);
+    }
   }
 });
 

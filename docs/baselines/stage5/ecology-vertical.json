@@ -1,0 +1,986 @@
+{
+  "generated_at": "2026-10-24T20:29:36.453Z",
+  "task_card": "ecology-corridor",
+  "chain": [
+    "wasm_cost_distance (source)",
+    "wasm_cost_distance (destination)",
+    "wasm_corridor (direct cost1+cost2)"
+  ],
+  "corridor_percent_above_minimum": 5,
+  "cost_metric": "min(valid corridor cells)：两个累积成本面之和的最小值，即源集到目标集的最小总阻力成本",
+  "schemes": [
+    {
+      "id": "A",
+      "resistance": "resistance_a.tif",
+      "barrierBoost": 0
+    },
+    {
+      "id": "B",
+      "resistance": "resistance_b.tif",
+      "barrierBoost": 8
+    },
+    {
+      "id": "C",
+      "resistance": "resistance_c.tif",
+      "barrierBoost": 16
+    }
+  ],
+  "invariants": {
+    "structure_completed_and_acceptance": true,
+    "source_destination_identical_across_schemes": true,
+    "resistance_crs_grid_stable": true,
+    "endpoint_grids_match_resistance": true,
+    "corridor_cells_within_resistance_extent": true,
+    "resistance_strictly_positive_full_grid": true,
+    "corridor_non_empty": true,
+    "corridor_min_cost_nondecreasing": true,
+    "monotonic_violations": []
+  },
+  "audit": {
+    "ok": true,
+    "violations": []
+  },
+  "artifact": {
+    "path": "docs/baselines/stage5/ecology-corridor-B.tif",
+    "sha256": "629c68a0aaeb64cb3c0b712820e18b80a76e4f74c6dce412c1316eaf930b4973",
+    "bytes": 4581
+  },
+  "totals": {
+    "schemes": 3,
+    "structuralFailures": 0
+  },
+  "results": [
+    {
+      "scheme": "A",
+      "barrierBoost": 0,
+      "status": "completed",
+      "runId": "ecology_A",
+      "durationMs": 598,
+      "acceptanceFailed": [],
+      "headline": "计划完成：3 个步骤全部成功，3 个可交付图层。",
+      "input": {
+        "resistance": {
+          "sha256": "9c3817ef46609b461883549bd9b1d3a758459f6d02b58d799689779bcf2a4198",
+          "grid": {
+            "width": 80,
+            "height": 60,
+            "crs": "EPSG:32650"
+          }
+        },
+        "sources": {
+          "sha256": "cf253b0667727b2b92e66e4d83977ca4beeb98127adcd7d0fd12f36d2c8c47e1",
+          "grid": {
+            "width": 80,
+            "height": 60,
+            "crs": "EPSG:32650"
+          }
+        },
+        "destination": {
+          "sha256": "c9bc215b17f12b681249337e0dade7af252571ac2675aab5aa1e1182816defb7",
+          "grid": {
+            "width": 80,
+            "height": 60,
+            "crs": "EPSG:32650"
+          }
+        }
+      },
+      "corridor": {
+        "sha256": "c3da6b1751ed64dacd1b1498201a72b6392b9a8a4daaa37170cf344b1156fe2b",
+        "bytes": 3068,
+        "grid": {
+          "width": 80,
+          "height": 60,
+          "crs": "EPSG:32650"
+        },
+        "artifactFile": "0.tif"
+      },
+      "readback": {
+        "corridor": {
+          "width": 80,
+          "height": 60,
+          "crs": "EPSG:32650",
+          "bounds": [
+            447000,
+            4425200,
+            449400,
+            4427000
+          ],
+          "transform": [
+            30,
+            0,
+            447000,
+            0,
+            -30,
+            4427000
+          ],
+          "nodata": -32768,
+          "validCount": 785,
+          "min": 1631.5316162109375,
+          "max": 1713.08984375,
+          "mean": 1665.5689697265625,
+          "sum": 1307471.625
+        },
+        "resistance": {
+          "width": 80,
+          "height": 60,
+          "crs": "EPSG:32650",
+          "bounds": [
+            447000,
+            4425200,
+            449400,
+            4427000
+          ],
+          "transform": [
+            30,
+            0,
+            447000,
+            0,
+            -30,
+            4427000
+          ],
+          "nodata": -9999,
+          "validCount": 4800,
+          "min": 0.7500303983688354,
+          "max": 1.2499518394470215,
+          "mean": 1.0215452909469604,
+          "sum": 4903.41748046875
+        },
+        "sources": {
+          "width": 80,
+          "height": 60,
+          "crs": "EPSG:32650",
+          "bounds": [
+            447000,
+            4425200,
+            449400,
+            4427000
+          ],
+          "transform": [
+            30,
+            0,
+            447000,
+            0,
+            -30,
+            4427000
+          ],
+          "nodata": -9999,
+          "validCount": 4800,
+          "min": 0,
+          "max": 1,
+          "mean": 0.010416666977107525,
+          "sum": 50
+        },
+        "destination": {
+          "width": 80,
+          "height": 60,
+          "crs": "EPSG:32650",
+          "bounds": [
+            447000,
+            4425200,
+            449400,
+            4427000
+          ],
+          "transform": [
+            30,
+            0,
+            447000,
+            0,
+            -30,
+            4427000
+          ],
+          "nodata": -9999,
+          "validCount": 4800,
+          "min": 0,
+          "max": 1,
+          "mean": 0.010416666977107525,
+          "sum": 50
+        }
+      }
+    },
+    {
+      "scheme": "B",
+      "barrierBoost": 8,
+      "status": "completed",
+      "runId": "ecology_B",
+      "durationMs": 604,
+      "acceptanceFailed": [],
+      "headline": "计划完成：3 个步骤全部成功，3 个可交付图层。",
+      "input": {
+        "resistance": {
+          "sha256": "83c76056e117ef6fe72adb986da3ecf877d32cbd473451bfc956f351421e0ef9",
+          "grid": {
+            "width": 80,
+            "height": 60,
+            "crs": "EPSG:32650"
+          }
+        },
+        "sources": {
+          "sha256": "cf253b0667727b2b92e66e4d83977ca4beeb98127adcd7d0fd12f36d2c8c47e1",
+          "grid": {
+            "width": 80,
+            "height": 60,
+            "crs": "EPSG:32650"
+          }
+        },
+        "destination": {
+          "sha256": "c9bc215b17f12b681249337e0dade7af252571ac2675aab5aa1e1182816defb7",
+          "grid": {
+            "width": 80,
+            "height": 60,
+            "crs": "EPSG:32650"
+          }
+        }
+      },
+      "corridor": {
+        "sha256": "629c68a0aaeb64cb3c0b712820e18b80a76e4f74c6dce412c1316eaf930b4973",
+        "bytes": 4581,
+        "grid": {
+          "width": 80,
+          "height": 60,
+          "crs": "EPSG:32650"
+        },
+        "artifactFile": "1.tif"
+      },
+      "readback": {
+        "corridor": {
+          "width": 80,
+          "height": 60,
+          "crs": "EPSG:32650",
+          "bounds": [
+            447000,
+            4425200,
+            449400,
+            4427000
+          ],
+          "transform": [
+            30,
+            0,
+            447000,
+            0,
+            -30,
+            4427000
+          ],
+          "nodata": -32768,
+          "validCount": 1279,
+          "min": 3551.53173828125,
+          "max": 3729.075927734375,
+          "mean": 3621.91015625,
+          "sum": 4632423
+        },
+        "resistance": {
+          "width": 80,
+          "height": 60,
+          "crs": "EPSG:32650",
+          "bounds": [
+            447000,
+            4425200,
+            449400,
+            4427000
+          ],
+          "transform": [
+            30,
+            0,
+            447000,
+            0,
+            -30,
+            4427000
+          ],
+          "nodata": -9999,
+          "validCount": 4800,
+          "min": 0.7500303983688354,
+          "max": 9.0803861618042,
+          "mean": 1.8215452432632446,
+          "sum": 8743.4169921875
+        },
+        "sources": {
+          "width": 80,
+          "height": 60,
+          "crs": "EPSG:32650",
+          "bounds": [
+            447000,
+            4425200,
+            449400,
+            4427000
+          ],
+          "transform": [
+            30,
+            0,
+            447000,
+            0,
+            -30,
+            4427000
+          ],
+          "nodata": -9999,
+          "validCount": 4800,
+          "min": 0,
+          "max": 1,
+          "mean": 0.010416666977107525,
+          "sum": 50
+        },
+        "destination": {
+          "width": 80,
+          "height": 60,
+          "crs": "EPSG:32650",
+          "bounds": [
+            447000,
+            4425200,
+            449400,
+            4427000
+          ],
+          "transform": [
+            30,
+            0,
+            447000,
+            0,
+            -30,
+            4427000
+          ],
+          "nodata": -9999,
+          "validCount": 4800,
+          "min": 0,
+          "max": 1,
+          "mean": 0.010416666977107525,
+          "sum": 50
+        }
+      }
+    },
+    {
+      "scheme": "C",
+      "barrierBoost": 16,
+      "status": "completed",
+      "runId": "ecology_C",
+      "durationMs": 539,
+      "acceptanceFailed": [],
+      "headline": "计划完成：3 个步骤全部成功，3 个可交付图层。",
+      "input": {
+        "resistance": {
+          "sha256": "9937907877c5785e01b8f45ee2d13e4b6320029473cedfc32bd531fb7eb759d0",
+          "grid": {
+            "width": 80,
+            "height": 60,
+            "crs": "EPSG:32650"
+          }
+        },
+        "sources": {
+          "sha256": "cf253b0667727b2b92e66e4d83977ca4beeb98127adcd7d0fd12f36d2c8c47e1",
+          "grid": {
+            "width": 80,
+            "height": 60,
+            "crs": "EPSG:32650"
+          }
+        },
+        "destination": {
+          "sha256": "c9bc215b17f12b681249337e0dade7af252571ac2675aab5aa1e1182816defb7",
+          "grid": {
+            "width": 80,
+            "height": 60,
+            "crs": "EPSG:32650"
+          }
+        }
+      },
+      "corridor": {
+        "sha256": "334897c4a56563198315d05d706c05dbdac4c782bcf8819b844a882a370e1c36",
+        "bytes": 6007,
+        "grid": {
+          "width": 80,
+          "height": 60,
+          "crs": "EPSG:32650"
+        },
+        "artifactFile": "2.tif"
+      },
+      "readback": {
+        "corridor": {
+          "width": 80,
+          "height": 60,
+          "crs": "EPSG:32650",
+          "bounds": [
+            447000,
+            4425200,
+            449400,
+            4427000
+          ],
+          "transform": [
+            30,
+            0,
+            447000,
+            0,
+            -30,
+            4427000
+          ],
+          "nodata": -32768,
+          "validCount": 1735,
+          "min": 5471.53173828125,
+          "max": 5745.0146484375,
+          "mean": 5582.0947265625,
+          "sum": 9684934
+        },
+        "resistance": {
+          "width": 80,
+          "height": 60,
+          "crs": "EPSG:32650",
+          "bounds": [
+            447000,
+            4425200,
+            449400,
+            4427000
+          ],
+          "transform": [
+            30,
+            0,
+            447000,
+            0,
+            -30,
+            4427000
+          ],
+          "nodata": -9999,
+          "validCount": 4800,
+          "min": 0.7500303983688354,
+          "max": 17.080387115478516,
+          "mean": 2.6215453147888184,
+          "sum": 12583.41796875
+        },
+        "sources": {
+          "width": 80,
+          "height": 60,
+          "crs": "EPSG:32650",
+          "bounds": [
+            447000,
+            4425200,
+            449400,
+            4427000
+          ],
+          "transform": [
+            30,
+            0,
+            447000,
+            0,
+            -30,
+            4427000
+          ],
+          "nodata": -9999,
+          "validCount": 4800,
+          "min": 0,
+          "max": 1,
+          "mean": 0.010416666977107525,
+          "sum": 50
+        },
+        "destination": {
+          "width": 80,
+          "height": 60,
+          "crs": "EPSG:32650",
+          "bounds": [
+            447000,
+            4425200,
+            449400,
+            4427000
+          ],
+          "transform": [
+            30,
+            0,
+            447000,
+            0,
+            -30,
+            4427000
+          ],
+          "nodata": -9999,
+          "validCount": 4800,
+          "min": 0,
+          "max": 1,
+          "mean": 0.010416666977107525,
+          "sum": 50
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "runId": "ecology_A",
+      "planVersion": 1,
+      "goal": "阶段 5C 合成校验：阻力方案 A 的最小成本廊道",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T20:29:32.971Z",
+      "steps": [
+        {
+          "stepId": "cost_source",
+          "kind": "tool",
+          "label": "wasm_cost_distance",
+          "phase": "pass",
+          "startedAt": "2026-10-24T20:29:32.982Z",
+          "args": {
+            "source": "lyr_c4802bb6f86a425ebb2c2699ca49b646",
+            "cost": "lyr_33d3031ffcd744bd93a8d9118f8f1963"
+          },
+          "input": {
+            "layerId": "lyr_33d3031ffcd744bd93a8d9118f8f1963",
+            "crs": "EPSG:32650",
+            "sha256": "9c3817ef46609b461883549bd9b1d3a758459f6d02b58d799689779bcf2a4198"
+          },
+          "outputLayer": {
+            "id": "lyr_84d5fee5d35d478ebd27687768e6ca40",
+            "name": "Cost Distance_output",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 80,
+              "height": 60,
+              "bands": 1
+            },
+            "sha256": "d5a1bfef9dee5dd123802f4c4ec48f6aaaacce7b05a39f2dfbf9c262fd6080f8"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 230,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "80x60 vs 80x60"
+            }
+          ]
+        },
+        {
+          "stepId": "cost_dest",
+          "kind": "tool",
+          "label": "wasm_cost_distance",
+          "phase": "pass",
+          "startedAt": "2026-10-24T20:29:33.214Z",
+          "args": {
+            "source": "lyr_f50934b22000440d8a757ed12df0e134",
+            "cost": "lyr_33d3031ffcd744bd93a8d9118f8f1963"
+          },
+          "input": {
+            "layerId": "lyr_33d3031ffcd744bd93a8d9118f8f1963",
+            "crs": "EPSG:32650",
+            "sha256": "9c3817ef46609b461883549bd9b1d3a758459f6d02b58d799689779bcf2a4198"
+          },
+          "outputLayer": {
+            "id": "lyr_d8447512b58b4b06ab98f32b4e99816b",
+            "name": "Cost Distance_output",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 80,
+              "height": 60,
+              "bands": 1
+            },
+            "sha256": "c87cf07c04a9fb845a91e3b88a88e670dd06c4d7e0abd94b734a4d889e1052f5"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 335,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "80x60 vs 80x60"
+            }
+          ]
+        },
+        {
+          "stepId": "corridor",
+          "kind": "tool",
+          "label": "wasm_corridor",
+          "phase": "pass",
+          "startedAt": "2026-10-24T20:29:33.549Z",
+          "args": {
+            "cost1": "lyr_84d5fee5d35d478ebd27687768e6ca40",
+            "cost2": "lyr_d8447512b58b4b06ab98f32b4e99816b",
+            "percent": 5
+          },
+          "input": {
+            "layerId": "lyr_84d5fee5d35d478ebd27687768e6ca40",
+            "crs": "EPSG:32650",
+            "sha256": "d5a1bfef9dee5dd123802f4c4ec48f6aaaacce7b05a39f2dfbf9c262fd6080f8"
+          },
+          "outputLayer": {
+            "id": "lyr_21d0243034874e6f8351ed3b37f6fb50",
+            "name": "Corridor",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 80,
+              "height": 60,
+              "bands": 1
+            },
+            "sha256": "c3da6b1751ed64dacd1b1498201a72b6392b9a8a4daaa37170cf344b1156fe2b"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 20,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "80x60 vs 80x60"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：3 个步骤全部成功，3 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "cost_source",
+            "layerId": "lyr_84d5fee5d35d478ebd27687768e6ca40",
+            "name": "Cost Distance_output"
+          },
+          {
+            "stepId": "cost_dest",
+            "layerId": "lyr_d8447512b58b4b06ab98f32b4e99816b",
+            "name": "Cost Distance_output"
+          },
+          {
+            "stepId": "corridor",
+            "layerId": "lyr_21d0243034874e6f8351ed3b37f6fb50",
+            "name": "Corridor"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T20:29:33.569Z",
+      "durationMs": 598
+    },
+    {
+      "runId": "ecology_B",
+      "planVersion": 1,
+      "goal": "阶段 5C 合成校验：阻力方案 B 的最小成本廊道",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T20:29:34.307Z",
+      "steps": [
+        {
+          "stepId": "cost_source",
+          "kind": "tool",
+          "label": "wasm_cost_distance",
+          "phase": "pass",
+          "startedAt": "2026-10-24T20:29:34.315Z",
+          "args": {
+            "source": "lyr_25fe18af3f79437c8dec908b55b4de9d",
+            "cost": "lyr_4a33713c46294755953a8e36c3c84480"
+          },
+          "input": {
+            "layerId": "lyr_4a33713c46294755953a8e36c3c84480",
+            "crs": "EPSG:32650",
+            "sha256": "83c76056e117ef6fe72adb986da3ecf877d32cbd473451bfc956f351421e0ef9"
+          },
+          "outputLayer": {
+            "id": "lyr_bdda43d66d924d47ae10796bb8d09cbe",
+            "name": "Cost Distance_output",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 80,
+              "height": 60,
+              "bands": 1
+            },
+            "sha256": "0539f0e7735be58bb28bdfad7f161d22b788068032dc1585d2e105a959f07f3a"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 187,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "80x60 vs 80x60"
+            }
+          ]
+        },
+        {
+          "stepId": "cost_dest",
+          "kind": "tool",
+          "label": "wasm_cost_distance",
+          "phase": "pass",
+          "startedAt": "2026-10-24T20:29:34.503Z",
+          "args": {
+            "source": "lyr_2d4192573e024f218d0a811dfa9cbc62",
+            "cost": "lyr_4a33713c46294755953a8e36c3c84480"
+          },
+          "input": {
+            "layerId": "lyr_4a33713c46294755953a8e36c3c84480",
+            "crs": "EPSG:32650",
+            "sha256": "83c76056e117ef6fe72adb986da3ecf877d32cbd473451bfc956f351421e0ef9"
+          },
+          "outputLayer": {
+            "id": "lyr_39864754a9e549e4b876d7d784c8c170",
+            "name": "Cost Distance_output",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 80,
+              "height": 60,
+              "bands": 1
+            },
+            "sha256": "a3aaad42096e56ff473ef06904fcffaedea772371014e1493891b0aed8398feb"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 383,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "80x60 vs 80x60"
+            }
+          ]
+        },
+        {
+          "stepId": "corridor",
+          "kind": "tool",
+          "label": "wasm_corridor",
+          "phase": "pass",
+          "startedAt": "2026-10-24T20:29:34.886Z",
+          "args": {
+            "cost1": "lyr_bdda43d66d924d47ae10796bb8d09cbe",
+            "cost2": "lyr_39864754a9e549e4b876d7d784c8c170",
+            "percent": 5
+          },
+          "input": {
+            "layerId": "lyr_bdda43d66d924d47ae10796bb8d09cbe",
+            "crs": "EPSG:32650",
+            "sha256": "0539f0e7735be58bb28bdfad7f161d22b788068032dc1585d2e105a959f07f3a"
+          },
+          "outputLayer": {
+            "id": "lyr_c598a2e85be84d1daba66922ba5574bd",
+            "name": "Corridor",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 80,
+              "height": 60,
+              "bands": 1
+            },
+            "sha256": "629c68a0aaeb64cb3c0b712820e18b80a76e4f74c6dce412c1316eaf930b4973"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 25,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "80x60 vs 80x60"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：3 个步骤全部成功，3 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "cost_source",
+            "layerId": "lyr_bdda43d66d924d47ae10796bb8d09cbe",
+            "name": "Cost Distance_output"
+          },
+          {
+            "stepId": "cost_dest",
+            "layerId": "lyr_39864754a9e549e4b876d7d784c8c170",
+            "name": "Cost Distance_output"
+          },
+          {
+            "stepId": "corridor",
+            "layerId": "lyr_c598a2e85be84d1daba66922ba5574bd",
+            "name": "Corridor"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T20:29:34.911Z",
+      "durationMs": 604
+    },
+    {
+      "runId": "ecology_C",
+      "planVersion": 1,
+      "goal": "阶段 5C 合成校验：阻力方案 C 的最小成本廊道",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T20:29:35.648Z",
+      "steps": [
+        {
+          "stepId": "cost_source",
+          "kind": "tool",
+          "label": "wasm_cost_distance",
+          "phase": "pass",
+          "startedAt": "2026-10-24T20:29:35.656Z",
+          "args": {
+            "source": "lyr_427262d41e254766803f8d6660d46ffd",
+            "cost": "lyr_4870a72426964d16a1d3345919a97632"
+          },
+          "input": {
+            "layerId": "lyr_4870a72426964d16a1d3345919a97632",
+            "crs": "EPSG:32650",
+            "sha256": "9937907877c5785e01b8f45ee2d13e4b6320029473cedfc32bd531fb7eb759d0"
+          },
+          "outputLayer": {
+            "id": "lyr_b12afa42490e4423b5b81df835f2f593",
+            "name": "Cost Distance_output",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 80,
+              "height": 60,
+              "bands": 1
+            },
+            "sha256": "072871b2630a3429a12c1392f42d646c555e1dc79232f505464894ce1eac586b"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 174,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "80x60 vs 80x60"
+            }
+          ]
+        },
+        {
+          "stepId": "cost_dest",
+          "kind": "tool",
+          "label": "wasm_cost_distance",
+          "phase": "pass",
+          "startedAt": "2026-10-24T20:29:35.831Z",
+          "args": {
+            "source": "lyr_bdf78aee7e31443ab1005a0429ba8294",
+            "cost": "lyr_4870a72426964d16a1d3345919a97632"
+          },
+          "input": {
+            "layerId": "lyr_4870a72426964d16a1d3345919a97632",
+            "crs": "EPSG:32650",
+            "sha256": "9937907877c5785e01b8f45ee2d13e4b6320029473cedfc32bd531fb7eb759d0"
+          },
+          "outputLayer": {
+            "id": "lyr_ae5aadbe03454bf2b651d3c9ab60df43",
+            "name": "Cost Distance_output",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 80,
+              "height": 60,
+              "bands": 1
+            },
+            "sha256": "6a8f458682e83d3d287ad23a4a1e83c10c2a7563a3b567760c30f09a7f5d0b50"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 336,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "80x60 vs 80x60"
+            }
+          ]
+        },
+        {
+          "stepId": "corridor",
+          "kind": "tool",
+          "label": "wasm_corridor",
+          "phase": "pass",
+          "startedAt": "2026-10-24T20:29:36.167Z",
+          "args": {
+            "cost1": "lyr_b12afa42490e4423b5b81df835f2f593",
+            "cost2": "lyr_ae5aadbe03454bf2b651d3c9ab60df43",
+            "percent": 5
+          },
+          "input": {
+            "layerId": "lyr_b12afa42490e4423b5b81df835f2f593",
+            "crs": "EPSG:32650",
+            "sha256": "072871b2630a3429a12c1392f42d646c555e1dc79232f505464894ce1eac586b"
+          },
+          "outputLayer": {
+            "id": "lyr_915004686a6441b28d4c1763a7a6df4f",
+            "name": "Corridor",
+            "kind": "raster",
+            "crs": "EPSG:32650",
+            "featureCount": 0,
+            "geometryTypes": [],
+            "raster": {
+              "width": 80,
+              "height": 60,
+              "bands": 1
+            },
+            "sha256": "334897c4a56563198315d05d706c05dbdac4c782bcf8819b844a882a370e1c36"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 20,
+          "acceptance": [
+            {
+              "type": "raster_dims",
+              "ok": true,
+              "detail": "80x60 vs 80x60"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：3 个步骤全部成功，3 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "cost_source",
+            "layerId": "lyr_b12afa42490e4423b5b81df835f2f593",
+            "name": "Cost Distance_output"
+          },
+          {
+            "stepId": "cost_dest",
+            "layerId": "lyr_ae5aadbe03454bf2b651d3c9ab60df43",
+            "name": "Cost Distance_output"
+          },
+          {
+            "stepId": "corridor",
+            "layerId": "lyr_915004686a6441b28d4c1763a7a6df4f",
+            "name": "Corridor"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T20:29:36.187Z",
+      "durationMs": 539
+    }
+  ]
+}

@@ -33,6 +33,8 @@
     "baseline:mobile": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/run-mobile-baseline.ts",
     "vertical:hydro": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/run-hydrology-vertical.ts",
     "vertical:gis": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/run-gis-vertical.ts",
+    "vertical:ecology": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/run-ecology-vertical.ts",
+    "fixtures:ecology": "engine/.venv/bin/python scripts/make-ecology-fixtures.py",
     "bench:geoagent": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/run-geoagentbench.ts",
     "compare:arms": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/compare-agent-arms.ts",
     "compare:engines": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/compare-engines.ts",

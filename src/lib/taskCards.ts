@@ -301,6 +301,62 @@ export const TASK_CARDS: TaskCardPreset[] = [
       } };
     },
   },
+  {
+    id: "ecology-corridor",
+    title: "生态最小成本廊道",
+    detail: "源地/目的地累积阻力 → 廊道面（两个用户给定阻力方案对比，非生态模型）",
+    slots: [
+      { key: "resistance", label: "阻力面（用户给定方案）", kind: "raster" },
+      { key: "sources", label: "源地（正值栅格）", kind: "raster" },
+      { key: "destination", label: "目的地（正值栅格）", kind: "raster" },
+    ],
+    needsNumeric: { label: "近最优廊道带宽（高于最小成本百分比）", default: 5, min: 0, max: 50, unit: "%" },
+    defaultGoal: draft => `比较阻力方案下的生态最小成本廊道（近最优带 ${draft.numeric ?? 5}%）`,
+    build: (draft, layers) => {
+      const resistance = rasterOf(layers, draft.inputs.resistance);
+      const sources = rasterOf(layers, draft.inputs.sources);
+      const destination = rasterOf(layers, draft.inputs.destination);
+      if (!resistance || !sources || !destination) {
+        return { ok: false, reason: "需要阻力面、源地栅格与目的地栅格。", degrade: "阻力权重必须由用户提供；本卡不推断物种扩散或生境质量。" };
+      }
+      const grid = (layer: CardLayerFacts) => `${layer.raster!.width}x${layer.raster!.height}`;
+      const expected = grid(resistance);
+      for (const [label, layer] of [["源地", sources], ["目的地", destination]] as const) {
+        if (grid(layer) !== expected) return { ok: false, reason: `${label}栅格 ${grid(layer)} 与阻力面 ${expected} 不同网格。`, degrade: "先重采样/裁剪到与阻力面相同的 CRS 和像元网格；本卡不会静默对齐。" };
+        if (resistance.crs && layer.crs && resistance.crs !== layer.crs) return { ok: false, reason: `${label}栅格 CRS ${layer.crs} 与阻力面 ${resistance.crs} 不同。`, degrade: "先重投影到同一 CRS 再运行。" };
+      }
+      const pixels = resistance.raster!.width * resistance.raster!.height;
+      if (pixels > MOBILE_MAX_PIXELS) {
+        return {
+          ok: false,
+          reason: `阻力面 ${resistance.raster!.width}×${resistance.raster!.height}＝${(pixels / 1e6).toFixed(1)} 百万像素，超出手机端预算（${(MOBILE_MAX_PIXELS / 1e6).toFixed(1)} 百万）。`,
+          degrade: "先裁剪研究区或降采样后重试；或在桌面端执行同一任务。",
+        };
+      }
+      const percent = Math.min(50, Math.max(0, Number(draft.numeric ?? 5)));
+      const plan: Plan = {
+        goal: draft.goal || `用 ${resistance.name} 计算源地与目的地之间的最小成本廊道`,
+        steps: [
+          // Direct corridor mode consumes the two accumulated-cost surfaces. The
+          // parameter names are the catalog wire names (source/cost/cost1/cost2).
+          step("cost_source", { kind: "tool", tool: "wasm_cost_distance", args: { source: sources.id, cost: resistance.id } }, [], [
+            { type: "raster_dims" },
+          ]),
+          step("cost_dest", { kind: "tool", tool: "wasm_cost_distance", args: { source: destination.id, cost: resistance.id } }, [], [
+            { type: "raster_dims", ref: "cost_source" },
+          ]),
+          step("corridor", { kind: "tool", tool: "wasm_corridor", args: { cost1: "@cost_source", cost2: "@cost_dest", percent } }, ["cost_source", "cost_dest"], [
+            { type: "raster_dims", ref: "cost_source" },
+          ]),
+        ],
+      };
+      return { ok: true, plan, explanation: {
+        engine: "浏览器本地 GeoLibre/Whitebox WASM：两次累积成本距离 + 廊道面，数据不出设备。",
+        estimate: `「${resistance.name}」${expected}；源地「${sources.name}」、目的地「${destination.name}」；保留最小廊道成本以上 ${percent}% 的近最优带。`,
+        budget: `手机端预算 ${MOBILE_MAX_PIXELS / 1e6} 百万像素，本次占用 ${((pixels / MOBILE_MAX_PIXELS) * 100).toFixed(0)}%。阻力权重是用户给定方案，不是本产品推断的生态学结论；本链是最小成本廊道，不是 Circuitscape 电流连通、InVEST 或 ArcPy Linkage Mapper。`,
+      } };
+    },
+  },
 ];
 
 export function cardById(id: string) {

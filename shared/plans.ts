@@ -191,7 +191,7 @@ export function resolveRefs(value: unknown, outputs: Map<string, LayerLite>): un
 /** Collect literal (non-@) layer references from a step, for plan-time checks. */
 export function layerRefs(step: PlanStep): { field: string; ref: string }[] {
   const found: { field: string; ref: string }[] = [];
-  const inputFields = new Set(["input", "layer", "maskLayerId", "zonesLayerId", "mask_layer", "join_layer", "other_layer", "filter_layer", "dem", "d8_pntr", "flow_accumulation"]);
+  const inputFields = new Set(["input", "layer", "maskLayerId", "zonesLayerId", "mask_layer", "join_layer", "other_layer", "filter_layer", "dem", "d8_pntr", "flow_accumulation", "source", "destination", "cost", "cost1", "cost2", "source1", "source2", "backlink"]);
   const visit = (value: unknown, field: string) => {
     if (typeof value !== "string") {
       if (Array.isArray(value)) { value.forEach(item => visit(item, field)); return; }
@@ -212,7 +212,7 @@ export function layerRefs(step: PlanStep): { field: string; ref: string }[] {
 /** Collect "@stepId" references from a step's input fields, for dependency checks. */
 export function stepRefs(step: PlanStep): string[] {
   const found: string[] = [];
-  const inputFields = new Set(["input", "layer", "maskLayerId", "zonesLayerId", "mask_layer", "join_layer", "other_layer", "filter_layer", "dem", "overlay", "d8_pntr", "flow_accumulation"]);
+  const inputFields = new Set(["input", "layer", "maskLayerId", "zonesLayerId", "mask_layer", "join_layer", "other_layer", "filter_layer", "dem", "overlay", "d8_pntr", "flow_accumulation", "source", "destination", "cost", "cost1", "cost2", "source1", "source2", "backlink"]);
   const visit = (value: unknown, field: string) => {
     if (typeof value !== "string") {
       if (Array.isArray(value)) { value.forEach(item => visit(item, field)); return; }
@@ -626,7 +626,7 @@ function primaryInputRef(step: PlanStep, outputs: Map<string, LayerLite>): strin
     return match ? outputs.get(match[1])?.id ?? null : value;
   };
   if (step.kind === "operation") return toId(step.spec.input);
-  for (const key of ["layer", "input", "dem"]) {
+  for (const key of ["layer", "input", "dem", "cost", "cost1", "cost2", "source", "source1", "source2", "destination"]) {
     if (typeof step.args?.[key] === "string") return toId(step.args![key]);
   }
   return null;

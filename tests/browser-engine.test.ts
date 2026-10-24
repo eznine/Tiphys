@@ -2360,6 +2360,10 @@ test("browser tool search ranks Chinese names and taxonomy, not only description
     ["点提取", "wasm_extract_raster_values_at_points"], ["色彩合成", "wasm_create_colour_composite"]]) {
     assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
   }
+  for (const [query, expected] of [["生态廊道", "wasm_corridor"], ["最小成本廊道", "wasm_corridor"],
+    ["最小成本路径", "wasm_cost_pathway"], ["阻力面", "wasm_cost_distance"], ["生态阻力", "wasm_cost_distance"]]) {
+    assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
+  }
   for (const [query, expected] of [["走廊", "linkage_mapper_corridor"], ["廊道", "linkage_mapper_corridor"],
     ["水文", "hydrology_flow_pipeline"], ["最小成本", "least_cost_path_pipeline"]]) {
     const matches = searchBrowserTools(browserCatalog, query, { limit: 20 });
