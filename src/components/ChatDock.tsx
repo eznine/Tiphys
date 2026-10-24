@@ -6,7 +6,7 @@ import { ToolPanel } from "./ToolPanel";
 import { PipelineResultDetails, pipelineResult } from "./ToolResultDetails";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Settings2, FolderPlus, ArrowUp, Square, Layers, Network, Waves, Route, Scissors, Sparkles, History, Mountain, Shapes, CircleDot, Hexagon, ChartScatter, Expand, Boxes, SlidersHorizontal, RefreshCw } from "lucide-react";
+import { Settings2, FolderPlus, ArrowUp, Square, Layers, Layers3, Network, Waves, Route, Scissors, Sparkles, History, Mountain, Shapes, CircleDot, Hexagon, ChartScatter, Expand, Boxes, SlidersHorizontal, RefreshCw } from "lucide-react";
 
 type Props = {
   items: TimelineItem[];
@@ -64,6 +64,8 @@ const RECIPES = [
   { title: "填挖方", detail: "比较两期 DEM 或参考平面，打开体积表单", tool: "wasm_cut_fill", Icon: Mountain },
   { title: "对比度均衡", detail: "校正 RGB 影像色彩偏差，打开表单", tool: "wasm_balance_contrast_enhancement", Icon: SlidersHorizontal },
   { title: "点生成等值线", detail: "从带高程字段的点生成等值线，打开表单", tool: "wasm_contours_from_points", Icon: Mountain },
+  { title: "总曲率", detail: "从 DEM 计算与方向无关的地形曲率，打开表单", tool: "wasm_total_curvature", Icon: Mountain },
+  { title: "主成分分析", detail: "多波段栅格栈降维，输出前几个主成分", tool: "wasm_principal_component_analysis", Icon: Layers3 },
   { title: "最小成本路径", detail: "连接源与目的地，保留真实路径结果", tool: "least_cost_path_pipeline", Icon: Route },
   { title: "按 AOI 裁剪", detail: "先在地图绘制 AOI，再插入提示词", prompt: "用当前 AOI 范围裁剪所选图层。", Icon: Scissors },
 ] as const;

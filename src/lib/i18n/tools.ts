@@ -166,6 +166,10 @@ export const PARAM_ZH: Record<string, string> = {
   location: "输出邻近坐标", neighbors: "邻域连通性", network: "网络线图层",
   max_snap_distance: "最大捕捉距离", keep_unsnapped: "保留未捕捉点",
   mode_field: "出行模式字段", one_way_field: "单行字段", blocked_field: "禁行字段",
+  z_factor: "高程缩放系数", log_transform: "对数变换",
+  min_scale: "最小尺度", max_scale: "最大尺度", step_size: "尺度步长", min_vertical: "最小高差",
+  sca: "比集水面积栅格", slope: "坡度栅格", sca_exponent: "SCA 指数", slope_exponent: "坡度指数",
+  num_components: "主成分数量", standardized: "标准化相关矩阵",
 };
 
 /** Chinese label for a parameter, falling back to the raw name. */

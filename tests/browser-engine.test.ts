@@ -228,7 +228,7 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
   await ensureBrowserCatalog();
   const source = fs.readFileSync(new URL("../src/components/CommandRibbon.tsx", import.meta.url), "utf8");
   const names = [...source.matchAll(/props\.onTool\("(wasm_[^"]+)"\)/g)].map(match => match[1]);
-  assert.ok(names.length >= 60, `expected a dense ribbon, got ${names.length} WASM actions`);
+  assert.ok(names.length >= 150, `expected a dense ribbon, got ${names.length} WASM actions`);
   assert.equal(new Set(names).size, names.length, "ribbon must not expose duplicate WASM actions");
   for (const name of names) assert.ok(browserCatalog.some(tool => tool.name === name), `${name} must resolve to a catalog tool`);
   for (const name of ["wasm_panchromatic_sharpening", "wasm_resample", "wasm_segment_slic_superpixels",
@@ -263,7 +263,10 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_average_flowpath_slope", "wasm_cut_fill", "wasm_is_nodata", "wasm_focal_statistics",
     "wasm_k_means_clustering", "wasm_balance_contrast_enhancement", "wasm_histogram_equalization",
     "wasm_min_max_contrast_stretch", "wasm_horton_stream_order", "wasm_shreve_stream_magnitude",
-    "wasm_contour_list", "wasm_contours_from_points", "wasm_pennock_landform_classification"]) {
+    "wasm_contour_list", "wasm_contours_from_points", "wasm_pennock_landform_classification",
+    "wasm_scharr_filter", "wasm_standard_deviation_filter", "wasm_total_curvature",
+    "wasm_sediment_transport_index", "wasm_relative_aspect", "wasm_max_elevation_deviation",
+    "wasm_elev_relative_to_min_max", "wasm_principal_component_analysis"]) {
     assert.ok(names.includes(name), `${name} should be exposed in the ribbon`);
   }
   const dock = fs.readFileSync(new URL("../src/components/ChatDock.tsx", import.meta.url), "utf8");
@@ -275,7 +278,8 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_strahler_stream_order", "wasm_cost_connectivity", "wasm_mean_filter",
     "wasm_change_vector_analysis", "wasm_near", "wasm_extend_vector_lines",
     "wasm_central_feature", "wasm_directional_distribution", "wasm_frost_filter", "wasm_cut_fill",
-    "wasm_balance_contrast_enhancement", "wasm_contours_from_points"]) {
+    "wasm_balance_contrast_enhancement", "wasm_contours_from_points", "wasm_total_curvature",
+    "wasm_principal_component_analysis"]) {
     assert.ok(recipeTools.includes(name), `${name} should be available as an agent recipe`);
     assert.ok(browserCatalog.some(tool => tool.name === name), `${name} recipe must resolve to a catalog tool`);
   }
@@ -752,7 +756,7 @@ test("Chinese GIS aliases rank conversion, interpolation and service-area tools"
   for (const [query, expected] of [["最小最大拉伸", "wasm_min_max_contrast_stretch"],
     ["点等值线", "wasm_contours_from_points"], ["泥沙输移", "wasm_sediment_transport_index"],
     ["总曲率", "wasm_total_curvature"], ["标准差滤波", "wasm_standard_deviation_filter"],
-    ["Scharr", "wasm_scharr_filter"]]) {
+    ["Scharr", "wasm_scharr_filter"], ["最大高程偏差", "wasm_max_elevation_deviation"]]) {
     assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
   }
   const streamOrders = searchBrowserTools(browserCatalog, "河网分级", { limit: 4 }).map(tool => tool.name);
@@ -1149,6 +1153,49 @@ test("batch21 filter, terrain, NoData and clustering tools publish result layers
   assert.ok(pcaLayers.every((layer: any) => layer.kind === "raster" && layer.name.includes("_comp")));
 });
 
+test("batch23 filter, curvature and terrain-index forms expose honest executable contracts", async () => {
+  await ensureBrowserCatalog();
+  const props = (name: string) => (browserCatalog.find(tool => tool.name === name)!.parameters.properties ?? {}) as any;
+  const required = (name: string) => browserCatalog.find(tool => tool.name === name)!.parameters.required ?? [];
+
+  for (const name of ["wasm_scharr_filter", "wasm_standard_deviation_filter", "wasm_total_curvature",
+    "wasm_relative_aspect", "wasm_max_elevation_deviation", "wasm_elev_relative_to_min_max"]) {
+    const properties = props(name);
+    assert.equal(properties.input["x-layer-kind"], "raster", `${name} input must be raster`);
+    assert.ok(!("output" in properties), `${name} output path must stay internal`);
+    assert.ok(required(name).includes("input"), `${name} input must be required`);
+  }
+  assert.equal(props("wasm_scharr_filter").clip_tails.type, "number");
+  const stdev = props("wasm_standard_deviation_filter");
+  assert.equal(stdev.filter_size_x.type, "integer", "stdev window width must be an integer");
+  assert.equal(stdev.filter_size_y.type, "integer", "stdev window height must be an integer");
+  assert.equal(stdev.filter_size_x.default, 11);
+  assert.equal(props("wasm_total_curvature").log_transform.type, "boolean");
+  assert.equal(props("wasm_relative_aspect").azimuth.type, "number");
+  assert.equal(props("wasm_relative_aspect").z_factor.type, "number");
+  const devmax = props("wasm_max_elevation_deviation");
+  assert.equal(devmax.min_scale.type, "number");
+  assert.equal(devmax.max_scale.type, "number");
+  assert.equal(devmax.step_size.type, "number");
+  assert.equal(devmax.min_vertical.type, "number");
+  assert.ok(!("output_scale" in devmax), "the companion scale raster must stay internal");
+
+  const sti = props("wasm_sediment_transport_index");
+  for (const input of ["sca", "slope"]) {
+    assert.equal(sti[input]["x-layer-kind"], "raster", `sediment transport index ${input} must be raster`);
+    assert.ok(required("wasm_sediment_transport_index").includes(input), `sediment transport index ${input} must be required`);
+  }
+  assert.equal(sti.sca_exponent.type, "number");
+  assert.equal(sti.slope_exponent.type, "number");
+  assert.ok(!("output" in sti), "sediment transport index output path must stay internal");
+
+  const pca = props("wasm_principal_component_analysis");
+  assert.equal(pca.inputs.type, "array");
+  assert.equal(pca.num_components.type, "integer");
+  assert.equal(pca.standardized.type, "boolean");
+  assert.ok(!("output" in pca), "PCA output path must stay internal");
+});
+
 test("batch22 contrast, stream order, contours and Pennock publish displayed layers", async () => {
   const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
   const ring = (x: number, y: number, width: number, height: number) => [[x, y], [x + width, y], [x + width, y + height], [x, y + height], [x, y]];
@@ -1228,6 +1275,61 @@ test("batch22 contrast, stream order, contours and Pennock publish displayed lay
   assert.equal(pennockLayer.kind, "raster", "Pennock classification must publish a raster");
   assert.equal(pennockLayer.raster?.width, dem.raster?.width);
   assert.equal(pennock.attachments, undefined);
+});
+
+test("batch23 Scharr, stdev, curvature and terrain indices publish displayed rasters", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const ring = (x: number, y: number, width: number, height: number) => [[x, y], [x + width, y], [x + width, y + height], [x, y + height], [x, y]];
+  const cell = 100, features: any[] = [];
+  for (let row = 0; row < 12; row++) for (let col = 0; col < 12; col++) {
+    const x = 500000 + col * cell, y = 4400000 + row * cell;
+    features.push({ type: "Feature", properties: { elev: 1200 - row * 4 - col + (row === 5 && col === 5 ? -15 : 0) },
+      geometry: { type: "Polygon", coordinates: [ring(x, y, cell, cell)] } });
+  }
+  const source = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features })]), "batch23_dem_source.geojson")).layer;
+  const dem = (await finished("wasm_vector_polygons_to_raster", {
+    input: source.id, field: "elev", cell_size: cell, output_name: "batch23_dem",
+  })).layer;
+
+  for (const [tool, args, name] of [
+    ["wasm_scharr_filter", { input: dem.id, clip_tails: 0 }, "batch23_scharr"],
+    ["wasm_standard_deviation_filter", { input: dem.id, filter_size_x: 3, filter_size_y: 3 }, "batch23_stdev"],
+    ["wasm_total_curvature", { input: dem.id, z_factor: 1, log_transform: false }, "batch23_total_curvature"],
+    ["wasm_relative_aspect", { input: dem.id, azimuth: 90, z_factor: 1 }, "batch23_relative_aspect"],
+    ["wasm_elev_relative_to_min_max", { input: dem.id }, "batch23_relative_elev"],
+  ] as const) {
+    const result = await finished(tool, { ...args, output_name: name });
+    const layer = result.layer ?? result.layers?.[0]?.layer;
+    assert.equal(layer.kind, "raster", `${tool} must publish a raster`);
+    assert.equal(layer.raster?.width, dem.raster?.width);
+    assert.equal(result.attachments, undefined);
+  }
+
+  const devmax = await finished("wasm_max_elevation_deviation", {
+    input: dem.id, min_scale: 1, max_scale: 5, step_size: 1, min_vertical: 0, output_name: "batch23_devmax",
+  });
+  const devmaxLayers = devmax.layers?.map((item: any) => item.layer) ?? [];
+  assert.equal(devmaxLayers.length, 2, "max elevation deviation must publish value and scale rasters");
+  assert.ok(devmaxLayers.every((layer: any) => layer.kind === "raster" && layer.raster?.width === dem.raster?.width));
+  assert.equal(devmax.attachments, undefined);
+
+  const slope = await finished("wasm_slope", { input: dem.id, units: "degrees", z_factor: 1, output_name: "batch23_slope" });
+  const slopeLayer = slope.layer ?? slope.layers?.[0]?.layer;
+  const chain = await finished("hydrology_flow_pipeline", { dem: dem.id, stream_threshold: 20, output_name: "batch23_chain" });
+  const pointer = chain.layers?.[1]?.layer;
+  assert.equal(pointer?.kind, "raster");
+  const sca = await finished("wasm_d8_flow_accum", {
+    input: pointer.id, input_is_pointer: true, out_type: "sca", output_name: "batch23_sca",
+  });
+  const scaLayer = sca.layer ?? sca.layers?.[0]?.layer;
+  const sti = await finished("wasm_sediment_transport_index", {
+    sca: scaLayer.id, slope: slopeLayer.id, sca_exponent: 0.4, slope_exponent: 1.3,
+    output_name: "batch23_sti",
+  });
+  const stiLayer = sti.layer ?? sti.layers?.[0]?.layer;
+  assert.equal(stiLayer.kind, "raster", "sediment transport index must publish a raster");
+  assert.equal(stiLayer.raster?.width, dem.raster?.width);
+  assert.equal(sti.attachments, undefined);
 });
 
 test("morphology and vector cleanup ribbon tools publish displayed result layers", async () => {

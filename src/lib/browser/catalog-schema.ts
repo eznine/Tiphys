@@ -182,6 +182,10 @@ const WASM_SCHEMA_OVERRIDES: Record<string, Record<string, CatalogSchema>> = {
   edge_preserving_mean_filter: {
     filter_size: { type: "integer", default: 11, description: "移动窗口边长（奇数像元）。" },
   },
+  standard_deviation_filter: {
+    filter_size_x: { type: "integer", default: 11, description: "移动窗口宽度（奇数像元）。" },
+    filter_size_y: { type: "integer", default: 11, description: "移动窗口高度（奇数像元）。" },
+  },
   mean_filter: {
     filter_size_x: { type: "integer", default: 11, description: "移动窗口宽度（奇数像元）。" },
     filter_size_y: { type: "integer", default: 11, description: "移动窗口高度（奇数像元）。" },
