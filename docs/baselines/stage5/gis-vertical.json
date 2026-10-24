@@ -1,0 +1,733 @@
+{
+  "generated_at": "2026-10-24T15:30:49.029Z",
+  "radii": [
+    500,
+    1000,
+    2000,
+    12000
+  ],
+  "invariants": {
+    "touched_blocks_match_independent_recompute": true,
+    "coverage_area_monotone_nondecreasing": true,
+    "monotonic_violations": [],
+    "full_coverage_conservation": {
+      "blocks": 6,
+      "households": 5100,
+      "ok": true
+    }
+  },
+  "audit": {
+    "ok": true,
+    "violations": []
+  },
+  "counting_rule": "块级口径：片段保留原块户数；跨圈不重复；部分覆盖按整块计入（不做面积加权插值）",
+  "totals": {
+    "cells": 4,
+    "structuralFailures": 0
+  },
+  "results": [
+    {
+      "radius": 500,
+      "status": "completed",
+      "durationMs": 229,
+      "touchedRids": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "expectedRids": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "touchedMatchesExpected": true,
+      "coverageAreaDeg2": 0.0004131858772780106,
+      "householdsSum": 4950,
+      "headline": "计划完成：3 个步骤全部成功，2 个可交付图层。",
+      "acceptanceFailed": [],
+      "exports": []
+    },
+    {
+      "radius": 1000,
+      "status": "completed",
+      "durationMs": 236,
+      "touchedRids": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "expectedRids": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "touchedMatchesExpected": true,
+      "coverageAreaDeg2": 0.0016101630103548814,
+      "householdsSum": 4950,
+      "headline": "计划完成：3 个步骤全部成功，2 个可交付图层。",
+      "acceptanceFailed": [],
+      "exports": [
+        {
+          "path": "service_coverage_r1000.gpkg",
+          "bytes": 327680,
+          "sha256": "b9ea1907b9bac568558f89428611fa52f713fd16cdf9e28e1b90c1585ae57d8e"
+        },
+        {
+          "path": "service_coverage_r1000.csv",
+          "bytes": 10384,
+          "sha256": "22537adcb148d631906a5d2ce64ad52b9bc4db06553f3461eac3310e42958e4d"
+        }
+      ]
+    },
+    {
+      "radius": 2000,
+      "status": "completed",
+      "durationMs": 196,
+      "touchedRids": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "expectedRids": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "touchedMatchesExpected": true,
+      "coverageAreaDeg2": 0.0043221580708632246,
+      "householdsSum": 4950,
+      "headline": "计划完成：3 个步骤全部成功，2 个可交付图层。",
+      "acceptanceFailed": [],
+      "exports": []
+    },
+    {
+      "radius": 12000,
+      "status": "completed",
+      "durationMs": 171,
+      "touchedRids": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "expectedRids": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "touchedMatchesExpected": true,
+      "coverageAreaDeg2": 0.007527665131874528,
+      "householdsSum": 5100,
+      "headline": "计划完成：3 个步骤全部成功，2 个可交付图层。",
+      "acceptanceFailed": [],
+      "exports": []
+    }
+  ],
+  "runs": [
+    {
+      "runId": "gis_r500",
+      "planVersion": 1,
+      "goal": "阶段 5B 纵向：学校 500 米服务圈覆盖统计",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T15:30:47.042Z",
+      "steps": [
+        {
+          "stepId": "buf",
+          "kind": "operation",
+          "label": "gis.buffer",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:30:47.047Z",
+          "args": {
+            "distance": 500,
+            "units": "meters"
+          },
+          "input": {
+            "layerId": "lyr_68a0dac67ea24ff38ea2612868465e84",
+            "crs": "EPSG:4326",
+            "sha256": "d5863a2a59007428ca51cd08437eaa2fc22d8ea81345977f227ab74a9ad00755"
+          },
+          "outputLayer": {
+            "id": "lyr_ed13253b114b4080b971bc417084637b",
+            "name": "schools_buffer",
+            "kind": "vector",
+            "crs": "EPSG:32650",
+            "featureCount": 5,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "59142541d4fa666fc229372f51ba7b6993754c751b071d5cb28daa0e47559636"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 115,
+          "acceptance": [
+            {
+              "type": "feature_count",
+              "ok": true,
+              "detail": "feature_count=5（要求 eq 5）"
+            }
+          ]
+        },
+        {
+          "stepId": "cover",
+          "kind": "operation",
+          "label": "gis.clip",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:30:47.163Z",
+          "args": {
+            "maskLayerId": "lyr_ed13253b114b4080b971bc417084637b"
+          },
+          "input": {
+            "layerId": "lyr_4fd09f9d5d96465086306a4119f1bfb0",
+            "crs": "EPSG:4326",
+            "sha256": "68e4dfcf4f9f749ff9ee4f9218d6715c1f6d32b119fce48c38d24ce9f72f4a18"
+          },
+          "outputLayer": {
+            "id": "lyr_fd70d49760104e2ba6e43e98390b8b39",
+            "name": "residential_clip",
+            "kind": "vector",
+            "crs": "EPSG:4326",
+            "featureCount": 5,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "59c8390e14016837a57cb4c1e70cce6da80214de5fd2e7a1b282e6a68e0e7fd8"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 106,
+          "acceptance": [
+            {
+              "type": "geometry_types",
+              "ok": true,
+              "detail": "geometry_types=Polygon"
+            }
+          ]
+        },
+        {
+          "stepId": "stat",
+          "kind": "tool",
+          "label": "field_statistics",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:30:47.269Z",
+          "args": {
+            "layer": "lyr_fd70d49760104e2ba6e43e98390b8b39",
+            "field": "households"
+          },
+          "input": {
+            "layerId": "lyr_fd70d49760104e2ba6e43e98390b8b39",
+            "crs": "EPSG:4326",
+            "sha256": "59c8390e14016837a57cb4c1e70cce6da80214de5fd2e7a1b282e6a68e0e7fd8"
+          },
+          "outputLayer": null,
+          "resultSummary": {
+            "layer": "lyr_fd70d49760104e2ba6e43e98390b8b39",
+            "field": "households",
+            "count": 5,
+            "null_count": 0,
+            "unique_count": 5,
+            "min": 300,
+            "max": 2000,
+            "mean": 990,
+            "median": 800,
+            "std": 650.384501660364
+          },
+          "durationMs": 2,
+          "acceptance": [
+            {
+              "type": "field_value",
+              "ok": true,
+              "detail": "count=5（要求 gte 1）"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：3 个步骤全部成功，2 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "buf",
+            "layerId": "lyr_ed13253b114b4080b971bc417084637b",
+            "name": "schools_buffer"
+          },
+          {
+            "stepId": "cover",
+            "layerId": "lyr_fd70d49760104e2ba6e43e98390b8b39",
+            "name": "residential_clip"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T15:30:47.271Z",
+      "durationMs": 229
+    },
+    {
+      "runId": "gis_r1000",
+      "planVersion": 1,
+      "goal": "阶段 5B 纵向：学校 1000 米服务圈覆盖统计",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T15:30:47.606Z",
+      "steps": [
+        {
+          "stepId": "buf",
+          "kind": "operation",
+          "label": "gis.buffer",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:30:47.612Z",
+          "args": {
+            "distance": 1000,
+            "units": "meters"
+          },
+          "input": {
+            "layerId": "lyr_5ad89b6bc5664850a3046436b89ec5bb",
+            "crs": "EPSG:4326",
+            "sha256": "d5863a2a59007428ca51cd08437eaa2fc22d8ea81345977f227ab74a9ad00755"
+          },
+          "outputLayer": {
+            "id": "lyr_9fa5a15ff1a8443390a5fbe0a005fffc",
+            "name": "schools_buffer",
+            "kind": "vector",
+            "crs": "EPSG:32650",
+            "featureCount": 5,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "82b75f2074aaea8fe8dbfe6e3ca5171a4bb77268dbe9039dacea353bfb88ab2e"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 126,
+          "acceptance": [
+            {
+              "type": "feature_count",
+              "ok": true,
+              "detail": "feature_count=5（要求 eq 5）"
+            }
+          ]
+        },
+        {
+          "stepId": "cover",
+          "kind": "operation",
+          "label": "gis.clip",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:30:47.738Z",
+          "args": {
+            "maskLayerId": "lyr_9fa5a15ff1a8443390a5fbe0a005fffc"
+          },
+          "input": {
+            "layerId": "lyr_261182306d5f4505be47ccfdd9ae9806",
+            "crs": "EPSG:4326",
+            "sha256": "68e4dfcf4f9f749ff9ee4f9218d6715c1f6d32b119fce48c38d24ce9f72f4a18"
+          },
+          "outputLayer": {
+            "id": "lyr_6c70e9f3d6dc4d89b6b4cb47d6e27f7d",
+            "name": "residential_clip",
+            "kind": "vector",
+            "crs": "EPSG:4326",
+            "featureCount": 5,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "9d324edb54d71c370f48ea2e5e7ef0ac44c5c6735ada03694153e93e0a101f4b"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 101,
+          "acceptance": [
+            {
+              "type": "geometry_types",
+              "ok": true,
+              "detail": "geometry_types=Polygon"
+            }
+          ]
+        },
+        {
+          "stepId": "stat",
+          "kind": "tool",
+          "label": "field_statistics",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:30:47.839Z",
+          "args": {
+            "layer": "lyr_6c70e9f3d6dc4d89b6b4cb47d6e27f7d",
+            "field": "households"
+          },
+          "input": {
+            "layerId": "lyr_6c70e9f3d6dc4d89b6b4cb47d6e27f7d",
+            "crs": "EPSG:4326",
+            "sha256": "9d324edb54d71c370f48ea2e5e7ef0ac44c5c6735ada03694153e93e0a101f4b"
+          },
+          "outputLayer": null,
+          "resultSummary": {
+            "layer": "lyr_6c70e9f3d6dc4d89b6b4cb47d6e27f7d",
+            "field": "households",
+            "count": 5,
+            "null_count": 0,
+            "unique_count": 5,
+            "min": 300,
+            "max": 2000,
+            "mean": 990,
+            "median": 800,
+            "std": 650.384501660364
+          },
+          "durationMs": 3,
+          "acceptance": [
+            {
+              "type": "field_value",
+              "ok": true,
+              "detail": "count=5（要求 gte 1）"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：3 个步骤全部成功，2 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "buf",
+            "layerId": "lyr_9fa5a15ff1a8443390a5fbe0a005fffc",
+            "name": "schools_buffer"
+          },
+          {
+            "stepId": "cover",
+            "layerId": "lyr_6c70e9f3d6dc4d89b6b4cb47d6e27f7d",
+            "name": "residential_clip"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T15:30:47.842Z",
+      "durationMs": 236
+    },
+    {
+      "runId": "gis_r2000",
+      "planVersion": 1,
+      "goal": "阶段 5B 纵向：学校 2000 米服务圈覆盖统计",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T15:30:48.296Z",
+      "steps": [
+        {
+          "stepId": "buf",
+          "kind": "operation",
+          "label": "gis.buffer",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:30:48.301Z",
+          "args": {
+            "distance": 2000,
+            "units": "meters"
+          },
+          "input": {
+            "layerId": "lyr_4da0ff7f33714a6fab5222273883e2e7",
+            "crs": "EPSG:4326",
+            "sha256": "d5863a2a59007428ca51cd08437eaa2fc22d8ea81345977f227ab74a9ad00755"
+          },
+          "outputLayer": {
+            "id": "lyr_676a39a35f7c4ccbb130ca1e90494630",
+            "name": "schools_buffer",
+            "kind": "vector",
+            "crs": "EPSG:32650",
+            "featureCount": 5,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "620faa6a3de5981c9eea13a8a8f3662e8c0cfad84c71260dde04a34f04915556"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 116,
+          "acceptance": [
+            {
+              "type": "feature_count",
+              "ok": true,
+              "detail": "feature_count=5（要求 eq 5）"
+            }
+          ]
+        },
+        {
+          "stepId": "cover",
+          "kind": "operation",
+          "label": "gis.clip",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:30:48.417Z",
+          "args": {
+            "maskLayerId": "lyr_676a39a35f7c4ccbb130ca1e90494630"
+          },
+          "input": {
+            "layerId": "lyr_88308a8ef3014ff1b0d5b8b86eead14b",
+            "crs": "EPSG:4326",
+            "sha256": "68e4dfcf4f9f749ff9ee4f9218d6715c1f6d32b119fce48c38d24ce9f72f4a18"
+          },
+          "outputLayer": {
+            "id": "lyr_cc4189fec3b440738677d7329d15f756",
+            "name": "residential_clip",
+            "kind": "vector",
+            "crs": "EPSG:4326",
+            "featureCount": 5,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "88a7f1ca22d669039a88c9179c3844f02c9b5ef7d973b846b1422f501f9301b4"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 73,
+          "acceptance": [
+            {
+              "type": "geometry_types",
+              "ok": true,
+              "detail": "geometry_types=Polygon"
+            }
+          ]
+        },
+        {
+          "stepId": "stat",
+          "kind": "tool",
+          "label": "field_statistics",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:30:48.490Z",
+          "args": {
+            "layer": "lyr_cc4189fec3b440738677d7329d15f756",
+            "field": "households"
+          },
+          "input": {
+            "layerId": "lyr_cc4189fec3b440738677d7329d15f756",
+            "crs": "EPSG:4326",
+            "sha256": "88a7f1ca22d669039a88c9179c3844f02c9b5ef7d973b846b1422f501f9301b4"
+          },
+          "outputLayer": null,
+          "resultSummary": {
+            "layer": "lyr_cc4189fec3b440738677d7329d15f756",
+            "field": "households",
+            "count": 5,
+            "null_count": 0,
+            "unique_count": 5,
+            "min": 300,
+            "max": 2000,
+            "mean": 990,
+            "median": 800,
+            "std": 650.384501660364
+          },
+          "durationMs": 2,
+          "acceptance": [
+            {
+              "type": "field_value",
+              "ok": true,
+              "detail": "count=5（要求 gte 1）"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：3 个步骤全部成功，2 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "buf",
+            "layerId": "lyr_676a39a35f7c4ccbb130ca1e90494630",
+            "name": "schools_buffer"
+          },
+          {
+            "stepId": "cover",
+            "layerId": "lyr_cc4189fec3b440738677d7329d15f756",
+            "name": "residential_clip"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T15:30:48.492Z",
+      "durationMs": 196
+    },
+    {
+      "runId": "gis_r12000",
+      "planVersion": 1,
+      "goal": "阶段 5B 纵向：学校 12000 米服务圈覆盖统计",
+      "provider": "browser-wasm",
+      "status": "completed",
+      "startedAt": "2026-10-24T15:30:48.827Z",
+      "steps": [
+        {
+          "stepId": "buf",
+          "kind": "operation",
+          "label": "gis.buffer",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:30:48.832Z",
+          "args": {
+            "distance": 12000,
+            "units": "meters"
+          },
+          "input": {
+            "layerId": "lyr_0814df4589f5415ba81cfeaf116a10f8",
+            "crs": "EPSG:4326",
+            "sha256": "d5863a2a59007428ca51cd08437eaa2fc22d8ea81345977f227ab74a9ad00755"
+          },
+          "outputLayer": {
+            "id": "lyr_9abed0d3fd754a69b95affd2472f73e4",
+            "name": "schools_buffer",
+            "kind": "vector",
+            "crs": "EPSG:32650",
+            "featureCount": 5,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "78cae550d2372bc29b6c5f1eae390724b5554e45984ee2ecb5ac438eba354c2f"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 111,
+          "acceptance": [
+            {
+              "type": "feature_count",
+              "ok": true,
+              "detail": "feature_count=5（要求 eq 5）"
+            }
+          ]
+        },
+        {
+          "stepId": "cover",
+          "kind": "operation",
+          "label": "gis.clip",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:30:48.943Z",
+          "args": {
+            "maskLayerId": "lyr_9abed0d3fd754a69b95affd2472f73e4"
+          },
+          "input": {
+            "layerId": "lyr_6ccd7a730aa74bb987d76fd4f7660626",
+            "crs": "EPSG:4326",
+            "sha256": "68e4dfcf4f9f749ff9ee4f9218d6715c1f6d32b119fce48c38d24ce9f72f4a18"
+          },
+          "outputLayer": {
+            "id": "lyr_3c11d6c310bd464d8afe8af115db1403",
+            "name": "residential_clip",
+            "kind": "vector",
+            "crs": "EPSG:4326",
+            "featureCount": 6,
+            "geometryTypes": [
+              "Polygon"
+            ],
+            "raster": null,
+            "sha256": "71f5ae2b4aa89aee4eeed431a85bdeabe8f44a5ef7690e07b14e3c331cf63b61"
+          },
+          "resultSummary": {
+            "ok": true,
+            "engine": "GeoLibre WASM · 浏览器计算"
+          },
+          "durationMs": 53,
+          "acceptance": [
+            {
+              "type": "geometry_types",
+              "ok": true,
+              "detail": "geometry_types=Polygon"
+            }
+          ]
+        },
+        {
+          "stepId": "stat",
+          "kind": "tool",
+          "label": "field_statistics",
+          "phase": "pass",
+          "startedAt": "2026-10-24T15:30:48.996Z",
+          "args": {
+            "layer": "lyr_3c11d6c310bd464d8afe8af115db1403",
+            "field": "households"
+          },
+          "input": {
+            "layerId": "lyr_3c11d6c310bd464d8afe8af115db1403",
+            "crs": "EPSG:4326",
+            "sha256": "71f5ae2b4aa89aee4eeed431a85bdeabe8f44a5ef7690e07b14e3c331cf63b61"
+          },
+          "outputLayer": null,
+          "resultSummary": {
+            "layer": "lyr_3c11d6c310bd464d8afe8af115db1403",
+            "field": "households",
+            "count": 6,
+            "null_count": 0,
+            "unique_count": 6,
+            "min": 150,
+            "max": 2000,
+            "mean": 850,
+            "median": 725,
+            "std": 675.2777206453653
+          },
+          "durationMs": 1,
+          "acceptance": [
+            {
+              "type": "field_value",
+              "ok": true,
+              "detail": "count=6（要求 gte 1）"
+            }
+          ]
+        }
+      ],
+      "planIssues": [],
+      "honest": {
+        "headline": "计划完成：3 个步骤全部成功，2 个可交付图层。",
+        "deliverables": [
+          {
+            "stepId": "buf",
+            "layerId": "lyr_9abed0d3fd754a69b95affd2472f73e4",
+            "name": "schools_buffer"
+          },
+          {
+            "stepId": "cover",
+            "layerId": "lyr_3c11d6c310bd464d8afe8af115db1403",
+            "name": "residential_clip"
+          }
+        ],
+        "next": [
+          "结果图层已在地图与图层库中，可用 export_features 导出。"
+        ]
+      },
+      "finishedAt": "2026-10-24T15:30:48.998Z",
+      "durationMs": 171
+    }
+  ]
+}

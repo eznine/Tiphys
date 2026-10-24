@@ -265,6 +265,42 @@ export const TASK_CARDS: TaskCardPreset[] = [
       } };
     },
   },
+  {
+    id: "service-zone",
+    title: "学校服务圈统计",
+    detail: "点服务圈 + 居住区覆盖裁剪 + 户数统计（欧式距离，口径见说明）",
+    slots: [
+      { key: "schools", label: "学校（点）", kind: "vector", geometry: "point" },
+      { key: "homes", label: "居住区（面）", kind: "vector", geometry: "polygon" },
+    ],
+    needsNumeric: { label: "服务半径", default: 1000, min: 10, max: 50000, unit: "米" },
+    defaultGoal: draft => `统计学校 ${draft.numeric ?? 1000} 米服务圈覆盖的居住区与户数`,
+    build: (draft, layers) => {
+      const schools = vectorOf(layers, draft.inputs.schools, "point");
+      const homes = vectorOf(layers, draft.inputs.homes, "polygon");
+      if (!schools || !homes) return { ok: false, reason: "需要学校点图层与居住区面图层。", degrade: "路网距离版服务圈暂不支持；本卡为欧式距离。" };
+      const distance = Number(draft.numeric ?? 1000);
+      const plan: Plan = {
+        goal: draft.goal || `统计 ${schools.name} ${distance} 米服务圈覆盖的居住区户数`,
+        steps: [
+          step("buf", { kind: "operation", spec: { operation: "gis.buffer", version: 1, input: schools.id, params: { distance, units: "meters" } } }, [], [
+            { type: "feature_count", op: "eq", value: Number(schools.featureCount ?? 0) },
+          ]),
+          step("cover", { kind: "operation", spec: { operation: "gis.clip", version: 1, input: homes.id, params: { maskLayerId: "@buf" } } }, ["buf"], [
+            { type: "geometry_types", contains: ["Polygon", "MultiPolygon"] },
+          ]),
+          step("stat", { kind: "tool", tool: "field_statistics", args: { layer: "@cover", field: "households" } }, ["cover"], [
+            { type: "field_value", field: "count", op: "gte", value: 1 },
+          ]),
+        ],
+      };
+      return { ok: true, plan, explanation: {
+        engine: "浏览器本地 GeoLibre WASM 计算，数据不出设备。",
+        estimate: `「${schools.name}」${schools.featureCount ?? "?"} 所 × ${distance} 米圈 ∩「${homes.name}」。`,
+        budget: "统计口径：欧式距离、相交即计入（块与任一服务圈有重叠就裁入，跨圈不重复累计户数）；部分覆盖的块按整块户数计入，不做面积加权。路网距离暂不支持，需要时先向用户澄清。",
+      } };
+    },
+  },
 ];
 
 export function cardById(id: string) {

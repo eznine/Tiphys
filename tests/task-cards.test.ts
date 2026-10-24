@@ -34,8 +34,8 @@ const draftFor = (id: string, facts = FACTS) => {
 };
 
 test("all presets build plans that pass plan-time validation", async () => {
-  assert.equal(TASK_CARDS.length, 6, "task cards: five first-batch presets + the hydrology vertical");
-  const cases: string[] = ["buffer-points", "clip-polygons", "intersect-area", "dem-slope", "hydro-network"];
+  assert.equal(TASK_CARDS.length, 7, "task cards: five first-batch + hydrology + service zone");
+  const cases: string[] = ["buffer-points", "clip-polygons", "intersect-area", "dem-slope", "hydro-network", "service-zone"];
   for (const id of cases) {
     const { preset, draft } = draftFor(id);
     const built = preset.build(draft, FACTS);

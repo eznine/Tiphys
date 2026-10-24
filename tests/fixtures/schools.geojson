@@ -1,0 +1,82 @@
+{
+  "type": "FeatureCollection",
+  "name": "schools",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "sid": "S1",
+        "level": "小学"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.3,
+          39.86
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "sid": "S2",
+        "level": "小学"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.38,
+          39.9
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "sid": "S3",
+        "level": "中学"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.44,
+          39.86
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "sid": "S4",
+        "level": "中学"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.5,
+          39.92
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "sid": "S5",
+        "level": "高中"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.34,
+          39.94
+        ]
+      }
+    }
+  ]
+}

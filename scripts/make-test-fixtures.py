@@ -118,6 +118,47 @@ def roads() -> dict:
     }
 
 
+def schools() -> dict:
+    """Stage 5B: five schools with levels, spread so service circles overlap partially."""
+    points = [
+        ("S1", "小学", 116.30, 39.86),
+        ("S2", "小学", 116.38, 39.90),
+        ("S3", "中学", 116.44, 39.86),
+        ("S4", "中学", 116.50, 39.92),
+        ("S5", "高中", 116.34, 39.94),
+    ]
+    return {
+        "type": "FeatureCollection",
+        "name": "schools",
+        "crs": {"type": "name", "properties": {"name": "urn:ogc:def:crs:OGC:1.3:CRS84"}},
+        "features": [
+            {"type": "Feature", "properties": {"sid": sid, "level": level}, "geometry": {"type": "Point", "coordinates": [lon, lat]}}
+            for sid, level, lon, lat in points
+        ],
+    }
+
+
+def residential() -> dict:
+    """Stage 5B: residential blocks with household counts, some inside service circles."""
+    blocks = [
+        ("R1", 800, [[116.29, 39.85], [116.33, 39.85], [116.33, 39.88], [116.29, 39.88]]),
+        ("R2", 1200, [[116.36, 39.89], [116.41, 39.89], [116.41, 39.92], [116.36, 39.92]]),
+        ("R3", 650, [[116.43, 39.85], [116.47, 39.85], [116.47, 39.88], [116.43, 39.88]]),
+        ("R4", 2000, [[116.49, 39.91], [116.55, 39.91], [116.55, 39.95], [116.49, 39.95]]),
+        ("R5", 300, [[116.33, 39.93], [116.36, 39.93], [116.36, 39.96], [116.33, 39.96]]),
+        ("R6", 150, [[116.60, 39.97], [116.63, 39.97], [116.63, 39.99], [116.60, 39.99]]),
+    ]
+    return {
+        "type": "FeatureCollection",
+        "name": "residential",
+        "crs": {"type": "name", "properties": {"name": "urn:ogc:def:crs:OGC:1.3:CRS84"}},
+        "features": [
+            {"type": "Feature", "properties": {"rid": rid, "households": households}, "geometry": {"type": "Polygon", "coordinates": [ring]}}
+            for rid, households, ring in blocks
+        ],
+    }
+
+
 def zone_a() -> dict:
     data = polygons()
     feature = data["features"][0]
@@ -152,6 +193,8 @@ def main() -> None:
     # Stage-4 mobile budget probe: 2.24M pixels exceeds the 2M mobile WASM budget.
     write_raster(OUT / "dem_over_budget.tif", dem(1600, 1400))
     write_json(OUT / "district_zones.geojson", polygons())
+    write_json(OUT / "schools.geojson", schools())
+    write_json(OUT / "residential.geojson", residential())
     write_json(OUT / "zone_a.geojson", zone_a())
     write_json(OUT / "bowtie.geojson", bowtie())
     write_json(OUT / "roads.geojson", roads())

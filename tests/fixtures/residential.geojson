@@ -1,0 +1,192 @@
+{
+  "type": "FeatureCollection",
+  "name": "residential",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "rid": "R1",
+        "households": 800
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              116.29,
+              39.85
+            ],
+            [
+              116.33,
+              39.85
+            ],
+            [
+              116.33,
+              39.88
+            ],
+            [
+              116.29,
+              39.88
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "rid": "R2",
+        "households": 1200
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              116.36,
+              39.89
+            ],
+            [
+              116.41,
+              39.89
+            ],
+            [
+              116.41,
+              39.92
+            ],
+            [
+              116.36,
+              39.92
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "rid": "R3",
+        "households": 650
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              116.43,
+              39.85
+            ],
+            [
+              116.47,
+              39.85
+            ],
+            [
+              116.47,
+              39.88
+            ],
+            [
+              116.43,
+              39.88
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "rid": "R4",
+        "households": 2000
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              116.49,
+              39.91
+            ],
+            [
+              116.55,
+              39.91
+            ],
+            [
+              116.55,
+              39.95
+            ],
+            [
+              116.49,
+              39.95
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "rid": "R5",
+        "households": 300
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              116.33,
+              39.93
+            ],
+            [
+              116.36,
+              39.93
+            ],
+            [
+              116.36,
+              39.96
+            ],
+            [
+              116.33,
+              39.96
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "rid": "R6",
+        "households": 150
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              116.6,
+              39.97
+            ],
+            [
+              116.63,
+              39.97
+            ],
+            [
+              116.63,
+              39.99
+            ],
+            [
+              116.6,
+              39.99
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}
