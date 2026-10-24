@@ -18,8 +18,24 @@ type CatalogTool = {
 type PanelJob = {
   jobId: string; label: string; status: string; progress: number;
   message: string; result?: Record<string, any>; error?: string;
+  taskId?: string;
+};
+
+/** Real lifecycle of a manual tool run, for the unified mobile task ledger. */
+export type ToolTaskEvent = {
+  taskId: string;
+  tool: string;
+  label: string;
+  args: Record<string, unknown>;
+  status: string;
+  progress: number;
+  message: string;
+  jobId?: string;
+  result?: Record<string, any>;
+  error?: string;
 };
 const SKIP = new Set(["ping", "list_layers", "job_status", "job_cancel"]);
+const UNIT_LABELS: Record<string, string> = { meters: "米", meter: "米", kilometers: "千米", kilometer: "千米", km: "千米", feet: "英尺", foot: "英尺", miles: "英里", degree: "度", degrees: "度", pixels: "像元", cells: "像元" };
 const FIELD_PARAMS = new Set(["field", "by_field", "field_name", "weight_field", "value_field", "line_field", "sort_field", "id_field"]);
 const L1_ORDER = ["矢量", "栅格", "地形", "水文", "遥感", "转换", "投影", "激光雷达", "数据管理", "查询", "图层", "GEE", "扩展", "其他工具"];
 const ACTIVE = new Set(["submitting", "queued", "running", "cancelling"]);
@@ -93,14 +109,16 @@ function detailOf(result?: Record<string, any>): string {
 const KIND_ZH: Record<string, string> = { vector: "矢量", raster: "栅格", table: "表格" };
 /** Chinese display name for a catalog tool: curated python-tool labels first,
  * then the translated GeoLibre dictionary, then the upstream label. */
-function toolTitle(item: CatalogTool): string {
+export function toolTitle(item: { name: string; label?: string }): string {
   return LABELS[item.name] ?? zhTool(item.name)?.name ?? item.label ?? item.name;
 }
-function toolDesc(item: CatalogTool): string {
+export function toolDesc(item: { name: string; description?: string }): string {
   return DESCRIPTIONS[item.name] ?? zhTool(item.name)?.desc ?? item.description?.split("\n")[0] ?? "";
 }
 
-export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers: DataLayer[]; onResult: (result: Record<string, any>) => void; request?: { id: number; tool?: string; search?: string }; selectedLayer?: DataLayer }) {
+export function ToolPanel({ layers, onResult, request, selectedLayer, onTask }: { layers: DataLayer[]; onResult: (result: Record<string, any>) => void; request?: { id: number; tool?: string; search?: string }; selectedLayer?: DataLayer; onTask?: (event: ToolTaskEvent) => void }) {
+  const onTaskRef = useRef(onTask);
+  onTaskRef.current = onTask;
   const [catalog, setCatalog] = useState<CatalogTool[] | null>(null);
   const [catalogHydrated, setCatalogHydrated] = useState(false);
   const [geeStatus, setGeeStatus] = useState<GeeAuthStatus | null>(null);
@@ -215,6 +233,8 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
   useEffect(() => {
     if (!job?.jobId) return;
     const jobId = job.jobId;
+    const taskId = job.taskId;
+    const label = job.label;
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
@@ -222,6 +242,10 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
         const j = await (await engineRequest(`/jobs/${jobId}`, { signal: controller.signal })).json();
         if (controller.signal.aborted) return;
         setJob(cur => cur?.jobId === jobId ? { ...cur, ...j, jobId, error: j.error ?? undefined } : cur);
+        if (taskId) onTaskRef.current?.({
+          taskId, tool: "", label, args: {}, status: String(j.status), progress: Number(j.progress) || 0,
+          message: String(j.message ?? ""), jobId, result: j.result, error: j.error ?? undefined,
+        });
         if (!ACTIVE.has(j.status)) {
           if (j.status === "completed" && j.result) onResult(j.result);
           return;
@@ -245,20 +269,28 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
       if (Array.isArray(value)) { if (value.length) args[name] = value; continue; }
       args[name] = schema.type === "number" || schema.type === "integer" ? Number(value) : value;
     }
-    const pending: PanelJob = { jobId: "", label: toolTitle(tool), status: "submitting", progress: 0, message: "提交中…" };
+    const taskId = `tool-${crypto.randomUUID()}`;
+    const pending: PanelJob = { jobId: "", label: toolTitle(tool), status: "submitting", progress: 0, message: "提交中…", taskId };
     setJob(pending);
     setConfirmed(false);
+    onTaskRef.current?.({ taskId, tool: tool.name, label: pending.label, args, status: "submitting", progress: 0, message: "提交中…" });
     try {
       const body = await (await engineRequest("/tools/run", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: tool.name, arguments: args }),
       })).json();
-      if (body.job_id) setJob({ ...pending, jobId: body.job_id, status: "queued", message: "排队中…" });
-      else {
+      if (body.job_id) {
+        setJob({ ...pending, jobId: body.job_id, status: "queued", message: "排队中…" });
+        onTaskRef.current?.({ taskId, tool: tool.name, label: pending.label, args, status: "queued", progress: 0, message: "排队中…", jobId: body.job_id });
+      } else {
         setJob({ ...pending, status: "completed", progress: 1, message: "完成", result: body });
+        onTaskRef.current?.({ taskId, tool: tool.name, label: pending.label, args, status: "completed", progress: 1, message: "完成", result: body });
         onResult(body);
       }
-    } catch (err) { setJob({ ...pending, status: "failed", error: String(err) }); }
+    } catch (err) {
+      setJob({ ...pending, status: "failed", error: String(err) });
+      onTaskRef.current?.({ taskId, tool: tool.name, label: pending.label, args, status: "failed", progress: 0, message: String(err), error: String(err) });
+    }
   };
   const cancel = async () => {
     if (!job?.jobId) return;
@@ -335,7 +367,7 @@ export function ToolPanel({ layers, onResult, request, selectedLayer }: { layers
         const fieldParam = FIELD_PARAMS.has(name) && columns.length > 0;
         const kindLayers = layerKind ? layers.filter(l => layerKind === "any" ? l.kind === "raster" || l.kind === "vector" : (l.kind ?? "vector") === layerKind) : [];
         const options = layerKind ? kindLayers.map(l => ({ value: l.id, label: l.kind === "raster" ? `${l.name}（栅格 ${l.raster?.width}×${l.raster?.height}）` : l.kind === "table" ? `${l.name}（表格 ${l.feature_count} 行）` : `${l.name} (${l.feature_count})` }))
-          : fieldParam ? columns.map(c => ({ value: c, label: c })) : schema.enum?.map(v => ({ value: v, label: v }));
+          : fieldParam ? columns.map(c => ({ value: c, label: c })) : schema.enum?.map(v => ({ value: v, label: name === "units" ? UNIT_LABELS[v] ?? v : v }));
         if (layerKind && schema["x-layer-multiple"]) {
           const selected = Array.isArray(values[name]) ? values[name] as string[] : [];
           return <label key={name} className="tool-field"><span>{label}</span>

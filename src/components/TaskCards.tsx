@@ -19,6 +19,10 @@ type RunSummary = {
   plan_issues?: { stepId: string | null; class: string; message: string }[];
 };
 
+export type TaskCardEvent =
+  | { type: "start"; taskId: string; cardId: string; title: string; goal: string; plan: unknown }
+  | { type: "finish"; taskId: string; cardId: string; summary?: RunSummary; error?: string };
+
 const toFacts = (layers: DataLayer[]): CardLayerFacts[] => layers.map(layer => ({
   id: layer.id, name: layer.name, kind: layer.kind ?? "vector", crs: layer.crs,
   featureCount: layer.feature_count, geometryTypes: layer.geometry_types, raster: layer.raster ?? null,
@@ -38,7 +42,7 @@ async function runEngineTool(name: string, args: Record<string, unknown>) {
   throw new Error("任务超出观察预算");
 }
 
-export function TaskCards({ layers, selectedLayerId, busy }: { layers: DataLayer[]; selectedLayerId?: string | null; busy?: boolean }) {
+export function TaskCards({ layers, selectedLayerId, busy, onTask }: { layers: DataLayer[]; selectedLayerId?: string | null; busy?: boolean; onTask?: (event: TaskCardEvent) => void }) {
   const facts = useMemo(() => toFacts(layers), [layers]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, CardDraft>>({});
@@ -89,12 +93,17 @@ export function TaskCards({ layers, selectedLayerId, busy }: { layers: DataLayer
 
   const run = async () => {
     if (!open || !draft || !built?.ok) return;
+    const taskId = `plan-${crypto.randomUUID()}`;
     setRunning(open.id); setRunError(""); setResult(null); setExportState(null); setExportError("");
+    onTask?.({ type: "start", taskId, cardId: open.id, title: open.title, goal: built.plan.goal, plan: built.plan });
     try {
       const summary = await runEngineTool("run_plan", { plan: built.plan }) as RunSummary;
       setResult({ cardId: open.id, summary });
+      onTask?.({ type: "finish", taskId, cardId: open.id, summary });
     } catch (error) {
-      setRunError(error instanceof Error ? error.message : String(error));
+      const message = error instanceof Error ? error.message : String(error);
+      setRunError(message);
+      onTask?.({ type: "finish", taskId, cardId: open.id, error: message });
     } finally { setRunning(null); }
   };
 

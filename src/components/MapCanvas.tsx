@@ -18,6 +18,7 @@ import { DataLayer, LayerSelection, syncDataLayers } from "../lib/dataLayers";
 import { engineHeaders } from "../lib/service";
 import { downloadMapPng, mapExportFilename } from "../lib/map-export";
 import { scheduleIdle } from "../lib/idle";
+import { Layers2, LocateFixed, Maximize2, Ruler, SquareDashed } from "lucide-react";
 
 type Props = {
   theme: "light" | "dark";
@@ -29,7 +30,70 @@ type Props = {
   aoi?: number[] | null;
   onAoiChange?: (bounds: number[] | null) => void;
   onOpenTable?: (layerId: string) => void;
+  /** "mobile" renders the touch control rail and tap-to-draw AOI. */
+  variant?: "desktop" | "mobile";
+  onViewChange?: (view: TiphysMapView) => void;
+  viewRequest?: { token: number; view: TiphysMapView | null } | null;
+  onFitAll?: () => void;
 };
+
+export type TiphysMapView = {
+  lng: number;
+  lat: number;
+  zoom: number;
+  bearing: number;
+  pitch: number;
+  mode: "2d" | "3d";
+  basemap: string;
+};
+
+const MEASURE_SOURCE = "tiphys-measure";
+const EARTH_RADIUS_M = 6371008.8;
+
+function haversine(a: [number, number], b: [number, number]) {
+  const toRad = (value: number) => (value * Math.PI) / 180;
+  const dLat = toRad(b[1] - a[1]);
+  const dLng = toRad(b[0] - a[0]);
+  const lat1 = toRad(a[1]);
+  const lat2 = toRad(b[1]);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * EARTH_RADIUS_M * Math.asin(Math.sqrt(h));
+}
+
+function formatDistance(meters: number) {
+  if (meters >= 1000) return `${(meters / 1000).toFixed(meters >= 10000 ? 0 : 2)} km`;
+  return `${meters.toFixed(meters >= 100 ? 0 : 1)} m`;
+}
+
+function measureData(points: [number, number][]) {
+  if (points.length < 2) return null;
+  return {
+    type: "FeatureCollection" as const,
+    features: [
+      { type: "Feature" as const, properties: {}, geometry: { type: "LineString" as const, coordinates: points } },
+      ...points.map(point => ({ type: "Feature" as const, properties: {}, geometry: { type: "Point" as const, coordinates: point } })),
+    ],
+  };
+}
+
+function renderMeasure(map: Map, points: [number, number][]) {
+  const source = map.getSource(MEASURE_SOURCE) as maplibregl.GeoJSONSource | undefined;
+  const data = measureData(points);
+  if (!data) {
+    if (map.getLayer(`${MEASURE_SOURCE}-line`)) map.removeLayer(`${MEASURE_SOURCE}-line`);
+    if (map.getLayer(`${MEASURE_SOURCE}-point`)) map.removeLayer(`${MEASURE_SOURCE}-point`);
+    if (source) map.removeSource(MEASURE_SOURCE);
+    return;
+  }
+  if (source) source.setData(data);
+  else map.addSource(MEASURE_SOURCE, { type: "geojson", data });
+  if (!map.getLayer(`${MEASURE_SOURCE}-line`)) map.addLayer({ id: `${MEASURE_SOURCE}-line`, type: "line", source: MEASURE_SOURCE,
+    filter: ["==", ["geometry-type"], "LineString"],
+    paint: { "line-color": "#4C85D9", "line-width": 2.2, "line-dasharray": [2, 1.5] } });
+  if (!map.getLayer(`${MEASURE_SOURCE}-point`)) map.addLayer({ id: `${MEASURE_SOURCE}-point`, type: "circle", source: MEASURE_SOURCE,
+    filter: ["==", ["geometry-type"], "Point"],
+    paint: { "circle-radius": 5, "circle-color": "#ffffff", "circle-stroke-width": 2, "circle-stroke-color": "#4C85D9" } });
+}
 
 const TERRAIN_SRC = "tiphys-terrain-dem";
 const DEFAULT_CENTER: [number, number] = [20, 20];
@@ -92,7 +156,8 @@ function boundsFromPoints(a: maplibregl.LngLat, b: maplibregl.LngLat): number[] 
   return [Math.min(a.lng, b.lng), Math.min(a.lat, b.lat), Math.max(a.lng, b.lng), Math.max(a.lat, b.lat)];
 }
 
-export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus, selection = null, onSelect, aoi = null, onAoiChange, onOpenTable }: Props) {
+export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus, selection = null, onSelect, aoi = null, onAoiChange, onOpenTable, variant = "desktop", onViewChange, viewRequest = null, onFitAll }: Props) {
+  const mobile = variant === "mobile";
   const dataLayersRef = useRef(dataLayers);
   dataLayersRef.current = dataLayers;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -112,12 +177,19 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   onAoiChangeRef.current = onAoiChange;
   const onOpenTableRef = useRef(onOpenTable);
   onOpenTableRef.current = onOpenTable;
+  const onViewChangeRef = useRef(onViewChange);
+  onViewChangeRef.current = onViewChange;
+  const onFitAllRef = useRef(onFitAll);
+  onFitAllRef.current = onFitAll;
   const identifyRef = useRef<maplibregl.Popup | null>(null);
   const drawingAoiRef = useRef(false);
   const appliedSelection = useRef<LayerSelection | null>(null);
+  const appliedViewToken = useRef<number | undefined>(undefined);
+  const aoiStartRef = useRef<[number, number] | null>(null);
+  const locateTimer = useRef<number | undefined>(undefined);
 
   const [basemapId, setBasemapId] = useState<BasemapId>("liberty");
-  const [mode3d, setMode3d] = useState(true);
+  const [mode3d, setMode3d] = useState(!mobile);
   const [terrain, setTerrain] = useState(false);
   const [buildings, setBuildings] = useState(true);
   const basemapRef = useRef<BasemapId>("liberty");
@@ -128,15 +200,69 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   const exportStatusTimer = useRef<number | undefined>(undefined);
   const draftAoiRef = useRef<number[] | null>(null);
   drawingAoiRef.current = drawingAoi;
+  const [center, setCenter] = useState({ lng: 20, lat: 20, zoom: 1.6 });
+  const [mobileBasemapOpen, setMobileBasemapOpen] = useState(false);
+  const [measuring, setMeasuring] = useState(false);
+  const measuringRef = useRef(false);
+  measuringRef.current = measuring;
+  const [measurePoints, setMeasurePoints] = useState<[number, number][]>([]);
+  const measurePointsRef = useRef<[number, number][]>([]);
+  measurePointsRef.current = measurePoints;
+  const [locateStatus, setLocateStatus] = useState("");
+  const [basemapNotice, setBasemapNotice] = useState("");
+  const [mapReady, setMapReady] = useState(false);
 
   const themeRef = useRef(theme);
   themeRef.current = theme;
+  const mobileRef = useRef(mobile);
+  mobileRef.current = mobile;
   const mode3dRef = useRef(mode3d);
   mode3dRef.current = mode3d;
   const terrainRef = useRef(terrain);
   terrainRef.current = terrain;
   const buildingsRef = useRef(buildings);
   buildingsRef.current = buildings;
+
+  function reportView(map: Map) {
+    const current = map.getCenter();
+    const zoom = map.getZoom();
+    setCenter({ lng: current.lng, lat: current.lat, zoom });
+    onViewChangeRef.current?.({
+      lng: current.lng, lat: current.lat, zoom,
+      bearing: map.getBearing(), pitch: map.getPitch(),
+      mode: mode3dRef.current ? "3d" : "2d", basemap: basemapRef.current,
+    });
+  }
+
+  function setMeasureMode(next: boolean) {
+    setMeasuring(next);
+    if (!next) {
+      measurePointsRef.current = [];
+      setMeasurePoints([]);
+      if (mapRef.current) renderMeasure(mapRef.current, []);
+    } else {
+      closeIdentify();
+    }
+  }
+
+  function addMeasurePoint(lngLat: { lng: number; lat: number }) {
+    const next: [number, number][] = [...measurePointsRef.current, [lngLat.lng, lngLat.lat]];
+    measurePointsRef.current = next;
+    setMeasurePoints(next);
+    if (mapRef.current) renderMeasure(mapRef.current, next);
+  }
+
+  function undoMeasurePoint() {
+    const next = measurePointsRef.current.slice(0, -1);
+    measurePointsRef.current = next;
+    setMeasurePoints(next);
+    if (mapRef.current) renderMeasure(mapRef.current, next);
+  }
+
+  function closeIdentify() {
+    identifyRef.current?.remove();
+    identifyRef.current = null;
+  }
 
   function applyStyleExtras(map: Map) {
     applySky(map, themeRef.current);
@@ -161,6 +287,7 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
     }
     setBuildingsVisible(map, buildingsRef.current);
     renderAoi(map, draftAoiRef.current ?? aoiRef.current);
+    renderMeasure(map, measurePointsRef.current);
   }
 
   function loadBasemap(map: Map, id: BasemapId) {
@@ -193,7 +320,11 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
     let cancelControls = () => {};
     let cancelTerrain = () => {};
     map.on("mousemove", e => statusRef.current?.({ lng: e.lngLat.wrap().lng, lat: e.lngLat.lat, zoom: map.getZoom() }));
-    map.on("moveend", () => { const center = map.getCenter().wrap(); statusRef.current?.({ lng: center.lng, lat: center.lat, zoom: map.getZoom() }); });
+    map.on("moveend", () => {
+      const center = map.getCenter().wrap();
+      statusRef.current?.({ lng: center.lng, lat: center.lat, zoom: map.getZoom() });
+      reportView(map);
+    });
     const closeIdentify = () => { identifyRef.current?.remove(); identifyRef.current = null; };
     const geometryLabels: Record<string, string> = { Point: "点", MultiPoint: "多点", LineString: "线", MultiLineString: "多线", Polygon: "面", MultiPolygon: "多面" };
     const showIdentify = (event: maplibregl.MapMouseEvent, feature: maplibregl.MapGeoJSONFeature) => {
@@ -252,6 +383,28 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
     const escapeIdentify = (event: KeyboardEvent) => { if (event.key === "Escape") closeIdentify(); };
     window.addEventListener("keydown", escapeIdentify);
     map.on("click", event => {
+      if (measuringRef.current) {
+        addMeasurePoint(event.lngLat.wrap());
+        return;
+      }
+      if (mobileRef.current && drawingAoiRef.current) {
+        const point = event.lngLat.wrap();
+        const start = aoiStartRef.current;
+        if (!start) {
+          aoiStartRef.current = [point.lng, point.lat];
+          const bounds = [point.lng, point.lat, point.lng, point.lat];
+          draftAoiRef.current = bounds;
+          setDraftAoi(bounds);
+        } else {
+          const bounds = [Math.min(start[0], point.lng), Math.min(start[1], point.lat), Math.max(start[0], point.lng), Math.max(start[1], point.lat)];
+          aoiStartRef.current = null;
+          draftAoiRef.current = null;
+          setDraftAoi(null);
+          setDrawingAoi(false);
+          if (bounds[2] - bounds[0] > 0.00001 && bounds[3] - bounds[1] > 0.00001) onAoiChangeRef.current?.(bounds);
+        }
+        return;
+      }
       if (drawingAoiRef.current) return;
       const hit = map.queryRenderedFeatures(event.point)
         .find(feature => String((feature as { source?: string }).source ?? "").startsWith("tiphys-lyr_") && feature.id != null);
@@ -263,6 +416,18 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
       onSelectRef.current?.({ layerId, featureIds: [id] }, event.originalEvent.shiftKey || event.originalEvent.metaKey || event.originalEvent.ctrlKey);
     });
 
+    let fallbackTried = false;
+    map.on("error", event => {
+      if (fallbackTried || map.isStyleLoaded()) return;
+      const message = String((event as unknown as { error?: { message?: string } }).error?.message ?? "");
+      if (!/fetch|failed|load|ajax|style/i.test(message)) return;
+      fallbackTried = true;
+      basemapRef.current = "satellite";
+      setBasemapId("satellite");
+      setBasemapNotice("街道底图加载失败，已切换到卫星影像");
+      window.setTimeout(() => setBasemapNotice(""), 5200);
+    });
+
     map.on("style.load", () => {
       applyStyleExtras(map);
       syncDataLayers(map, dataLayersRef.current);
@@ -270,6 +435,8 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
 
     map.once("load", () => {
       applyStyleExtras(map);
+      setMapReady(true);
+      reportView(map);
       // The terrain tile source is metadata-only, so it can wait for idle. AOI
       // and data layers were already rendered by style.load above.
       cancelTerrain = scheduleIdle(() => {
@@ -289,14 +456,38 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
     });
 
     mapRef.current = map;
-    cancelControls = scheduleIdle(() => {
-      if (mapRef.current !== map) return;
-      map.addControl(
-        new maplibregl.NavigationControl({ visualizePitch: true, showCompass: true }),
-        "top-right",
-      );
-      map.addControl(new maplibregl.ScaleControl({ maxWidth: 100 }), "bottom-left");
-    }, { timeout: 900, fallbackDelay: 120 });
+    if (mobileRef.current) {
+      // MapLibre opens the compact attribution by default and can re-create it
+      // after a style load. Collapse it, then let the "i" button toggle our own
+      // class so the credit card is available but never covers the map.
+      const tidyAttribution = () => {
+        const details = containerRef.current?.querySelector<HTMLDetailsElement>(".maplibregl-ctrl-attrib");
+        if (!details) return;
+        details.open = false;
+        details.classList.remove("maplibregl-compact-show", "m-attrib-open");
+        const summary = details.querySelector("summary");
+        if (summary && !summary.dataset.tiphysAttrib) {
+          summary.dataset.tiphysAttrib = "1";
+          summary.addEventListener("click", () => {
+            requestAnimationFrame(() => details.classList.toggle("m-attrib-open", details.open));
+          });
+        }
+      };
+      tidyAttribution();
+      window.setTimeout(tidyAttribution, 500);
+      window.setTimeout(tidyAttribution, 1600);
+      window.setTimeout(tidyAttribution, 3200);
+    }
+    if (!mobileRef.current) {
+      cancelControls = scheduleIdle(() => {
+        if (mapRef.current !== map) return;
+        map.addControl(
+          new maplibregl.NavigationControl({ visualizePitch: true, showCompass: true }),
+          "top-right",
+        );
+        map.addControl(new maplibregl.ScaleControl({ maxWidth: 100 }), "bottom-left");
+      }, { timeout: 900, fallbackDelay: 120 });
+    }
     const observer = new ResizeObserver(() => map.resize());
     observer.observe(containerRef.current);
     (window as unknown as { __tiphysMap?: Map }).__tiphysMap = map;
@@ -314,6 +505,7 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
 
   useEffect(() => () => {
     if (exportStatusTimer.current !== undefined) window.clearTimeout(exportStatusTimer.current);
+    if (locateTimer.current !== undefined) window.clearTimeout(locateTimer.current);
   }, []);
 
   useEffect(() => {
@@ -327,6 +519,7 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
     if (!map || basemapRef.current === basemapId) return;
     basemapRef.current = basemapId;
     loadBasemap(map, basemapId);
+    reportView(map);
   }, [basemapId]);
 
   useEffect(() => {
@@ -345,7 +538,25 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
     } catch {
       /* ignore */
     }
+    reportView(map);
   }, [mode3d]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const request = viewRequest;
+    if (!map || !request || request.token === appliedViewToken.current) return;
+    appliedViewToken.current = request.token;
+    const view = request.view;
+    if (!view) return;
+    if (view.basemap && BASEMAPS.some(item => item.id === view.basemap)) setBasemapId(view.basemap as BasemapId);
+    setMode3d(view.mode === "3d");
+    if (Number.isFinite(view.lng) && Number.isFinite(view.lat) && Number.isFinite(view.zoom)) {
+      focusRequestedRef.current = true;
+      introDone.current = true;
+      map.stop();
+      map.jumpTo({ center: [view.lng, view.lat], zoom: view.zoom, bearing: view.bearing, pitch: view.pitch });
+    }
+  }, [viewRequest]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -396,6 +607,10 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    if (mobileRef.current) {
+      map.getCanvas().style.cursor = drawingAoi ? "crosshair" : "";
+      return;
+    }
     if (!drawingAoi) {
       map.dragPan.enable();
       map.getCanvas().style.cursor = "";
@@ -440,6 +655,18 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   useEffect(() => {
     if (aoi) { draftAoiRef.current = null; setDraftAoi(null); }
   }, [aoi]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.getCanvas().style.cursor = measuring ? "crosshair" : "";
+    if (measuring) {
+      setDrawingAoi(false);
+      closeIdentify();
+    }
+    // closeIdentify only touches a ref and the map; it is stable enough here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [measuring]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -503,11 +730,43 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   }
 
   const current = getBasemap(basemapId);
+  let measureTotal = 0;
+  for (let i = 1; i < measurePoints.length; i++) measureTotal += haversine(measurePoints[i - 1], measurePoints[i]);
+
+  function toggleAoi() {
+    setMeasuring(false);
+    setDrawingAoi(value => {
+      const next = !value;
+      if (!next) {
+        aoiStartRef.current = null;
+        draftAoiRef.current = null;
+        setDraftAoi(null);
+      }
+      return next;
+    });
+    setMobileBasemapOpen(false);
+  }
+
+  function locateMe() {
+    const map = mapRef.current;
+    if (!map) return;
+    if (locateTimer.current !== undefined) window.clearTimeout(locateTimer.current);
+    if (!("geolocation" in navigator)) { setLocateStatus("此设备不支持定位"); return; }
+    setLocateStatus("正在定位…");
+    navigator.geolocation.getCurrentPosition(position => {
+      map.flyTo({ center: [position.coords.longitude, position.coords.latitude], zoom: 14, duration: 1200 });
+      setLocateStatus(`已定位 · 精度约 ${Math.round(position.coords.accuracy)} m`);
+      locateTimer.current = window.setTimeout(() => setLocateStatus(""), 3800);
+    }, error => {
+      setLocateStatus(error.code === error.PERMISSION_DENIED ? "定位权限被拒绝" : "定位失败或超时");
+      locateTimer.current = window.setTimeout(() => setLocateStatus(""), 3800);
+    }, { enableHighAccuracy: true, timeout: 9000 });
+  }
 
   return (
-    <div className="map-canvas-wrap">
+    <div className={"map-canvas-wrap" + (mobile ? " map-canvas-mobile" : "")}>
       <div className="maplibre-map" ref={containerRef} />
-      <div className="map-controls" aria-label="Map controls">
+      {!mobile && <div className="map-controls" aria-label="Map controls">
         <div className="map-ctrl-group">
           <button
             type="button"
@@ -603,7 +862,58 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
             </ul>
           )}
         </div>
-      </div>
+      </div>}
+
+      {mobile && <>
+        <div className="map-touch-controls" aria-label="地图控件">
+          <div className="map-touch-group" role="group" aria-label="投影">
+            <button type="button" data-active={!mode3d} onClick={() => setMode3d(false)} aria-pressed={!mode3d}>2D</button>
+            <button type="button" data-active={mode3d} onClick={() => setMode3d(true)} aria-pressed={mode3d}>3D</button>
+          </div>
+          <div className="map-touch-basemap">
+            <button type="button" data-active={mobileBasemapOpen} aria-expanded={mobileBasemapOpen}
+              aria-label="切换底图" title={`底图：${current.label}`}
+              onClick={() => setMobileBasemapOpen(open => !open)}>
+              <Layers2 size={18} strokeWidth={1.8} />
+            </button>
+            {mobileBasemapOpen && <div className="map-touch-basemap-menu" role="listbox" aria-label="底图">
+              {BASEMAPS.map(item => <button key={item.id} type="button" role="option" aria-selected={item.id === basemapId}
+                data-active={item.id === basemapId}
+                onClick={() => { setBasemapId(item.id); setMobileBasemapOpen(false); }}>{item.label}</button>)}
+            </div>}
+          </div>
+          <button type="button" aria-label="定位到我的位置" title="定位" onClick={locateMe}><LocateFixed size={18} strokeWidth={1.8} /></button>
+          <button type="button" aria-label="缩放至全部图层" title="全图" onClick={() => onFitAllRef.current?.()}><Maximize2 size={18} strokeWidth={1.8} /></button>
+          <button type="button" data-active={drawingAoi} aria-pressed={drawingAoi} aria-label="绘制分析范围 AOI" title="AOI 框选" onClick={toggleAoi}><SquareDashed size={18} strokeWidth={1.8} /></button>
+          <button type="button" data-active={measuring} aria-pressed={measuring} aria-label="测量距离" title="测距"
+            onClick={() => setMeasureMode(!measuring)}><Ruler size={18} strokeWidth={1.8} /></button>
+        </div>
+
+        {drawingAoi && <div className="map-mode-hint" role="status">
+          {aoiStartRef.current ? "点击第二个角点完成 AOI" : "点两下地图确认 AOI 对角"}
+          <button type="button" onClick={toggleAoi}>取消</button>
+        </div>}
+
+        {measuring && <div className="map-measure-hud" role="status">
+          <span className="map-measure-label">测距</span>
+          <strong>{measurePoints.length < 2 ? "点击地图开始" : formatDistance(measureTotal)}</strong>
+          <span className="map-measure-count">{measurePoints.length} 点</span>
+          <div className="map-measure-actions">
+            <button type="button" disabled={!measurePoints.length} onClick={undoMeasurePoint}>撤销</button>
+            <button type="button" onClick={() => setMeasureMode(false)}>结束</button>
+          </div>
+        </div>}
+
+        {locateStatus && <div className="map-locate-status" role="status">{locateStatus}</div>}
+        {basemapNotice && <div className="map-basemap-notice" role="status">{basemapNotice}</div>}
+        {!mapReady && !basemapNotice && <div className="map-basemap-notice" role="status">正在加载底图…</div>}
+
+        {!measuring && <div className="map-touch-readout" aria-label="地图坐标与比例">
+          <span>{center.lng.toFixed(4)}°, {center.lat.toFixed(4)}°</span>
+          <span>Z {center.zoom.toFixed(1)}</span>
+          {aoi && <span className="map-touch-aoi">AOI</span>}
+        </div>}
+      </>}
     </div>
   );
 }

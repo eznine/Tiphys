@@ -7,6 +7,9 @@ const host = process.env.TAURI_DEV_HOST;
 // https://vite.dev/config/
 export default defineConfig(() => ({
   plugins: [react()],
+  // Worktree isolation: node_modules is shared with F:\tiphys through a junction,
+  // so keep this worktree's dep cache separate from a concurrent dev server.
+  cacheDir: "node_modules/.vite-mobile-v22",
   build: { license: { fileName: "licenses/frontend.md" } },
   // maplibre-gl v6 loads its module worker relative to its own file; pre-bundling breaks that URL.
   optimizeDeps: { exclude: ["maplibre-gl", "geolibre-wasm"] },
@@ -31,6 +34,7 @@ export default defineConfig(() => ({
       // 3. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],
     },
+    ...(process.env.VITE_FS_ALLOW ? { fs: { allow: [process.cwd(), process.env.VITE_FS_ALLOW] } } : {}),
     proxy: {
       // Optional: fetch('/engine/ping') → Python sidecar
       "/engine": {

@@ -1,0 +1,91 @@
+{
+  "generated_at": "2026-10-24T17:22:03.068Z",
+  "checks": [
+    {
+      "name": "四入口 Dock 渲染",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "地图画布真实存在",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "顶部图层/工具入口",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "导入真实样例图层",
+      "ok": true,
+      "detail": "badge=1"
+    },
+    {
+      "name": "图层抽屉打开",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "抽屉可真实拖动并吸附",
+      "ok": true,
+      "detail": "y=59"
+    },
+    {
+      "name": "图层显隐与地图状态同步",
+      "ok": true,
+      "detail": "aria-pressed=false"
+    },
+    {
+      "name": "工具箱目录加载",
+      "ok": true,
+      "detail": "39 visible rows"
+    },
+    {
+      "name": "工具真实提交并生成 job",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "缓冲区任务执行结束",
+      "ok": true,
+      "detail": "buffer 完成 · 100% beijing_points_buffer · 5 个要素"
+    },
+    {
+      "name": "任务中心汇总真实任务",
+      "ok": true,
+      "detail": "1 条"
+    },
+    {
+      "name": "任务详情包含验证证据",
+      "ok": true,
+      "detail": "已完成 10/25 01:21 缓冲区 验证通过 手动工具 · 浏览器本地 WASM 默认工程 耗时 3 秒 引擎报告 100% 验证通过 输出存在、可读取且坐标系明确。 输出图层「beijing_points_buff"
+    },
+    {
+      "name": "工程页显示当前工程",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "数据集引用真实图层",
+      "ok": true,
+      "detail": "本工程图层 · 2 beijing_points 矢量 · 5 个要素 · EPSG:4326 移出 beijing_points_buffer 矢量 · 5 个要素 · EPSG:32650 移出 "
+    },
+    {
+      "name": "任务卡真实执行并给出验收",
+      "ok": true,
+      "detail": "计划完成：1 个步骤全部成功，1 个可交付图层。 buf gis.buffer · pass ✓ feature_count=5（要求 eq 5） ✓ geometry_types=Polygon 导"
+    },
+    {
+      "name": "任务卡进入统一任务账本",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "横屏抽屉切换为侧栏",
+      "ok": true,
+      "detail": "460×390"
+    }
+  ],
+  "errors": []
+}
