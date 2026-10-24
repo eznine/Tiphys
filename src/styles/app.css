@@ -55,7 +55,23 @@
 .layer-menu-title { padding: 7px 9px; font-size: 11px; color: var(--tiphys-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-bottom: 1px solid var(--tiphys-border); margin-bottom: 4px; }
 .layer-context-menu button { display: block; border: 0; color: var(--tiphys-text); background: transparent; padding: 8px 10px; border-radius: 5px; font-size: 12px; width: 100%; text-align: left; cursor: pointer; }
 .layer-context-menu button:hover { background: var(--tiphys-accent-muted); }
+.layer-menu-separator { height: 1px; background: var(--tiphys-border); margin: 5px 4px; }
+.layer-context-menu button.layer-menu-danger { color: #b91c1c; }
+.layer-context-menu button.layer-menu-danger:hover { background: color-mix(in srgb, #b91c1c 12%, transparent); }
+.layer-context-menu button.layer-menu-danger.active { background: #b91c1c; color: #fff; font-weight: 600; }
+.layer-menu-note { margin: 4px 10px 2px; font-size: 10.5px; color: var(--tiphys-text-muted); line-height: 1.45; }
 .map-viewport { flex: 1; min-height: 0; position: relative; overflow: hidden; }
+.maplibregl-popup.tiphys-identify-popup .maplibregl-popup-content { background: var(--tiphys-surface-elevated); color: var(--tiphys-text); border: 1px solid var(--tiphys-border); border-radius: 9px; padding: 10px 12px; box-shadow: 0 10px 30px color-mix(in srgb, var(--tiphys-text) 20%, transparent); }
+.maplibregl-popup.tiphys-identify-popup .maplibregl-popup-close-button { color: var(--tiphys-text-muted); font-size: 15px; width: 22px; height: 22px; }
+.tiphys-identify { font-size: 12px; max-height: 240px; overflow: auto; }
+.tiphys-identify-title { font-weight: 600; font-size: 12.5px; padding-right: 18px; margin-bottom: 6px; }
+.tiphys-identify dl { display: grid; grid-template-columns: minmax(64px, auto) 1fr; gap: 3px 10px; margin: 0; }
+.tiphys-identify dt { color: var(--tiphys-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tiphys-identify dd { margin: 0; word-break: break-all; }
+.tiphys-identify-note { margin: 5px 0 0; font-size: 11px; color: var(--tiphys-text-muted); }
+.tiphys-identify-actions { margin-top: 8px; display: flex; gap: 6px; }
+.tiphys-identify-actions button { border: 1px solid var(--tiphys-border); background: var(--tiphys-accent-muted); color: var(--tiphys-text); border-radius: 5px; padding: 4px 9px; font-size: 11.5px; cursor: pointer; }
+.tiphys-identify-actions button:hover { border-color: var(--tiphys-accent); }
 .attribute-table { height: 280px; min-height: 180px; max-height: 50%; display: flex; flex-direction: column; background: var(--tiphys-surface); border-top: 1px solid var(--tiphys-border); font-size: 12px; }
 .attribute-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--tiphys-border); }
 .attribute-header strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
@@ -753,6 +769,10 @@ textarea {
 .ribbon-tabs button:hover { background: var(--tiphys-accent-muted); }
 .ribbon-tabs .ribbon-agent-tab { color: var(--tiphys-accent); font-weight: 600; }
 .ribbon-tabs > span { margin-left: auto; font-size: 11px; color: var(--tiphys-text-muted); }
+.ribbon-tool-search { margin-left: auto; display: flex; align-items: center; gap: 5px; height: 24px; padding: 0 8px; border: 1px solid var(--tiphys-border); border-radius: 6px; color: var(--tiphys-text-muted); background: var(--tiphys-surface); }
+.ribbon-tool-search:focus-within { border-color: var(--tiphys-accent); }
+.ribbon-tool-search input { border: 0; outline: 0; background: transparent; color: var(--tiphys-text); font-size: 11.5px; width: 190px; }
+.ribbon-tool-search input::placeholder { color: var(--tiphys-text-muted); }
 .ribbon-tools { display: flex; height: 87px; padding: 4px 12px 3px; gap: 8px; overflow-x: auto; }
 .ribbon-group { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; padding: 0 12px 0 2px; border-right: 1px solid var(--tiphys-border); }
 .ribbon-group > div { display: flex; align-items: center; flex: 1; gap: 2px; }

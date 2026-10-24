@@ -28,6 +28,7 @@ type Props = {
   onSelect?: (selection: LayerSelection | null, additive: boolean) => void;
   aoi?: number[] | null;
   onAoiChange?: (bounds: number[] | null) => void;
+  onOpenTable?: (layerId: string) => void;
 };
 
 const TERRAIN_SRC = "tiphys-terrain-dem";
@@ -91,7 +92,7 @@ function boundsFromPoints(a: maplibregl.LngLat, b: maplibregl.LngLat): number[] 
   return [Math.min(a.lng, b.lng), Math.min(a.lat, b.lat), Math.max(a.lng, b.lng), Math.max(a.lat, b.lat)];
 }
 
-export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus, selection = null, onSelect, aoi = null, onAoiChange }: Props) {
+export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus, selection = null, onSelect, aoi = null, onAoiChange, onOpenTable }: Props) {
   const dataLayersRef = useRef(dataLayers);
   dataLayersRef.current = dataLayers;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -109,6 +110,9 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   aoiRef.current = aoi;
   const onAoiChangeRef = useRef(onAoiChange);
   onAoiChangeRef.current = onAoiChange;
+  const onOpenTableRef = useRef(onOpenTable);
+  onOpenTableRef.current = onOpenTable;
+  const identifyRef = useRef<maplibregl.Popup | null>(null);
   const drawingAoiRef = useRef(false);
   const appliedSelection = useRef<LayerSelection | null>(null);
 
@@ -190,14 +194,72 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
     let cancelTerrain = () => {};
     map.on("mousemove", e => statusRef.current?.({ lng: e.lngLat.wrap().lng, lat: e.lngLat.lat, zoom: map.getZoom() }));
     map.on("moveend", () => { const center = map.getCenter().wrap(); statusRef.current?.({ lng: center.lng, lat: center.lat, zoom: map.getZoom() }); });
+    const closeIdentify = () => { identifyRef.current?.remove(); identifyRef.current = null; };
+    const geometryLabels: Record<string, string> = { Point: "点", MultiPoint: "多点", LineString: "线", MultiLineString: "多线", Polygon: "面", MultiPolygon: "多面" };
+    const showIdentify = (event: maplibregl.MapMouseEvent, feature: maplibregl.MapGeoJSONFeature) => {
+      closeIdentify();
+      const layerId = String((feature as { source?: string }).source ?? "").slice("tiphys-".length);
+      const layer = dataLayersRef.current.find(l => l.id === layerId);
+      const geometry = layer?.geometry_types?.[0];
+      const geometryLabel = geometry ? geometryLabels[geometry] ?? geometry : "要素";
+      const entries = Object.entries(feature.properties ?? {});
+      const content = document.createElement("div");
+      content.className = "tiphys-identify";
+      const title = document.createElement("div");
+      title.className = "tiphys-identify-title";
+      title.textContent = `${layer?.name ?? layerId} · ${geometryLabel} #${feature.id}`;
+      content.append(title);
+      if (entries.length) {
+        const list = document.createElement("dl");
+        for (const [key, value] of entries.slice(0, 8)) {
+          const name = document.createElement("dt");
+          name.textContent = key;
+          const item = document.createElement("dd");
+          const text = value == null ? "空" : String(value);
+          item.textContent = text.length > 80 ? `${text.slice(0, 80)}…` : text;
+          if (text.length > 80) item.title = text;
+          list.append(name, item);
+        }
+        content.append(list);
+        if (entries.length > 8) {
+          const note = document.createElement("p");
+          note.className = "tiphys-identify-note";
+          note.textContent = `… 共 ${entries.length} 个字段`;
+          content.append(note);
+        }
+      } else {
+        const empty = document.createElement("p");
+        empty.className = "tiphys-identify-note";
+        empty.textContent = "该要素没有属性字段。";
+        content.append(empty);
+      }
+      if (layer) {
+        const actions = document.createElement("div");
+        actions.className = "tiphys-identify-actions";
+        const openTable = document.createElement("button");
+        openTable.type = "button";
+        openTable.textContent = "在属性表中查看";
+        openTable.addEventListener("click", () => onOpenTableRef.current?.(layerId));
+        actions.append(openTable);
+        content.append(actions);
+      }
+      identifyRef.current = new maplibregl.Popup({ closeButton: true, closeOnClick: false, maxWidth: "300px", offset: 10, className: "tiphys-identify-popup" })
+        .setLngLat(event.lngLat)
+        .setDOMContent(content)
+        .once("close", closeIdentify)
+        .addTo(map);
+    };
+    const escapeIdentify = (event: KeyboardEvent) => { if (event.key === "Escape") closeIdentify(); };
+    window.addEventListener("keydown", escapeIdentify);
     map.on("click", event => {
       if (drawingAoiRef.current) return;
       const hit = map.queryRenderedFeatures(event.point)
         .find(feature => String((feature as { source?: string }).source ?? "").startsWith("tiphys-lyr_") && feature.id != null);
-      if (!hit) { onSelectRef.current?.(null, event.originalEvent.shiftKey || event.originalEvent.metaKey || event.originalEvent.ctrlKey); return; }
+      if (!hit) { closeIdentify(); onSelectRef.current?.(null, event.originalEvent.shiftKey || event.originalEvent.metaKey || event.originalEvent.ctrlKey); return; }
       const id = Number(hit.id);
       if (!Number.isFinite(id)) return;
       const layerId = String((hit as { source: string }).source).slice("tiphys-".length);
+      showIdentify(event, hit);
       onSelectRef.current?.({ layerId, featureIds: [id] }, event.originalEvent.shiftKey || event.originalEvent.metaKey || event.originalEvent.ctrlKey);
     });
 
@@ -241,6 +303,7 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
     return () => {
       cancelControls();
       cancelTerrain();
+      window.removeEventListener("keydown", escapeIdentify);
       if (introTimerRef.current !== undefined) window.clearTimeout(introTimerRef.current);
       introTimerRef.current = undefined;
       observer.disconnect();

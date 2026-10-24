@@ -5,7 +5,7 @@ import { ChatDock } from "./components/ChatDock";
 import { MapCanvas } from "./components/MapCanvas";
 import { LayerRail } from "./components/LayerRail";
 import { pingEngine, PingResult } from "./lib/engine";
-import { Map as MapIcon, Layers, Crosshair, X } from "lucide-react";
+import { Map as MapIcon, Layers, Crosshair, X, FolderPlus, Wrench, MessageSquareText, Table2, Shapes, Tags, Scan, Focus, Logs, Settings2, Scissors, type LucideIcon } from "lucide-react";
 import { SettingsDialog, type ThemeMode } from "./components/SettingsDialog";
 import { CommandRibbon } from "./components/CommandRibbon";
 import { useAgent, type TimelineItem } from "./lib/agent";
@@ -15,6 +15,11 @@ import { AttributeTable } from "./components/AttributeTable";
 import { LayerProperties } from "./components/LayerProperties";
 import { MapLegend } from "./components/MapLegend";
 import { LogPanel } from "./components/LogPanel";
+import { BottomSheet } from "./components/BottomSheet";
+import { MobileComposer } from "./components/MobileComposer";
+import { ChatTimeline, SUGGESTIONS } from "./components/ChatTimeline";
+import { ToolPanel } from "./components/ToolPanel";
+import { useMediaQuery } from "./lib/useMediaQuery";
 import { browserRuntime } from "./lib/runtime";
 import { warmWasmToolRunner } from "./lib/browser/wasm-tool-runner";
 import { scheduleIdle } from "./lib/idle";
@@ -22,6 +27,7 @@ import { isShapefilePart } from "./lib/shapefile";
 import { buildAgentSessionStub, buildWorkspaceSnapshot, loadWorkspaceSnapshot, saveWorkspaceSnapshot, type WorkspaceRecovery } from "./lib/workspace";
 import beijingPointsSample from "../samples/beijing_points.geojson?raw";
 import "./styles/app.css";
+import "./styles/mobile.css";
 
 function loadTheme(): ThemeMode {
   const saved = localStorage.getItem("tiphys-theme");
@@ -52,10 +58,13 @@ export default function App() {
   const [density, setDensity] = useState<"standard" | "compact">(() => localStorage.getItem("tiphys-density") === "compact" ? "compact" : "standard");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(restoredWorkspace?.selectedLayerId ?? null);
-  const [dockRequest, setDockRequest] = useState<{ id: number; tool?: string; tab: "chat" | "tools" }>();
+  const [dockRequest, setDockRequest] = useState<{ id: number; tool?: string; tab: "chat" | "tools"; search?: string }>();
   const [mapStatus, setMapStatus] = useState({ lng: 20, lat: 20, zoom: 1.6 });
   const [ping, setPing] = useState<PingResult>({ state: "pending" });
   const agent = useAgent("default");
+  const isMobile = useMediaQuery("(max-width: 860px)");
+  const [mobileSheet, setMobileSheet] = useState<"actions" | "chat" | "layers" | "tools" | "table" | "logs" | "properties" | null>(null);
+  const [mobileDraft, setMobileDraft] = useState("");
   const [styles, setStyles] = useState(loadLayerStyles);
   const [focus, setFocus] = useState<number[] | null>(null);
   const [tableId, setTableId] = useState<string | null>(restoredWorkspace?.tableLayerId ?? null);
@@ -94,7 +103,7 @@ export default function App() {
     };
   }, [agent.state.hydrated, agent.state.items.length, agent.state.layers, recoveredLayerCount, restoredWorkspace]);
   const toggleTheme = () => setThemeMode(theme === "dark" ? "light" : "dark");
-  const openDock = (tab: "chat" | "tools", tool?: string) => setDockRequest({ id: Date.now(), tab, tool });
+  const openDock = (tab: "chat" | "tools", tool?: string, search?: string) => setDockRequest({ id: Date.now(), tab, tool, search });
   const zoomAll = () => {
     const bounds = layers.map(l => l.bounds).filter((b): b is number[] => !!b);
     if (bounds.length) setFocus([Math.min(...bounds.map(b => b[0])), Math.min(...bounds.map(b => b[1])), Math.max(...bounds.map(b => b[2])), Math.max(...bounds.map(b => b[3]))]);
@@ -207,6 +216,12 @@ export default function App() {
   };
   const handleRename = (id: string, name: string) => { void runWorkspaceTool("rename_layer", { layer: id, name }).catch(err => setImportNotice(`重命名失败：${err}`)); };
   const handleReorder = (ids: string[]) => { void runWorkspaceTool("reorder_layers", { layer_ids: ids }).catch(err => setImportNotice(`图层排序失败：${err}`)); };
+  const handleRemoveLayer = (layer: DataLayer) => {
+    setImportNotice("");
+    void runWorkspaceTool("remove_layer", { layer: layer.id })
+      .then(result => { setImportNotice(`已删除图层「${result?.name ?? layer.name}」，原始数据文件不受影响。`); })
+      .catch(err => setImportNotice(`删除图层失败：${err}`));
+  };
   const addData = async () => {
     if (!isTauri()) { fileRef.current?.click(); return; }
     setImporting(true); setImportNotice("");
@@ -286,32 +301,113 @@ export default function App() {
   }, [ping]);
   const engineState = ping.state === "ok" ? "ok" : ping.state === "error" ? "error" : "pending";
 
+  const lastAgentMessage = useMemo(() => {
+    for (let i = agent.state.items.length - 1; i >= 0; i--) {
+      const item = agent.state.items[i];
+      if (item.kind === "msg" && item.role === "agent") return item.text.replace(/\s+/g, " ");
+    }
+    return null;
+  }, [agent.state.items]);
+  const agentUnconfigured = agent.state.provider.startsWith("unconfigured");
+  const agentProviderLabel = !agent.state.connected ? "Agent 连接中断，正在重连…"
+    : agentUnconfigured ? "尚未配置 API"
+    : `${agent.state.provider.startsWith("mock") ? "模拟测试 · " : ""}${agent.state.provider.includes(":") ? agent.state.provider.slice(agent.state.provider.indexOf(":") + 1) : agent.state.provider}`;
+  const mobileSend = async (text: string) => {
+    const ok = await agent.send(text, { aoi, selectedLayerId: activeLayer?.id ?? null, selectedLayerName: activeLayer?.name ?? null, selection, recovery: recoveryNote, agentSession });
+    if (ok) setMobileSheet("chat");
+    return ok;
+  };
+  // Auto-open the matching sheet when panels are requested while on mobile.
+  const prevTableId = useRef(tableId);
+  const prevProperties = useRef(properties);
+  useEffect(() => {
+    if (!isMobile) { prevTableId.current = tableId; return; }
+    if (prevTableId.current !== tableId && tableId) setMobileSheet("table");
+    prevTableId.current = tableId;
+  }, [tableId, isMobile]);
+  useEffect(() => {
+    if (!isMobile) { prevProperties.current = properties; return; }
+    if (prevProperties.current !== properties && properties) setMobileSheet("properties");
+    prevProperties.current = properties;
+  }, [properties, isMobile]);
+  useEffect(() => {
+    if (!isMobile || !dockRequest) return;
+    setMobileSheet(dockRequest.tab === "tools" ? "tools" : "chat");
+  }, [dockRequest, isMobile]);
+  const mobileActions: { label: string; Icon: LucideIcon; run: () => void; disabled?: boolean }[] = [
+    { label: "添加数据", Icon: FolderPlus, run: () => { setMobileSheet(null); void addData(); } },
+    { label: "图层", Icon: Layers, run: () => setMobileSheet("layers") },
+    { label: "工具箱", Icon: Wrench, run: () => setMobileSheet("tools") },
+    { label: "对话", Icon: MessageSquareText, run: () => setMobileSheet("chat") },
+    { label: "属性表", Icon: Table2, run: () => { setMobileSheet("table"); if (activeLayer) setTableId(activeLayer.id); }, disabled: !activeLayer },
+    { label: "符号化", Icon: Shapes, run: () => { if (activeLayer) setProperties({ id: activeLayer.id, tab: "style" }); }, disabled: !activeLayer },
+    { label: "标注", Icon: Tags, run: () => { if (activeLayer) setProperties({ id: activeLayer.id, tab: "labels" }); }, disabled: !activeLayer },
+    { label: "全图", Icon: Scan, run: () => { setMobileSheet(null); zoomAll(); } },
+    { label: "缩放图层", Icon: Focus, run: () => { setMobileSheet(null); if (activeLayer) zoomLayer(activeLayer); }, disabled: !activeLayer },
+    { label: "AOI 裁剪", Icon: Scissors, run: () => { setMobileSheet(null); void clipToAoi(); }, disabled: !aoi || !activeLayer },
+    { label: "日志", Icon: Logs, run: () => setMobileSheet("logs") },
+    { label: "设置", Icon: Settings2, run: () => { setMobileSheet(null); setSettingsOpen(true); } },
+  ];
+
   return (
-    <div className="app-shell">
+    <div className={"app-shell" + (isMobile ? " mobile" : "")}>
       <TopBar
         theme={theme}
         onToggleTheme={toggleTheme}
         engineLabel={engineLabel}
         engineState={engineState}
-        onLogs={() => setLogsOpen(open => !open)}
+        onLogs={() => (isMobile ? setMobileSheet("logs") : setLogsOpen(open => !open))}
         onSettings={() => setSettingsOpen(true)}
       />
+      <input ref={fileRef} hidden type="file" multiple accept=".geojson,.json,.gpkg,.zip,.shp,.shx,.dbf,.prj,.cpg,.sbn,.sbx,.fgb,.kml,.kmz,.gpx,.gml,.geoparquet,.topojson,.tif,.tiff,.csv" onChange={e => { if (e.target.files?.length) void importFiles(e.target.files); }} />
+      {isMobile ? (
+        <>
+          <main className="mobile-map" aria-label="地图">
+            <MapCanvas theme={theme} dataLayers={layers} focusBounds={focus} onStatus={setMapStatus} selection={selection} onSelect={handleMapSelection}
+              aoi={aoi} onAoiChange={setAoi} onOpenTable={id => { setTableId(id); setLogsOpen(false); }} />
+            <MapLegend layers={layers} onStyle={id => setProperties({ id, tab: "style" })} />
+            {(selection?.featureIds.length || aoi) && <div className="map-status-stack">
+              {selection?.featureIds.length ? <div className="selection-hud" role="status">
+                <span><strong>{selection.featureIds.length}</strong> 个要素已选{selectionLayer ? ` · ${selectionLayer.name}` : ""}</span>
+                <button type="button" aria-label="清除要素选择" title="清除选择（Esc）" onClick={clearSelection}><X size={13} />清除</button>
+              </div> : null}
+              {aoi && <div className="aoi-hud" role="status" title="分析范围（AOI）">
+                <span className="aoi-hud-label">AOI</span>
+                <code>{aoi[0].toFixed(3)}, {aoi[1].toFixed(3)} — {aoi[2].toFixed(3)}, {aoi[3].toFixed(3)}</code>
+                <button type="button" aria-label="清除分析范围" onClick={() => setAoi(null)}><X size={12} />清除</button>
+              </div>}
+            </div>}
+            {importNotice && <div className="import-notice" role="status"><span>{importNotice}</span>
+              {importNotice.includes("CRS") && <label>源坐标系 <input aria-label="导入源坐标系" placeholder="如 EPSG:4547，然后重新添加" value={sourceCrs} onChange={e => setSourceCrs(e.target.value)} /></label>}
+              <button type="button" className="icon-btn" aria-label="关闭导入提示" onClick={() => setImportNotice("")}>×</button></div>}
+          </main>
+          {(agent.state.items.length > 0 || agent.state.busy) && mobileSheet !== "chat" && (
+            <button type="button" className="mobile-chat-handle" onClick={() => setMobileSheet("chat")}>
+              <span className="status-dot" data-state={agent.state.busy ? "pending" : "ok"} />
+              <span className="mobile-chat-handle-text">{agent.state.busy ? "TIPHYS 正在处理…" : lastAgentMessage ? lastAgentMessage.slice(0, 64) : `对话 · ${agent.state.items.length} 条`}</span>
+              <MessageSquareText size={15} />
+            </button>
+          )}
+          <MobileComposer value={mobileDraft} onChange={setMobileDraft} busy={agent.state.busy} connected={agent.state.connected} unconfigured={agentUnconfigured}
+            onSend={mobileSend} onCancelTurn={agent.cancelTurn} onActions={() => setMobileSheet("actions")} />
+        </>
+      ) : (
+        <>
       <CommandRibbon hasLayer={!!activeLayer} onAdd={() => void addData()} onZoomAll={zoomAll}
         onZoomLayer={() => activeLayer && zoomLayer(activeLayer)} onTable={() => { if (activeLayer) { setTableId(activeLayer.id); setLogsOpen(false); } }}
         onStyle={() => activeLayer && setProperties({ id: activeLayer.id, tab: "style" })} onLabels={() => activeLayer && setProperties({ id: activeLayer.id, tab: "labels" })}
         onTool={tool => openDock("tools", tool)} onChat={() => openDock("chat")} onLogs={() => setLogsOpen(true)} onSettings={() => setSettingsOpen(true)} onTheme={toggleTheme}
-        hasAoi={!!aoi} onClipAoi={() => void clipToAoi()} />
+        hasAoi={!!aoi} onClipAoi={() => void clipToAoi()} onSearchTools={query => openDock("tools", undefined, query)} />
       <div className="workspace">
         <LayerRail layers={layers} onToggle={agent.toggleLayer} onAdd={() => void addData()} importing={importing}
           selectedId={activeLayer?.id} onSelect={setSelectedId}
           onZoom={zoomLayer} onTable={id => { setTableId(id); setLogsOpen(false); }} onProperties={(id, tab) => setProperties({ id, tab })}
-          onRename={handleRename} onReorder={handleReorder} />
-        <input ref={fileRef} hidden type="file" multiple accept=".geojson,.json,.gpkg,.zip,.shp,.shx,.dbf,.prj,.cpg,.sbn,.sbx,.fgb,.kml,.kmz,.gpx,.gml,.geoparquet,.topojson,.tif,.tiff,.csv" onChange={e => { if (e.target.files?.length) void importFiles(e.target.files); }} />
+          onRename={handleRename} onReorder={handleReorder} onRemove={handleRemoveLayer} />
         <main className="map-pane" aria-label="地图">
           <div className="map-document-bar"><span className="map-document-tab"><MapIcon size={15} /> 地图</span><span>{activeLayer ? activeLayer.name : "地理空间工作区"}</span></div>
           <div className="map-viewport">
           <MapCanvas theme={theme} dataLayers={layers} focusBounds={focus} onStatus={setMapStatus} selection={selection} onSelect={handleMapSelection}
-            aoi={aoi} onAoiChange={setAoi} />
+            aoi={aoi} onAoiChange={setAoi} onOpenTable={id => { setTableId(id); setLogsOpen(false); }} />
           <MapLegend layers={layers} onStyle={id => setProperties({ id, tab: "style" })} />
           {!layers.length && <div className="map-empty-state" role="status">
             <span className="map-empty-icon"><Layers size={20} /></span>
@@ -370,6 +466,66 @@ export default function App() {
         />
       </div>
       <footer className="workspace-status"><span><span className="status-dot" data-state={engineState} />{engineState === "ok" ? browserRuntime ? "Browser-WASM · 数据保存在本机" : "Python 本地引擎已就绪" : "正在加载空间引擎"}</span><span><Layers size={13} />{layers.length} 个图层</span><span className="status-coordinates"><Crosshair size={13} />{mapStatus.lng.toFixed(5)}°，{mapStatus.lat.toFixed(5)}°</span><span>级别 {mapStatus.zoom.toFixed(1)}</span><span>坐标 WGS 84</span></footer>
+        </>
+      )}
+      {isMobile && (
+        <>
+          <BottomSheet open={mobileSheet === "actions"} title="快捷操作" onClose={() => setMobileSheet(null)}>
+            <div className="mobile-actions">
+              {mobileActions.map(({ label, Icon, run, disabled }) =>
+                <button key={label} type="button" className="mobile-action" disabled={disabled} onClick={run}>
+                  <Icon size={21} strokeWidth={1.7} /><span>{label}</span>
+                </button>)}
+            </div>
+          </BottomSheet>
+          <BottomSheet open={mobileSheet === "chat"} title="TIPHYS 对话" size="full"
+            subtitle={<><span className="status-dot" data-state={agent.state.connected && !agentUnconfigured ? "ok" : "error"} />{agentProviderLabel}</>}
+            onClose={() => setMobileSheet(null)}>
+            <ChatTimeline items={agent.state.items} layers={layers} recovery={recoveryNote} busy={agent.state.busy}
+              onOpenTool={tool => openDock("tools", tool)} onInsertPrompt={setMobileDraft}
+              onApprove={agent.approve} onCancelJob={agent.cancelJob} />
+            {agentUnconfigured && <button type="button" className="api-setup-notice" onClick={() => setSettingsOpen(true)}>配置 API，开始与 Agent 对话 →</button>}
+            <div className="chat-suggestions">
+              {SUGGESTIONS.map(s => <button key={s} type="button" className="chat-chip" disabled={agent.state.busy || !agent.state.connected} onClick={() => void mobileSend(s)}>{s}</button>)}
+            </div>
+            {activeLayer && <div className="composer-context"><Layers size={12} /><span title={activeLayer.name}>{activeLayer.name}</span><small>当前图层</small></div>}
+            <MobileComposer value={mobileDraft} onChange={setMobileDraft} busy={agent.state.busy} connected={agent.state.connected} unconfigured={agentUnconfigured}
+              onSend={mobileSend} onCancelTurn={agent.cancelTurn} onActions={() => setMobileSheet("actions")} />
+          </BottomSheet>
+          <BottomSheet open={mobileSheet === "layers"} title={`图层 · ${layers.length}`} size="tall" onClose={() => setMobileSheet(null)}>
+            <LayerRail layers={layers} onToggle={agent.toggleLayer} onAdd={() => { setMobileSheet(null); void addData(); }} importing={importing}
+              selectedId={activeLayer?.id} onSelect={setSelectedId}
+              onZoom={zoomLayer} onTable={id => { setTableId(id); setLogsOpen(false); }} onProperties={(id, tab) => setProperties({ id, tab })}
+              onRename={handleRename} onReorder={handleReorder} onRemove={handleRemoveLayer} />
+          </BottomSheet>
+          <BottomSheet open={mobileSheet === "tools"} title="工具箱" size="full" onClose={() => setMobileSheet(null)}>
+            <ToolPanel layers={layers} onResult={agent.mergeToolResult} request={dockRequest?.tab === "tools" ? dockRequest : undefined} selectedLayer={activeLayer} />
+          </BottomSheet>
+          <BottomSheet open={mobileSheet === "table" && !!tableLayer} title={`属性表${tableLayer ? ` · ${tableLayer.name}` : ""}`} size="tall" onClose={() => setMobileSheet(null)}>
+            {tableLayer && <AttributeTable key={tableLayer.id} layer={tableLayer}
+              selectedIds={selection?.layerId === tableLayer.id ? selection.featureIds : []}
+              onSelectionChange={(featureIds, additive) => {
+                setSelectedId(tableLayer.id);
+                setSelection(current => {
+                  if (!additive || current?.layerId !== tableLayer.id) return featureIds.length ? { layerId: tableLayer.id, featureIds } : null;
+                  const ids = new Set(current.featureIds);
+                  for (const id of featureIds) { if (ids.has(id)) ids.delete(id); else ids.add(id); }
+                  return ids.size ? { layerId: tableLayer.id, featureIds: [...ids].sort((a, b) => a - b) } : null;
+                });
+              }}
+              onClearSelection={clearSelection} onClose={() => { setTableId(null); setMobileSheet(null); }} onZoom={bounds => setFocus([...bounds])} />}
+          </BottomSheet>
+          <BottomSheet open={mobileSheet === "logs"} title="运行日志" size="full" onClose={() => setMobileSheet(null)}>
+            <LogPanel onClose={() => setMobileSheet(null)} />
+          </BottomSheet>
+          <BottomSheet open={mobileSheet === "properties" && !!propertyLayer} title="图层设置" size="tall"
+            onClose={() => { setProperties(null); setMobileSheet(null); }}>
+            {propertyLayer && properties && <LayerProperties key={propertyLayer.id} layer={propertyLayer} tab={properties.tab}
+              onTab={tab => setProperties({ id: propertyLayer.id, tab })} onClose={() => { setProperties(null); setMobileSheet(null); }}
+              onStyle={style => setStyles(current => ({ ...current, [propertyLayer.id]: style }))} />}
+          </BottomSheet>
+        </>
+      )}
       {settingsOpen && <SettingsDialog theme={themeMode} onTheme={setThemeMode} density={density} onDensity={setDensity} onClose={() => setSettingsOpen(false)} onSaved={() => void agent.refreshProvider()} onLogs={() => setLogsOpen(true)} />}
     </div>
   );

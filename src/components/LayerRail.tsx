@@ -7,14 +7,16 @@ type Props = {
   onZoom: (layer: DataLayer) => void; onTable: (id: string) => void;
   onProperties: (id: string, tab: "style" | "labels" | "info") => void;
   onRename: (id: string, name: string) => void; onReorder: (ids: string[]) => void;
+  onRemove: (layer: DataLayer) => void;
   selectedId?: string; onSelect: (id: string) => void;
 };
 
 /** Layer list: basemap + agent/engine result layers. */
-export function LayerRail({ layers, onToggle, onAdd, importing, onZoom, onTable, onProperties, onRename, onReorder, selectedId, onSelect }: Props) {
+export function LayerRail({ layers, onToggle, onAdd, importing, onZoom, onTable, onProperties, onRename, onReorder, onRemove, selectedId, onSelect }: Props) {
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [menu, setMenu] = useState<{ layer: DataLayer; x: number; y: number } | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [editing, setEditing] = useState<{ id: string; draft: string } | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
@@ -28,7 +30,7 @@ export function LayerRail({ layers, onToggle, onAdd, importing, onZoom, onTable,
     window.addEventListener("keydown", escape);
     return () => { window.removeEventListener("pointerdown", dismiss); window.removeEventListener("keydown", escape); };
   }, [menu]);
-  const openMenu = (layer: DataLayer, x: number, y: number) => setMenu({ layer, x: Math.max(8, Math.min(x, window.innerWidth - 208)), y: Math.max(8, Math.min(y, window.innerHeight - 270)) });
+  const openMenu = (layer: DataLayer, x: number, y: number) => { setConfirmRemove(false); setMenu({ layer, x: Math.max(8, Math.min(x, window.innerWidth - 208)), y: Math.max(8, Math.min(y, window.innerHeight - 300)) }); };
   const action = (fn: (layer: DataLayer) => void) => { if (menu) fn(menu.layer); setMenu(null); };
   const startRename = (layer: DataLayer) => { setEditing({ id: layer.id, draft: layer.name }); setMenu(null); };
   const commitRename = () => {
@@ -97,6 +99,18 @@ export function LayerRail({ layers, onToggle, onAdd, importing, onZoom, onTable,
         <button type="button" role="menuitem" onClick={() => action(l => onProperties(l.id, "labels"))}>标注</button>
         <button type="button" role="menuitem" onClick={() => action(l => onProperties(l.id, "info"))}>图层属性</button>
         <button type="button" role="menuitem" onClick={() => commit(() => startRename(menu.layer))}>重命名</button>
+        <div className="layer-menu-separator" role="separator" />
+        <button type="button" role="menuitem" onClick={() => action(l => onToggle(l.id))}>{menu.layer.visible === false ? "显示图层" : "隐藏图层"}</button>
+        <button type="button" role="menuitem" className={confirmRemove ? "layer-menu-danger active" : "layer-menu-danger"}
+          title="从工作区删除此图层及其工作副本；原始数据文件不受影响"
+          onClick={() => {
+            if (!confirmRemove) { setConfirmRemove(true); return; }
+            onRemove(menu.layer);
+            setMenu(null);
+          }}>
+          {confirmRemove ? `确认删除“${menu.layer.name}”` : "删除图层"}
+        </button>
+        {confirmRemove && <p className="layer-menu-note">将移除工作副本；原始输入文件不受影响。</p>}
       </div>}
     </nav>
   );

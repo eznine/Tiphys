@@ -1,0 +1,272 @@
+/* TIPHYS mobile layout — every rule is scoped under .app-shell.mobile so the
+   desktop stylesheet stays untouched. Breakpoint: max-width 860px (see
+   useMediaQuery in App.tsx). Safe areas use viewport-fit=cover + env(). */
+
+.app-shell.mobile {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* --- Slim top bar ------------------------------------------------- */
+.mobile .topbar {
+  min-height: 46px;
+  padding: 0 10px;
+  padding-top: env(safe-area-inset-top);
+}
+.mobile .topbar-logo { width: 26px; height: 26px; }
+.mobile .topbar-title { font-size: 13px; }
+.mobile .topbar-actions { gap: 4px; }
+.mobile .plain-icon { width: 38px; height: 38px; }
+.mobile .icon-btn { height: 38px; }
+.mobile .map-hud-chip { max-width: 136px; padding: 4px 9px; font-size: 11px; }
+.mobile .map-hud-chip > span:not(.status-dot) { display: none; }
+.mobile .map-hud-chip code { max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* --- Map fills the middle ------------------------------------------ */
+.mobile-map {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: var(--tiphys-map-underlay);
+  overflow: hidden;
+}
+.mobile .map-controls { top: 10px; left: 10px; gap: 6px; max-width: calc(100% - 20px); }
+.mobile .map-ctrl-btn { padding: 9px 11px; }
+.mobile .map-legend-dock { left: 10px; bottom: 12px; }
+.mobile .map-legend-toggle { height: 34px; }
+.mobile .maplibregl-ctrl-scale { display: none; }
+.mobile .import-notice { top: 10px; left: 10px; right: 10px; z-index: 30; }
+.mobile .map-empty-state { z-index: 10; }
+
+/* --- Chat handle above the composer -------------------------------- */
+.mobile-chat-handle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  width: 100%;
+  padding: 9px 14px;
+  border: 0;
+  border-top: 1px solid var(--tiphys-border);
+  background: var(--tiphys-surface);
+  color: var(--tiphys-text-secondary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.mobile-chat-handle-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+.mobile-chat-handle > svg { color: var(--tiphys-accent); flex-shrink: 0; }
+
+/* --- Slim composer bar --------------------------------------------- */
+.mobile-composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--tiphys-border);
+  background: var(--tiphys-surface);
+}
+.mobile-composer-add {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--tiphys-border);
+  border-radius: 50%;
+  background: var(--tiphys-bg);
+  color: var(--tiphys-text-secondary);
+  cursor: pointer;
+}
+.mobile-composer-add:active { background: var(--tiphys-accent-muted); }
+.mobile-composer input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 20px;
+  border: 1px solid var(--tiphys-border);
+  background: var(--tiphys-bg);
+  color: var(--tiphys-text);
+  outline: none;
+  font-size: 16px; /* keeps iOS Safari from zooming on focus */
+}
+.mobile-composer input:focus {
+  border-color: color-mix(in srgb, var(--tiphys-accent) 55%, var(--tiphys-border));
+  box-shadow: 0 0 0 3px var(--tiphys-accent-muted);
+}
+.mobile-composer-send {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--tiphys-accent);
+  color: var(--tiphys-accent-fg);
+  cursor: pointer;
+}
+.mobile-composer-send:disabled { opacity: .35; cursor: default; }
+.mobile-composer-send:active { transform: scale(.94); }
+
+/* --- Bottom sheets -------------------------------------------------- */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: #07142566;
+  backdrop-filter: blur(2px);
+  animation: sheet-fade .2s var(--tiphys-ease);
+}
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 121;
+  height: auto;
+  max-height: 88vh;
+  max-height: 88dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--tiphys-surface);
+  color: var(--tiphys-text);
+  border: 1px solid var(--tiphys-border);
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -12px 48px #0003;
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: sheet-up .26s var(--tiphys-ease);
+}
+.sheet-tall { height: 72vh; height: 72dvh; }
+.sheet-full { height: 92vh; height: 92dvh; }
+.sheet-handle {
+  width: 36px;
+  height: 4px;
+  margin: 8px auto 2px;
+  border-radius: 999px;
+  background: var(--tiphys-border);
+  flex-shrink: 0;
+}
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 10px 8px 16px;
+  border-bottom: 1px solid var(--tiphys-border-subtle);
+  flex-shrink: 0;
+}
+.sheet-heading { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.sheet-heading strong { font-size: 14px; white-space: nowrap; }
+.sheet-subtitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--tiphys-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sheet-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+@keyframes sheet-up { from { transform: translateY(48px); opacity: .5; } }
+@keyframes sheet-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sheet, .sheet-backdrop { animation: none; } }
+
+/* --- Action grid ("+" sheet) ---------------------------------------- */
+.mobile-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px;
+  overflow-y: auto;
+}
+.mobile-action {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 13px 4px 11px;
+  border: 1px solid var(--tiphys-border-subtle);
+  border-radius: 10px;
+  background: var(--tiphys-bg);
+  color: var(--tiphys-text-secondary);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.mobile-action svg { color: var(--tiphys-accent); }
+.mobile-action:disabled { opacity: .38; cursor: default; }
+.mobile-action:active { background: var(--tiphys-accent-muted); }
+
+/* --- Reused desktop panels adopt sheet geometry --------------------- */
+.sheet .layer-rail { flex: 1; min-height: 0; border: 0; border-radius: 0; }
+.sheet .attribute-table { flex: 1; min-height: 0; height: auto; max-height: none; border-top: 0; }
+.sheet .log-panel { flex: 1; min-height: 0; height: auto; max-height: none; min-height: 0; border-top: 0; }
+.sheet .layer-properties {
+  position: static;
+  inset: auto;
+  width: auto;
+  max-width: none;
+  height: auto;
+  flex: 1;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.sheet .tool-panel { flex: 1; min-height: 0; }
+.sheet .chat-messages { flex: 1; min-height: 0; padding: 10px 12px; }
+.sheet .chat-suggestions { flex-shrink: 0; padding: 8px 12px; }
+.sheet .api-setup-notice { margin: 8px 12px 0; }
+.sheet .composer-context { margin: 8px 10px 0; }
+.sheet .mobile-composer { border-top: 0; padding-bottom: 8px; }
+
+/* --- Settings dialog goes full-screen on phones --------------------- */
+.mobile .settings-backdrop { padding: 0; }
+.mobile .settings-dialog {
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
+  border-radius: 0;
+  border: 0;
+}
+.mobile .settings-body { flex-direction: column; }
+.mobile .settings-nav {
+  display: flex;
+  gap: 4px;
+  width: auto;
+  overflow-x: auto;
+  padding: 8px 10px;
+  border-right: 0;
+  border-bottom: 1px solid var(--tiphys-border);
+}
+.mobile .settings-nav button { flex-shrink: 0; margin-bottom: 0; padding: 8px 12px; }
+.mobile .settings-content { padding: 16px; }
+.mobile .settings-footer { flex-wrap: wrap; }
+.mobile .theme-choices { flex-direction: column; margin: 10px 0 20px; }
+
+/* --- Touch ergonomics ------------------------------------------------ */
+.mobile button { touch-action: manipulation; }
+.mobile input,
+.mobile select,
+.mobile textarea { font-size: 16px; } /* prevents iOS focus zoom */
