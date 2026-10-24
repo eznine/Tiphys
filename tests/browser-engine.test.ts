@@ -229,6 +229,7 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
   const source = fs.readFileSync(new URL("../src/components/CommandRibbon.tsx", import.meta.url), "utf8");
   const names = [...source.matchAll(/props\.onTool\("(wasm_[^"]+)"\)/g)].map(match => match[1]);
   assert.ok(names.length >= 60, `expected a dense ribbon, got ${names.length} WASM actions`);
+  assert.equal(new Set(names).size, names.length, "ribbon must not expose duplicate WASM actions");
   for (const name of names) assert.ok(browserCatalog.some(tool => tool.name === name), `${name} must resolve to a catalog tool`);
   for (const name of ["wasm_panchromatic_sharpening", "wasm_resample", "wasm_segment_slic_superpixels",
     "wasm_spectral_angle_mapper", "wasm_viewshed", "wasm_visibility_index", "wasm_sky_view_factor",
@@ -260,7 +261,9 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_prewitt_filter", "wasm_conservative_smoothing_filter", "wasm_extract_valleys", "wasm_local_kriging",
     "wasm_frost_filter", "wasm_fast_almost_gaussian_filter", "wasm_circular_variance_of_aspect",
     "wasm_average_flowpath_slope", "wasm_cut_fill", "wasm_is_nodata", "wasm_focal_statistics",
-    "wasm_k_means_clustering"]) {
+    "wasm_k_means_clustering", "wasm_balance_contrast_enhancement", "wasm_histogram_equalization",
+    "wasm_min_max_contrast_stretch", "wasm_horton_stream_order", "wasm_shreve_stream_magnitude",
+    "wasm_contour_list", "wasm_contours_from_points", "wasm_pennock_landform_classification"]) {
     assert.ok(names.includes(name), `${name} should be exposed in the ribbon`);
   }
   const dock = fs.readFileSync(new URL("../src/components/ChatDock.tsx", import.meta.url), "utf8");
@@ -271,7 +274,8 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_opening", "wasm_symmetrical_difference", "wasm_difference", "wasm_ruggedness_index",
     "wasm_strahler_stream_order", "wasm_cost_connectivity", "wasm_mean_filter",
     "wasm_change_vector_analysis", "wasm_near", "wasm_extend_vector_lines",
-    "wasm_central_feature", "wasm_directional_distribution", "wasm_frost_filter", "wasm_cut_fill"]) {
+    "wasm_central_feature", "wasm_directional_distribution", "wasm_frost_filter", "wasm_cut_fill",
+    "wasm_balance_contrast_enhancement", "wasm_contours_from_points"]) {
     assert.ok(recipeTools.includes(name), `${name} should be available as an agent recipe`);
     assert.ok(browserCatalog.some(tool => tool.name === name), `${name} recipe must resolve to a catalog tool`);
   }
@@ -745,9 +749,16 @@ test("Chinese GIS aliases rank conversion, interpolation and service-area tools"
     ["焦点统计", "wasm_focal_statistics"], ["点生成等值线", "wasm_contours_from_points"]]) {
     assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
   }
+  for (const [query, expected] of [["最小最大拉伸", "wasm_min_max_contrast_stretch"],
+    ["点等值线", "wasm_contours_from_points"], ["泥沙输移", "wasm_sediment_transport_index"],
+    ["总曲率", "wasm_total_curvature"], ["标准差滤波", "wasm_standard_deviation_filter"],
+    ["Scharr", "wasm_scharr_filter"]]) {
+    assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
+  }
   const streamOrders = searchBrowserTools(browserCatalog, "河网分级", { limit: 4 }).map(tool => tool.name);
   assert.ok(streamOrders.includes("wasm_strahler_stream_order") && streamOrders.includes("wasm_hack_stream_order"),
     "河网分级 should surface both Strahler and Hack stream ordering");
+  assert.ok(streamOrders.includes("wasm_horton_stream_order"), "河网分级 should also surface Horton stream ordering");
 });
 
 test("geometry densify, centroid and line density tools publish real result layers", async () => {
@@ -1030,6 +1041,60 @@ test("batch21 filter, terrain and clustering forms expose honest executable cont
   assert.equal(pca.standardized.type, "boolean");
 });
 
+test("batch22 RS, stream-order and contour forms expose honest executable contracts", async () => {
+  await ensureBrowserCatalog();
+  const props = (name: string) => (browserCatalog.find(tool => tool.name === name)!.parameters.properties ?? {}) as any;
+  const required = (name: string) => browserCatalog.find(tool => tool.name === name)!.parameters.required ?? [];
+
+  for (const name of ["wasm_balance_contrast_enhancement", "wasm_histogram_equalization",
+    "wasm_min_max_contrast_stretch", "wasm_pennock_landform_classification"]) {
+    const properties = props(name);
+    assert.equal(properties.input["x-layer-kind"], "raster", `${name} input must be raster`);
+    assert.ok(!("output" in properties), `${name} output path must stay internal`);
+    assert.ok(required(name).includes("input"), `${name} input must be required`);
+  }
+  const stretch = props("wasm_min_max_contrast_stretch");
+  assert.equal(stretch.min_val.type, "number", "min_val is a numeric stretch bound");
+  assert.equal(stretch.max_val.type, "number", "max_val is a numeric stretch bound");
+  assert.equal(stretch.min_val.default, 0);
+  assert.equal(stretch.max_val.default, 255);
+  assert.equal(stretch.num_tones.type, "integer");
+  assert.equal(props("wasm_histogram_equalization").num_tones.type, "integer");
+  assert.equal(props("wasm_balance_contrast_enhancement").band_mean.type, "number");
+
+  for (const name of ["wasm_horton_stream_order", "wasm_shreve_stream_magnitude"]) {
+    const properties = props(name);
+    for (const input of ["d8_pntr", "streams"]) {
+      assert.equal(properties[input]["x-layer-kind"], "raster", `${name}.${input} must be raster`);
+      assert.ok(required(name).includes(input), `${name}.${input} must be required`);
+    }
+    assert.equal(properties.esri_pntr.type, "boolean");
+    assert.equal(properties.zero_background.type, "boolean");
+    assert.ok(!("output" in properties), `${name} output path must stay internal`);
+  }
+
+  const contours = props("wasm_contour_list");
+  assert.equal(contours.input["x-layer-kind"], "raster");
+  assert.equal(contours.contour_values.type, "string");
+  assert.ok(required("wasm_contour_list").includes("contour_values"));
+  assert.deepEqual(contours.geometry_type.enum, ["polyline", "polygon"]);
+  assert.equal(contours.band.type, "integer");
+  assert.ok(!("output" in contours), "contour-list output path must stay internal");
+
+  const pointContours = props("wasm_contours_from_points");
+  assert.equal(pointContours.input["x-layer-kind"], "vector");
+  assert.equal(pointContours.field_name.type, "string");
+  assert.equal(pointContours.interval.type, "number");
+  assert.equal(pointContours.smooth.type, "integer");
+  assert.equal(pointContours.use_z_values.type, "boolean");
+  assert.ok(!("output" in pointContours), "point-contour output path must stay internal");
+
+  const pennock = props("wasm_pennock_landform_classification");
+  assert.equal(pennock.plan_curv_threshold.type, "number");
+  assert.equal(pennock.prof_curv_threshold.type, "number");
+  assert.equal(pennock.slope_threshold.type, "number");
+});
+
 test("batch21 filter, terrain, NoData and clustering tools publish result layers", async () => {
   const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
   const ring = (x: number, y: number, width: number, height: number) => [[x, y], [x + width, y], [x + width, y + height], [x, y + height], [x, y]];
@@ -1082,6 +1147,87 @@ test("batch21 filter, terrain, NoData and clustering tools publish result layers
   const pcaLayers = pca.layers?.map((item: any) => item.layer) ?? [];
   assert.equal(pcaLayers.length, 2, "PCA must publish one raster per requested component");
   assert.ok(pcaLayers.every((layer: any) => layer.kind === "raster" && layer.name.includes("_comp")));
+});
+
+test("batch22 contrast, stream order, contours and Pennock publish displayed layers", async () => {
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const ring = (x: number, y: number, width: number, height: number) => [[x, y], [x + width, y], [x + width, y + height], [x, y + height], [x, y]];
+  const cell = 100, features: any[] = [];
+  for (let row = 0; row < 12; row++) for (let col = 0; col < 12; col++) {
+    const x = 500000 + col * cell, y = 4400000 + row * cell;
+    features.push({ type: "Feature", properties: { elev: 1200 - row * 4 - col + (row === 5 && col === 5 ? -15 : 0) },
+      geometry: { type: "Polygon", coordinates: [ring(x, y, cell, cell)] } });
+  }
+  const source = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features })]), "batch22_dem_source.geojson")).layer;
+  const dem = (await finished("wasm_vector_polygons_to_raster", {
+    input: source.id, field: "elev", cell_size: cell, output_name: "batch22_dem",
+  })).layer;
+
+  const rgb = await finished("wasm_create_colour_composite", {
+    input: dem.id, red: dem.id, green: dem.id, blue: dem.id, enhance: false, output_name: "batch22_rgb",
+  });
+  const rgbLayer = rgb.layer ?? rgb.layers?.[0]?.layer;
+  assert.equal(rgbLayer.kind, "raster", "RGB composite must publish a raster");
+  assert.equal(rgb.attachments, undefined);
+
+  for (const [tool, args, name] of [
+    ["wasm_balance_contrast_enhancement", { input: rgbLayer.id, band_mean: 100 }, "batch22_balance"],
+    ["wasm_histogram_equalization", { input: dem.id, num_tones: 256 }, "batch22_histogram"],
+    ["wasm_min_max_contrast_stretch", { input: dem.id, min_val: 1100, max_val: 1250, num_tones: 256 }, "batch22_stretch"],
+  ] as const) {
+    const result = await finished(tool, { ...args, output_name: name });
+    const layer = result.layer ?? result.layers?.[0]?.layer;
+    assert.equal(layer.kind, "raster", `${tool} must publish a raster`);
+    assert.equal(result.attachments, undefined);
+  }
+
+  const chain = await finished("hydrology_flow_pipeline", {
+    dem: dem.id, stream_threshold: 10, extract_streams: true, output_name: "batch22_chain",
+  });
+  const chainLayers = chain.layers?.map((item: any) => item.layer) ?? [];
+  assert.equal(chainLayers.length, 4, "hydrology chain must expose fill, pointer, accumulation and streams");
+  const pointer = chainLayers[1], streams = chainLayers[3];
+  assert.equal(pointer.kind, "raster");
+  assert.equal(streams.kind, "raster");
+
+  for (const [tool, name] of [["wasm_horton_stream_order", "batch22_horton"],
+    ["wasm_shreve_stream_magnitude", "batch22_shreve"]] as const) {
+    const result = await finished(tool, { d8_pntr: pointer.id, streams: streams.id, output_name: name });
+    const layer = result.layer ?? result.layers?.[0]?.layer;
+    assert.equal(layer.kind, "raster", `${tool} must publish a raster`);
+    assert.equal(result.attachments, undefined);
+  }
+  const contourLines = await finished("wasm_contour_list", {
+    input: dem.id, contour_values: "1120,1160", geometry_type: "polyline", min_length: 1,
+    close_rings: true, band: 1, output_name: "batch22_contours",
+  });
+  const contourLayer = contourLines.layer ?? contourLines.layers?.[0]?.layer;
+  assert.ok(contourLayer.feature_count > 0, "contour list must publish contour features");
+  assert.ok(contourLayer.geometry_types.every((type: string) => type === "LineString" || type === "MultiLineString"));
+  assert.equal(contourLines.attachments, undefined);
+
+  const pointFeatures: any[] = [];
+  for (let row = 0; row < 4; row++) for (let col = 0; col < 4; col++) {
+    pointFeatures.push({ type: "Feature", properties: { elev: 100 + row * 12 + col * 6 },
+      geometry: { type: "Point", coordinates: [500000 + col * 250, 4400000 + row * 250] } });
+  }
+  const points = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: pointFeatures })]), "batch22_contour_points.geojson")).layer;
+  const pointContours = await finished("wasm_contours_from_points", {
+    input: points.id, field_name: "elev", base: 100, interval: 12, smooth: 3, use_z_values: false,
+    output_name: "batch22_point_contours",
+  });
+  const pointContourLayer = pointContours.layer ?? pointContours.layers?.[0]?.layer;
+  assert.ok(pointContourLayer.feature_count > 0, "point contours must publish contour features");
+  assert.ok(pointContourLayer.geometry_types.every((type: string) => type === "LineString" || type === "MultiLineString"));
+  assert.equal(pointContours.attachments, undefined);
+  const pennock = await finished("wasm_pennock_landform_classification", {
+    input: dem.id, plan_curv_threshold: 0, prof_curv_threshold: 0.1, slope_threshold: 3, z_factor: 1,
+    output_name: "batch22_pennock",
+  });
+  const pennockLayer = pennock.layer ?? pennock.layers?.[0]?.layer;
+  assert.equal(pennockLayer.kind, "raster", "Pennock classification must publish a raster");
+  assert.equal(pennockLayer.raster?.width, dem.raster?.width);
+  assert.equal(pennock.attachments, undefined);
 });
 
 test("morphology and vector cleanup ribbon tools publish displayed result layers", async () => {

@@ -41,6 +41,7 @@ const WASM_SCALAR_INPUT_OVERRIDES = new Set([
 const WASM_REQUIRED_OVERRIDES: Record<string, Set<string>> = {
   directional_distribution: new Set(["statistic"]),
   extract_valleys: new Set(["dem"]),
+  contour_list: new Set(["contour_values"]),
 };
 
 export function isWasmInputParam(toolId: string, param: { name: string; io_role?: string; description?: string }): boolean {
@@ -162,6 +163,14 @@ const WASM_SCHEMA_OVERRIDES: Record<string, Record<string, CatalogSchema>> = {
     zero_factor: { type: "number", default: 0.1, description: "线性/反线性因子的下坡最小值。" },
     max_slope: { type: "number", default: 30, description: "binary 因子允许通过的最大坡度（度）。" },
     band: { type: "integer", default: 1, description: "所有输入栅格使用的 1 基波段。" },
+  },
+  min_max_contrast_stretch: {
+    min_val: { type: "number", default: 0, description: "参与拉伸的输入最小值。" },
+    max_val: { type: "number", default: 255, description: "参与拉伸的输入最大值。" },
+    num_tones: { type: "integer", default: 256, description: "输出色调数量。" },
+  },
+  histogram_equalization: {
+    num_tones: { type: "integer", default: 256, description: "输出色调数量。" },
   },
   bilateral_filter: {
     sigma_int: { type: "number", default: 1, description: "强度核阈值；越大保留的强度差异越多，边缘保持越明显。" },

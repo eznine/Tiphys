@@ -252,3 +252,14 @@
   - Catalog counts remain honest: 958 WASM schemas, 997 browser-visible tools after hydration; shell starts below 900. Blue `#2563eb`, light default and `logo-temp` are unchanged; no teal or mythology.
   - Verification: 60/60 browser tests passed (`npm run test:browser`), `npx tsc --noEmit` passed, `npm run build` passed. `dist/` remains 36 MB (CLI WASM 24.11 MB); the DEPLOY payload note reflects the changed main chunk, and no live deploy was performed. GEE remains docs/demo only; no credentials read or created. No Python changes.
 - 2026-10-24 ~07:10 Asia/Shanghai — Overnight supervisor: batch21 shipped itself as `fa87781` (60/60, 134 wasm ribbon). Tree clean vs origin/main. Launching batch22 (RS-enhance/hydro-order/contour densify, agent recipes).
+
+
+- 2026-10-24 08:15 Asia/Shanghai — Overnight watch: builder dead ~65+ min (progress stale since 07:07; batch22 log last write 07:25; no tf-codex). Dirty mid-batch22 tree left (ribbon/recipes/aliases/tests; known Horton alias fail). Direction OK (blue `#2563eb`, light default, logo-temp, catalog health <900, no teal/mythology). Box-only. Restarting tf-codex to finish batch22 then batch23.
+
+- 2026-10-24 08:18 Asia/Shanghai — Batch22 finished on the Linux box (supervisor resumed after overnight-watch failure / idle builder):
+  - Ribbon: added eight catalog-backed actions — 对比度均衡, 直方图均衡, 最小最大拉伸, Horton 河网分级, Shreve 量级, 指定等值线, 点生成等值线 and Pennock 地貌分类. They extend 对比度增强, 河网分级 and 地貌与等值线; the ribbon now exposes 142 unique WASM actions, all resolving to hydrated catalog tools.
+  - Contracts: min/max stretch and histogram equalization expose numeric stretch bounds / tone counts; Horton/Shreve require d8_pntr+streams with boolean esri/zero-background flags; contour_list requires contour_values and keeps geometry_type enum; point contours keep field/interval/smooth/use_z contracts; several raster outputs (colour composite, elev relative, Pennock, Scharr, STI, total curvature, stdev filter, stretch) publish as real rasters. Chinese aliases now rank 河网分级 to Strahler/Hack/Horton, plus 最小最大拉伸 / 点等值线 / 泥沙输移 / 总曲率 / 标准差滤波 / Scharr.
+  - Agent: added restrained 对比度均衡 and 点生成等值线 recipe cards that only open forms. Recovery/compaction remains state-only.
+  - Catalog counts remain honest: 958 WASM schemas, 997 browser-visible tools after hydration; shell starts below 900. Blue `#2563eb`, light default and `logo-temp` are unchanged; no teal or mythology.
+  - Verification: 62/62 browser tests passed (`npm run test:browser`), `npx tsc --noEmit` passed, `npm run build` passed. `dist/` remains 36 MB (CLI WASM 24.11 MB); no live deploy. GEE remains docs/demo only; no credentials read or created. No Python changes.
+- 2026-10-24 ~08:18 Asia/Shanghai — Overnight supervisor: shipping batch22 then launching batch23 (more GIS densify + agent recipes). Box-only. No user ping.
