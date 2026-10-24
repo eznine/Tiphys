@@ -283,3 +283,5 @@
   - Agent: added restrained 各向异性扩散 and 多尺度粗糙度 recipe cards that only open forms. Chinese aliases now rank 各向异性扩散, LoG, Roberts, Otsu, 累积曲率, 多尺度粗糙度, 河流链路 and 六边形网格 correctly; recovery/compaction remains state-only and recipes never auto-run.
   - Catalog counts remain honest: 958 WASM schemas, 997 browser-visible tools after hydration; shell starts below 900. Blue `#2563eb`, light default and `logo-temp` are unchanged; no teal or mythology.
   - Verification: 65/65 browser tests passed (`npm run test:browser`), `npx tsc --noEmit` passed, `npm run build` passed. `dist/` remains 36 MB (app 1.93 MB, lazy catalog 1.95 MB, CLI WASM 24.11 MB), so no live deploy. GEE remains docs/demo only; no credentials read or created. No Python changes.
+
+- 2026-10-24 10:17 Asia/Shanghai — Live deploy tiphys.xyz: shipped batch24 `9e601c7` (batch25 WIP stashed as stash@{0} wip-batch25). Built `dist/`, rsync+sudo install to eznine@20.214.241.113:/srv/tiphys-web/. Smoke: HTTPS 200, index assets index-DbVckKj5.js / index-Bc1kIZsy.css, CSS has #2563eb, logo-temp.png 200, .wasm Content-Type application/wasm. origin/main already at tip. Overnight densify left stopped.
