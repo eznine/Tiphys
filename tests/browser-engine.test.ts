@@ -213,6 +213,51 @@ test("browser routes paginate/sort actual attributes and exports produce valid i
   assert.equal((await readBrowserJob(duplicate.job_id)).status, "failed");
 });
 
+test("attribute table rename persists the WASM work copy and definition queries filter total", async () => {
+  const source = { type: "FeatureCollection", features: [
+    { type: "Feature", properties: { id: 1, name: "天安门", pop: 10, code: "01" }, geometry: { type: "Point", coordinates: [116.39, 39.90] } },
+    { type: "Feature", properties: { id: 2, name: "故宫", pop: 20, code: "02" }, geometry: { type: "Point", coordinates: [116.40, 39.91] } },
+    { type: "Feature", properties: { id: 3, name: "北海", pop: null, code: "03" }, geometry: { type: "Point", coordinates: [116.38, 39.92] } },
+  ] };
+  const input = (await importBrowserFile(new Blob([JSON.stringify(source)]), "attribute-edit.geojson")).layer;
+  const renamed = await (await browserEngineRequest(`/layers/${input.id}/attributes/rename-field`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ field: "pop", new_field: "人口" }),
+  })).json();
+  assert.equal(renamed.renamed, input.id);
+  assert.equal(renamed.layer.feature_count, 3);
+  assert.deepEqual([...renamed.fields].sort(), ["code", "id", "name", "人口"].sort());
+  const stored: any = await readRecord(`layer:${input.id}`);
+  assert.ok(stored.geojson.features.every((feature: any) => "人口" in feature.properties && !("pop" in feature.properties)));
+  assert.equal(stored.extension, "fgb");
+  const native = await runTool("vector_convert", { args: ["--input=/work/in.fgb", "--output=/work/out.geojson"], input: { "in.fgb": stored.bytes } });
+  const nativeJson: any = JSON.parse(new TextDecoder().decode(native.files["out.geojson"]));
+  assert.equal(nativeJson.features[0].properties["人口"], 10);
+
+  const query = async (params: Record<string, string>) => (await (await browserEngineRequest(`/layers/${input.id}/attributes?${new URLSearchParams({ offset: "0", limit: "1", ...params })}`)).json());
+  assert.equal((await query({ filter_field: "code", filter_op: "=", filter_value: "01" })).total, 1);
+  assert.equal((await query({ filter_field: "人口", filter_op: ">", filter_value: "10" })).total, 1);
+  assert.equal((await query({ filter_field: "人口", filter_op: "<", filter_value: "20" })).total, 1);
+  assert.equal((await query({ filter_field: "人口", filter_op: "!=", filter_value: "20" })).total, 1);
+  assert.equal((await query({ filter_field: "人口", filter_op: "is null" })).total, 1);
+  assert.equal((await query({ filter_field: "人口", filter_op: "is not null", limit: "2" })).rows.length, 2);
+  assert.equal((await query({ filter_field: "name", filter_op: "contains", filter_value: "故" })).rows[0].attributes.name, "故宫");
+  assert.equal((await query({ search: "天安", filter_field: "人口", filter_op: "=", filter_value: "10" })).total, 1);
+  assert.equal((await query({ search: "故宫", filter_field: "人口", filter_op: "=", filter_value: "10" })).total, 0);
+  assert.equal((await query({ search: "不存在", filter_field: "人口", filter_op: ">", filter_value: "10" })).total, 0);
+  await assert.rejects(browserEngineRequest(`/layers/${input.id}/attributes?filter_field=人口&filter_op=${encodeURIComponent(">=")}&filter_value=10`), /不支持/);
+
+  await assert.rejects(browserEngineRequest(`/layers/${input.id}/attributes/rename-field`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ field: "name", new_field: "code" }),
+  }), /已存在/);
+  await assert.rejects(browserEngineRequest(`/layers/${input.id}/attributes/rename-field`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ field: "id", new_field: "identifier" }),
+  }), /不能重命名/);
+  await assert.rejects(browserEngineRequest(`/layers/${input.id}/attributes/rename-field`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ field: "name", new_field: "bad.name" }),
+  }), /仅可包含/);
+});
+
 test("CSV export writes original-CRS WKT and safely quotes spreadsheet text", async () => {
   const source = { type: "FeatureCollection", name: "csv_export", crs: { type: "name", properties: { name: "EPSG:3857" } },
     features: [{ type: "Feature", properties: { "名称": "天安门, 北京", formula: "=SUM(1,2)", note: "say \"hello\"" },

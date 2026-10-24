@@ -15,7 +15,86 @@ from pathlib import Path
 from typing import Any
 
 import geopandas as gpd
+import pandas as pd
 import pyogrio
+
+
+_ATTRIBUTE_OPERATORS = {
+    "=": "=", "==": "=", "eq": "=",
+    "!=": "!=", "<>": "!=", "ne": "!=",
+    "contains": "contains",
+    ">": ">", "gt": ">",
+    "<": "<", "lt": "<",
+    "is null": "is null", "isnull": "is null",
+    "is not null": "is not null", "notnull": "is not null",
+}
+_RESERVED_FIELD_NAMES = {"id", "fid", "objectid", "ogc_fid", "_tiphys_fid", "geometry", "geom"}
+
+
+def normalize_attribute_operator(raw: str) -> str:
+    key = " ".join((raw or "").strip().lower().split())
+    return _ATTRIBUTE_OPERATORS.get(key, "")
+
+
+def validate_field_name(raw: str) -> str:
+    name = (raw or "").strip()
+    if not name:
+        raise ValueError("New field name must not be empty")
+    if len(name) > 64:
+        raise ValueError("New field name must be at most 64 characters")
+    if not re.fullmatch(r"[\w][\w \-]*", name, flags=re.UNICODE):
+        raise ValueError("New field name must start with a letter, number or underscore and contain only letters, numbers, spaces, underscores and hyphens")
+    return name
+
+
+def filter_attribute_frame(frame: gpd.GeoDataFrame, field: str, operator: str,
+                           raw_value: str | None, geometry_field: str) -> gpd.GeoDataFrame:
+    if not field:
+        raise ValueError("filter_field is required when a definition query is used")
+    if field not in frame.columns or field == geometry_field:
+        raise ValueError(f"unknown attribute query field: {field}")
+    op = normalize_attribute_operator(operator or "=")
+    if not op:
+        raise ValueError(f"unsupported definition query operator: {operator}")
+    value = "" if raw_value is None else str(raw_value)
+    column = frame[field]
+    if op == "is null":
+        return frame.loc[column.isna()]
+    if op == "is not null":
+        return frame.loc[column.notna()]
+    if op == "contains":
+        if not value:
+            raise ValueError("contains definition query needs a value")
+        mask = column.astype("string").str.contains(value, case=False, regex=False).fillna(False)
+        return frame.loc[mask]
+    if pd.api.types.is_bool_dtype(column) and op in {"=", "!="}:
+        folded = value.strip().lower()
+        if folded not in {"true", "false", "1", "0"}:
+            raise ValueError("Boolean definition query needs true/false or 1/0")
+        target = folded in {"true", "1"}
+        mask = column.notna() & ((column == target) if op == "=" else (column != target))
+        return frame.loc[mask]
+    numeric = pd.api.types.is_numeric_dtype(column) and not pd.api.types.is_bool_dtype(column)
+    if op in {">", "<"}:
+        if not numeric:
+            raise ValueError("Only numeric fields support > / < definition queries")
+        try:
+            target = float(value)
+        except ValueError as exc:
+            raise ValueError("Numeric definition query needs a valid number") from exc
+        mask = column.notna() & ((column > target) if op == ">" else (column < target))
+        return frame.loc[mask]
+    if numeric:
+        try:
+            target = float(value)
+        except ValueError as exc:
+            raise ValueError("Numeric definition query needs a valid number") from exc
+        mask = column.notna() & ((column == target) if op == "=" else (column != target))
+        return frame.loc[mask]
+    mask = column.astype("string") == value
+    if op == "!=":
+        mask = column.notna() & ~mask.fillna(False)
+    return frame.loc[mask]
 
 
 @dataclass
@@ -266,6 +345,78 @@ class LayerStore:
             if gdf.crs is None and source_crs:
                 gdf = gdf.set_crs(source_crs)
             return self.add_gdf(gdf, name=layer.name, source_path=str(source), layer_id=lid, overwrite=True)
+
+    def attributes_page(self, layer_ref: str, offset: int = 0, limit: int = 100,
+                        search: str = "", sort: str | None = None, descending: bool = False,
+                        filter_field: str = "", filter_op: str = "", filter_value: str | None = None) -> dict[str, Any]:
+        """Paged rows with an optional single-field definition query.
+
+        `search` remains a global substring search across every attribute field.
+        A definition query is separate, field-qualified, and combined with the
+        global search using AND. Both filter the total returned to the caller.
+        """
+        if offset < 0 or limit < 1 or limit > 500:
+            raise ValueError("offset must be >= 0 and limit must be between 1 and 500")
+        frame = self.get_gdf(layer_ref)
+        if frame is None:
+            raise KeyError(f"unknown layer: {layer_ref}")
+        frame = frame.reset_index(drop=True)
+        geometry_field = frame.geometry.name
+        columns = [c for c in frame.columns if c != geometry_field]
+        fields = [{"name": c, "type": str(frame[c].dtype)} for c in columns]
+        if search:
+            mask = frame[columns].astype("string").apply(
+                lambda s: s.str.contains(search, case=False, regex=False)).fillna(False).any(axis=1)
+            frame = frame.loc[mask]
+        if filter_field:
+            frame = filter_attribute_frame(frame, filter_field, filter_op or "=", filter_value, geometry_field)
+        if sort:
+            if sort not in columns:
+                raise ValueError("unknown sort field")
+            frame = frame.sort_values(sort, ascending=not descending, kind="stable", na_position="last")
+        total = len(frame)
+        page = frame.iloc[offset:offset + limit]
+        values = json.loads(page[columns].to_json(orient="records", date_format="iso"))
+        geometries = page.to_crs(4326).geometry
+        rows = [{"id": int(idx), "attributes": attributes,
+                 "bounds": list(geom.bounds) if geom is not None and not geom.is_empty else None}
+                for (idx, geom), attributes in zip(geometries.items(), values)]
+        query = None
+        if filter_field:
+            query = {"field": filter_field, "op": normalize_attribute_operator(filter_op or "="),
+                     "value": None if filter_value is None else str(filter_value)}
+        return {"fields": fields, "rows": rows, "total": total, "offset": offset, "limit": limit,
+                "definition_query": query}
+
+    def rename_field(self, layer_ref: str, field: str, new_field: str) -> dict[str, Any]:
+        """Rename one vector attribute field in the managed analysis work copy."""
+        with self._lock:
+            lid = self.resolve(layer_ref)
+            layer = self._layers[lid]
+            if self._is_raster(layer):
+                raise ValueError("Field rename is only available for vector layers")
+            frame = self.get_gdf(lid)
+            if frame is None:
+                raise KeyError(f"unknown layer: {layer_ref}")
+            geometry_field = frame.geometry.name
+            if field not in frame.columns or field == geometry_field:
+                raise ValueError(f"unknown attribute field: {field}")
+            if str(field).casefold() in _RESERVED_FIELD_NAMES:
+                raise ValueError(f"Field {field!r} is a reserved record ID or geometry field and cannot be renamed")
+            name = validate_field_name(new_field)
+            if name == field:
+                raise ValueError("New field name is the same as the current field name")
+            if name.casefold() in _RESERVED_FIELD_NAMES or name.casefold() == str(geometry_field).casefold():
+                raise ValueError(f"Field name {name!r} is reserved for record IDs or geometry")
+            folded = name.casefold()
+            if any(str(column).casefold() == folded for column in frame.columns if column != field):
+                raise ValueError(f"Attribute field {name!r} already exists")
+            renamed = frame.rename(columns={field: name})
+            layer_info = self.add_gdf(renamed, name=layer.name, source_path=layer.source_path,
+                                      layer_id=lid, overwrite=True)
+            result_fields = [c for c in renamed.columns if c != renamed.geometry.name]
+            return {"ok": True, "renamed": lid, "field": field, "new_field": name,
+                    "fields": result_fields, "layer": layer_info}
 
     def add_gdf(self, gdf: gpd.GeoDataFrame, name: str, source_path: str | None = None,
                 layer_id: str | None = None, overwrite: bool = False) -> dict[str, Any]:

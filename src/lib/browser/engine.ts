@@ -11,6 +11,7 @@ import { planOperation } from "../../../shared/contracts/index.ts";
 import { listPlanRuns, readPlanRun, runBrowserPlan } from "./plans";
 import type { GeeAuthStatus } from "../gee";
 import { assertShapefileParts, groupShapefileParts, SHAPEFILE_EXTENSIONS } from "../shapefile";
+import { fieldRenameError, isNumericField, matchesDefinitionQuery, normalizeDefinitionOperator } from "../attribute-query";
 
 type LayerRecord = {
   info: Omit<DataLayer, "url">;
@@ -270,6 +271,65 @@ async function projectBytes(bytes: Uint8Array, extension: string, epsg: number, 
   const result = await wasmTool("reproject_vector", { [`input.${extension}`]: bytes }, { input: `/work/input.${extension}`, epsg, output: "/work/result.fgb" }, signal);
   if (!result.files["result.fgb"]?.length) throw new Error("重投影未生成数据文件。");
   return result.files["result.fgb"];
+}
+
+async function renameBrowserField(record: LayerRecord, field: string, newField: string, signal?: AbortSignal) {
+  if ((record.info.kind ?? "vector") !== "vector") throw new Error("重命名字段仅适用于矢量图层。");
+  const names = fields(record);
+  if (!names.includes(field)) throw new Error(`找不到字段「${field}」。`);
+  const validation = fieldRenameError(field, newField, names);
+  if (validation) throw new Error(validation);
+  const name = newField.trim();
+  let renamedBytes: Uint8Array | undefined;
+  if (/^[\x00-\x7F]+$/.test(name)) {
+    // Prefer the dedicated engine operation for names it represents correctly.
+    // Use a short output path because upstream rename_field corrupts some longer paths.
+    const renamed = await wasmTool("rename_field", { [`input.${record.extension}`]: record.bytes }, {
+      input: `/work/input.${record.extension}`, field, new_field: name, output: "/work/r.geojson",
+    }, signal);
+    renamedBytes = renamed.files["r.geojson"];
+  } else {
+    // GeoJSON serde in rename_field 1.7.1 mangles non-ASCII field names to "__".
+    // Round-trip through vector_convert so a real managed work copy still carries
+    // the requested name instead of saving a silently different schema.
+    const source = await wasmTool("vector_convert", { [`input.${record.extension}`]: record.bytes }, {
+      input: `/work/input.${record.extension}`, output: "/work/source.geojson",
+    }, signal);
+    const sourceBytes = source.files["source.geojson"];
+    if (!sourceBytes?.length) throw new Error("无法读取字段重命名前的矢量数据。");
+    const data = JSON.parse(new TextDecoder().decode(sourceBytes)) as FeatureCollection;
+    assertGeojson(data);
+    data.features = data.features.map(feature => {
+      const properties = { ...(feature.properties ?? {}) } as Record<string, unknown>;
+      properties[name] = properties[field];
+      delete properties[field];
+      return { ...feature, properties };
+    });
+    renamedBytes = encoder.encode(JSON.stringify(data));
+  }
+  if (!renamedBytes?.length) throw new Error("字段重命名未生成有效工作副本。");
+  const work = await wasmTool("vector_convert", { "input.geojson": renamedBytes }, {
+    input: "/work/input.geojson", output: "/work/r.fgb",
+  }, signal);
+  const bytes = work.files["r.fgb"];
+  if (!bytes?.length) throw new Error("字段重命名工作副本无法写入 FlatGeobuf。");
+  const converted = await wasmTool("vector_convert", { "input.fgb": bytes }, {
+    input: "/work/input.fgb", output: "/work/display.geojson",
+  }, signal);
+  const display = converted.files["display.geojson"];
+  if (!display?.length) throw new Error("字段重命名后无法读回属性表显示副本。");
+  const json = JSON.parse(new TextDecoder().decode(display)) as FeatureCollection;
+  assertGeojson(json);
+  if (json.features.length !== record.info.feature_count || !fields({ ...record, geojson: json }).includes(name)) {
+    throw new Error("字段重命名校验失败：要素数量或字段不一致，未保存。");
+  }
+  const next: LayerRecord = { ...record, bytes, extension: "fgb", geojson: json };
+  await writeRecord(`layer:${record.info.id}`, next, signal);
+  const url = urls.get(record.info.id);
+  if (url) URL.revokeObjectURL(url);
+  urls.delete(record.info.id);
+  notify();
+  return { ok: true, renamed: record.info.id, field, new_field: name, fields: fields(next), layer: publicLayer(next) };
 }
 function metricDistance(raw: unknown, units = "meters") {
   const factor = ({ meters: 1, kilometers: 1000, miles: 1609.344 } as Record<string, number>)[units];
@@ -1024,6 +1084,11 @@ export async function browserEngineRequest(path: string, init: RequestInit = {})
       headers: { "Content-Type": type, "Content-Length": String(record.bytes.length) },
     });
   }
+  else if (/^\/layers\/[^/]+\/attributes\/rename-field$/.test(p)) {
+    const id = decodeURIComponent(p.split("/")[2]);
+    const body = JSON.parse(String(init.body ?? "{}"));
+    result = await renameBrowserField(await resolve(id), String(body.field ?? ""), String(body.new_field ?? ""));
+  }
   else if (p.startsWith("/layers/")) {
     const [, , id, action] = p.split("/"); const record = await resolve(decodeURIComponent(id));
     if (action === "describe") result = describe(record);
@@ -1037,10 +1102,30 @@ export async function browserEngineRequest(path: string, init: RequestInit = {})
       if ((record.info.kind ?? "vector") !== "vector") result = { fields: [], rows: [], total: 0, offset: Number(url.searchParams.get("offset") ?? 0), limit: Number(url.searchParams.get("limit") ?? 100) };
       else {
       const columns = fields(record), search = (url.searchParams.get("search") ?? "").toLocaleLowerCase(), sort = url.searchParams.get("sort"), descending = url.searchParams.get("descending") === "true";
-      let rows = record.geojson!.features.map((f, id) => ({ id, attributes: f.properties ?? {}, bounds: boundsOf({ type: "FeatureCollection", features: [f] }) })).filter(r => !search || JSON.stringify(r.attributes).toLocaleLowerCase().includes(search));
+      const filterField = url.searchParams.get("filter_field") ?? "";
+      const filterOpRaw = url.searchParams.get("filter_op") ?? "=";
+      const filterValue = url.searchParams.get("filter_value") ?? "";
+      const filterOp = filterField ? normalizeDefinitionOperator(filterOpRaw) : null;
+      if (filterField && !columns.includes(filterField)) throw new Error(`定义查询字段不存在：${filterField}`);
+      if (filterField && !filterOp) throw new Error(`不支持的定义查询运算符：${filterOpRaw}`);
+      const allRows = record.geojson!.features.map((f, id) => ({ id, attributes: f.properties ?? {}, bounds: boundsOf({ type: "FeatureCollection", features: [f] }) }));
+      let rows = allRows.filter(r => !search || JSON.stringify(r.attributes).toLocaleLowerCase().includes(search));
+      if (filterField && filterOp) {
+        if ((filterOp === ">" || filterOp === "<") && !isNumericField(allRows.map(row => row.attributes[filterField]))) {
+          throw new Error("只有数值字段支持 > / < 定义查询。");
+        }
+        if (filterOp !== "is null" && filterOp !== "is not null" && filterValue.trim() === "" && filterOp !== "=" && filterOp !== "!=") {
+          throw new Error("定义查询需要值。");
+        }
+        if ((filterOp === ">" || filterOp === "<") && !Number.isFinite(Number(filterValue))) {
+          throw new Error("数值定义查询需要有效数字。");
+        }
+        rows = rows.filter(row => matchesDefinitionQuery(row.attributes[filterField], filterOp, filterValue));
+      }
       if (sort) rows.sort((a, b) => { const av = a.attributes[sort], bv = b.attributes[sort]; return (av == null ? bv == null ? 0 : 1 : bv == null ? -1 : typeof av === "number" && typeof bv === "number" ? av - bv : String(av).localeCompare(String(bv), "zh-CN", { numeric: true })) * (descending ? -1 : 1); });
       const offset = Number(url.searchParams.get("offset") ?? 0), limit = Number(url.searchParams.get("limit") ?? 100);
-      result = { fields: columns.map(name => ({ name, type: typeof record.geojson!.features.find(f => f.properties?.[name] != null)?.properties?.[name] })), total: rows.length, rows: rows.slice(offset, offset + limit) };
+      result = { fields: columns.map(name => ({ name, type: typeof record.geojson!.features.find(f => f.properties?.[name] != null)?.properties?.[name] })), total: rows.length, rows: rows.slice(offset, offset + limit),
+        definition_query: filterField ? { field: filterField, op: filterOp, value: filterOp === "is null" || filterOp === "is not null" ? null : filterValue } : null };
       }
     } else throw new Error("未知图层请求。");
   } else throw new Error(`浏览器暂不支持接口：${p}`);

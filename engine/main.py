@@ -103,6 +103,11 @@ class ToolRunBody(BaseModel):
     arguments: dict[str, Any] = {}
 
 
+class RenameFieldBody(BaseModel):
+    field: str
+    new_field: str
+
+
 @app.get("/ping")
 def ping() -> dict[str, object]:
     return {"ok": True, "service": "tiphys-engine", "version": "0.2.0"}
@@ -169,29 +174,28 @@ def add_data_http(body: AddDataBody) -> dict[str, Any]:
 
 @app.get("/layers/{layer_id}/attributes")
 def layer_attributes(layer_id: str, offset: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=500),
-                     search: str = "", sort: str | None = None, descending: bool = False) -> dict[str, Any]:
-    """Paged attributes from the analysis dataset; never the exploded display copy."""
-    frame = STORE.get_gdf(layer_id)
-    if frame is None:
-        raise HTTPException(404, "layer not found")
-    frame = frame.reset_index(drop=True)
-    columns = [c for c in frame.columns if c != frame.geometry.name]
-    fields = [{"name": c, "type": str(frame[c].dtype)} for c in columns]
-    if search:
-        mask = frame[columns].astype("string").apply(lambda s: s.str.contains(search, case=False, regex=False)).fillna(False).any(axis=1)
-        frame = frame.loc[mask]
-    if sort:
-        if sort not in columns:
-            raise HTTPException(400, "unknown sort field")
-        frame = frame.sort_values(sort, ascending=not descending, kind="stable", na_position="last")
-    total = len(frame)
-    page = frame.iloc[offset:offset + limit]
-    values = json.loads(page[columns].to_json(orient="records", date_format="iso"))
-    geometries = page.to_crs(4326).geometry
-    rows = [{"id": int(idx), "attributes": attributes,
-             "bounds": list(geom.bounds) if geom is not None and not geom.is_empty else None}
-            for (idx, geom), attributes in zip(geometries.items(), values)]
-    return {"fields": fields, "rows": rows, "total": total, "offset": offset, "limit": limit}
+                     search: str = "", sort: str | None = None, descending: bool = False,
+                     filter_field: str = "", filter_op: str = "", filter_value: str | None = None) -> dict[str, Any]:
+    """Paged attributes from the analysis dataset with a single-field definition query."""
+    try:
+        return STORE.attributes_page(layer_id, offset=offset, limit=limit, search=search, sort=sort,
+                                     descending=descending, filter_field=filter_field,
+                                     filter_op=filter_op, filter_value=filter_value)
+    except KeyError as e:
+        raise HTTPException(404, str(e)) from e
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@app.post("/layers/{layer_id}/attributes/rename-field")
+def rename_field_http(layer_id: str, body: RenameFieldBody) -> dict[str, Any]:
+    """Rename a vector field in the layer's managed analysis work copy."""
+    try:
+        return STORE.rename_field(layer_id, body.field, body.new_field)
+    except KeyError as e:
+        raise HTTPException(404, str(e)) from e
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
 
 
 @app.post("/layers/import")

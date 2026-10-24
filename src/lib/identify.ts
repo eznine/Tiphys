@@ -1,6 +1,6 @@
 export type IdentifyTableFilter = { layerId: string; field: string; value: unknown };
 
-/** Text used for copying and for the attribute search prefilled by Identify. */
+/** Text used for copying and for the definition-query value prefilled by Identify. */
 export function identifyValueText(value: unknown): string {
   if (value == null) return "";
   return typeof value === "object" ? JSON.stringify(value) : String(value);

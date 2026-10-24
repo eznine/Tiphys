@@ -81,6 +81,18 @@
 .attribute-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--tiphys-border); }
 .attribute-header strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .attribute-header .icon-btn { width: 26px; height: 26px; padding: 0; }
+.attribute-header-actions { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.attribute-link-btn { border: 1px solid var(--tiphys-border); border-radius: 5px; padding: 4px 8px; background: var(--tiphys-surface-elevated); color: var(--tiphys-text-secondary); font: inherit; font-size: 11px; cursor: pointer; }
+.attribute-link-btn:hover, .attribute-link-btn[aria-expanded="true"] { border-color: var(--tiphys-accent); color: var(--tiphys-accent); background: var(--tiphys-accent-muted); }
+.attribute-rename-bar, .attribute-query-bar { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-bottom: 1px solid var(--tiphys-border-subtle); color: var(--tiphys-text-secondary); font-size: 11px; }
+.attribute-rename-bar { background: color-mix(in srgb, var(--tiphys-accent) 4%, var(--tiphys-surface)); }
+.attribute-query-bar strong { color: var(--tiphys-text); font-size: 11px; font-weight: 600; white-space: nowrap; }
+.attribute-rename-bar select, .attribute-rename-bar input, .attribute-query-bar select, .attribute-query-bar input { height: 25px; min-width: 0; border: 1px solid var(--tiphys-border); border-radius: 5px; background: var(--tiphys-bg); color: var(--tiphys-text); padding: 2px 6px; font: inherit; font-size: 11px; }
+.attribute-query-bar select:first-of-type { width: 130px; }
+.attribute-query-bar input { width: 140px; }
+.attribute-rename-bar input { width: 150px; }
+.attribute-rename-bar .icon-btn, .attribute-query-bar .icon-btn { min-height: 25px; height: 25px; border-radius: 5px; font-size: 11px; }
+.attribute-bar-error { min-width: 0; color: #b91c1c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .field-stats { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 5px 10px; font-size: 12px; color: var(--tiphys-text-secondary); border-bottom: 1px solid var(--tiphys-border, rgba(128,128,128,.25)); }
 .field-stats strong { color: var(--tiphys-text); font-weight: 600; }
 .field-stats-top { display: inline-flex; flex-wrap: wrap; gap: 4px 8px; }
