@@ -63,6 +63,8 @@ export type MobileWorkspaceProps = {
   onRenameLayer: (id: string, name: string) => void;
   onReorderLayers: (ids: string[]) => void;
   onRemoveLayer: (layer: DataLayer) => void;
+  onReloadLayer: (layer: DataLayer) => void;
+  onExportLayer: (layer: DataLayer) => void;
   onClipAoi: () => void;
   onOpenSettings: () => void;
   onTable: (id: string, featureId?: number) => void;
@@ -91,7 +93,7 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
   const {
     theme, agent, layers, activeLayer, onSelectLayer, selection, onSelection, onClearSelection, aoi, onAoi,
     focus, onFocusAll, onZoomBounds, onZoomLayer, onAddData, importing, importNotice, onDismissNotice, sourceCrs, onSourceCrs,
-    onRenameLayer, onReorderLayers, onRemoveLayer, onClipAoi, onOpenSettings, onTable, tableLayer, onTableClose, tableFilter, tableResetToken,
+    onRenameLayer, onReorderLayers, onRemoveLayer, onReloadLayer, onExportLayer, onClipAoi, onOpenSettings, onTable, tableLayer, onTableClose, tableFilter, tableResetToken,
     onFilterTable, onExportIdentifyFeature, onTableSelection,
     properties, propertyLayer, onPropertiesChange, onLayerStyle, onMapStatus, engineState, agentUnconfigured,
     agentProviderLabel, recoveryNote, agentSession,
@@ -791,6 +793,7 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
       importNotice={importNotice} onDismissNotice={onDismissNotice}
       onZoom={onZoomLayer} onTable={openTable} onProperties={(id, tab) => { setLayersOpen(false); onPropertiesChange({ id, tab }); }}
       onRename={onRenameLayer} onReorder={onReorderLayers} onRemove={onRemoveLayer}
+      onReload={onReloadLayer} onExport={onExportLayer}
       onOpenTool={(tool, layerId) => openToolbox(tool || null, layerId)} />
 
     <MobileToolbox open={toolboxOpen} onClose={() => setToolboxOpen(false)} layers={layers} selectedLayer={activeLayer}

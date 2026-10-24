@@ -13,6 +13,7 @@ import { defaultLayerStyle, type DataLayer, type LayerSelection, type LayerStyle
 import { engineRequest } from "./lib/service";
 import type { IdentifyTableFilter } from "./lib/identify";
 import { identifyGeoJsonFilename, selectedFeaturesGeoJson } from "./lib/table-export";
+import { layerExportTarget } from "./lib/layer-actions";
 import { AttributeTable } from "./components/AttributeTable";
 import { LayerProperties } from "./components/LayerProperties";
 import { MapLegend } from "./components/MapLegend";
@@ -257,6 +258,35 @@ export default function App() {
       .then(result => { setImportNotice(`已删除图层「${result?.name ?? layer.name}」，原始数据文件不受影响。`); })
       .catch(err => setImportNotice(`删除图层失败：${err}`));
   };
+  const handleReloadLayer = (layer: DataLayer) => {
+    setImportNotice("");
+    void (async () => {
+      const response = await engineRequest(`/layers/${encodeURIComponent(layer.id)}/reload`, { method: "POST" });
+      const result = await response.json();
+      if (!result?.layer) throw new Error("引擎未返回重新加载后的图层");
+      agent.mergeToolResult({ ...result, reloaded: result.reloaded ?? layer.id });
+      setImportNotice(`已从原始路径重新加载「${result.layer.name ?? layer.name}」。`);
+    })().catch(err => setImportNotice(`重新加载失败：${err}`));
+  };
+  const handleExportLayer = (layer: DataLayer) => {
+    setImportNotice("");
+    const target = layerExportTarget(layer);
+    if (!target) { setImportNotice("表格图层请在属性表中导出 CSV。"); return; }
+    void (async () => {
+      const response = await engineRequest(target.endpoint);
+      const blob = await response.blob();
+      if (!blob.size) throw new Error("导出文件为空");
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = target.filename;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 500);
+      setImportNotice(`已导出「${layer.name}」：${target.label}。`);
+    })().catch(err => setImportNotice(`导出失败：${err}`));
+  };
   const addData = async () => {
     if (!isTauri()) { fileRef.current?.click(); return; }
     setImporting(true); setImportNotice("");
@@ -377,6 +407,8 @@ export default function App() {
           onRenameLayer={handleRename}
           onReorderLayers={handleReorder}
           onRemoveLayer={handleRemoveLayer}
+          onReloadLayer={handleReloadLayer}
+          onExportLayer={handleExportLayer}
           onClipAoi={() => void clipToAoi()}
           onOpenSettings={() => setSettingsOpen(true)}
           onTable={openTable}
@@ -418,6 +450,7 @@ export default function App() {
         <LayerRail layers={layers} onToggle={agent.toggleLayer} onAdd={() => void addData()} importing={importing}
           selectedId={activeLayer?.id} onSelect={setSelectedId}
           onZoom={zoomLayer} onTable={openTable} onProperties={(id, tab) => setProperties({ id, tab })}
+          onReload={handleReloadLayer} onExport={handleExportLayer}
           onRename={handleRename} onReorder={handleReorder} onRemove={handleRemoveLayer} />
         <main className="map-pane" aria-label="地图">
           <div className="map-document-bar"><span className="map-document-tab"><MapIcon size={15} /> 地图</span><span>{activeLayer ? activeLayer.name : "地理空间工作区"}</span></div>

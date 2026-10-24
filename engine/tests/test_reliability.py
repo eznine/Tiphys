@@ -42,6 +42,51 @@ class SpatialReliability(unittest.TestCase):
             info = self.store.add_from_path("input.geojson")
         self.assertEqual(info["source_path"], str(source))
 
+    def test_reload_rereads_original_vector_without_changing_layer_identity(self):
+        source = self.dir / "reload-source.geojson"
+        gpd.GeoDataFrame({"name": ["first"]}, geometry=[Point(116, 40)], crs=4326).to_file(source, driver="GeoJSON")
+        info = self.store.add_from_path(str(source), name="可重载图层")
+        self.assertEqual(info["feature_count"], 1)
+        self.assertEqual(info["format"], "gpkg")
+        self.assertGreater(info["bytes"], 0)
+
+        gpd.GeoDataFrame({"name": ["first", "second"]}, geometry=[Point(116, 40), Point(117, 41)], crs=4326).to_file(source, driver="GeoJSON")
+        reloaded = self.store.reload(info["id"])
+        self.assertEqual(reloaded["id"], info["id"])
+        self.assertEqual(reloaded["name"], "可重载图层")
+        self.assertEqual(reloaded["feature_count"], 2)
+        self.assertEqual(reloaded["source_path"], str(source))
+        self.assertEqual(self.store.describe(info["id"])["columns"], ["name"])
+
+    def test_reload_rejects_workspace_only_layers_honestly(self):
+        info = self.point()
+        self.assertIsNone(info["source_path"])
+        with self.assertRaisesRegex(ValueError, "no original source path"):
+            self.store.reload(info["id"])
+
+    def test_reload_raster_preserves_id_and_can_describe_metadata(self):
+        import numpy as np
+        import rasterio
+        from rasterio.transform import from_origin
+
+        source = self.dir / "reload-raster.tif"
+        with rasterio.open(source, "w", driver="GTiff", height=4, width=5, count=1, dtype="uint8",
+                           crs="EPSG:4326", transform=from_origin(116, 40, 0.01, 0.01)) as dst:
+            dst.write(np.ones((1, 4, 5), dtype="uint8"))
+        info = self.store.add_from_path(str(source), name="可重载栅格")
+        with rasterio.open(source, "w", driver="GTiff", height=6, width=7, count=1, dtype="uint8",
+                           crs="EPSG:4326", transform=from_origin(116, 40, 0.01, 0.01)) as dst:
+            dst.write(np.ones((1, 6, 7), dtype="uint8"))
+
+        reloaded = self.store.reload(info["id"])
+        self.assertEqual(reloaded["id"], info["id"])
+        self.assertEqual(reloaded["kind"], "raster")
+        self.assertEqual(reloaded["format"], "tif")
+        self.assertGreater(reloaded["bytes"], 0)
+        described = self.store.describe(info["id"])
+        self.assertEqual(described["columns"], [])
+        self.assertEqual(described["id"], info["id"])
+
     def test_shared_mcp_contract_exposes_crs_and_destructive_annotations(self):
         from mcp.server.fastmcp import FastMCP
         from tools import register_tools

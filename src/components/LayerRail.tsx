@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { defaultLayerStyle, type DataLayer } from "../lib/dataLayers";
+import { layerExportUnavailableReason, layerReloadUnavailableReason, layerSourcePath } from "../lib/layer-actions";
 import { ChevronDown, ChevronRight, Search, Map, FolderPlus, Layers } from "lucide-react";
 
 type Props = {
   layers: DataLayer[]; onToggle: (id: string) => void; onAdd: () => void; importing: boolean;
   onZoom: (layer: DataLayer) => void; onTable: (id: string) => void;
   onProperties: (id: string, tab: "style" | "labels" | "info") => void;
+  onReload?: (layer: DataLayer) => void; onExport?: (layer: DataLayer) => void;
   onRename: (id: string, name: string) => void; onReorder: (ids: string[]) => void;
   onRemove: (layer: DataLayer) => void;
   selectedId?: string; onSelect: (id: string) => void;
 };
 
 /** Layer list: basemap + agent/engine result layers. */
-export function LayerRail({ layers, onToggle, onAdd, importing, onZoom, onTable, onProperties, onRename, onReorder, onRemove, selectedId, onSelect }: Props) {
+export function LayerRail({ layers, onToggle, onAdd, importing, onZoom, onTable, onProperties, onReload, onExport, onRename, onReorder, onRemove, selectedId, onSelect }: Props) {
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [menu, setMenu] = useState<{ layer: DataLayer; x: number; y: number } | null>(null);
@@ -30,7 +32,7 @@ export function LayerRail({ layers, onToggle, onAdd, importing, onZoom, onTable,
     window.addEventListener("keydown", escape);
     return () => { window.removeEventListener("pointerdown", dismiss); window.removeEventListener("keydown", escape); };
   }, [menu]);
-  const openMenu = (layer: DataLayer, x: number, y: number) => { setConfirmRemove(false); setMenu({ layer, x: Math.max(8, Math.min(x, window.innerWidth - 208)), y: Math.max(8, Math.min(y, window.innerHeight - 300)) }); };
+  const openMenu = (layer: DataLayer, x: number, y: number) => { setConfirmRemove(false); setMenu({ layer, x: Math.max(8, Math.min(x, window.innerWidth - 208)), y: Math.max(8, Math.min(y, window.innerHeight - 390)) }); };
   const action = (fn: (layer: DataLayer) => void) => { if (menu) fn(menu.layer); setMenu(null); };
   const startRename = (layer: DataLayer) => { setEditing({ id: layer.id, draft: layer.name }); setMenu(null); };
   const commitRename = () => {
@@ -52,6 +54,8 @@ export function LayerRail({ layers, onToggle, onAdd, importing, onZoom, onTable,
     setDragId(null); setDropTarget(null);
   };
   const commit = (fn: () => void) => { fn(); setMenu(null); };
+  const reloadReason = menu ? layerReloadUnavailableReason(menu.layer, !!onReload) : "";
+  const exportReason = menu ? layerExportUnavailableReason(menu.layer, !!onExport) : "";
   return (
     <nav className="layer-rail" aria-label="Layers">
       <div className="layer-rail-header"><strong>内容</strong><span>{layers.length} 个图层</span></div>
@@ -97,7 +101,11 @@ export function LayerRail({ layers, onToggle, onAdd, importing, onZoom, onTable,
         <button type="button" role="menuitem" onClick={() => action(l => onTable(l.id))}>打开属性表</button>
         <button type="button" role="menuitem" onClick={() => action(l => onProperties(l.id, "style"))}>符号化</button>
         <button type="button" role="menuitem" onClick={() => action(l => onProperties(l.id, "labels"))}>标注</button>
-        <button type="button" role="menuitem" onClick={() => action(l => onProperties(l.id, "info"))}>图层属性</button>
+        <button type="button" role="menuitem" onClick={() => action(l => onProperties(l.id, "info"))}>元数据 / 图层属性</button>
+        <button type="button" role="menuitem" disabled={!!reloadReason} title={reloadReason || layerSourcePath(menu.layer) || undefined}
+          onClick={() => action(l => onReload?.(l))}>从源重新加载</button>
+        <button type="button" role="menuitem" disabled={!!exportReason} title={exportReason || undefined}
+          onClick={() => action(l => onExport?.(l))}>{menu.layer.kind === "raster" ? "下载工作副本 GeoTIFF" : "导出 / 另存为 GeoJSON"}</button>
         <button type="button" role="menuitem" onClick={() => commit(() => startRename(menu.layer))}>重命名</button>
         <div className="layer-menu-separator" role="separator" />
         <button type="button" role="menuitem" onClick={() => action(l => onToggle(l.id))}>{menu.layer.visible === false ? "显示图层" : "隐藏图层"}</button>

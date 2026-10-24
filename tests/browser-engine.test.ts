@@ -17,7 +17,8 @@ import { compactBrowserMessages, estimateBrowserTokens, readBrowserContextRecord
 import { buildBrowserSystemPrompt } from "../src/lib/browser/prompt.ts";
 import { mapExportFilename, mapPngDataUrl } from "../src/lib/map-export.ts";
 import { geeExecutionAllowed } from "../src/lib/gee.ts";
-import { defaultLayerStyle, PALETTE } from "../src/lib/dataLayers.ts";
+import { defaultLayerStyle, PALETTE, type DataLayer } from "../src/lib/dataLayers.ts";
+import { formatLayerBytes, layerExportTarget, layerReloadUnavailableReason, layerSourcePath } from "../src/lib/layer-actions.ts";
 import { releaseIdleWasmToolWorkers, warmWasmToolRunner } from "../src/lib/browser/wasm-tool-runner.ts";
 import { AGENT_GOAL_LIMIT, buildAgentSessionStub, buildWorkspaceSnapshot, normalizeWorkspaceRecovery, normalizeWorkspaceSnapshot, WORKSPACE_SCHEMA, WORKSPACE_VERSION } from "../src/lib/workspace.ts";
 import { identifyGeoJsonFilename, selectedFeaturesGeoJson, selectedGeoJsonFilename, tableExportFilename, tablePageCsv } from "../src/lib/table-export.ts";
@@ -2614,4 +2615,52 @@ test("run_plan executes through the engine job without nested-job deadlock and k
   assert.equal(rejected.status, "failed");
   assert.equal(rejected.blocked_at.errorClass, "UNSUPPORTED");
   assert.match(rejected.blocked_at.message, /dissolve/);
+});
+
+test("layer menu helpers expose honest reload and export targets", () => {
+  const vector = {
+    id: "lyr_menu", name: "道路 / 主干道", url: "", geometry_types: ["LineString"], feature_count: 3,
+    bounds: [116, 39, 117, 40], kind: "vector", source_path: "/data/roads.gpkg", format: "gpkg", bytes: 2048,
+  } as DataLayer;
+  assert.equal(layerSourcePath(vector), "/data/roads.gpkg");
+  assert.equal(layerSourcePath({ sourcePath: " /data/new.gpkg ", source_path: "/data/old.gpkg" }), " /data/new.gpkg ");
+  assert.equal(layerSourcePath({}), null);
+  assert.equal(layerReloadUnavailableReason(vector, true), "");
+  assert.match(layerReloadUnavailableReason({ ...vector, source_path: null }, true), /无原始路径/);
+  assert.match(layerReloadUnavailableReason(vector, false), /不支持/);
+  assert.deepEqual(layerExportTarget(vector), {
+    endpoint: "/layers/lyr_menu.geojson", filename: "道路_主干道.geojson", format: "geojson", label: "GeoJSON（WGS 84）",
+  });
+  const raster = { ...vector, id: "lyr_raster", name: "DEM", kind: "raster" } as DataLayer;
+  assert.deepEqual(layerExportTarget(raster), {
+    endpoint: "/layers/lyr_raster/download", filename: "DEM.tif", format: "tif", label: "工作副本 GeoTIFF",
+  });
+  assert.equal(layerExportTarget({ ...vector, kind: "table" }), null);
+  assert.equal(formatLayerBytes(2048), "2.00 KB");
+  assert.equal(formatLayerBytes(undefined), "未知");
+});
+
+test("browser layer metadata and downloads stay honest for vectors and rasters", async () => {
+  const input = await sample("menu-export");
+  assert.equal(input.format, "geojson");
+  assert.ok((input.bytes ?? 0) > 0);
+  assert.equal(layerSourcePath(input), null);
+  const described = await (await browserEngineRequest(`/layers/${input.id}/describe`)).json();
+  assert.equal(described.format, "geojson");
+  assert.equal(described.bytes, input.bytes);
+  assert.equal(described.feature_count, 5);
+
+  const geojson = await browserEngineRequest(`/layers/${input.id}/download`);
+  assert.match(geojson.headers.get("content-type") ?? "", /application\/geo\+json/);
+  assert.equal((await geojson.json()).features.length, 5);
+  await assert.rejects(() => browserEngineRequest(`/layers/${input.id}/reload`, { method: "POST" }), /无原始路径/);
+
+  const tif = fs.readFileSync(new URL("../tests/fixtures/dem_hills.tif", import.meta.url));
+  const raster = (await importBrowserFile(new Blob([tif]), "menu-dem.tif")).layer;
+  assert.equal(raster.kind, "raster");
+  assert.equal(raster.format, "tif");
+  assert.equal(raster.bytes, tif.length);
+  const download = await browserEngineRequest(`/layers/${raster.id}/download`);
+  assert.match(download.headers.get("content-type") ?? "", /image\/tiff/);
+  assert.equal((await download.arrayBuffer()).byteLength, tif.length);
 });

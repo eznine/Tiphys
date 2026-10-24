@@ -218,6 +218,7 @@ export function useAgent(session = "default") {
       const id = crypto.randomUUID();
       setState(s => {
         if (result.view) return reduce(s, { type: "view-command", command: result.view, id });
+        if (result.reloaded && result.layer) return reduce(s, { type: "layer-updated", layer: result.layer });
         if (result.renamed && result.layer) return reduce(s, { type: "layer-updated", layer: result.layer });
         if (Array.isArray(result.order)) return reduce(s, { type: "layers-reordered", ids: result.order });
         if (result.removed) return reduce(s, { type: "layer-removed", layerId: result.removed });

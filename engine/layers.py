@@ -80,6 +80,8 @@ class LayerStore:
             layer = self._layers.get(layer_id)
             if layer is None:
                 raise KeyError(f"unknown layer: {layer_id}")
+            if self._is_raster(layer):
+                return {**self._public(layer), "columns": [], "sample": []}
             gdf = self.get_gdf(layer_id)
             assert gdf is not None
             cols = [c for c in gdf.columns if c != gdf.geometry.name]
@@ -186,7 +188,8 @@ class LayerStore:
         return self.add_gdf(gdf, name=name or p.stem, source_path=str(p))
 
     def add_raster(self, path: str | Path, name: str | None = None,
-                   source_crs: str | None = None) -> dict[str, Any]:
+                   source_crs: str | None = None, layer_id: str | None = None,
+                   overwrite: bool = False) -> dict[str, Any]:
         """Register a GeoTIFF as a raster layer backed by a managed copy."""
         import rasterio
         from rasterio.warp import transform_bounds
@@ -203,7 +206,13 @@ class LayerStore:
         if suffix not in {".tif", ".tiff"}:
             raise ValueError(f"not a GeoTIFF: {p}")
 
-        lid = f"lyr_{uuid.uuid4().hex[:12]}"
+        lid = layer_id or f"lyr_{uuid.uuid4().hex[:12]}"
+        if not re.fullmatch(r"lyr_[a-zA-Z0-9_]+", lid):
+            raise ValueError("Invalid layer id")
+        with self._lock:
+            previous = self._layers.get(lid)
+            if previous and not overwrite:
+                raise FileExistsError(f"layer {lid} exists; pass overwrite=true to replace (needs approval)")
         dataset_path = self.data_dir / f"{lid}_{uuid.uuid4().hex[:8]}{suffix}"
         try:
             with rasterio.open(p) as src:
@@ -230,10 +239,33 @@ class LayerStore:
                 updated = {**self._layers, lid: layer}
                 self._save(updated)
                 self._layers = updated
+            if previous:
+                Path(previous.meta["dataset_path"]).unlink(missing_ok=True)
             return self._public(layer)
         except BaseException:
             dataset_path.unlink(missing_ok=True)
             raise
+
+    def reload(self, layer_ref: str) -> dict[str, Any]:
+        """Re-read a layer from its original path while preserving its id and name."""
+        with self._lock:
+            lid = self.resolve(layer_ref)
+            layer = self._layers[lid]
+            if not layer.source_path:
+                raise ValueError("Layer has no original source path; reload is unavailable")
+            source = Path(layer.source_path).expanduser()
+            if not source.is_absolute():
+                source = Path(os.environ.get("TIPHYS_PROJECT_ROOT", Path(__file__).resolve().parent.parent)) / source
+            source = source.resolve()
+            if not source.is_file():
+                raise FileNotFoundError(f"original source path is unavailable: {source}")
+            if self._is_raster(layer):
+                return self.add_raster(source, name=layer.name, layer_id=lid, overwrite=True)
+            gdf = gpd.read_file(source)
+            source_crs = layer.meta.get("source_crs")
+            if gdf.crs is None and source_crs:
+                gdf = gdf.set_crs(source_crs)
+            return self.add_gdf(gdf, name=layer.name, source_path=str(source), layer_id=lid, overwrite=True)
 
     def add_gdf(self, gdf: gpd.GeoDataFrame, name: str, source_path: str | None = None,
                 layer_id: str | None = None, overwrite: bool = False) -> dict[str, Any]:
@@ -346,10 +378,13 @@ class LayerStore:
     @staticmethod
     def _public(layer: Layer) -> dict[str, Any]:
         kind = "raster" if LayerStore._is_raster(layer) else "vector"
+        dataset = Path(layer.meta["dataset_path"])
         return {"id": layer.id, "name": layer.name, "kind": kind, "crs": layer.crs, "display_crs": "EPSG:4326",
                 "feature_count": layer.feature_count, "geometry_types": layer.geometry_types,
                 "bounds": layer.bounds, "url": layer.url, "path": layer.meta["dataset_path"],
-                "source_path": layer.source_path, "source_crs": layer.meta.get("source_crs")}
+                "source_path": layer.source_path, "source_crs": layer.meta.get("source_crs"),
+                "format": dataset.suffix.lower().lstrip(".") or "unknown",
+                "bytes": dataset.stat().st_size if dataset.is_file() else None}
 
     @staticmethod
     def _is_raster(layer: Layer) -> bool:

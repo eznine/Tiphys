@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { categoryColors, defaultLayerStyle, type DataLayer, type LayerStyle, type RasterStretch, type VectorRamp } from "../lib/dataLayers";
+import { formatLayerBytes, layerKindLabel, layerSourcePath } from "../lib/layer-actions";
 import { engineRequest } from "../lib/service";
 
 type Tab = "style" | "labels" | "info";
@@ -7,7 +8,7 @@ export function LayerProperties({ layer, tab, onTab, onStyle, onClose, embedded 
   layer: DataLayer; tab: Tab; onTab: (tab: Tab) => void; onStyle: (style: LayerStyle) => void; onClose: () => void; embedded?: boolean;
 }) {
   const style = layer.style ?? defaultLayerStyle(layer.id, layer.name);
-  const [description, setDescription] = useState<{ columns: string[]; [key: string]: any } | null>(null);
+  const [description, setDescription] = useState<{ columns: string[]; sourcePath?: string | null; source_path?: string | null; [key: string]: any } | null>(null);
   const [error, setError] = useState("");
   const [classifying, setClassifying] = useState(false);
   const [uniqueCount, setUniqueCount] = useState<number | null>(null);
@@ -20,6 +21,11 @@ export function LayerProperties({ layer, tab, onTab, onStyle, onClose, embedded 
     return () => controller.abort();
   }, [layer.id]);
   const change = (patch: Partial<LayerStyle>) => onStyle({ ...style, ...patch });
+  const sourcePath = layerSourcePath(layer) ?? layerSourcePath(description);
+  const format = String(description?.format ?? layer.format ?? "").trim().toUpperCase();
+  const bytes = typeof description?.bytes === "number" ? description.bytes : layer.bytes;
+  const kind = layer.kind ?? "vector";
+  const bounds = layer.bounds;
   const classify = async (field: string) => {
     if (!field) { change({ categoryField: undefined, categories: undefined }); setUniqueCount(null); return; }
     setClassifying(true); setError("");
@@ -92,9 +98,18 @@ export function LayerProperties({ layer, tab, onTab, onStyle, onClose, embedded 
         <p className="tool-desc">按字段显示文字，自动避让重叠；隐藏图层时同步隐藏标注。</p>
       </>}
       {tab === "info" && <dl className="layer-info">
-        <dt>名称</dt><dd>{layer.name}</dd><dt>要素数</dt><dd>{layer.feature_count}</dd>
-        <dt>几何类型</dt><dd>{layer.geometry_types.join("、") || "空图层"}</dd><dt>坐标系</dt><dd>{layer.crs}</dd>
-        <dt>图层 ID</dt><dd>{layer.id}</dd><dt>分析数据</dt><dd>{description?.path ?? "读取中…"}</dd>
+        <dt>名称</dt><dd>{layer.name}</dd>
+        <dt>类型</dt><dd>{layerKindLabel(kind)}</dd>
+        <dt>{kind === "raster" ? "尺寸 / 波段" : "要素数"}</dt>
+        <dd>{kind === "raster" ? `${layer.raster?.width ?? "?"} × ${layer.raster?.height ?? "?"} 像素 · ${layer.raster?.bands ?? "?"} 波段` : layer.feature_count}</dd>
+        <dt>几何类型</dt><dd>{layer.geometry_types.join("、") || (kind === "raster" ? "栅格像元" : "空图层")}</dd>
+        <dt>坐标系</dt><dd>{layer.crs || "未知"}</dd>
+        <dt>显示范围</dt><dd>{bounds?.length === 4 ? bounds.map(value => value.toFixed(6)).join("，") + "（WGS 84）" : "无范围"}</dd>
+        <dt>原始路径</dt><dd title={sourcePath ?? undefined}>{sourcePath ?? "无原始路径（仅工作副本）"}</dd>
+        <dt>工作副本</dt><dd title={description?.path ?? layer.path ?? undefined}>{description?.path ?? layer.path ?? (description ? "未报告" : "读取中…")}</dd>
+        <dt>格式</dt><dd>{format || "未知"}</dd>
+        <dt>大小</dt><dd>{formatLayerBytes(bytes)}</dd>
+        <dt>图层 ID</dt><dd>{layer.id}</dd>
         <dt>字段</dt><dd>{description?.columns.join("、") || "无属性字段"}</dd>
       </dl>}
       <p className="property-note">显示设置自动保存，不改变分析数据。</p>

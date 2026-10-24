@@ -1,10 +1,11 @@
 import { useRef, useState } from "react";
 import type { DataLayer } from "../lib/dataLayers";
 import { defaultLayerStyle } from "../lib/dataLayers";
+import { layerExportUnavailableReason, layerReloadUnavailableReason, layerSourcePath } from "../lib/layer-actions";
 import { MobileSheet } from "./MobileSheet";
 import {
-  Eye, EyeOff, Filter, GripVertical, Info, Layers, MapPin, Maximize2, Palette,
-  Pencil, Plus, Search, Table2, Tags, Trash2, Wrench,
+  Download, Eye, EyeOff, Filter, GripVertical, Info, Layers, MapPin, Maximize2, Palette,
+  Pencil, Plus, RefreshCw, Search, Table2, Tags, Trash2, Wrench,
 } from "lucide-react";
 
 type Props = {
@@ -24,6 +25,8 @@ type Props = {
   onRename: (id: string, name: string) => void;
   onReorder: (ids: string[]) => void;
   onRemove: (layer: DataLayer) => void;
+  onReload: (layer: DataLayer) => void;
+  onExport: (layer: DataLayer) => void;
   onOpenTool: (tool: string, layerId?: string) => void;
 };
 
@@ -38,7 +41,7 @@ function layerSummary(layer: DataLayer) {
 
 export function MobileLayersSheet(props: Props) {
   const { open, onClose, layers, selectedId, onSelect, onToggle, onAdd, importing, importNotice, onDismissNotice,
-    onZoom, onTable, onProperties, onRename, onReorder, onRemove, onOpenTool } = props;
+    onZoom, onTable, onProperties, onRename, onReorder, onRemove, onReload, onExport, onOpenTool } = props;
   const [search, setSearch] = useState("");
   const [actionId, setActionId] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
@@ -50,6 +53,8 @@ export function MobileLayersSheet(props: Props) {
   const overRef = useRef<string | null>(null);
 
   const actionLayer = layers.find(layer => layer.id === actionId) ?? null;
+  const reloadReason = actionLayer ? layerReloadUnavailableReason(actionLayer, true) : "";
+  const exportReason = actionLayer ? layerExportUnavailableReason(actionLayer, true) : "";
   const selected = layers.find(layer => layer.id === selectedId) ?? layers[0] ?? null;
   const filtered = layers.filter(layer => layer.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
 
@@ -190,6 +195,8 @@ export function MobileLayersSheet(props: Props) {
         {actionLayer.kind !== "raster" && <button type="button" onClick={() => act(layer => onOpenTool("select_by_attributes", layer.id))}><Filter size={18} /><span>按属性筛选</span><small>生成匹配要素的新图层</small></button>}
         {actionLayer.kind !== "raster" && <button type="button" onClick={() => act(layer => onOpenTool("select_by_location", layer.id))}><MapPin size={18} /><span>按位置筛选</span><small>按空间关系选择要素</small></button>}
         <button type="button" onClick={() => act(layer => onProperties(layer.id, "info"))}><Info size={18} /><span>图层信息</span><small>坐标系、范围、数据来源</small></button>
+        <button type="button" disabled={!!reloadReason} title={reloadReason || layerSourcePath(actionLayer) || undefined} onClick={() => act(layer => onReload(layer))}><RefreshCw size={18} /><span>从源重新加载</span><small>{reloadReason || "重新读取原始文件并保留图层位置"}</small></button>
+        <button type="button" disabled={!!exportReason} title={exportReason || undefined} onClick={() => act(layer => onExport(layer))}><Download size={18} /><span>{actionLayer.kind === "raster" ? "下载工作副本" : "导出 / 另存为"}</span><small>{exportReason || (actionLayer.kind === "raster" ? "GeoTIFF 工作副本" : "GeoJSON（WGS 84）")}</small></button>
         <button type="button" onClick={() => act(layer => onOpenTool("", layer.id))}><Wrench size={18} /><span>用 GIS 工具分析</span><small>打开工具箱并带入该图层</small></button>
         <button type="button" onClick={() => { setRenaming(true); setDraftName(actionLayer.name); }}><Pencil size={18} /><span>重命名</span><small>只改显示名称，不动数据</small></button>
 

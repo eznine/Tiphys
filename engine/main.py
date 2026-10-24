@@ -129,6 +129,34 @@ def describe_layer_http(layer_id: str) -> dict[str, Any]:
         raise HTTPException(404, str(e)) from e
 
 
+@app.post("/layers/{layer_id}/reload")
+def reload_layer_http(layer_id: str) -> dict[str, Any]:
+    try:
+        layer = STORE.reload(layer_id)
+        return {"ok": True, "reloaded": layer_id, "layer": layer,
+                "reloaded_from": layer.get("source_path"),
+                "message": "已重新读取原始文件并保留图层 ID、名称与工作区顺序。"}
+    except KeyError as e:
+        raise HTTPException(404, str(e)) from e
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e)) from e
+    except Exception as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@app.get("/layers/{layer_id}/download")
+def download_layer_http(layer_id: str) -> FileResponse:
+    layer = STORE.get(layer_id)
+    if not layer:
+        raise HTTPException(404, "layer not found")
+    dataset = Path(layer.meta["dataset_path"])
+    if not dataset.is_file():
+        raise HTTPException(404, "layer work copy is missing")
+    suffix = dataset.suffix.lower()
+    media_type = "image/tiff" if suffix in {".tif", ".tiff"} else "application/octet-stream"
+    return FileResponse(dataset, media_type=media_type, filename=f"{layer.name}{suffix}")
+
+
 @app.post("/layers/add")
 def add_data_http(body: AddDataBody) -> dict[str, Any]:
     try:

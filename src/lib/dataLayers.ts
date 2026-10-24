@@ -28,6 +28,16 @@ export type DataLayer = {
   /** WGS84 corners of a raster layer in MapLibre image-source order (TL, TR, BR, BL). */
   image_coords?: number[][];
   raster?: { width: number; height: number; bands: number };
+  /** Internal managed work-copy path, when the engine reports one. */
+  path?: string | null;
+  /** Original imported file path. Browser workspace copies intentionally leave this unset. */
+  sourcePath?: string | null;
+  /** Python engine's snake_case spelling of `sourcePath`. */
+  source_path?: string | null;
+  /** Analysis data format (for example geojson, gpkg, fgb, tif or csv). */
+  format?: string;
+  /** Size of the managed analysis/work copy when cheaply known. */
+  bytes?: number;
 };
 
 export type LayerSelection = { layerId: string; featureIds: number[] };

@@ -37,6 +37,7 @@ export function recordLog(kind: string, summary: string, detail: unknown, level 
 }
 export async function browserLogs() { return (await records<BrowserLog>("log:")).slice(-500); }
 function publicLayer(record: LayerRecord): DataLayer {
+  const format = record.extension.toLowerCase();
   if ((record.info.kind ?? "vector") === "raster") {
     let url = urls.get(record.info.id);
     if (!url && record.preview?.length) {
@@ -44,12 +45,12 @@ function publicLayer(record: LayerRecord): DataLayer {
       urls.set(record.info.id, url);
     }
     const [minx, miny, maxx, maxy] = record.info.bounds ?? [0, 0, 0, 0];
-    return { ...record.info, url: url ?? "", image_coords: [[minx, maxy], [maxx, maxy], [maxx, miny], [minx, miny]] };
+    return { ...record.info, format, bytes: record.bytes.length, url: url ?? "", image_coords: [[minx, maxy], [maxx, maxy], [maxx, miny], [minx, miny]] };
   }
-  if ((record.info.kind ?? "vector") === "table") return { ...record.info, url: "" };
+  if ((record.info.kind ?? "vector") === "table") return { ...record.info, format, bytes: record.bytes.length, url: "" };
   let url = urls.get(record.info.id);
   if (!url) { url = URL.createObjectURL(new Blob([JSON.stringify(record.geojson)], { type: "application/geo+json" })); urls.set(record.info.id, url); }
-  return { ...record.info, url };
+  return { ...record.info, format, bytes: record.bytes.length, url };
 }
 export async function browserLayers() {
   const all = await records<LayerRecord>("layer:");
@@ -1014,9 +1015,19 @@ export async function browserEngineRequest(path: string, init: RequestInit = {})
     if ((record.info.kind ?? "vector") !== "vector" || !record.geojson) throw new Error("该图层没有可导出的真实矢量几何。");
     result = record.geojson;
   }
+  else if (p.startsWith("/layers/") && p.endsWith("/download")) {
+    const id = decodeURIComponent(p.slice("/layers/".length, -"/download".length));
+    const record = await resolve(id);
+    const kind = record.info.kind ?? "vector";
+    const type = kind === "raster" ? "image/tiff" : kind === "table" ? "text/csv;charset=utf-8" : record.extension === "geojson" ? "application/geo+json" : "application/octet-stream";
+    return new Response(new Blob([new Uint8Array(record.bytes)], { type }), {
+      headers: { "Content-Type": type, "Content-Length": String(record.bytes.length) },
+    });
+  }
   else if (p.startsWith("/layers/")) {
     const [, , id, action] = p.split("/"); const record = await resolve(decodeURIComponent(id));
     if (action === "describe") result = describe(record);
+    else if (action === "reload") throw new Error("浏览器只保存 IndexedDB 工作副本，无原始路径，无法重新加载。");
     else if (action === "field-values") {
       const field = url.searchParams.get("field") ?? ""; if (!fields(record).includes(field)) throw new Error("找不到字段。");
       const values = new Map<string, { value: unknown; count: number }>();
