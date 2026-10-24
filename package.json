@@ -12,7 +12,7 @@
     "portable:zip": "node scripts/portable-zip.mjs",
     "test:agent": "npm --prefix agent test",
     "test:engine": "node scripts/test-engine.mjs",
-    "test:browser": "node --import ./agent/node_modules/tsx/dist/loader.mjs --test tests/browser-engine.test.ts",
+    "test:browser": "npm run build && node --import ./agent/node_modules/tsx/dist/loader.mjs --test tests/browser-engine.test.ts tests/map-render.test.ts",
     "build": "tsc && vite build",
     "import:browser-engine": "node scripts/import-browser-engine.mjs",
     "preview": "vite preview",
@@ -46,6 +46,7 @@
     "@vitejs/plugin-react": "^6.0.2",
     "esbuild": "^0.28.2",
     "fake-indexeddb": "^6.2.5",
+    "playwright": "^1.64.1",
     "typescript": "~6.0.3",
     "vite": "^8.0.16"
   }

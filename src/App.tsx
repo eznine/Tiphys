@@ -20,6 +20,7 @@ import { warmWasmToolRunner } from "./lib/browser/wasm-tool-runner";
 import { scheduleIdle } from "./lib/idle";
 import { isShapefilePart } from "./lib/shapefile";
 import { buildAgentSessionStub, buildWorkspaceSnapshot, loadWorkspaceSnapshot, saveWorkspaceSnapshot, type WorkspaceRecovery } from "./lib/workspace";
+import beijingPointsSample from "../samples/beijing_points.geojson?raw";
 import "./styles/app.css";
 
 function loadTheme(): ThemeMode {
@@ -160,7 +161,7 @@ export default function App() {
       return ids.size ? { layerId: next.layerId, featureIds: [...ids].sort((a, b) => a - b) } : null;
     });
   }, []);
-  const importFiles = async (files: FileList) => {
+  const importFiles = async (files: FileList | File[]) => {
     setImporting(true); setImportNotice("");
     let loaded = 0;
     try {
@@ -221,6 +222,9 @@ export default function App() {
     } catch (err) { setImportNotice(`已添加 ${loaded} 个图层；加载失败：${err}`); }
     finally { setImporting(false); }
   };
+  const loadSamplePoints = () => void importFiles([
+    new File([beijingPointsSample], "beijing_points.geojson", { type: "application/geo+json" }),
+  ]);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -313,7 +317,10 @@ export default function App() {
             <span className="map-empty-icon"><Layers size={20} /></span>
             <strong>地图还没有图层</strong>
             <span className="map-empty-copy">添加 GeoJSON、GeoPackage 或 GeoTIFF，开始本机空间分析。</span>
-            <button type="button" className="primary-btn" onClick={() => void addData()}>添加数据</button>
+            <div className="map-empty-actions">
+              <button type="button" className="primary-btn" onClick={() => void addData()}>添加数据</button>
+              <button type="button" className="secondary-btn" onClick={loadSamplePoints} disabled={importing}>加载示例点位</button>
+            </div>
           </div>}
           {(selection?.featureIds.length || aoi) && <div className="map-status-stack">
             {selection?.featureIds.length ? <div className="selection-hud" role="status">

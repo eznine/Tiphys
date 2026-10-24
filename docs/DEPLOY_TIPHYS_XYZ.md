@@ -20,15 +20,16 @@ dist/
   assets/*.js
   assets/*.css
   assets/*.wasm
-  assets/maplibre-gl-worker-*.mjs
+  assets/maplibre-gl-worker-*.js
 ```
 
-Keep the generated `assets/` filenames unchanged; Vite hashes them for cache busting. The map worker URL is emitted by a `?url` import in `MapCanvas.tsx`, so do not rewrite files inside `assets/`. The app must be served from the site root (`/`). If it is deployed under a subpath, set Vite's `base` and rebuild rather than moving hashed assets after the build.
+Keep the generated `assets/` filenames unchanged; Vite hashes them for cache busting. The map worker URL is emitted by a `?worker&url` import in `MapCanvas.tsx`, so Vite bundles it as a `.js` asset. Do not rewrite or rename files inside `assets/`; in particular, serving the upstream `.mjs` worker as `application/octet-stream` prevents MapLibre from starting and leaves the map blank. The app must be served from the site root (`/`). If it is deployed under a subpath, set Vite's `base` and rebuild rather than moving hashed assets after the build.
 
 Minimum server behavior:
 
 - Serve `/` and unknown SPA routes from `index.html`.
 - Serve `.wasm` as `Content-Type: application/wasm`.
+- Serve `/assets/maplibre-gl-worker-*.js` as JavaScript (`text/javascript` or `application/javascript`), not `application/octet-stream`.
 - Serve `index.html` with `Cache-Control: no-cache`.
 - Serve hashed `/assets/*` files with a long immutable cache.
 - Allow large static WASM responses; do not add an application-level body size limit to GET assets.
@@ -75,7 +76,7 @@ For cache headers, keep the entry document fresh and hashed assets immutable. A 
   Cache-Control: public, max-age=31536000, immutable
 ```
 
-Do not enable the generic "Always Online" or HTML minification transforms if they rewrite worker/WASM URLs. After upload, verify the response headers and the exact MIME type with `curl -I https://tiphys.xyz/assets/geolibre-cli-*.wasm`; it must be `application/wasm`, not `application/octet-stream`.
+Do not enable the generic "Always Online" or HTML minification transforms if they rewrite worker/WASM URLs. After upload, verify the exact MIME types with `curl -I https://tiphys.xyz/assets/geolibre-cli-*.wasm` and `curl -I https://tiphys.xyz/assets/maplibre-gl-worker-*.js`; the WASM response must be `application/wasm` and the worker must be JavaScript, not `application/octet-stream`.
 
 An optional CLI deploy (after the project exists and Cloudflare credentials are configured outside this repository) is:
 
@@ -104,9 +105,9 @@ add_header Cross-Origin-Embedder-Policy require-corp;
 
 ## Smoke test after deploy
 
-1. Open `https://tiphys.xyz/` and confirm the map and blue light theme render.
+1. Open `https://tiphys.xyz/` and confirm the globe, basemap, and blue light theme render.
 2. Open 工具箱 and wait for the count to reach the full catalog.
-3. Load `samples/beijing_points.geojson` and run a small buffer.
+3. Click 加载示例点位 in the empty map state (no API key required), confirm the basemap still renders around Beijing, then run a small buffer.
 4. Draw an AOI, verify its blue chip, then clear it.
 5. Start a long task and confirm progress, stage text, and cancel remain visible.
 

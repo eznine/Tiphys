@@ -27,6 +27,7 @@ dist-ssr
 engine/.venv/
 engine/__pycache__/
 dist/
+test-results/
 
 # TIPHYS agent runtime
 .tiphys/sessions/

@@ -529,6 +529,31 @@ textarea {
   cursor: not-allowed;
 }
 
+.secondary-btn {
+  appearance: none;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--tiphys-border);
+  border-radius: var(--tiphys-radius-sm);
+  background: var(--tiphys-surface);
+  color: var(--tiphys-text-secondary);
+  font-weight: 550;
+  font-size: 13px;
+  cursor: pointer;
+  transition: color var(--tiphys-route-duration) var(--tiphys-ease),
+    border-color var(--tiphys-route-duration) var(--tiphys-ease);
+}
+
+.secondary-btn:hover {
+  border-color: color-mix(in srgb, var(--tiphys-accent) 42%, var(--tiphys-border));
+  color: var(--tiphys-accent);
+}
+
+.secondary-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 /* Map canvas + floating controls */
 .map-canvas-wrap {
   position: absolute;
@@ -873,7 +898,8 @@ textarea {
 .toolbox-empty .icon-btn { margin-top: 3px; height: 28px; font-size: 11px; }
 .map-empty-state { position: absolute; z-index: 5; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(320px, calc(100% - 40px)); display: grid; justify-items: center; gap: 8px; padding: 18px 20px; border: 1px solid color-mix(in srgb, var(--tiphys-border) 85%, transparent); border-radius: var(--tiphys-radius); background: color-mix(in srgb, var(--tiphys-surface) 94%, transparent); color: var(--tiphys-text-secondary); text-align: center; box-shadow: 0 8px 30px color-mix(in srgb, var(--tiphys-text) 10%, transparent); backdrop-filter: blur(8px); font-size: 12px; line-height: 1.6; }
 .map-empty-state strong { color: var(--tiphys-text); font-size: 14px; font-weight: 500; }
-.map-empty-state .primary-btn { height: 32px; margin-top: 3px; padding: 0 14px; font-size: 12px; }
+.map-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 3px; }
+.map-empty-state .primary-btn, .map-empty-state .secondary-btn { height: 32px; padding: 0 14px; font-size: 12px; }
 .map-empty-icon { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid color-mix(in srgb, var(--tiphys-accent) 25%, var(--tiphys-border)); border-radius: 10px; color: var(--tiphys-accent); background: var(--tiphys-accent-muted); }
 
 /* Selection and AOI share one quiet bottom-right stack. */

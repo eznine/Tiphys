@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import type { Map } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
+import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 
-// Explicit worker URL so the module worker resolves in both vite dev and production builds.
+// Vite emits this as a regular JS asset. Serving the upstream .mjs file directly
+// breaks on hosts that return application/octet-stream for unknown extensions.
 maplibregl.setWorkerUrl(maplibreWorkerUrl);
 import {
   BASEMAPS,
@@ -115,6 +116,7 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   const [mode3d, setMode3d] = useState(true);
   const [terrain, setTerrain] = useState(false);
   const [buildings, setBuildings] = useState(true);
+  const basemapRef = useRef<BasemapId>("liberty");
   const [menuOpen, setMenuOpen] = useState(false);
   const [drawingAoi, setDrawingAoi] = useState(false);
   const [draftAoi, setDraftAoi] = useState<number[] | null>(null);
@@ -259,7 +261,8 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || basemapRef.current === basemapId) return;
+    basemapRef.current = basemapId;
     loadBasemap(map, basemapId);
   }, [basemapId]);
 
