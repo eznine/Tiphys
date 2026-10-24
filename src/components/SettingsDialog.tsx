@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Settings2, Server, Palette, SlidersHorizontal, Info, X, Eye, EyeOff, Check, Sun, Moon, Monitor, PlugZap, LoaderCircle } from "lucide-react";
+import { Settings2, Server, Palette, SlidersHorizontal, Info, X, Eye, EyeOff, Check, Sun, Moon, Monitor, PlugZap, LoaderCircle, RefreshCw } from "lucide-react";
 import { agentRequest } from "../lib/service";
+import { matchProviderPreset, PROVIDER_PRESETS } from "../lib/defaults";
 
 export type ThemeMode = "light" | "dark" | "system";
 type Settings = { provider: string; baseURL: string; model: string; hasApiKey: boolean; keyCount: number; keySource: string;
@@ -13,11 +14,13 @@ export function SettingsDialog({ theme, onTheme, density, onDensity, onClose, on
   const [settings, setSettings] = useState<Settings | null>(null);
   const [baseURL, setBaseURL] = useState("");
   const [model, setModel] = useState("");
+  const [providerKey, setProviderKey] = useState("custom");
+  const [models, setModels] = useState<string[]>([]);
   const [key, setKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [contextWindow, setContextWindow] = useState(64000);
   const [maxOutput, setMaxOutput] = useState(6000);
-  const [pending, setPending] = useState<"test" | "save" | null>(null);
+  const [pending, setPending] = useState<"test" | "save" | "models" | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const dialog = useRef<HTMLDivElement>(null);
@@ -27,6 +30,7 @@ export function SettingsDialog({ theme, onTheme, density, onDensity, onClose, on
     void agentRequest("/settings", { signal: abort.signal }).then(r => r.json()).then((s: Settings) => {
       if (abort.signal.aborted) return;
       setSettings(s); setBaseURL(s.baseURL); setModel(s.provider === "unconfigured" ? "" : s.model);
+      setProviderKey(matchProviderPreset(s.baseURL));
       setContextWindow(s.contextWindow); setMaxOutput(s.maxToolOutputChars);
     }).catch(err => { if (!abort.signal.aborted) setError(String(err)); });
     dialog.current?.focus();
@@ -42,6 +46,21 @@ export function SettingsDialog({ theme, onTheme, density, onDensity, onClose, on
       })).json();
       if (test) setMessage(`连接成功 · ${result.model} · ${(result.latencyMs / 1000).toFixed(1)} 秒（真实 API 调用）`);
       else { setSettings(result); setKey(""); setMessage("API 配置已保存并立即生效，无需重启。"); onSaved(); }
+    } catch (err) { if (!controller.current.signal.aborted) setError(String(err)); }
+    finally { setPending(null); }
+  };
+  const fetchModels = async () => {
+    setError(""); setMessage(""); setPending("models");
+    controller.current = new AbortController();
+    try {
+      const result = await (await agentRequest("/settings/models", {
+        method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.current.signal,
+        body: JSON.stringify({ baseURL, apiKey: key }),
+      })).json();
+      const list: string[] = Array.isArray(result.models) ? result.models : [];
+      setModels(list);
+      if (!model && list.length) setModel(list[0]);
+      setMessage(`已获取 ${list.length} 个模型。在下方列表选择，或直接在模型名称中输入。`);
     } catch (err) { if (!controller.current.signal.aborted) setError(String(err)); }
     finally { setPending(null); }
   };
@@ -65,9 +84,19 @@ export function SettingsDialog({ theme, onTheme, density, onDensity, onClose, on
         <div className="settings-content">
           {tab === "api" && <>
             <div className="settings-section-heading"><h2>模型与 API</h2><p>连接你自己的模型服务，让 Agent 使用真实 API 完成任务。</p></div>
-            <div className="api-current" data-ready={settings?.provider === "openai-compatible"}><span className="status-dot" data-state={settings?.provider === "openai-compatible" ? "ok" : "error"} /><div><strong>{settings?.provider === "openai-compatible" ? `当前模型：${settings.model}` : settings?.provider === "mock" ? "当前为模拟测试模型（Mock）" : "API 尚未配置"}</strong><span>{settings?.hasApiKey ? `已加载 ${settings.keyCount} 个密钥，保留现有凭据即可使用。` : settings?.configIssue || "填写下方配置后保存，应用不会自动使用模拟模型。"}</span></div></div>
-            <label className="settings-field"><span>API 地址 <b>*</b></span><input aria-label="API 地址" type="url" value={baseURL} onChange={e => setBaseURL(e.target.value)} placeholder="https://服务地址/v1" /><small>填写服务商的 OpenAI 兼容接口根地址，通常以 /v1 结尾。</small></label>
-            <label className="settings-field"><span>模型名称 <b>*</b></span><input aria-label="模型名称" value={model} onChange={e => setModel(e.target.value)} placeholder="填写服务商提供的模型 ID" /></label>
+            <div className="api-current" data-ready={settings?.provider === "openai-compatible"}><span className="status-dot" data-state={settings?.provider === "openai-compatible" ? "ok" : "error"} /><div><strong>{settings?.provider === "openai-compatible" ? `当前模型：${settings.model}` : settings?.provider === "mock" ? "当前为模拟测试模型（Mock）" : "API 尚未配置"}</strong><span>{settings?.hasApiKey ? `已加载 ${settings.keyCount} 个密钥${settings.keySource ? ` · ${settings.keySource}` : ""}，保留现有凭据即可使用。` : settings?.configIssue || "填写下方配置后保存，应用不会自动使用模拟模型。"}</span></div></div>
+            <label className="settings-field"><span>API 服务商</span><select aria-label="API 服务商" value={providerKey} onChange={e => {
+              const key = e.target.value, preset = PROVIDER_PRESETS.find(p => p.key === key);
+              setProviderKey(key); setModels([]);
+              if (preset && preset.key !== "custom") { setBaseURL(preset.baseURL); if (preset.model) setModel(preset.model); }
+            }}>{PROVIDER_PRESETS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}</select><small>选择后自动填入 OpenAI 兼容接口地址；模型可拉取或手动填写。</small></label>
+            <label className="settings-field"><span>API 地址 <b>*</b></span><input aria-label="API 地址" type="url" value={baseURL} onChange={e => { setBaseURL(e.target.value); setProviderKey(matchProviderPreset(e.target.value)); }} placeholder="https://服务地址/v1" /><small>填写服务商的 OpenAI 兼容接口根地址，通常以 /v1 结尾。</small></label>
+            <div className="settings-field"><span>模型名称 <b>*</b></span>
+              <div className="settings-model-row"><input aria-label="模型名称" list="tiphys-model-options" value={model} onChange={e => setModel(e.target.value)} placeholder="填写服务商提供的模型 ID" /><button type="button" className="icon-btn" aria-label="拉取模型" disabled={!!pending || !settings || !baseURL.trim()} onClick={() => void fetchModels()}>{pending === "models" ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />}拉取模型</button></div>
+              {models.length > 0 && <select aria-label="选择拉取到的模型" value={models.includes(model) ? model : ""} onChange={e => { if (e.target.value) setModel(e.target.value); }}><option value="">已获取 {models.length} 个模型 · 选择填入</option>{models.map(m => <option key={m} value={m}>{m}</option>)}</select>}
+              <datalist id="tiphys-model-options">{models.map(m => <option key={m} value={m} />)}</datalist>
+              <small>{models.length ? "可从上方列表选择，也可手动输入模型 ID。" : "不确定模型 ID 时，先填好地址和密钥，再点「拉取模型」。"}</small>
+            </div>
             <label className="settings-field"><span>API Key</span><div className="settings-secret"><input aria-label="API Key" autoComplete="off" type={showKey ? "text" : "password"} value={key} onChange={e => setKey(e.target.value)} placeholder={settings?.hasApiKey ? "已保存凭据，留空保留" : "输入 API Key"} /><button type="button" className="plain-icon" aria-label={showKey ? "隐藏密钥" : "显示密钥"} onClick={() => setShowKey(v => !v)}>{showKey ? <EyeOff size={16} /> : <Eye size={16} />}</button></div><small>留空保留现有密钥；输入新值会替换。支持用空格分隔多个密钥。</small></label>
             {!!settings?.environmentOverrides.length && <p className="settings-warning">启动环境覆盖：{settings.environmentOverrides.join("、")}。调整启动配置后，才能在这里保存。</p>}
           </>}

@@ -8,6 +8,8 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import type { AgentConfig } from "../src/config.ts";
 import { loadConfig } from "../src/config.ts";
+import { BUILTIN_DEFAULT } from "../src/defaults.ts";
+import { parseModelIds } from "../src/models.ts";
 import { prepareSettings, publicSettings, saveSettings, ensureSettingsBackup } from "../src/settings.ts";
 
 const current: AgentConfig = { provider: "openai-compatible", model: "fixture", baseURL: "https://example.test/v1", apiKeys: ["fixture-key"], apiKey: "fixture-key",
@@ -73,11 +75,50 @@ test("saving mirrors the configuration to the user profile and restores it after
   }
 });
 
+test("fresh installs use the bundled TierFlow default configuration", () => {
+  const state = fs.mkdtempSync(path.join(os.tmpdir(), "tiphys-default-state-"));
+  const profile = fs.mkdtempSync(path.join(os.tmpdir(), "tiphys-default-profile-"));
+  const previous = { provider: process.env.TIPHYS_LLM_PROVIDER, key: process.env.TIPHYS_LLM_API_KEY, base: process.env.TIPHYS_LLM_BASE_URL,
+    model: process.env.TIPHYS_LLM_MODEL, tf: process.env.TIPHYS_TF_KEYS, tfFile: process.env.TIPHYS_TF_KEYS_FILE, builtin: process.env.TIPHYS_BUILTIN_CREDENTIALS };
+  delete process.env.TIPHYS_LLM_PROVIDER; delete process.env.TIPHYS_LLM_API_KEY; delete process.env.TIPHYS_LLM_BASE_URL;
+  delete process.env.TIPHYS_LLM_MODEL; delete process.env.TIPHYS_TF_KEYS; delete process.env.TIPHYS_TF_KEYS_FILE; delete process.env.TIPHYS_BUILTIN_CREDENTIALS;
+  process.env.TIPHYS_TF_KEYS_FILE = path.join(state, "missing-keys.txt");
+  try {
+    const config = loadConfig(state, profile);
+    assert.equal(config.provider, "openai-compatible");
+    assert.equal(config.baseURL, BUILTIN_DEFAULT.baseURL);
+    assert.equal(config.model, BUILTIN_DEFAULT.model);
+    assert.deepEqual(config.apiKeys, [BUILTIN_DEFAULT.apiKey]);
+    assert.match(config.keySource, /内置默认/);
+    // An environment endpoint without credentials is an explicit user choice and
+    // must stay unconfigured rather than borrowing the bundled key.
+    process.env.TIPHYS_LLM_BASE_URL = "https://example.test/v1";
+    assert.equal(loadConfig(state, profile).provider, "unconfigured");
+  } finally {
+    const restore = (name: string, value: string | undefined) => { if (value === undefined) delete process.env[name]; else process.env[name] = value; };
+    restore("TIPHYS_LLM_PROVIDER", previous.provider); restore("TIPHYS_LLM_API_KEY", previous.key); restore("TIPHYS_LLM_BASE_URL", previous.base);
+    restore("TIPHYS_LLM_MODEL", previous.model); restore("TIPHYS_TF_KEYS", previous.tf); restore("TIPHYS_TF_KEYS_FILE", previous.tfFile);
+    restore("TIPHYS_BUILTIN_CREDENTIALS", previous.builtin);
+    fs.rmSync(state, { recursive: true, force: true }); fs.rmSync(profile, { recursive: true, force: true });
+  }
+});
+
+test("model payload parsing accepts OpenAI, Ollama and plain-list shapes", () => {
+  assert.deepEqual(parseModelIds({ object: "list", data: [{ id: "b-model" }, { id: "a-model" }] }), ["a-model", "b-model"]);
+  assert.deepEqual(parseModelIds({ models: [{ name: "qwen:7b" }, { name: "qwen:7b" }] }), ["qwen:7b"]);
+  assert.deepEqual(parseModelIds(["z", "a", "z"]), ["a", "z"]);
+  assert.deepEqual(parseModelIds({ data: { one: {}, two: {} } }), ["one", "two"]);
+});
+
 test("production settings: no mock fallback, authenticated save, real protocol test, redaction and restart", { timeout: 45000 }, async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tiphys-settings-http-"));
   const mockApi = http.createServer((req, res) => {
     assert.equal(req.headers.authorization, "Bearer fixture-api-secret");
     res.setHeader("Content-Type", "application/json");
+    if (req.method === "GET" && req.url?.endsWith("/models")) {
+      res.end(JSON.stringify({ object: "list", data: [{ id: "fixture-model" }, { id: "other-model" }] }));
+      return;
+    }
     res.end(JSON.stringify({ id: "fixture", object: "chat.completion", created: 1, model: "fixture-model",
       choices: [{ index: 0, message: { role: "assistant", content: "连接成功" }, finish_reason: "stop" }], usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 } }));
   });
@@ -90,7 +131,8 @@ test("production settings: no mock fallback, authenticated save, real protocol t
   const url = `http://127.0.0.1:${port}`;
   const env = { ...process.env, TIPHYS_STATE_DIR: dir, TIPHYS_USER_DIR: path.join(dir, "user-profile"), TIPHYS_PROJECT_ROOT: dir, TIPHYS_AGENT_PORT: String(port),
     TIPHYS_LLM_PROVIDER: "", TIPHYS_LLM_API_KEY: "", TIPHYS_LLM_BASE_URL: "", TIPHYS_LLM_MODEL: "", TIPHYS_TF_KEYS: "",
-    TIPHYS_TF_KEYS_FILE: path.join(dir, "missing"), TIPHYS_CONTEXT_WINDOW: "", TIPHYS_MAX_TOOL_OUTPUT: "", TIPHYS_SERVICE_TOKEN: "fixture-service-token-long-enough-for-tests" };
+    TIPHYS_TF_KEYS_FILE: path.join(dir, "missing"), TIPHYS_CONTEXT_WINDOW: "", TIPHYS_MAX_TOOL_OUTPUT: "", TIPHYS_SERVICE_TOKEN: "fixture-service-token-long-enough-for-tests",
+    TIPHYS_BUILTIN_CREDENTIALS: "off" };
   let child: ChildProcess | undefined;
   const launch = () => { child = spawn(process.execPath, ["--import", "tsx", "src/server.ts"], { cwd: fileURLToPath(new URL("..", import.meta.url)), env, windowsHide: true, stdio: "ignore" }); };
   const stop = async () => {
@@ -125,6 +167,9 @@ test("production settings: no mock fallback, authenticated save, real protocol t
     const backup = JSON.parse(fs.readFileSync(path.join(dir, "user-profile", "agent.json"), "utf8"));
     assert.deepEqual(backup.apiKeys, ["fixture-api-secret"], "saved settings must mirror to the user profile");
     assert.equal((await (await fetch(`${url}/health`)).json()).provider, "openai-compatible");
+    const catalog = await request("/settings/models", { baseURL: mockUrl });
+    assert.equal(catalog.status, 200, await catalog.clone().text());
+    assert.deepEqual((await catalog.json()).models, ["fixture-model", "other-model"]);
     const proxy = await request("/model/chat/completions", { model: "must-not-override-config", messages: [{ role: "user", content: "test proxy" }] });
     assert.equal(proxy.status, 200);
     assert.equal((await proxy.json()).choices[0].message.content, "连接成功");

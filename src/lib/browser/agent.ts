@@ -9,10 +9,12 @@ import { browserProjectMemory } from "./memory";
 import { buildBrowserSystemPrompt } from "./prompt";
 import { isBrowserSearchable, searchBrowserTools } from "./search";
 import { normalizeAgentSessionStub, normalizeWorkspaceRecovery } from "../workspace";
+import { BUILTIN_API } from "../defaults";
+import { listProviderModels } from "./models";
 
 type Event = { type: string; seq?: number; ts?: number; [key: string]: any };
 type Session = { id: string; seq: number; events: Event[]; messages: ModelMessage[]; busy: boolean; workspace?: Partial<BrowserWorkspace>; controller?: AbortController; listeners: Set<(event: Event) => void> };
-type Config = { transport: "direct" | "desktop-proxy"; baseURL: string; model: string; apiKeys: string[]; keyCount: number; contextWindow: number; maxToolOutputChars: number };
+type Config = { transport: "direct" | "desktop-proxy"; baseURL: string; model: string; apiKeys: string[]; keyCount: number; contextWindow: number; maxToolOutputChars: number; builtin?: boolean };
 const sessions = new Map<string, Promise<Session>>();
 const approvals = new Map<string, (approved: boolean) => void>();
 let configPromise: Promise<Config> | undefined;
@@ -20,6 +22,9 @@ let proxyToken = "";
 const proxyURL = "http://127.0.0.1:8972";
 const decoder = new TextDecoder();
 const emptyConfig = (): Config => ({ transport: "direct", baseURL: "", model: "", apiKeys: [], keyCount: 0, contextWindow: 64000, maxToolOutputChars: 6000 });
+/** Fresh visitor / first load: bundled trial credentials keep the app usable. */
+const defaultConfig = (): Config => ({ transport: "direct", baseURL: BUILTIN_API.baseURL, model: BUILTIN_API.model,
+  apiKeys: [BUILTIN_API.apiKey], keyCount: 1, contextWindow: 64000, maxToolOutputChars: 6000, builtin: true });
 async function proxyRequest(path: string, init: RequestInit = {}) {
   if (!proxyToken) {
     const response = await fetch(`${proxyURL}/bootstrap`, { headers: { "X-Tiphys-Client": "1" }, signal: init.signal });
@@ -47,13 +52,13 @@ async function loadConfig(): Promise<Config> {
       }
     } catch { /* An entirely static web app still works; API can be configured later. */ }
   }
-  return emptyConfig();
+  return defaultConfig();
 }
 const getConfig = () => configPromise ??= loadConfig();
 function settings(config: Config) {
   return { provider: config.apiKeys.length || config.transport === "desktop-proxy" && config.keyCount ? "openai-compatible" : "unconfigured", model: config.model, baseURL: config.baseURL,
     hasApiKey: config.apiKeys.length > 0 || config.keyCount > 0, keyCount: config.apiKeys.length || config.keyCount,
-    keySource: config.transport === "desktop-proxy" ? "桌面 API 代理（GIS 在浏览器计算）" : "此浏览器 API 设置", configIssue: "",
+    keySource: config.transport === "desktop-proxy" ? "桌面 API 代理（GIS 在浏览器计算）" : config.builtin ? "内置默认凭据（TierFlow）" : "此浏览器 API 设置", configIssue: "",
     configPath: "此浏览器 · IndexedDB", contextWindow: config.contextWindow, maxToolOutputChars: config.maxToolOutputChars, environmentOverrides: [], transport: config.transport };
 }
 function cleanError(error: unknown, config: Config) {
@@ -220,6 +225,22 @@ export async function browserAgentRequest(path: string, init: RequestInit = {}):
   const body = init.body ? JSON.parse(typeof init.body === "string" ? init.body : decoder.decode(init.body as ArrayBuffer)) : {};
   if (url.pathname === "/health") return Response.json({ ok: true, service: "tiphys-agent", ...settings(config), runtime: "browser" });
   if (url.pathname === "/settings" && init.method !== "POST") return Response.json(settings(config));
+  if (url.pathname === "/settings/models") {
+    let base: URL;
+    try { base = new URL(String(body.baseURL ?? config.baseURL ?? "").trim()); }
+    catch { throw new Error("请填写完整的 API 地址（以 http:// 或 https:// 开头）。"); }
+    if (!["http:", "https:"].includes(base.protocol) || base.username || base.password || base.hash || base.search) throw new Error("请填写有效 API 根地址，不要包含登录信息或查询参数。");
+    const baseURL = base.toString().replace(/\/$/, "");
+    const supplied = typeof body.apiKey === "string" ? body.apiKey.trim() : "";
+    if (config.transport === "desktop-proxy" && !supplied) {
+      const response = await proxyRequest("/settings/models", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ baseURL }), signal: init.signal });
+      if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error || "桌面模型代理拉取失败。");
+      return response;
+    }
+    const keys = supplied ? supplied.split(/[\s,]+/).filter(Boolean) : config.apiKeys;
+    return Response.json({ models: await listProviderModels(baseURL, keys, init.signal ?? undefined) });
+  }
   if (["/settings", "/settings/test"].includes(url.pathname)) {
     const base = new URL(String(body.baseURL).trim());
     if (!["http:", "https:"].includes(base.protocol) || base.username || base.password || base.hash || base.search) throw new Error("请填写有效 API 根地址，不要包含登录信息或查询参数。");
@@ -227,7 +248,7 @@ export async function browserAgentRequest(path: string, init: RequestInit = {}):
     const contextWindow = Number(body.contextWindow ?? config.contextWindow), maxToolOutputChars = Number(body.maxToolOutputChars ?? config.maxToolOutputChars);
     if (!Number.isInteger(contextWindow) || contextWindow < 8000 || contextWindow > 2000000 || !Number.isInteger(maxToolOutputChars) || maxToolOutputChars < 1000 || maxToolOutputChars > 100000) throw new Error("运行参数超出允许范围。");
     const next: Config = { ...config, baseURL: base.toString().replace(/\/$/, ""), model: body.model.trim(), contextWindow, maxToolOutputChars };
-    if (body.apiKey?.trim()) { next.apiKeys = body.apiKey.trim().split(/[\s,]+/); next.keyCount = next.apiKeys.length; next.transport = "direct"; }
+    if (body.apiKey?.trim()) { next.apiKeys = body.apiKey.trim().split(/[\s,]+/); next.keyCount = next.apiKeys.length; next.transport = "direct"; next.builtin = false; }
     if (url.pathname === "/settings/test") {
       const start = performance.now(); const result = await generateText({ model: modelFor(next), prompt: "只回复：连接成功", maxOutputTokens: 32, maxRetries: 0, abortSignal: init.signal ? AbortSignal.any([init.signal, AbortSignal.timeout(60000)]) : AbortSignal.timeout(60000) });
       if (!result.text.trim()) throw new Error("模型未返回文本。");

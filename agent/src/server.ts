@@ -11,7 +11,8 @@ import { loadConfig, TIPHYS_DIR, USER_DIR, type AgentConfig } from "./config.js"
 import { providerFetch } from "./provider-fetch.js";
 import { once } from "node:events";
 import { eventLogEntries, redact } from "./diagnostics.js";
-import { prepareSettings, publicSettings, saveSettings, ensureSettingsBackup } from "./settings.js";
+import { normalizeBaseURL, prepareSettings, publicSettings, saveSettings, ensureSettingsBackup } from "./settings.js";
+import { listModels } from "./models.js";
 import { EngineMcp } from "./mcp.js";
 import { createMockModel } from "./mock.js";
 import { Session, type AgentEvent } from "./session.js";
@@ -298,6 +299,16 @@ const server = http.createServer(async (req, res) => {
         if (!result.text.trim()) throw new Error("API 未返回文本，请核对模型名称。");
         return json({ ok: true, model: candidate.model, latencyMs: Date.now() - started, message: "真实 API 调用成功" });
       } catch (err) { return json({ error: redact(err instanceof Error ? err.message : String(err), candidate?.apiKeys ?? cfg.apiKeys) }, 400); }
+    }
+    if (url.pathname === "/settings/models" && req.method === "POST") {
+      const input = await body(req);
+      try {
+        const baseURL = normalizeBaseURL(input.baseURL ?? cfg.baseURL);
+        const supplied = typeof input.apiKey === "string" ? input.apiKey.trim() : "";
+        const keys = supplied ? supplied.split(/[\s,]+/).filter(Boolean) : cfg.apiKeys;
+        const models = await listModels(baseURL, keys);
+        return json({ models });
+      } catch (err) { return json({ error: redact(err instanceof Error ? err.message : String(err), cfg.apiKeys) }, 400); }
     }
     if (url.pathname === "/logs" && req.method === "GET") {
       const s = getSession(sid);

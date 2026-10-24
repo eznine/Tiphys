@@ -884,6 +884,9 @@ textarea {
 .settings-secret { position: relative; }
 .settings-secret input { padding-right: 37px; }
 .settings-secret button { position: absolute; right: 3px; top: 3px; }
+.settings-model-row { display: flex; align-items: center; gap: 8px; }
+.settings-model-row input { flex: 1; }
+.settings-model-row .icon-btn { flex-shrink: 0; height: 35px; padding: 0 11px; display: inline-flex; align-items: center; gap: 6px; font-size: 11px; white-space: nowrap; }
 .settings-footer { min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 12px 20px; border-top: 1px solid var(--tiphys-border); background: var(--tiphys-bg); }
 .settings-footer > span { font-size: 10px; color: var(--tiphys-text-muted); }
 .settings-footer > div { display: flex; gap: 8px; flex-shrink: 0; }

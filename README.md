@@ -33,7 +33,7 @@ engine/.venv/Scripts/python.exe -m pip install -r engine/requirements.txt
 npm run dev:all -- --mock
 ```
 
-打开 http://127.0.0.1:1420 。一次启动会管理引擎、Agent 和 Vite，端口占用会明确报错。Ctrl+C 仅清理自己启动的进程树。`--mock` 仅用于明确指定的模拟测试；正常运行去掉它。可在应用设置中配置真实 API，原有 `TIPHYS_LLM_*`、项目/用户 `agent.json` 与密钥池入口继续支持。已有启动环境覆盖时，设置会明确提示；任务运行中拒绝修改模型配置。不要提交密钥。
+打开 http://127.0.0.1:1420 。一次启动会管理引擎、Agent 和 Vite，端口占用会明确报错。Ctrl+C 仅清理自己启动的进程树。`--mock` 仅用于明确指定的模拟测试；正常运行去掉它。可在应用设置中配置真实 API，原有 `TIPHYS_LLM_*`、项目/用户 `agent.json` 与密钥池入口继续支持。设置页提供主流 OpenAI 兼容服务商预设，可一键拉取模型列表；没有任何已保存配置时使用内置 TierFlow 测试凭据（`TIPHYS_BUILTIN_CREDENTIALS=off` 可关闭）。已有启动环境覆盖时，设置会明确提示；任务运行中拒绝修改模型配置。不要提交密钥。
 
 也可分别运行 `npm run engine`、`npm run agent`、`npm run dev`。两项服务必须使用相同的 `TIPHYS_STATE_DIR` 或默认项目 `.tiphys`，该目录保存本地服务凭据与会话。`npm run agent:tools` 会从该目录读取凭据。`/ping` 和 `/health` 用于诊断；其余接口要求 Bearer 凭据，不应把凭据放进 URL。
 

@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { BUILTIN_DEFAULT, builtinCredentialsEnabled } from "./defaults.js";
 
 const TF_KEYS_SCRIPT = path.join(os.homedir(), ".local/bin/tf-keys.sh");
 
@@ -122,6 +123,15 @@ export function loadConfig(stateDir = TIPHYS_DIR, userDir = USER_DIR): AgentConf
       baseURL = baseURL || e.TF_BASE || tf.base || "https://tierflow.cn/v1";
       defaultModel = "tierflow_pro";
     }
+  }
+  // Fresh install / public web build: fall back to the bundled TierFlow trial
+  // credential only when the user has configured neither keys nor an endpoint.
+  if (provider !== "mock" && !apiKeys.length && !baseURL && builtinCredentialsEnabled()) {
+    apiKeys = [BUILTIN_DEFAULT.apiKey];
+    baseURL = BUILTIN_DEFAULT.baseURL;
+    keySource = "内置默认凭据（TierFlow）";
+    defaultModel = BUILTIN_DEFAULT.model;
+    configIssue = undefined;
   }
   if (apiKeys.length && !baseURL) baseURL = "https://api.openai.com/v1";
   if (!provider) provider = baseURL && apiKeys.length ? "openai-compatible" : "unconfigured";
