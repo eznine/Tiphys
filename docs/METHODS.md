@@ -14,7 +14,7 @@
 | `reproject-crs` | 坐标系与重投影 | 重投影、投影到、EPSG | `gis.reproject` | `reproject` |
 | `clip-overlay` | 按范围裁剪与叠加 | 裁剪、掩膜、只保留范围内 | `gis.clip` | `clip` |
 | `dissolve-group` | 融合与分组汇总 | 融合、按类型合并、去掉内部边界 | `gis.dissolve` | `dissolve` |
-| `zonal-stats` | 分区统计 | 分区统计、平均高程、每个面内像元 | 设计稿（无执行端） | `zonal_statistics` |
+| `zonal-stats` | 分区统计 | 分区统计、平均高程、每个面内像元 | `gis.zonal_statistics`（桌面 Python 已实现；浏览器仍拒绝） | `zonal_statistics` |
 | `area-length-measure` | 面积与长度量算 | 面积、周长、平方公里 | — | `calculate_geometry` |
 | `spatial-join` | 空间连接与最近匹配 | 空间连接、最近站点、落在哪个区 | — | `spatial_join` |
 | `dem-hydrology` | DEM 水文分析 | 汇流、流域、填洼、河网提取 | — | `wasm_d8_flow_accum` |
@@ -35,7 +35,7 @@
 
 - 工具检索（`search.ts`）只看名称、别名、描述、类别，不读方法卡；方法卡检索只看触发词，不读目录。两者在 Agent 提示词里**分别注入**，避免互相污染排序。
 - 契约支持矩阵（`OPERATION_SUPPORT`）优先于方法卡：卡片描述 `gis.dissolve` 时，必须按矩阵说明"浏览器端不可用、需桌面引擎"，测试会检查这一点。
-- 卡片不承诺未测量的能力：`zonal-stats` 明确写着设计稿状态，没有关联执行契约。
+- 卡片不承诺未测量的能力：`zonal-stats` 只在桌面 Python 支持矩阵为真后关联执行契约；浏览器 WASM 的同名工具仍是栅格分区，不能承接矢量分区。
 
 ## 4. 增补规则
 

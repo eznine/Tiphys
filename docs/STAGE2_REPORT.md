@@ -1,6 +1,6 @@
 # 阶段 2 报告：工具检索、方法与五个基础操作
 
-> 对应 [MASTER_ROADMAP.md](MASTER_ROADMAP.md) 阶段 2。结论先行：**验收门槛已满足**——207 条标注检索、五操作覆盖/缺口矩阵、8 张方法卡、CRS/单位前置校验；同时**两个操作明确不可用**（浏览器 `gis.dissolve`、两端 `gis.zonal_statistics`），缺口与降级路径写在契约里，不用"支持"掩盖。
+> 对应 [MASTER_ROADMAP.md](MASTER_ROADMAP.md) 阶段 2。结论先行：**验收门槛已满足**——207 条标注检索、五操作覆盖/缺口矩阵、方法卡、CRS/单位前置校验。后续补齐了桌面 Python 的 `gis.zonal_statistics`（矢量分区 + 栅格取值）；浏览器 `gis.dissolve` 与浏览器 `gis.zonal_statistics` 仍明确不可用，缺口与降级路径写在契约里，不用"支持"掩盖。
 
 ## 1. 交付物
 
@@ -40,14 +40,14 @@
 | `gis.reproject` | ✅ 已验证（同 CRS 显式 no-op） | ✅ 已验证（引擎会报错，Agent 前置 no-op） |
 | `gis.clip` | ✅ 已验证，**仅面/点**；线、多点显式拒绝 | ⚠️ 工具存在，未纳入基线 |
 | `gis.dissolve` | ❌ **不支持**（D1/D2，见下节） | ⚠️ 工具存在，未纳入基线 |
-| `gis.zonal_statistics` | ❌ **不支持**（manifest 把分区面声明成栅格） | ❌ **不支持**（35 个工具里没有该能力） |
+| `gis.zonal_statistics` | ❌ **不支持**（manifest 把分区面声明成栅格） | ✅ **已验证**（rasterio 矢量面掩膜；4×4 GeoTIFF + 2 分区数值测试） |
 
 契约行为：
 
 - `planOperation(spec, layer, provider)` 在 provider 不支持时返回 `reject`，并附**原因 + 降级方案**，绝不静默降级或换个工具名跑。
 - `gis.dissolve` 语义 v1：无 `field` → 全部求并成 1 个要素；有 `field` → 每组 1 个要素，只保留分组字段。
 - `gis.clip` 语义 v1：面掩膜求交并保留属性；浏览器端线/多点/MultiLineString 直接拒绝。
-- `gis.zonal_statistics` **只完成设计**：`zonesLayerId`（矢量分区）+ 统计量枚举 + `ignoreNoData` + `valueField`；两端都没有可执行实现，因此 `planOperation` 一律拒绝并说明。没有把它映射到同名的 WASM `zonal_statistics`，因为该工具的分区输入是栅格，按名调用会算错数据。
+- `gis.zonal_statistics` 的 `input` 是**数值栅格**，`zonesLayerId` 是**矢量分区**；桌面 Python 用 rasterio 按面掩膜逐区计算 mean/median/min/max/sum/stddev/count，结果保留分区几何与属性并新增 `zonal_<statistic>`、`zone_pixel_count`。`stddev` 明确为总体标准差；`ignoreNoData=false` 时 NoData/非有限值按 0 计入。浏览器仍按 provider 拒绝：同名 WASM 工具的分区输入是栅格，按名调用会算错数据，不做静默映射。
 
 ## 4. D1/D2：浏览器 `dissolve` 的调查记录（未修复，已定性）
 
@@ -71,7 +71,7 @@
 - 每张卡含触发词、前置条件、追问条件、禁止误用、验收规则、正反例六段，缺段测试失败。
 - **检索与工具目录分开**：`findMethods()` 只做触发词匹配，不参与工具排序；工具检索不读方法卡。
 - 卡片正例引用的工具 ID 必须真实存在于 shell/WASM 目录；契约卡必须符合 `OPERATION_SUPPORT`（例如 dissolve 卡必须写明浏览器端不可用）。
-- `zonal-stats` 卡故意不挂 `operation`：方法是真实的，执行端没有，不能借卡暗示可用。
+- `zonal-stats` 卡现关联 `gis.zonal_statistics`：桌面 Python 支持、浏览器仍拒绝；验收要求无交集分区返回空值，不能把 NoData 伪装成 0。
 
 ## 6. 回归结果（本机实测）
 
@@ -89,7 +89,7 @@
 
 - **真实模型端到端**：本阶段没有消耗模型额度，任何"成功率"都不是模型跑出来的；阶段 4 才做 A/B。
 - 浏览器 `dissolve` 未修复，M01/M02 仍 ERROR（见 §4）。
-- `gis.zonal_statistics` 只有契约与设计，没有实现，也没有精度实验。
+- `gis.zonal_statistics` 只有合成 GeoTIFF 的单元数值断言；尚未与 ArcGIS/QGIS 或真实遥感产品做逐像元对照，不声称结果位级一致。
 - 桌面 `clip` / `dissolve`（Python 工具存在）未纳入可复现基线。
 - 方法卡在真实 Agent 提示词中的召回效果未测；目前只测了卡片数据与 `findMethods`。
 - 浏览器线裁剪、Chrome 地图渲染（`map-render.test.ts`）在本机不可测。

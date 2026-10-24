@@ -141,7 +141,9 @@ test("the support matrix is explicit about what is and is not verified", () => {
     }
   }
   assert.equal(operationSupport("gis.dissolve", "browser-wasm").supported, false);
-  assert.equal(operationSupport("gis.zonal_statistics", "desktop-python").supported, false);
+  assert.equal(operationSupport("gis.zonal_statistics", "desktop-python").supported, true);
+  assert.equal(operationSupport("gis.zonal_statistics", "desktop-python").verified, true);
+  assert.equal(operationSupport("gis.zonal_statistics", "browser-wasm").supported, false);
 });
 
 test("clip plans an overlay call and dissolve keeps the optional grouping field", () => {
@@ -171,14 +173,40 @@ test("clip plans an overlay call and dissolve keeps the optional grouping field"
   }
 });
 
-test("zonal statistics is designed but explicitly not runnable yet", () => {
+test("zonal statistics plans on desktop-python and still refuses the raster-zone WASM tool", () => {
   const spec: ZonalStatisticsSpec = {
     operation: "gis.zonal_statistics", version: 1, input: "raster_1",
     params: { zonesLayerId: "lyr_zones", statistic: "mean", ignoreNoData: true },
   };
   assert.equal(normalizeParams(spec).ok, true);
   assert.equal(normalizeParams({ ...spec, params: { ...spec.params, statistic: "p95" as never } }).ok, false);
-  const plan = planOperation(spec, { id: "raster_1", crs: "EPSG:32650", kind: "raster" });
-  assert.equal(plan.action, "reject");
-  if (plan.action === "reject") assert.match(plan.errors.join(" "), /没有分区统计|尚无执行端实现/);
+  const raster: LayerSemantics = { id: "raster_1", crs: "EPSG:32650", kind: "raster" };
+  const plan = planOperation(spec, raster, "desktop-python");
+  assert.equal(plan.action, "invoke");
+  if (plan.action === "invoke") {
+    assert.equal(plan.tool, "zonal_statistics");
+    assert.deepEqual(plan.args, {
+      layer: "raster_1", zones_layer: "lyr_zones", statistic: "mean", ignore_nodata: true,
+    });
+  }
+
+  const named = planOperation({ ...spec, params: { ...spec.params, statistic: "stddev", valueField: "2", ignoreNoData: false, outputName: "分区结果" } }, raster);
+  assert.equal(named.action, "invoke");
+  if (named.action === "invoke") {
+    assert.equal(named.args.value_field, "2");
+    assert.equal(named.args.ignore_nodata, false);
+    assert.equal(named.args.output_name, "分区结果");
+  }
+
+  // Omitting the provider defaults to desktop for this operation.
+  assert.equal(planOperation(spec, raster).action, "invoke");
+  // Value input is a raster, not the vector gate used by buffer/clip.
+  assert.equal(planOperation(spec, vector, "desktop-python").action, "reject");
+
+  const browser = planOperation(spec, raster, "browser-wasm");
+  assert.equal(browser.action, "reject");
+  if (browser.action === "reject") {
+    assert.match(browser.errors.join(" "), /分区面声明为栅格/);
+    assert.match(browser.errors.join(" "), /降级方案/);
+  }
 });

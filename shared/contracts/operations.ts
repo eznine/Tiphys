@@ -68,7 +68,7 @@ export function parseEpsg(crs: unknown): number | null {
 }
 
 export type PlanResult =
-  | { action: "invoke"; tool: "buffer" | "reproject" | "clip" | "dissolve"; args: Record<string, unknown> }
+  | { action: "invoke"; tool: "buffer" | "reproject" | "clip" | "dissolve" | "zonal_statistics"; args: Record<string, unknown> }
   | { action: "noop"; reason: string }
   | { action: "reject"; errors: string[] };
 
@@ -140,10 +140,29 @@ export function planOperation(spec: OperationSpec, input: LayerSemantics, provid
     }
   }
   if (spec.operation === "gis.zonal_statistics") {
-    // No engine implements it yet; a plan that "looks runnable" would be a lie.
-    // Zonal input is a raster, so this check must run before the vector gate.
-    const support = operationSupport("gis.zonal_statistics", provider ?? "desktop-python");
-    return { action: "reject", errors: [support.reason, ...(support.degrade ? [`降级方案：${support.degrade}`] : [])] };
+    // The value input is a raster and the zones are a vector layer. Desktop
+    // Python is the implemented executor; an omitted provider means desktop.
+    const effectiveProvider = provider ?? "desktop-python";
+    const support = operationSupport("gis.zonal_statistics", effectiveProvider);
+    if (!support.supported) {
+      return { action: "reject", errors: [support.reason, ...(support.degrade ? [`降级方案：${support.degrade}`] : [])] };
+    }
+    if (input.kind !== "raster") return { action: "reject", errors: ["gis.zonal_statistics 的 input 必须是数值栅格图层。"] };
+    const inputEpsg = parseEpsg(input.crs);
+    if (inputEpsg == null) return { action: "reject", errors: [`栅格坐标系「${input.crs || "未知"}」不是 EPSG 编号，无法保证分区对齐。`] };
+    const params = normalized.params as ZonalStatisticsParams;
+    return {
+      action: "invoke",
+      tool: "zonal_statistics",
+      args: {
+        layer: input.id,
+        zones_layer: params.zonesLayerId,
+        statistic: params.statistic,
+        ignore_nodata: params.ignoreNoData ?? true,
+        ...(params.valueField ? { value_field: params.valueField } : {}),
+        ...(params.outputName ? { output_name: params.outputName } : {}),
+      },
+    };
   }
   if (input.kind !== "vector") return { action: "reject", errors: [`${spec.operation} 只适用于矢量图层。`] };
   const inputEpsg = parseEpsg(input.crs);
@@ -392,10 +411,12 @@ export const OPERATION_SUPPORT: Record<OperationId, Record<ExecutionRun["provide
     "browser-wasm": {
       supported: false, verified: false,
       reason: "目录中的 zonal_statistics 把分区面声明为栅格，没有矢量分区输入；按工具名映射会跑错数据。",
-      degrade: "桌面端暂无分区统计工具；可先栅格化分区再做栅格分区统计。",
+      degrade: "请改用桌面 Python 引擎的矢量分区 + 栅格取值实现；浏览器端不会静默换成同名 WASM 工具。",
     },
-    "desktop-python": { supported: false, verified: false, reason: "Python MCP 的 35 个工具里没有分区统计；需要阶段 3 新增后端能力。",
-      degrade: "先用栅格化分区 + 栅格分区统计；或在桌面端导出分区与像元做外部统计，并明确告知未在应用内完成。" },
+    "desktop-python": {
+      supported: true, verified: true,
+      reason: "rasterio 以矢量面掩膜逐区统计，支持七个统计量；合成 4×4 GeoTIFF + 2 个多边形分区的数值测试通过，且明确 NoData 语义。",
+    },
   },
 };
 

@@ -6,6 +6,7 @@ import json
 import math
 import os
 import re
+import shutil
 import threading
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -43,6 +44,8 @@ class LayerStore:
             for row in json.loads(self._manifest.read_text(encoding="utf-8"))["layers"]:
                 layer = Layer(**row)
                 for p in (layer.path, layer.meta["dataset_path"]):
+                    if p is None:
+                        continue
                     if Path(p).resolve().parent != self.data_dir or not Path(p).is_file():
                         raise ValueError(f"Workspace dataset is missing or outside the project: {p}")
                 self._layers[layer.id] = layer
@@ -66,6 +69,8 @@ class LayerStore:
             layer = self._layers.get(layer_id)
             if layer is None:
                 return None
+            if self._is_raster(layer):
+                raise ValueError(f"Layer {layer.name!r} is a raster; get_gdf only reads vector layers")
             if layer_id not in self._gdfs:
                 self._gdfs[layer_id] = gpd.read_file(layer.meta["dataset_path"])
             return self._gdfs[layer_id].copy()
@@ -108,7 +113,7 @@ class LayerStore:
                 "sourcePath": layer.source_path, "format": suffix, "bytes": stat.st_size,
                 "sha256": sha256, "revision": f"{revision}:{stat.st_size}" + (f":{sha256[7:15]}" if sha256 else ""),
             }
-            if suffix in {"tif", "tiff"}:
+            if self._is_raster(layer):
                 import rasterio
 
                 with rasterio.open(dataset) as src:
@@ -171,12 +176,64 @@ class LayerStore:
         p = p.resolve()
         if not p.is_file():
             raise FileNotFoundError(f"path not found: {p}")
+        if p.suffix.lower() in {".tif", ".tiff"}:
+            return self.add_raster(p, name=name, source_crs=source_crs)
         gdf = gpd.read_file(p)
         if source_crs:
             if gdf.crs is not None and gdf.crs != source_crs:
                 raise ValueError("Dataset already has a different CRS; reproject rather than relabel it")
             gdf = gdf.set_crs(source_crs)
         return self.add_gdf(gdf, name=name or p.stem, source_path=str(p))
+
+    def add_raster(self, path: str | Path, name: str | None = None,
+                   source_crs: str | None = None) -> dict[str, Any]:
+        """Register a GeoTIFF as a raster layer backed by a managed copy."""
+        import rasterio
+        from rasterio.warp import transform_bounds
+
+        if source_crs:
+            raise ValueError("source_crs is for vector data; a GeoTIFF must carry its own CRS")
+        p = Path(path).expanduser()
+        if not p.is_absolute():
+            p = Path(os.environ.get("TIPHYS_PROJECT_ROOT", Path(__file__).resolve().parent.parent)) / p
+        p = p.resolve()
+        if not p.is_file():
+            raise FileNotFoundError(f"path not found: {p}")
+        suffix = p.suffix.lower()
+        if suffix not in {".tif", ".tiff"}:
+            raise ValueError(f"not a GeoTIFF: {p}")
+
+        lid = f"lyr_{uuid.uuid4().hex[:12]}"
+        dataset_path = self.data_dir / f"{lid}_{uuid.uuid4().hex[:8]}{suffix}"
+        try:
+            with rasterio.open(p) as src:
+                if src.crs is None:
+                    raise ValueError("GeoTIFF has no CRS; analysis cannot place its pixels")
+                source_crs_text = (f"EPSG:{src.crs.to_epsg()}" if src.crs.to_epsg()
+                                   else str(src.crs))
+                bounds_wgs84 = [float(v) for v in transform_bounds(
+                    src.crs, "EPSG:4326", *src.bounds, densify_pts=21)]
+                width, height, bands = src.width, src.height, src.count
+            if not all(math.isfinite(v) for v in bounds_wgs84):
+                raise ValueError("GeoTIFF bounds could not be transformed to WGS84")
+            if not (-180 <= bounds_wgs84[0] <= bounds_wgs84[2] <= 180
+                    and -90 <= bounds_wgs84[1] <= bounds_wgs84[3] <= 90):
+                raise ValueError("GeoTIFF bounds are outside WGS84; verify its CRS")
+            shutil.copy2(p, dataset_path)
+            with rasterio.open(dataset_path) as copy:
+                if (copy.width, copy.height, copy.count) != (width, height, bands):
+                    raise ValueError("Raster copy verification failed: dimensions differ")
+            layer = Layer(lid, name or p.stem, source_crs_text, None, 0, [], bounds_wgs84,
+                          None, str(p), {"kind": "raster", "source_crs": source_crs_text,
+                                         "dataset_path": str(dataset_path)})
+            with self._lock:
+                updated = {**self._layers, lid: layer}
+                self._save(updated)
+                self._layers = updated
+            return self._public(layer)
+        except BaseException:
+            dataset_path.unlink(missing_ok=True)
+            raise
 
     def add_gdf(self, gdf: gpd.GeoDataFrame, name: str, source_path: str | None = None,
                 layer_id: str | None = None, overwrite: bool = False) -> dict[str, Any]:
@@ -218,7 +275,8 @@ class LayerStore:
                 layer = Layer(lid, name, str(gdf.crs), str(out_path), len(gdf),
                               sorted(set(display.geometry.geom_type.dropna())), bounds,
                               f"/layers/{lid}.geojson", source_path,
-                              {"source_crs": str(gdf.crs), "dataset_path": str(dataset_path)})
+                              {"kind": "vector", "source_crs": str(gdf.crs),
+                               "dataset_path": str(dataset_path)})
                 updated = {**self._layers, lid: layer}
                 self._save(updated)
             except BaseException:
@@ -240,7 +298,8 @@ class LayerStore:
             self._save(updated)
             self._layers = updated
             self._gdfs.pop(lid, None)
-            Path(layer.path).unlink(missing_ok=True)
+            if layer.path:
+                Path(layer.path).unlink(missing_ok=True)
             Path(layer.meta["dataset_path"]).unlink(missing_ok=True)
             return {"ok": True, "removed": lid, "name": layer.name}
 
@@ -286,7 +345,14 @@ class LayerStore:
 
     @staticmethod
     def _public(layer: Layer) -> dict[str, Any]:
-        return {"id": layer.id, "name": layer.name, "crs": layer.crs, "display_crs": "EPSG:4326",
+        kind = "raster" if LayerStore._is_raster(layer) else "vector"
+        return {"id": layer.id, "name": layer.name, "kind": kind, "crs": layer.crs, "display_crs": "EPSG:4326",
                 "feature_count": layer.feature_count, "geometry_types": layer.geometry_types,
                 "bounds": layer.bounds, "url": layer.url, "path": layer.meta["dataset_path"],
                 "source_path": layer.source_path, "source_crs": layer.meta.get("source_crs")}
+
+    @staticmethod
+    def _is_raster(layer: Layer) -> bool:
+        if layer.meta.get("kind") == "raster":
+            return True
+        return Path(layer.meta["dataset_path"]).suffix.lower() in {".tif", ".tiff"}

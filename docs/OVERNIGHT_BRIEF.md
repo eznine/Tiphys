@@ -13,7 +13,7 @@ Governing docs (read these, do not invent a parallel plan):
 
 Progress log: append every batch to `docs/OVERNIGHT_PROGRESS.md`. Commit + push when a batch is green. Update roadmap progress table when a stage item closes.
 
-## Current status (2026-10-25 ~03:25 CST)
+## Current status (2026-10-25 ~03:30 CST)
 
 Stages 0–4 ✅ (sim scope); 5A hydrology ✅; 5B service-zone (euclidean) ✅; **5C ecology NOT started**.
 Known gaps still open from the plan:
@@ -28,6 +28,10 @@ UI direction: blue accent `#2563eb`, light default, SVG logo system, full ~958 W
 
 ## Priority order tonight
 
+### LOCKED ORDER (do not reorder)
+1. **P0 plan leftovers** → 2. **P1 including Stage 5C** → 3. **P2 Android APK (rough)** → 4. **P3 densify/OSS**.
+APK is explicitly **after** incomplete MASTER_ROADMAP / plan items, not interleaved.
+
 ### P0 — finish plan leftovers (do these first)
 1. **`gis.zonal_statistics`**: real implementation + tests + update OPERATION_SUPPORT / STAGE2 notes. Prefer Python desktop provider first if WASM path is unclear; then browser if feasible.
 2. **Identify / attribute UX** (USER_NEEDS P0): copy value/row, export, filter-by-value, jump to table row.
@@ -41,7 +45,11 @@ UI direction: blue accent `#2563eb`, light default, SVG logo system, full ~958 W
 8. Expand GeoAgentBench compatible subset or fix schema/export failures that blocked scores.
 9. Method skills from `muend/geoai-skills` style: more guardrails in knowledge (CRS/units/overlay double-count), not RAG dump.
 
-### P2 — Android offline APK (user asked tonight)
+### P2 — Android offline APK (ONLY AFTER P0+P1 including 5C)
+
+**HARD GATE (user clarified 2026-10-25 ~03:30 Asia/Shanghai):** Do **not** start Capacitor/APK work until every P0 item above and P1 item 6 (Stage 5C ecology corridor) have either **landed on main** or an honest written block note in OVERNIGHT_PROGRESS.md explaining why that item cannot proceed tonight. Rough WebView shell is enough once the gate opens — not polish. User wants APK eventually, but plan leftovers on the roadmap come first.
+
+
 10. Scaffold **offline-capable Android APK** wrapping the existing web app (Capacitor or similar WebView shell). Bundle `dist/` + WASM assets so it opens without network for core map/tools. Document build steps in `docs/ANDROID_APK.md`. Prefer getting a debug APK artifact under `android/` or `dist-apk/` on the box; do not need Play Store signing tonight. Keep engine = browser WASM (no native GIS rewrite). Note memory limits for big rasters.
 
 ### P3 — densify / OSS borrow (after P0–P2 have forward motion)

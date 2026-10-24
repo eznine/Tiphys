@@ -16,7 +16,7 @@ TOOL_GROUPS = {
     "邻近分析": ("buffer",),
     "叠加分析": ("clip", "intersection", "union_layers", "erase", "spatial_join"),
     "几何处理": ("dissolve", "convex_hull", "simplify", "calculate_geometry"),
-    "查询与选择": ("select_by_attributes", "select_by_location", "field_statistics"),
+    "查询与选择": ("select_by_attributes", "select_by_location", "field_statistics", "zonal_statistics"),
     "地图与显示": ("zoom_to_layer", "open_attribute_table", "set_layer_symbology", "set_layer_labels"),
     "GEE": ("gee_auth_status", "gee_search_collection", "gee_export_raster", "gee_job_status"),
 }
@@ -34,10 +34,10 @@ def register_tools(mcp: FastMCP, store: LayerStore, jobs: JobRegistry) -> None:
 
     @mcp.tool()
     def add_data(path: str, name: str | None = None, source_crs: str | None = None) -> dict[str, Any]:
-        """Load a local GeoJSON or shapefile into the workspace and return layer info + URL for the map.
+        """Load a local vector dataset or GeoTIFF into the workspace and return layer info.
 
         Args:
-            path: Absolute or project-relative path to GeoJSON / shapefile.
+            path: Absolute or project-relative path to GeoJSON, shapefile, or GeoTIFF.
             name: Optional layer display name (defaults to file stem).
             source_crs: Required if the source has no CRS; never guessed.
         """
@@ -288,6 +288,35 @@ def register_tools(mcp: FastMCP, store: LayerStore, jobs: JobRegistry) -> None:
             top = values.astype("string").value_counts().head(10)
             stats["top_values"] = [{"value": None if str(v) == "<NA>" else str(v), "count": int(c)} for v, c in top.items()]
         return stats
+
+    @mcp.tool()
+    def zonal_statistics(
+        layer: str,
+        zones_layer: str,
+        statistic: Literal["mean", "median", "min", "max", "sum", "stddev", "count"] = "mean",
+        value_field: str | None = None,
+        ignore_nodata: bool = True,
+        output_name: str | None = None,
+    ) -> dict[str, Any]:
+        """Summarise a value raster inside polygon zones; returns a vector layer. Job-based.
+
+        The first argument is the value raster. Zones must be a vector polygon
+        layer; this is not the WASM raster-zone tool. The result keeps the zone
+        geometries and attributes and adds `zonal_<statistic>` plus
+        `zone_pixel_count`. With ignore_nodata=false, NoData/Non-finite cells
+        inside polygons count as zero. Empty zones get a null statistic.
+
+        Args:
+            layer: Value raster layer id or name (GeoTIFF).
+            zones_layer: Polygon zones layer id or name.
+            statistic: mean, median, min, max, sum, stddev (population), or count.
+            value_field: 1-based band index or exact band description; default first band.
+            ignore_nodata: Exclude NoData from the calculation (default true).
+            output_name: Optional output vector layer name.
+        """
+        return geo_ops.start_zonal_statistics_job(
+            store, jobs, layer, zones_layer, statistic=statistic,
+            value_field=value_field, ignore_nodata=ignore_nodata, output_name=output_name)
 
     @mcp.tool()
     def reproject(layer: str, target_crs: str, output_name: str | None = None) -> dict[str, Any]:

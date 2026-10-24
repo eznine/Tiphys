@@ -158,6 +158,7 @@ OVERLAY_HOWS = ("clip", "intersection", "union", "difference")
 LOCATION_PREDICATES = ("intersects", "within", "contains", "crosses", "touches", "overlaps")
 ATTR_OPS = ("eq", "ne", "gt", "ge", "lt", "le", "contains", "startswith", "endswith", "isnull", "notnull")
 EXPORT_FORMATS = ("geojson", "gpkg", "fgb", "csv")
+ZONAL_STATISTICS = ("mean", "median", "min", "max", "sum", "stddev", "count")
 
 
 def _layer_frame(store: LayerStore, layer: str) -> tuple[str, gpd.GeoDataFrame, Any]:
@@ -284,6 +285,211 @@ def start_dissolve_job(store: LayerStore, jobs: JobRegistry, layer: str,
     return _start_tool_job(jobs, "dissolve", f"dissolve {layer}",
                            lambda report, commit: dissolve_sync(store, layer, by_field=by_field,
                                                                 output_name=output_name, report=report, commit=commit))
+
+
+def _raster_band(src: Any, value_field: str | int | None) -> int:
+    """Resolve a 1-based band index from an index or an exact band description."""
+    if value_field is None or str(value_field).strip() == "":
+        return 1
+    if isinstance(value_field, int):
+        band = value_field
+    else:
+        text = str(value_field).strip()
+        if text.isdigit():
+            band = int(text)
+        else:
+            descriptions = src.descriptions or ()
+            names = {str(desc): index for index, desc in enumerate(descriptions, start=1) if desc}
+            for index in range(1, src.count + 1):
+                for key in ("DESCRIPTION", "band_name", "name"):
+                    name = src.tags(index).get(key)
+                    if name and name not in names:
+                        names[name] = index
+            band = names.get(text, 0)
+            if not band:
+                available = ", ".join(f"{i}:{name}" for i, name in sorted(names.items())) or "none"
+                raise ValueError(f"unknown raster band/field {text!r}; available bands: {available}")
+    if band < 1 or band > src.count:
+        raise ValueError(f"raster band {band} is outside 1..{src.count}")
+    return band
+
+
+def _zonal_values(src: Any, geometry: Any, band: int, ignore_nodata: bool) -> tuple[Any, int, bool]:
+    """Read one polygon's pixels; NoData is excluded or explicitly treated as zero."""
+    import numpy as np
+    from rasterio.features import geometry_mask
+    from rasterio.mask import mask as raster_mask
+    from shapely.geometry import mapping
+
+    try:
+        masked, transform = raster_mask(src, [mapping(geometry)], crop=True, filled=False, indexes=band)
+    except ValueError as exc:
+        if "overlap" in str(exc).lower():
+            return np.empty(0, dtype="float64"), 0, False
+        raise
+    raw = np.ma.getdata(masked)
+    if raw.ndim == 3:
+        raw = raw[0]
+    nodata_mask = np.ma.getmaskarray(masked)
+    if nodata_mask.ndim == 3:
+        nodata_mask = nodata_mask[0]
+    inside = geometry_mask([mapping(geometry)], out_shape=raw.shape, transform=transform, invert=True)
+    if not inside.any():
+        return np.empty(0, dtype="float64"), 0, False
+    finite = np.isfinite(raw)
+    if ignore_nodata:
+        selected = raw[inside & ~nodata_mask & finite]
+    else:
+        # Contract: ignoreNoData=false treats NoData/Non-finite cells as zero.
+        selected = np.where(finite & ~nodata_mask, raw, 0.0)[inside]
+    values = np.asarray(selected, dtype="float64")
+    return values, int(values.size), True
+
+
+def _zonal_statistic(values: Any, statistic: str) -> float:
+    import numpy as np
+
+    if values.size == 0:
+        return float("nan")
+    if statistic == "mean":
+        return float(np.mean(values))
+    if statistic == "median":
+        return float(np.median(values))
+    if statistic == "min":
+        return float(np.min(values))
+    if statistic == "max":
+        return float(np.max(values))
+    if statistic == "sum":
+        return float(np.sum(values))
+    if statistic == "stddev":
+        # Population standard deviation, stated explicitly in the method docs.
+        return float(np.std(values, ddof=0))
+    if statistic == "count":
+        return float(values.size)
+    raise ValueError(f"unsupported zonal statistic: {statistic} (use one of {', '.join(ZONAL_STATISTICS)})")
+
+
+def zonal_statistics_sync(
+    store: LayerStore,
+    value_layer: str,
+    zones_layer: str,
+    statistic: str,
+    value_field: str | int | None = None,
+    ignore_nodata: bool = True,
+    output_name: str | None = None,
+    report: Callable[[float, str], None] | None = None,
+    commit: Callable[[Callable[[], dict[str, Any]]], dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Summarise a value raster inside polygon zones, returning the zones with attributes."""
+    import numpy as np
+    import rasterio
+
+    statistic = (statistic or "").strip().lower()
+    if statistic not in ZONAL_STATISTICS:
+        raise ValueError(f"unsupported zonal statistic: {statistic} (use one of {', '.join(ZONAL_STATISTICS)})")
+
+    def r(p: float, m: str = "") -> None:
+        if report:
+            report(p, m)
+
+    r(0.08, "resolve value raster + zones")
+    value_lid = store.resolve(value_layer)
+    value_L = store.get(value_lid)
+    if value_L is None:
+        raise KeyError(f"layer not found: {value_layer}")
+    if not LayerStore._is_raster(value_L):
+        raise ValueError("zonal_statistics value input must be a raster layer; zones are the vector layer")
+    dataset_path = Path(value_L.meta["dataset_path"])
+    if not dataset_path.is_file():
+        raise ValueError(f"raster dataset is missing: {dataset_path.name}")
+
+    zones_lid, zones, zones_L = _layer_frame(store, zones_layer)
+    present = zones.geometry.notna() & ~zones.geometry.is_empty
+    if not present.any():
+        raise ValueError("zones layer has no non-empty polygon geometries")
+    geometry_types = sorted(set(zones.loc[present].geometry.geom_type))
+    if not set(geometry_types).issubset({"Polygon", "MultiPolygon"}):
+        raise ValueError(f"zonal_statistics requires polygon zones; found: {', '.join(geometry_types)}")
+
+    out_name = output_name or f"{zones_L.name}_zonal_{statistic}"
+    stat_column = f"zonal_{statistic}"
+    if stat_column in zones.columns or "zone_pixel_count" in zones.columns:
+        raise ValueError(f"zones already contain {stat_column!r} or 'zone_pixel_count'; remove the old result first")
+
+    with rasterio.open(dataset_path) as src:
+        if src.crs is None:
+            raise ValueError("value raster has no CRS; zonal statistics cannot align zones")
+        if zones.crs is None:
+            raise ValueError("zones layer has no CRS; reproject it explicitly first")
+        band = _raster_band(src, value_field)
+        zones_reprojected = not zones.crs.equals(src.crs)
+        if zones_reprojected:
+            r(0.22, f"reproject zones to raster CRS {src.crs}")
+            try:
+                aligned = zones.to_crs(src.crs)
+            except Exception as exc:
+                raise ValueError(f"cannot reproject zones to raster CRS {src.crs}: {exc}") from exc
+        else:
+            aligned = zones
+
+        stat_values: list[float] = []
+        pixel_counts: list[int] = []
+        intersecting = 0
+        skipped = 0
+        total = len(aligned)
+        r(0.35, f"mask {total} zones")
+        for position, geometry in enumerate(aligned.geometry, start=1):
+            if geometry is None or geometry.is_empty:
+                stat_values.append(float("nan"))
+                pixel_counts.append(0)
+                skipped += 1
+                continue
+            try:
+                values, count, intersects = _zonal_values(src, geometry, band, ignore_nodata)
+            except Exception as exc:
+                raise ValueError(f"zone {position} could not be masked: {exc}") from exc
+            if intersects:
+                intersecting += 1
+            if count == 0:
+                skipped += 1
+            stat_values.append(_zonal_statistic(values, statistic))
+            pixel_counts.append(count)
+            if position == total or position % 25 == 0:
+                r(0.35 + 0.5 * position / max(total, 1), f"zonal {statistic}: {position}/{total}")
+        if intersecting == 0:
+            raise ValueError("empty intersection: no zone polygon overlaps the value raster")
+        raster_crs = str(src.crs)
+        raster_epsg = src.crs.to_epsg()
+        band_description = (src.descriptions[band - 1] if src.descriptions else None) or f"band {band}"
+
+    result = zones.copy().reset_index(drop=True)
+    result[stat_column] = np.asarray(stat_values, dtype="float64")
+    result["zone_pixel_count"] = np.asarray(pixel_counts, dtype="int64")
+    r(0.9, "register zonal result")
+
+    def register() -> dict[str, Any]:
+        return {"ok": True, "layer": store.add_gdf(result, name=out_name),
+                "statistic": statistic, "value_column": stat_column,
+                "zone_pixel_count_column": "zone_pixel_count",
+                "value_layer_id": value_lid, "zones_layer_id": zones_lid,
+                "value_field": value_field, "band": band, "band_description": band_description,
+                "ignore_nodata": bool(ignore_nodata), "zones_reprojected": zones_reprojected,
+                "raster_crs": raster_crs, "raster_epsg": raster_epsg,
+                "feature_count": int(len(result)), "skipped_zones": skipped}
+
+    return commit(register) if commit else register()
+
+
+def start_zonal_statistics_job(
+    store: LayerStore, jobs: JobRegistry, layer: str, zones_layer: str,
+    statistic: str = "mean", value_field: str | None = None,
+    ignore_nodata: bool = True, output_name: str | None = None,
+) -> dict[str, Any]:
+    return _start_tool_job(
+        jobs, "zonal_statistics", f"zonal {statistic} {layer} × {zones_layer}",
+        lambda report, commit: zonal_statistics_sync(
+            store, layer, zones_layer, statistic, value_field=value_field,
+            ignore_nodata=ignore_nodata, output_name=output_name, report=report, commit=commit))
 
 
 def convex_hull_sync(

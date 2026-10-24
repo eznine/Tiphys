@@ -21,7 +21,7 @@ from pydantic import BaseModel
 from security import ALLOWED_ORIGINS, service_token
 from diagnostics import record, read_entries
 
-from geo_ops import start_buffer_job
+from geo_ops import start_buffer_job, start_zonal_statistics_job
 from jobs import JobRegistry
 from layers import LayerStore
 
@@ -84,6 +84,16 @@ class BufferBody(BaseModel):
     distance: float
     units: str = "meters"
     dissolve: bool = False
+    output_name: str | None = None
+    async_job: bool = True
+
+
+class ZonalStatisticsBody(BaseModel):
+    layer: str
+    zones_layer: str
+    statistic: str = "mean"
+    value_field: str | None = None
+    ignore_nodata: bool = True
     output_name: str | None = None
     async_job: bool = True
 
@@ -221,6 +231,37 @@ def buffer_http(body: BufferBody) -> dict[str, Any]:
             body.distance,
             units=body.units,
             dissolve=body.dissolve,
+            output_name=body.output_name,
+        )
+    except KeyError as e:
+        raise HTTPException(404, str(e)) from e
+    except Exception as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@app.post("/tools/zonal_statistics")
+def zonal_statistics_http(body: ZonalStatisticsBody) -> dict[str, Any]:
+    try:
+        if body.async_job:
+            return start_zonal_statistics_job(
+                STORE,
+                JOBS,
+                body.layer,
+                body.zones_layer,
+                statistic=body.statistic,
+                value_field=body.value_field,
+                ignore_nodata=body.ignore_nodata,
+                output_name=body.output_name,
+            )
+        from geo_ops import zonal_statistics_sync
+
+        return zonal_statistics_sync(
+            STORE,
+            body.layer,
+            body.zones_layer,
+            body.statistic,
+            value_field=body.value_field,
+            ignore_nodata=body.ignore_nodata,
             output_name=body.output_name,
         )
     except KeyError as e:

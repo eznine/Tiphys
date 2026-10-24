@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/export_engine_catalog.py",
   "source": "engine/tools.py via FastMCP.list_tools()",
-  "count": 35,
+  "count": 36,
   "groups": {
     "数据管理": [
       "add_data",
@@ -34,7 +34,8 @@
     "查询与选择": [
       "select_by_attributes",
       "select_by_location",
-      "field_statistics"
+      "field_statistics",
+      "zonal_statistics"
     ],
     "地图与显示": [
       "zoom_to_layer",
@@ -53,7 +54,7 @@
     {
       "id": "add_data",
       "engine": "desktop-python",
-      "description": "Load a local GeoJSON or shapefile into the workspace and return layer info + URL for the map.\n\nArgs:\n    path: Absolute or project-relative path to GeoJSON / shapefile.\n    name: Optional layer display name (defaults to file stem).\n    source_crs: Required if the source has no CRS; never guessed.",
+      "description": "Load a local vector dataset or GeoTIFF into the workspace and return layer info.\n\nArgs:\n    path: Absolute or project-relative path to GeoJSON, shapefile, or GeoTIFF.\n    name: Optional layer display name (defaults to file stem).\n    source_crs: Required if the source has no CRS; never guessed.",
       "category": "数据管理",
       "groups": [
         "数据管理"
@@ -1698,6 +1699,94 @@
       "param_kinds": {
         "layer": "value",
         "other_layer": "value",
+        "output_name": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "zonal_statistics",
+      "engine": "desktop-python",
+      "description": "Summarise a value raster inside polygon zones; returns a vector layer. Job-based.\n\nThe first argument is the value raster. Zones must be a vector polygon\nlayer; this is not the WASM raster-zone tool. The result keeps the zone\ngeometries and attributes and adds `zonal_<statistic>` plus\n`zone_pixel_count`. With ignore_nodata=false, NoData/Non-finite cells\ninside polygons count as zero. Empty zones get a null statistic.\n\nArgs:\n    layer: Value raster layer id or name (GeoTIFF).\n    zones_layer: Polygon zones layer id or name.\n    statistic: mean, median, min, max, sum, stddev (population), or count.\n    value_field: 1-based band index or exact band description; default first band.\n    ignore_nodata: Exclude NoData from the calculation (default true).\n    output_name: Optional output vector layer name.",
+      "category": "查询与选择",
+      "groups": [
+        "查询与选择"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "zones_layer": {
+            "title": "Zones Layer",
+            "type": "string"
+          },
+          "statistic": {
+            "default": "mean",
+            "enum": [
+              "mean",
+              "median",
+              "min",
+              "max",
+              "sum",
+              "stddev",
+              "count"
+            ],
+            "title": "Statistic",
+            "type": "string"
+          },
+          "value_field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Value Field"
+          },
+          "ignore_nodata": {
+            "default": true,
+            "title": "Ignore Nodata",
+            "type": "boolean"
+          },
+          "output_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Output Name"
+          }
+        },
+        "required": [
+          "layer",
+          "zones_layer"
+        ],
+        "title": "zonal_statisticsArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer",
+        "zones_layer"
+      ],
+      "param_kinds": {
+        "layer": "value",
+        "zones_layer": "value",
+        "statistic": "value",
+        "value_field": "value",
+        "ignore_nodata": "value",
         "output_name": "value"
       },
       "async": false,

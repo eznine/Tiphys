@@ -49,12 +49,16 @@ class SpatialReliability(unittest.TestCase):
         jobs = JobRegistry()
         register_tools(mcp, self.store, jobs)
         tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
-        self.assertEqual(len(tools), 35)
+        self.assertEqual(len(tools), 36)
         self.assertIn("source_crs", tools["add_data"].inputSchema["properties"])
         self.assertTrue(tools["inspect_layers"].annotations.readOnlyHint)
         self.assertIn("name", tools["rename_layer"].inputSchema["properties"])
         self.assertIn("layer_ids", tools["reorder_layers"].inputSchema["properties"])
         self.assertIn("field", tools["field_statistics"].inputSchema["properties"])
+        zonal = tools["zonal_statistics"].inputSchema["properties"]
+        self.assertIn("layer", zonal)
+        self.assertIn("zones_layer", zonal)
+        self.assertEqual(zonal["statistic"]["enum"], ["mean", "median", "min", "max", "sum", "stddev", "count"])
         self.assertTrue(tools["remove_layer"].annotations.destructiveHint)
         self.assertTrue(tools["export_features"].annotations.destructiveHint)
         self.assertEqual(tools["select_by_location"].inputSchema["properties"]["predicate"]["enum"],
