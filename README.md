@@ -4,6 +4,8 @@
 
 Tauri + React/TypeScript + MapLibre；Node Agent 使用 AI SDK 调用模型，通过 MCP 驱动 Python GeoPandas/Shapely/PROJ 引擎。产品边界见 [MVP_SPEC](docs/MVP_SPEC.md)，当前验证状态见 [RELIABILITY_STATUS](docs/RELIABILITY_STATUS.md)。
 
+> **开发总纲**：后续一切开发按 [MASTER_ROADMAP](docs/MASTER_ROADMAP.md) 推进——阶段与 Ticket 顺序、架构契约、验收门槛和「明确不做」清单均以它为最高依据。
+
 ## 当前实现
 
 - 对话、具名工具、后台任务、审批、流式进度和停止当前对话。
