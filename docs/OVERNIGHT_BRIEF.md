@@ -1,50 +1,61 @@
-# TIPHYS Overnight Build Brief (2026-10-24)
+# TIPHYS Overnight Build Brief (2026-10-25)
 
-Owner is asleep. Work continuously on **/workspace/tiphys** (this Linux box). **Do not use the user's Windows PC** — it is busy with ArcGIS Pro / GeoAgentPro. Ship targets later: Windows desktop + tiphys.xyz; sync to `F:\tiphys` only when the user frees that machine.
+Owner is asleep until morning (Asia/Shanghai). Work **continuously** on **/workspace/tiphys** (this Linux box). Prefer `tf-codex` with tierflow_pro; rotate keys on quota (`tf-codex` already rotates). Fallbacks: another key → plain `codex` → `tf-chat` / grok. **Do not stop.** Watcher restarts every ~30m if dead.
 
-Private GitHub: eznine/Tiphys. Keep API keys out of git.
+Windows PC `F:\tiphys` is in sync with GitHub at kickoff (`017709e`); overnight coding stays on the box. Sync/copy to Windows only if asked later. tiphys.xyz deploy = nginx rsync (see `docs/DEPLOY_TIPHYS_XYZ.md`), not Cloudflare Pages. No secrets in git. Password/keys live outside repo (`F:\server\…` on Windows; box uses env / `~/.config/tiphys`).
 
-After every meaningful batch: update `docs/OVERNIGHT_PROGRESS.md`, run relevant tests, commit locally when coherent. Push to origin/main when stable (no secrets).
+Governing docs (read these, do not invent a parallel plan):
+- `docs/MASTER_ROADMAP.md` (V4) — decision + acceptance
+- `docs/AI_GIS_STRATEGY_20261024.md` → points at roadmap
+- `docs/research_20261024/*` especially `05_product_strategy.md`
+- `docs/USER_NEEDS_RESEARCH.md`
+- Stage reports: STAGE1–5B, BASELINE_STAGE0
 
-## Diagnosis already known
+Progress log: append every batch to `docs/OVERNIGHT_PROGRESS.md`. Commit + push when a batch is green. Update roadmap progress table when a stage item closes.
 
-1. **Toolbox**: `wasm-catalog.json` has **958** tools; shell `catalog.json` ~27 → UI should show ~985. Live UI showed ~277 with old `GeoLibre · 矢量分析` labels — fix full catalog exposure + rebuild; Raster/RS/Terrain/Hydrology must appear.
-2. **Ribbon** too sparse (`CommandRibbon.tsx`) — expand tabs/groups.
-3. **Taxonomy**: two-level ArcGIS/QGIS-like (L1 folders, L2 groups); merge duplicate vector buckets. Use taxonomy.category/subcategory + zh maps.
+## Current status (2026-10-25 ~03:25 CST)
 
-## Priority order
+Stages 0–4 ✅ (sim scope); 5A hydrology ✅; 5B service-zone (euclidean) ✅; **5C ecology NOT started**.
+Known gaps still open from the plan:
+- Browser `gis.dissolve` broken (WASM FGB writer; D1/D2) — do not ship silent-wrong GeoJSON workaround
+- `gis.zonal_statistics` designed only — **implement** (vector zones + raster values) on at least one engine, honest contracts
+- Stage4 M11 still fails (search → param-name friction, e.g. `d8_pntr`)
+- GeoAgentBench subset 2/6; schema fidelity / export discipline / bare-.shp import gaps
+- Real-device mobile variance ≥3 not done (skip waking user; use Playwright 390×844)
+- Network distance for service-zone, real watershed data — later if time
 
-### P0
-- Full catalog in UI (~985) + 2-level taxonomy + search
-- Default **light** theme; accent **blue** (not teal); wire `public/logo-temp.png`
-- Expand CommandRibbon (数据/分析/遥感/GEE/视图)
-- Browser perf: lazy catalog, workers, no main-thread jank
+UI direction: blue accent `#2563eb`, light default, SVG logo system, full ~958 WASM catalog + 2-level taxonomy, chat-first map center. **No teal, no mythology chrome, no fake tool counts.**
 
-### P1
-- Map click selection + attribute table linkage; spatial join
-- More analysis exposed; ArcGIS-friendly IO adapters/stubs where feasible
-- Desktop WASM unify path prepared (code here; Windows build later)
+## Priority order tonight
 
-### P2
-- GEE vertical slice (auth/search/export/job) + UI entry
-- Agent discovery/planning/compaction improvements (`docs/AGENT_ARCH.md`)
-- Borrow open agent patterns from `reference/agents/` (not proprietary Claude Code)
+### P0 — finish plan leftovers (do these first)
+1. **`gis.zonal_statistics`**: real implementation + tests + update OPERATION_SUPPORT / STAGE2 notes. Prefer Python desktop provider first if WASM path is unclear; then browser if feasible.
+2. **Identify / attribute UX** (USER_NEEDS P0): copy value/row, export, filter-by-value, jump to table row.
+3. **Layer context menu**: reload from source, export/save-as, metadata view.
+4. **M11 friction**: better tool param cards / aliases so hydrology params like `d8_pntr` are discoverable; re-run relevant baseline slice if cheap.
+5. **Symbology**: graduated colors with manual min/max + auto breaks (at least vector).
 
-### P3
-- Extra capabilities (corridor/LinkageMapper-style stub + plugin interface, etc.)
-- License notices in THIRD_PARTY_NOTICES.md
+### P1 — Stage 5C + workbench
+6. **5C ecology corridor vertical** (min-cost corridor style; Linkage Mapper *concepts*, not ArcPy). Fixtures + task card + procedural checks + `docs/STAGE5C_*.md`. Clone/reference OSS under `/workspace/tiphys-refs/` with license notes.
+7. Attribute-table basics: rename field, simple definition query.
+8. Expand GeoAgentBench compatible subset or fix schema/export failures that blocked scores.
+9. Method skills from `muend/geoai-skills` style: more guardrails in knowledge (CRS/units/overlay double-count), not RAG dump.
 
-### P4
-- Beauty/UX polish; tiphys.xyz when web build ready
+### P2 — Android offline APK (user asked tonight)
+10. Scaffold **offline-capable Android APK** wrapping the existing web app (Capacitor or similar WebView shell). Bundle `dist/` + WASM assets so it opens without network for core map/tools. Document build steps in `docs/ANDROID_APK.md`. Prefer getting a debug APK artifact under `android/` or `dist-apk/` on the box; do not need Play Store signing tonight. Keep engine = browser WASM (no native GIS rewrite). Note memory limits for big rasters.
+
+### P3 — densify / OSS borrow (after P0–P2 have forward motion)
+11. Pull useful OSS into `/workspace/tiphys-refs/` (GISclaw patterns, geoai-skills, Whitebox notes, DuckDB-spatial spike, PMTiles, InVEST habitat-quality spike, pysheds cross-check) — adapt ideas into TIPHYS; record licenses in `docs/licenses/` / THIRD_PARTY.
+12. Desktop WASM bridge polish; recipe/export improvements; layout/print stub; performance for large layers.
+13. Anything clearly valuable from research that fits “reliable GIS task completion” — keep going.
 
 ## Constraints
-Best-available OSS reuse with notices. Differentiator = Agent+GIS orchestration. No secrets in git. **No Windows machineId work tonight.**
-
-## Verify
-`npm run test:browser`, `npx tsc --noEmit`, `npm run build`. Toolbox count ≈ 985 with 栅格/遥感/地形/水文.
-
-## Progress
-Maintain `docs/OVERNIGHT_PROGRESS.md`. Watcher restarts from that file.
+- Box only for coding. Don’t fight Windows overnight.
+- Don’t touch mobile layout the user owns unless fixing regressions from your changes.
+- No secrets in git. No wrangler/Pages deploy path.
+- Prefer small verified batches: implement → test (`npm run test:browser`, `npm run test:contracts`, `npx tsc --noEmit`, relevant vertical scripts) → commit → push → append OVERNIGHT_PROGRESS → next batch.
+- If a key/quota dies, rotate and continue. If sandbox blocks `.git`, save patch under `/tmp` and note in progress for supervisor.
+- About hourly: self-check UI direction (blue/light/logo/catalog honesty).
 
 ## Models
-Prefer box `tf-codex` / `tf-chat` / `codex` / `grok` with tierflow_pro. Rotate on quota. Keep going.
+`tf-codex -C /workspace/tiphys` with tierflow profile. Keep a long-running loop: after each successful batch, immediately start the next. Never idle waiting for the user.

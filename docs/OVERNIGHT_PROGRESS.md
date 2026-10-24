@@ -292,3 +292,6 @@
   - Browser file input accepts `.shp,.shx,.dbf,.prj,.cpg,.sbn,.sbx`. Multi-file selections are grouped case-insensitively by basename stem, require `.shp` + `.shx` + `.dbf`, accept optional `.prj/.cpg/.sbn/.sbx`, and support multiple Shapefile groups in one selection. ZIP and multi-file imports share one `vector_convert` conversion helper. Selecting `.shp` without sidecars now reports the exact missing extensions.
   - `list_supported_formats` now documents Shapefile ZIP or multi-file `.shp` + sidecars.
   - Verification: `npx tsc --noEmit` passed, `npm run test:browser` passed 67/67 (added grouping/error, multi-file FormData route, and focus-snapshot regressions), and `npm run build` passed. No mobile-layout changes, no Windows work, no deployment.
+
+
+- 2026-10-25 ~03:28 Asia/Shanghai — Overnight kickoff: user asleep; F:\tiphys clean=origin/main @017709e. New brief in docs/OVERNIGHT_BRIEF.md. Priority: plan leftovers (zonal_stats, Identify UX, layer menu, M11 params, symbology) → 5C ecology → offline Android APK shell → OSS densify. Models: tf-codex/tierflow_pro with key rotate. Watcher to resume ~30m.
