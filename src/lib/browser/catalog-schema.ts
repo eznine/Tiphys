@@ -22,6 +22,12 @@ export function isOutputLikeParam(param: { name: string; io_role?: string; descr
 /** Upstream manifests occasionally mark real inputs (or enum modes) as outputs. */
 const WASM_INPUT_OVERRIDES = new Set(["cost_pathway.destination", "cost_back_link.source", "network_service_area.output_mode"]);
 
+/** Upstream labels vector extents as raster inputs for gridding tools. */
+const WASM_INPUT_KIND_OVERRIDES: Record<string, Record<string, string>> = {
+  hexagonal_grid_from_vector_base: { base: "vector" },
+  rectangular_grid_from_vector_base: { base: "vector" },
+};
+
 /** Upstream occasionally marks numeric scalars as raster/vector inputs. */
 const WASM_SCALAR_INPUT_OVERRIDES = new Set([
   "idw_interpolation.cell_size",
@@ -49,12 +55,21 @@ export function isWasmInputParam(toolId: string, param: { name: string; io_role?
   return WASM_INPUT_OVERRIDES.has(`${toolId}.${param.name}`) || param.io_role === "input" && !isOutputLikeParam(param);
 }
 
+export function wasmInputKind(toolId: string, param: { name: string; data_kind: string }): string {
+  return WASM_INPUT_KIND_OVERRIDES[toolId]?.[param.name] ?? param.data_kind;
+}
+
 export function isWasmOutputParam(toolId: string, param: { name: string; io_role?: string; description?: string }): boolean {
   return isOutputLikeParam(param) && !WASM_INPUT_OVERRIDES.has(`${toolId}.${param.name}`);
 }
 
 /** Upstream stack tools describe ordered layers as scalar inputs; the UI needs explicit arrays. */
 const WASM_SCHEMA_OVERRIDES: Record<string, Record<string, CatalogSchema>> = {
+  anisotropic_diffusion_filter: {
+    lambda: { type: "number", default: 0.2, description: "扩散时间步长，取值 0–0.25。" },
+    iterations: { type: "integer", default: 10, description: "扩散迭代次数；常用 5–20 次。" },
+    kappa: { type: "number", default: 20, description: "边缘敏感度；较小值更严格保留边缘。" },
+  },
   network_service_area: {
     max_cost: { type: "string", default: "1000", description: "最大可达网络成本；单位与网络图层坐标系或成本字段一致。" },
     ring_costs: { type: "string", description: "可选的多环阈值，用逗号分隔，例如 5,10,15；留空时只输出最大成本范围。" },
@@ -302,7 +317,7 @@ export function schemaForWasm(manifest: WasmManifest): CatalogTool {
     if (isWasmOutputParam(manifest.id, p)) continue;
     const schema = p.schema as Record<string, any>;
     properties[p.name] = isWasmInputParam(manifest.id, p)
-      ? { type: "string", "x-layer": true, "x-layer-kind": p.data_kind, description: p.description }
+      ? { type: "string", "x-layer": true, "x-layer-kind": wasmInputKind(manifest.id, p), description: p.description }
       : { type: schema.kind === "bool" ? "boolean" : schema.kind === "scalar" ? schema.scalar === "integer" ? "integer" : "number" : "string",
           description: p.description, ...(schema.options ? { enum: schema.options.map((o: any) => String(o.value)) } : {}) };
     // Upstream example paths and required scalar examples are not defaults.

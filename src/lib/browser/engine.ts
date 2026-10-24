@@ -5,7 +5,7 @@ import { assertGeojson, boundsOf, metricCrs } from "./geometry";
 import { rasterRenderer, type RasterRenderer } from "./raster-display";
 import { deleteRecord, readRecord, records, writeRecord } from "./storage";
 import { fileInfo, loadWasmManifests, originalGeojson, wasmTool } from "./wasm";
-import { browserCatalogState, browserToolCatalog, ensureBrowserCatalog, hydrateWasmCatalog, isWasmInputParam, isWasmOutputParam } from "./catalog-schema";
+import { browserCatalogState, browserToolCatalog, ensureBrowserCatalog, hydrateWasmCatalog, isWasmInputParam, isWasmOutputParam, wasmInputKind } from "./catalog-schema";
 import { pluginToolNames, runPluginTool } from "../plugins/registry";
 import type { GeeAuthStatus } from "../gee";
 
@@ -316,6 +316,8 @@ const SUPPORTED_EXT: Record<string, string[]> = {
 const ATTACHMENT_KINDS = new Set(["file", "text", "json"]);
 /** Upstream sometimes labels real raster results as generic files. */
 const WASM_OUTPUT_KIND_OVERRIDES: Record<string, Record<string, string>> = {
+  accumulation_curvature: { output: "raster" },
+  anisotropic_diffusion_filter: { output: "raster" },
   balance_contrast_enhancement: { output: "raster" },
   bilateral_filter: { output: "raster" },
   closing: { output: "raster" },
@@ -328,17 +330,20 @@ const WASM_OUTPUT_KIND_OVERRIDES: Record<string, Record<string, string>> = {
   gaussian_filter: { output: "raster" },
   histogram_equalization: { output: "raster" },
   laplacian_filter: { output: "raster" },
+  laplacian_of_gaussians_filter: { output: "raster" },
   lee_filter: { output: "raster" },
   majority_filter: { output: "raster" },
   mean_filter: { output: "raster" },
   median_filter: { output: "raster" },
   min_max_contrast_stretch: { output: "raster" },
   opening: { output: "raster" },
+  otsu_thresholding: { output: "raster" },
   pennock_landform_classification: { output: "raster" },
   percentile_filter: { output: "raster" },
   prewitt_filter: { output: "raster" },
   principal_component_analysis: { output: "raster" },
   ruggedness_index: { output: "raster" },
+  roberts_cross_filter: { output: "raster" },
   scharr_filter: { output: "raster" },
   sediment_transport_index: { output: "raster" },
   slope: { output: "raster" },
@@ -374,9 +379,10 @@ async function runNative(id: string, args: Record<string, any>, signal?: AbortSi
       for (const [index, value] of values.entries()) {
         const record = await resolve(value);
         const kind = record.info.kind ?? "vector";
-        const acceptsKind = id === "cost_back_link" && p.name === "source" ? kind === "raster" || kind === "vector" : kind === p.data_kind;
+        const expectedKind = wasmInputKind(id, p);
+        const acceptsKind = id === "cost_back_link" && p.name === "source" ? kind === "raster" || kind === "vector" : kind === expectedKind;
         if (!acceptsKind) {
-          const expected = id === "cost_back_link" && p.name === "source" ? "栅格或矢量" : kindLabel(String(p.data_kind));
+          const expected = id === "cost_back_link" && p.name === "source" ? "栅格或矢量" : kindLabel(expectedKind);
           throw new Error(`参数 ${p.name} 需要${expected}输入，但「${record.info.name}」是${kindLabel(kind)}图层。`);
         }
         if (kind === "vector") {

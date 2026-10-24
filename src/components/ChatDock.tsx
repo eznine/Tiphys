@@ -66,6 +66,8 @@ const RECIPES = [
   { title: "点生成等值线", detail: "从带高程字段的点生成等值线，打开表单", tool: "wasm_contours_from_points", Icon: Mountain },
   { title: "总曲率", detail: "从 DEM 计算与方向无关的地形曲率，打开表单", tool: "wasm_total_curvature", Icon: Mountain },
   { title: "主成分分析", detail: "多波段栅格栈降维，输出前几个主成分", tool: "wasm_principal_component_analysis", Icon: Layers3 },
+  { title: "各向异性扩散", detail: "去噪同时保留边缘，打开表单", tool: "wasm_anisotropic_diffusion_filter", Icon: SlidersHorizontal },
+  { title: "多尺度粗糙度", detail: "DEM 多尺度粗糙度与尺度栅格，打开表单", tool: "wasm_multiscale_roughness", Icon: Mountain },
   { title: "最小成本路径", detail: "连接源与目的地，保留真实路径结果", tool: "least_cost_path_pipeline", Icon: Route },
   { title: "按 AOI 裁剪", detail: "先在地图绘制 AOI，再插入提示词", prompt: "用当前 AOI 范围裁剪所选图层。", Icon: Scissors },
 ] as const;

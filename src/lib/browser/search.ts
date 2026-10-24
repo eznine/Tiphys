@@ -119,6 +119,14 @@ const TOOL_ALIASES: Record<string, string[]> = {
   standard_deviation_filter: ["标准差滤波", "局部标准差", "标准差平滑", "stdev filter"],
   scharr_filter: ["Scharr", "Scharr 滤波", "沙尔滤波"],
   principal_component_analysis: ["主成分分析", "PCA", "主成分"],
+  anisotropic_diffusion_filter: ["各向异性扩散", "各向异性扩散滤波", "保边扩散", "Perona-Malik", "边缘保持去噪"],
+  laplacian_of_gaussians_filter: ["高斯-拉普拉斯", "高斯拉普拉斯滤波", "LoG 滤波", "LoG", "拉普拉斯高斯"],
+  roberts_cross_filter: ["Roberts", "Roberts 交叉滤波", "Roberts 算子", "交叉滤波"],
+  otsu_thresholding: ["Otsu", "Otsu 阈值", "大津阈值", "自动阈值分割", "二值分割"],
+  accumulation_curvature: ["累积曲率", "积累曲率", "accumulation curvature"],
+  multiscale_roughness: ["多尺度粗糙度", "多尺度地形粗糙度", "尺度粗糙度"],
+  stream_link_identifier: ["河流链路", "河网链路标识", "河流链编号", "河段标识", "stream link"],
+  hexagonal_grid_from_vector_base: ["六边形网格", "六边形格网", "蜂窝网格", "六边形采样", "hex grid"],
   k_means_clustering: ["K均值", "K-means", "K 均值聚类", "非监督分类"],
 };
 

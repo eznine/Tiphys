@@ -228,7 +228,7 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
   await ensureBrowserCatalog();
   const source = fs.readFileSync(new URL("../src/components/CommandRibbon.tsx", import.meta.url), "utf8");
   const names = [...source.matchAll(/props\.onTool\("(wasm_[^"]+)"\)/g)].map(match => match[1]);
-  assert.ok(names.length >= 150, `expected a dense ribbon, got ${names.length} WASM actions`);
+  assert.ok(names.length >= 158, `expected a dense ribbon, got ${names.length} WASM actions`);
   assert.equal(new Set(names).size, names.length, "ribbon must not expose duplicate WASM actions");
   for (const name of names) assert.ok(browserCatalog.some(tool => tool.name === name), `${name} must resolve to a catalog tool`);
   for (const name of ["wasm_panchromatic_sharpening", "wasm_resample", "wasm_segment_slic_superpixels",
@@ -266,7 +266,10 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_contour_list", "wasm_contours_from_points", "wasm_pennock_landform_classification",
     "wasm_scharr_filter", "wasm_standard_deviation_filter", "wasm_total_curvature",
     "wasm_sediment_transport_index", "wasm_relative_aspect", "wasm_max_elevation_deviation",
-    "wasm_elev_relative_to_min_max", "wasm_principal_component_analysis"]) {
+    "wasm_elev_relative_to_min_max", "wasm_principal_component_analysis",
+    "wasm_anisotropic_diffusion_filter", "wasm_laplacian_of_gaussians_filter",
+    "wasm_roberts_cross_filter", "wasm_otsu_thresholding", "wasm_accumulation_curvature",
+    "wasm_multiscale_roughness", "wasm_stream_link_identifier", "wasm_hexagonal_grid_from_vector_base"]) {
     assert.ok(names.includes(name), `${name} should be exposed in the ribbon`);
   }
   const dock = fs.readFileSync(new URL("../src/components/ChatDock.tsx", import.meta.url), "utf8");
@@ -279,7 +282,7 @@ test("ribbon quick actions resolve to real catalog tools", async () => {
     "wasm_change_vector_analysis", "wasm_near", "wasm_extend_vector_lines",
     "wasm_central_feature", "wasm_directional_distribution", "wasm_frost_filter", "wasm_cut_fill",
     "wasm_balance_contrast_enhancement", "wasm_contours_from_points", "wasm_total_curvature",
-    "wasm_principal_component_analysis"]) {
+    "wasm_principal_component_analysis", "wasm_anisotropic_diffusion_filter", "wasm_multiscale_roughness"]) {
     assert.ok(recipeTools.includes(name), `${name} should be available as an agent recipe`);
     assert.ok(browserCatalog.some(tool => tool.name === name), `${name} recipe must resolve to a catalog tool`);
   }
@@ -757,6 +760,13 @@ test("Chinese GIS aliases rank conversion, interpolation and service-area tools"
     ["点等值线", "wasm_contours_from_points"], ["泥沙输移", "wasm_sediment_transport_index"],
     ["总曲率", "wasm_total_curvature"], ["标准差滤波", "wasm_standard_deviation_filter"],
     ["Scharr", "wasm_scharr_filter"], ["最大高程偏差", "wasm_max_elevation_deviation"]]) {
+    assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
+  }
+  for (const [query, expected] of [["各向异性扩散", "wasm_anisotropic_diffusion_filter"],
+    ["LoG", "wasm_laplacian_of_gaussians_filter"], ["Roberts", "wasm_roberts_cross_filter"],
+    ["Otsu", "wasm_otsu_thresholding"], ["累积曲率", "wasm_accumulation_curvature"],
+    ["多尺度粗糙度", "wasm_multiscale_roughness"], ["河流链路", "wasm_stream_link_identifier"],
+    ["六边形网格", "wasm_hexagonal_grid_from_vector_base"]]) {
     assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
   }
   const streamOrders = searchBrowserTools(browserCatalog, "河网分级", { limit: 4 }).map(tool => tool.name);
@@ -1330,6 +1340,105 @@ test("batch23 Scharr, stdev, curvature and terrain indices publish displayed ras
   assert.equal(stiLayer.kind, "raster", "sediment transport index must publish a raster");
   assert.equal(stiLayer.raster?.width, dem.raster?.width);
   assert.equal(sti.attachments, undefined);
+});
+
+test("batch24 filters, curvature, stream links and hex grid run with honest contracts", async () => {
+  await ensureBrowserCatalog();
+  const props = (name: string) => browserCatalog.find(tool => tool.name === name)!.parameters.properties as any;
+  const required = (name: string) => browserCatalog.find(tool => tool.name === name)!.parameters.required ?? [];
+
+  const anisotropic = props("wasm_anisotropic_diffusion_filter");
+  assert.equal(anisotropic.input["x-layer-kind"], "raster");
+  assert.equal(anisotropic.lambda.type, "number", "diffusion time step must be numeric");
+  assert.equal(anisotropic.lambda.default, 0.2);
+  assert.equal(anisotropic.iterations.type, "integer");
+  assert.ok(!("output" in anisotropic), "anisotropic diffusion output path must stay internal");
+  for (const name of ["wasm_laplacian_of_gaussians_filter", "wasm_roberts_cross_filter", "wasm_otsu_thresholding"]) {
+    assert.equal(props(name).input["x-layer-kind"], "raster", `${name} input must be raster`);
+    assert.ok(!("output" in props(name)), `${name} output path must stay internal`);
+  }
+  assert.equal(props("wasm_laplacian_of_gaussians_filter").sigma.type, "number");
+  assert.equal(props("wasm_roberts_cross_filter").clip_amount.type, "number");
+
+  const curvature = props("wasm_accumulation_curvature");
+  assert.equal(curvature.input["x-layer-kind"], "raster");
+  assert.equal(curvature.z_factor.type, "number");
+  assert.equal(curvature.log_transform.type, "boolean");
+  assert.ok(!("output" in curvature), "accumulation curvature output path must stay internal");
+
+  const roughness = props("wasm_multiscale_roughness");
+  assert.equal(roughness.input["x-layer-kind"], "raster");
+  for (const option of ["min_scale", "max_scale", "step_size", "z_factor"])
+    assert.equal(roughness[option].type, "number", `${option} must be numeric`);
+  assert.ok(!("output" in roughness) && !("output_scale" in roughness), "both roughness outputs must stay internal");
+
+  const links = props("wasm_stream_link_identifier");
+  assert.equal(links.d8_pntr["x-layer-kind"], "raster");
+  assert.equal(links.streams["x-layer-kind"], "raster");
+  assert.ok(required("wasm_stream_link_identifier").includes("d8_pntr"));
+  assert.ok(!("output" in links), "stream link output path must stay internal");
+
+  const hexGrid = props("wasm_hexagonal_grid_from_vector_base");
+  assert.equal(hexGrid.base["x-layer-kind"], "vector", "hex-grid base is a vector extent, not a raster");
+  assert.equal(hexGrid.width.type, "number");
+  assert.ok(required("wasm_hexagonal_grid_from_vector_base").includes("base"));
+  assert.ok(!("output" in hexGrid), "hex-grid output path must stay internal");
+
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const ring = (x: number, y: number, width: number, height: number) => [[x, y], [x + width, y], [x + width, y + height], [x, y + height], [x, y]];
+  const cell = 100, features: any[] = [];
+  for (let row = 0; row < 12; row++) for (let col = 0; col < 12; col++) {
+    const x = 500000 + col * cell, y = 4400000 + row * cell;
+    features.push({ type: "Feature", properties: { elev: 1200 - row * 4 - col + (row === 5 && col === 5 ? -15 : 0) },
+      geometry: { type: "Polygon", coordinates: [ring(x, y, cell, cell)] } });
+  }
+  const source = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features })]), "batch24_dem_source.geojson")).layer;
+  const dem = (await finished("wasm_vector_polygons_to_raster", {
+    input: source.id, field: "elev", cell_size: cell, output_name: "batch24_dem",
+  })).layer;
+
+  for (const [tool, args, name] of [
+    ["wasm_anisotropic_diffusion_filter", { input: dem.id, iterations: 2, kappa: 20, lambda: 0.2 }, "batch24_anisotropic"],
+    ["wasm_laplacian_of_gaussians_filter", { input: dem.id, sigma: 0.75 }, "batch24_log"],
+    ["wasm_roberts_cross_filter", { input: dem.id, clip_amount: 0 }, "batch24_roberts"],
+    ["wasm_otsu_thresholding", { input: dem.id }, "batch24_otsu"],
+    ["wasm_accumulation_curvature", { input: dem.id, z_factor: 1, log_transform: false }, "batch24_accumulation_curvature"],
+  ] as const) {
+    const result = await finished(tool, { ...args, output_name: name });
+    const layer = result.layer ?? result.layers?.[0]?.layer;
+    assert.equal(layer.kind, "raster", `${tool} must publish a raster`);
+    assert.equal(layer.raster?.width, dem.raster?.width);
+    assert.equal(result.attachments, undefined);
+  }
+
+  const roughnessRun = await finished("wasm_multiscale_roughness", {
+    input: dem.id, min_scale: 1, max_scale: 3, step_size: 1, z_factor: 1, output_name: "batch24_roughness",
+  });
+  const roughnessLayers = roughnessRun.layers?.map((item: any) => item.layer) ?? [];
+  assert.equal(roughnessLayers.length, 2, "multiscale roughness must publish magnitude and scale rasters");
+  assert.ok(roughnessLayers.every((layer: any) => layer.kind === "raster" && layer.raster?.width === dem.raster?.width));
+  assert.equal(roughnessRun.attachments, undefined);
+
+  const chain = await finished("hydrology_flow_pipeline", { dem: dem.id, stream_threshold: 10, extract_streams: true, output_name: "batch24_chain" });
+  const pointer = chain.layers?.[1]?.layer, streams = chain.layers?.[3]?.layer;
+  assert.equal(pointer?.kind, "raster");
+  assert.equal(streams?.kind, "raster");
+  const linkRun = await finished("wasm_stream_link_identifier", {
+    d8_pntr: pointer.id, streams: streams.id, esri_pntr: false, zero_background: false, output_name: "batch24_stream_links",
+  });
+  const linkLayer = linkRun.layer ?? linkRun.layers?.[0]?.layer;
+  assert.equal(linkLayer.kind, "raster", "stream link identifier must publish a raster");
+  assert.equal(linkLayer.raster?.width, dem.raster?.width);
+  assert.equal(linkRun.attachments, undefined);
+
+  const hexRun = await finished("wasm_hexagonal_grid_from_vector_base", {
+    base: source.id, width: 250, orientation: "h", output_name: "batch24_hex_grid",
+  });
+  const hexLayer = hexRun.layer ?? hexRun.layers?.[0]?.layer;
+  assert.equal(hexLayer.kind, undefined, "hex grid must publish a vector layer");
+  assert.ok(hexLayer.feature_count > 0, "hex grid must contain polygon features");
+  assert.ok(hexLayer.geometry_types.every((type: string) => type === "Polygon" || type === "MultiPolygon"));
+  assert.equal(hexRun.attachments, undefined);
 });
 
 test("morphology and vector cleanup ribbon tools publish displayed result layers", async () => {
