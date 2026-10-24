@@ -1,0 +1,117 @@
+{
+  "type": "FeatureCollection",
+  "name": "district_zones",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "zone": "A",
+        "pop": 12000,
+        "kind": "district"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              116.3,
+              39.85
+            ],
+            [
+              116.42,
+              39.85
+            ],
+            [
+              116.42,
+              39.95
+            ],
+            [
+              116.3,
+              39.95
+            ],
+            [
+              116.3,
+              39.85
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "zone": "B",
+        "pop": 8000,
+        "kind": "district"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              116.4,
+              39.88
+            ],
+            [
+              116.52,
+              39.88
+            ],
+            [
+              116.52,
+              39.99
+            ],
+            [
+              116.4,
+              39.99
+            ],
+            [
+              116.4,
+              39.88
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "zone": "C",
+        "pop": 3000,
+        "kind": "district"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              116.46,
+              39.8
+            ],
+            [
+              116.56,
+              39.8
+            ],
+            [
+              116.56,
+              39.87
+            ],
+            [
+              116.46,
+              39.87
+            ],
+            [
+              116.46,
+              39.8
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

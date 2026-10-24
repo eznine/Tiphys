@@ -22,6 +22,10 @@
     "check:rust": "cargo check --manifest-path src-tauri/Cargo.toml",
     "agent": "npm --prefix agent start",
     "agent:tools": "node scripts/agent-tools.mjs",
+    "audit:catalog": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/catalog-audit.ts",
+    "baseline": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/run-baseline.ts",
+    "fixtures": "engine/.venv/Scripts/python.exe scripts/make-test-fixtures.py",
+    "catalog:engine": "engine/.venv/Scripts/python.exe scripts/export_engine_catalog.py",
     "deploy:xyz": "node scripts/run-deploy-xyz.mjs"
   },
   "dependencies": {

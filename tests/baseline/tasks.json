@@ -1,0 +1,568 @@
+{
+  "version": 1,
+  "frozen": "2026-10-24",
+  "description": "TIPHYS 固定基线（阶段 0 / T-001）：30 项任务 × 3 条自动评分的运行槽。任务文本是中文自然语言；steps 是参考执行序列（真值来源），checks 是程序化断言。任何“提升 XX%”的宣称必须复用同一 tasks.json 与 fixtures。",
+  "fixtures": {
+    "pts": "samples/beijing_points.geojson",
+    "districts": "tests/fixtures/district_zones.geojson",
+    "zone_a": "tests/fixtures/zone_a.geojson",
+    "roads": "tests/fixtures/roads.geojson",
+    "bowtie": "tests/fixtures/bowtie.geojson",
+    "dem": "tests/fixtures/dem_hills.tif",
+    "dem_large": "tests/fixtures/dem_large.tif"
+  },
+  "groups": {
+    "simple": "10 项 UI / 单工具",
+    "multistep": "12 项两至四步 GIS",
+    "hard": "8 项复杂 / 歧义 / 异常"
+  },
+  "tasks": [
+    {
+      "id": "S01",
+      "group": "simple",
+      "title": "图层体检：看一眼这个点图层有什么",
+      "prompt": "帮我看看这个点图层：坐标系、范围、有几个要素、有哪些字段。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["describe_layer"],
+      "steps": [
+        { "import": "pts", "capture": "pts" },
+        { "tool": "describe_layer", "args": { "layer": "@pts" }, "capture": "info" }
+      ],
+      "checks": [
+        { "type": "field_exists", "of": "info", "field": "columns" },
+        { "type": "field_value", "of": "info", "field": "crs", "value": "EPSG:4326" },
+        { "type": "field_value", "of": "info", "field": "feature_count", "value": 5 }
+      ]
+    },
+    {
+      "id": "S02",
+      "group": "simple",
+      "title": "500 米缓冲（面）",
+      "prompt": "给这 5 个天安门附近的点做 500 米缓冲。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["buffer"],
+      "steps": [
+        { "import": "pts", "capture": "pts" },
+        { "tool": "buffer", "args": { "layer": "@pts", "distance": 500, "units": "meters" }, "capture": "buf" }
+      ],
+      "checks": [
+        { "type": "feature_count", "of": "buf", "value": 5 },
+        { "type": "geometry_types", "of": "buf", "contains": ["Polygon"] },
+        { "type": "buffer_radius", "of": "buf", "source": "pts", "distance": 500, "tol": 2, "note": "独立球面距离复核：每个缓冲顶点到原点的距离应为 500±2 m" }
+      ]
+    },
+    {
+      "id": "S03",
+      "group": "simple",
+      "title": "重投影到 Web 墨卡托",
+      "prompt": "把这个图层转成 EPSG:3857，方便叠在底图上。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["reproject"],
+      "steps": [
+        { "import": "pts", "capture": "pts" },
+        { "tool": "reproject", "args": { "layer": "@pts", "target_crs": "EPSG:3857" }, "capture": "out" }
+      ],
+      "checks": [
+        { "type": "crs", "of": "out", "value": "EPSG:3857" },
+        { "type": "feature_count", "of": "out", "value": 5 },
+        { "type": "bounds_within_lonlat", "of": "out", "note": "地图显示副本始终是 WGS84；native 文件仍为 EPSG:3857" }
+      ]
+    },
+    {
+      "id": "S04",
+      "group": "simple",
+      "title": "属性选择：人口大于 8000 的区",
+      "prompt": "把人口大于等于 8000 的区选出来。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["select_by_attributes"],
+      "steps": [
+        { "import": "districts", "capture": "zones" },
+        { "tool": "select_by_attributes", "args": { "layer": "@zones", "field": "pop", "op": "ge", "value": "8000" }, "capture": "out" }
+      ],
+      "checks": [
+        { "type": "feature_count", "of": "out", "value": 2 },
+        { "type": "field_exists", "of": "out", "field": "zone" }
+      ]
+    },
+    {
+      "id": "S05",
+      "group": "simple",
+      "title": "字段统计：人口均值",
+      "prompt": "算一下 pop 字段的平均值、中位数和标准差。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["field_statistics"],
+      "steps": [
+        { "import": "districts", "capture": "zones" },
+        { "tool": "field_statistics", "args": { "layer": "@zones", "field": "pop" }, "capture": "stats" }
+      ],
+      "checks": [
+        { "type": "stats", "of": "stats", "metric": "mean", "op": "eq", "value": 7666.6667, "tol": 0.01 },
+        { "type": "stats", "of": "stats", "metric": "median", "op": "eq", "value": 8000, "tol": 0.01 },
+        { "type": "stats", "of": "stats", "metric": "null_count", "op": "eq", "value": 0, "tol": 0 }
+      ]
+    },
+    {
+      "id": "S06",
+      "group": "simple",
+      "title": "面积与周长量算",
+      "prompt": "算一下这几个区各自的面积（平方米）和周长。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["calculate_geometry"],
+      "steps": [
+        { "import": "districts", "capture": "zones" },
+        { "tool": "calculate_geometry", "args": { "layer": "@zones" }, "capture": "geo" }
+      ],
+      "checks": [
+        { "type": "field_exists", "of": "geo", "field": "area_m2" },
+        { "type": "between", "of": "geo", "field": "area_m2", "min": 105000000, "max": 125000000, "note": "zone A ≈ 113 km²（球面量算），容差 10%" },
+        { "type": "between", "of": "geo", "field": "length_m", "min": 40000, "max": 50000 }
+      ]
+    },
+    {
+      "id": "S07",
+      "group": "simple",
+      "title": "重命名图层（中文名）",
+      "prompt": "把这个图层改名叫“北京分区_2026”。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["rename_layer"],
+      "steps": [
+        { "import": "districts", "capture": "zones" },
+        { "tool": "rename_layer", "args": { "layer": "@zones", "name": "北京分区_2026" }, "capture": "renamed" }
+      ],
+      "checks": [
+        { "type": "field_value", "of": "renamed", "field": "layer.name", "value": "北京分区_2026" }
+      ]
+    },
+    {
+      "id": "S08",
+      "group": "simple",
+      "title": "导出 GeoJSON 交付物",
+      "prompt": "把这个图层导出成 GeoJSON 文件给我下载。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["export_features"],
+      "steps": [
+        { "import": "pts", "capture": "pts" },
+        { "tool": "export_features", "args": { "layer": "@pts", "path": "baseline_s08.geojson", "fmt": "geojson" }, "capture": "exp" }
+      ],
+      "checks": [
+        { "type": "export_bytes", "of": "exp", "min": 200 },
+        { "type": "field_value", "of": "exp", "field": "feature_count", "value": 5 }
+      ]
+    },
+    {
+      "id": "S09",
+      "group": "simple",
+      "title": "凸包",
+      "prompt": "给这些点生成一个凸包。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["convex_hull"],
+      "steps": [
+        { "import": "pts", "capture": "pts" },
+        { "tool": "convex_hull", "args": { "layer": "@pts" }, "capture": "hull" }
+      ],
+      "checks": [
+        { "type": "feature_count", "of": "hull", "value": 1 },
+        { "type": "geometry_types", "of": "hull", "contains": ["Polygon"] }
+      ]
+    },
+    {
+      "id": "S10",
+      "group": "simple",
+      "title": "属性表分页与排序",
+      "prompt": "打开属性表，按人口从高到低排，给我看第二页（每页两条）。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["open_attribute_table"],
+      "steps": [
+        { "import": "districts", "capture": "zones" },
+        { "http": { "method": "GET", "path": "/layers/@zones/attributes?sort=pop&descending=true&limit=2&offset=1" }, "capture": "page" }
+      ],
+      "checks": [
+        { "type": "http_total", "of": "page", "value": 3 },
+        { "type": "http_rows", "of": "page", "count": 2 },
+        { "type": "http_first_row", "of": "page", "field": "pop", "value": 8000 }
+      ]
+    },
+
+    {
+      "id": "M01",
+      "group": "multistep",
+      "title": "缓冲 → 融合",
+      "prompt": "给这 5 个点做 800 米缓冲，然后把重叠的缓冲合并成一个多边形。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["buffer", "dissolve"],
+      "steps": [
+        { "import": "pts", "capture": "pts" },
+        { "tool": "buffer", "args": { "layer": "@pts", "distance": 800, "units": "meters", "dissolve": true }, "capture": "buf" },
+        { "tool": "dissolve", "args": { "layer": "@buf" }, "capture": "merged" }
+      ],
+      "checks": [
+        { "type": "feature_count", "of": "merged", "value": 1 },
+        { "type": "geometry_types", "of": "merged", "contains": ["Polygon"] },
+        { "type": "field_value", "of": "buf", "field": "feature_count", "value": 5 }
+      ]
+    },
+    {
+      "id": "M02",
+      "group": "multistep",
+      "title": "融合 + 面积量算",
+      "prompt": "把这三个区按类型融合，算出融合后总面积。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["dissolve", "calculate_geometry"],
+      "steps": [
+        { "import": "districts", "capture": "zones" },
+        { "tool": "dissolve", "args": { "layer": "@zones", "by_field": "kind" }, "capture": "merged" },
+        { "tool": "calculate_geometry", "args": { "layer": "@merged" }, "capture": "geo" }
+      ],
+      "checks": [
+        { "type": "feature_count", "of": "merged", "value": 1 },
+        { "type": "between", "of": "geo", "field": "area_m2", "min": 250000000, "max": 310000000, "note": "三区并集，重叠区只算一次" }
+      ]
+    },
+    {
+      "id": "M03",
+      "group": "multistep",
+      "title": "空间连接：点取区属性",
+      "prompt": "把点所在区的人口和名称连到点上。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["spatial_join"],
+      "steps": [
+        { "import": "pts", "capture": "pts" },
+        { "import": "districts", "capture": "zones" },
+        { "tool": "spatial_join", "args": { "layer": "@pts", "join_layer": "@zones", "predicate": "intersects", "keep_fields": true }, "capture": "joined" }
+      ],
+      "checks": [
+        { "type": "feature_count", "of": "joined", "value": 5, "note": "每个点保留一次，不能重复计数" },
+        { "type": "field_exists", "of": "joined", "field": "JOIN_pop" },
+        { "type": "field_exists", "of": "joined", "field": "JOIN_zone" }
+      ]
+    },
+    {
+      "id": "M04",
+      "group": "multistep",
+      "title": "先重投影再做米制缓冲",
+      "prompt": "先把这个图层转成 Web 墨卡托，再按 1000 米做缓冲。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["reproject", "buffer"],
+      "steps": [
+        { "import": "pts", "capture": "pts" },
+        { "tool": "reproject", "args": { "layer": "@pts", "target_crs": "EPSG:3857" }, "capture": "merc" },
+        { "tool": "buffer", "args": { "layer": "@merc", "distance": 1000, "units": "meters" }, "capture": "buf" }
+      ],
+      "checks": [
+        { "type": "feature_count", "of": "buf", "value": 5 },
+        { "type": "buffer_radius", "of": "buf", "source": "merc", "distance": 1000, "tol": 3, "note": "重投影后仍按米制缓冲；显示副本为 WGS84，用独立球面距离复核" },
+        { "type": "crs", "of": "buf", "value": "EPSG:32650" }
+      ]
+    },
+    {
+      "id": "M05",
+      "group": "multistep",
+      "title": "按位置选择 → 导出 CSV",
+      "prompt": "选出落在区范围内的点，导出成 CSV 属性表。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["select_by_location", "export_features"],
+      "steps": [
+        { "import": "pts", "capture": "pts" },
+        { "import": "districts", "capture": "zones" },
+        { "tool": "select_by_location", "args": { "layer": "@pts", "filter_layer": "@zones", "predicate": "within" }, "capture": "sel" },
+        { "tool": "export_features", "args": { "layer": "@sel", "path": "baseline_m05.csv", "fmt": "csv" }, "capture": "exp" }
+      ],
+      "checks": [
+        { "type": "feature_count", "of": "sel", "value": 5 },
+        { "type": "export_bytes", "of": "exp", "min": 100 }
+      ]
+    },
+    {
+      "id": "M06",
+      "group": "multistep",
+      "title": "求交 + 面积比例",
+      "prompt": "把分区和 zone A 求交，看看还剩多大面积。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["intersection", "calculate_geometry"],
+      "steps": [
+        { "import": "districts", "capture": "zones" },
+        { "import": "zone_a", "capture": "mask" },
+        { "tool": "intersection", "args": { "layer": "@zones", "other_layer": "@mask" }, "capture": "cut" },
+        { "tool": "calculate_geometry", "args": { "layer": "@cut" }, "capture": "geo" }
+      ],
+      "checks": [
+        { "type": "geometry_types", "of": "cut", "contains": ["Polygon"] },
+        { "type": "between", "of": "geo", "field": "area_m2", "min": 100000000, "max": 135000000, "note": "结果不得超出 mask 范围，也不得凭空放大" }
+      ]
+    },
+    {
+      "id": "M07",
+      "group": "multistep",
+      "title": "线 → 栅格",
+      "prompt": "把道路线按 0.001 度像元栅格化。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["wasm_vector_lines_to_raster"],
+      "steps": [
+        { "import": "roads", "capture": "roads" },
+        { "tool": "wasm_vector_lines_to_raster", "args": { "input": "@roads", "cell_size": 0.001 }, "capture": "r" }
+      ],
+      "checks": [
+        { "type": "raster_dims_positive", "of": "r" },
+        { "type": "crs", "of": "r", "value": "EPSG:4326" }
+      ]
+    },
+    {
+      "id": "M08",
+      "group": "multistep",
+      "title": "DEM 坡度 + 栅格网格一致性",
+      "prompt": "用这个 DEM 算坡度（度），保持原来的行列数。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["wasm_slope"],
+      "steps": [
+        { "import": "dem", "capture": "dem" },
+        { "tool": "wasm_slope", "args": { "input": "@dem", "units": "degrees" }, "capture": "slope" }
+      ],
+      "checks": [
+        { "type": "raster_dims_match", "of": "slope", "ref": "dem" },
+        { "type": "crs", "of": "slope", "value": "EPSG:32650" }
+      ]
+    },
+    {
+      "id": "M09",
+      "group": "multistep",
+      "title": "水文链：填洼 → 流向 → 汇流 → 河网 → 矢量化",
+      "prompt": "把这个 DEM 处理成河网：先处理洼地，算 D8 流向和汇流累积，按阈值 50 提取河网，最后转成面方便检查。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["wasm_fill_depressions", "wasm_d8_pointer", "wasm_d8_flow_accum", "wasm_extract_streams", "wasm_raster_to_vector_polygons"],
+      "steps": [
+        { "import": "dem", "capture": "dem" },
+        { "tool": "wasm_fill_depressions", "args": { "dem": "@dem" }, "capture": "filled" },
+        { "tool": "wasm_d8_pointer", "args": { "dem": "@filled" }, "capture": "d8" },
+        { "tool": "wasm_d8_flow_accum", "args": { "input": "@d8" }, "capture": "acc" },
+        { "tool": "wasm_extract_streams", "args": { "flow_accumulation": "@acc", "threshold": 50 }, "capture": "streams" },
+        { "tool": "wasm_raster_to_vector_polygons", "args": { "input": "@streams" }, "capture": "poly" }
+      ],
+      "checks": [
+        { "type": "raster_dims_match", "of": "filled", "ref": "dem" },
+        { "type": "raster_dims_match", "of": "acc", "ref": "dem" },
+        { "type": "feature_count", "of": "poly", "op": "gte", "value": 1, "note": "河网不得为空；也不检查屏幕上有蓝线就当成功" }
+      ]
+    },
+    {
+      "id": "M10",
+      "group": "multistep",
+      "title": "山体阴影 + 等高线",
+      "prompt": "生成山体阴影，再按 10 米等高距提取等高线。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["wasm_hillshade", "wasm_contours_from_raster"],
+      "steps": [
+        { "import": "dem", "capture": "dem" },
+        { "tool": "wasm_hillshade", "args": { "input": "@dem" }, "capture": "hs" },
+        { "tool": "wasm_contours_from_raster", "args": { "input": "@dem", "interval": 10 }, "capture": "contours" }
+      ],
+      "checks": [
+        { "type": "raster_dims_match", "of": "hs", "ref": "dem" },
+        { "type": "geometry_types", "of": "contours", "contains": ["LineString"] },
+        { "type": "feature_count", "of": "contours", "op": "gte", "value": 5 }
+      ]
+    },
+    {
+      "id": "M11",
+      "group": "multistep",
+      "title": "流域面提取",
+      "prompt": "基于这个 DEM 和流向算出流域，并转成面图层。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["wasm_d8_pointer", "wasm_basins", "wasm_raster_to_vector_polygons"],
+      "steps": [
+        { "import": "dem", "capture": "dem" },
+        { "tool": "wasm_d8_pointer", "args": { "dem": "@dem" }, "capture": "d8" },
+        { "tool": "wasm_basins", "args": { "d8_pntr": "@d8" }, "capture": "basins" },
+        { "tool": "wasm_raster_to_vector_polygons", "args": { "input": "@basins" }, "capture": "poly" }
+      ],
+      "checks": [
+        { "type": "raster_dims_match", "of": "basins", "ref": "dem" },
+        { "type": "geometry_types", "of": "poly", "contains": ["Polygon"] },
+        { "type": "feature_count", "of": "poly", "op": "gte", "value": 1 }
+      ]
+    },
+    {
+      "id": "M12",
+      "group": "multistep",
+      "title": "裁剪 → 融合 → 导出 GeoPackage → 重新打开",
+      "prompt": "把分区裁剪到 zone A，融合成一个面，导出 GeoPackage，再重新导入确认能打开。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["clip", "dissolve", "export_features"],
+      "steps": [
+        { "import": "districts", "capture": "zones" },
+        { "import": "zone_a", "capture": "mask" },
+        { "tool": "clip", "args": { "layer": "@zones", "mask_layer": "@mask" }, "capture": "cut" },
+        { "tool": "dissolve", "args": { "layer": "@cut" }, "capture": "merged" },
+        { "tool": "export_features", "args": { "layer": "@merged", "path": "baseline_m12.gpkg", "fmt": "gpkg" }, "capture": "exp" },
+        { "import_download": "baseline_m12.gpkg", "capture": "reopened" }
+      ],
+      "checks": [
+        { "type": "feature_count", "of": "merged", "value": 1 },
+        { "type": "export_bytes", "of": "exp", "min": 1000 },
+        { "type": "feature_count", "of": "reopened", "value": 1 },
+        { "type": "crs", "of": "reopened", "value": "EPSG:4326" }
+      ]
+    },
+
+    {
+      "id": "H01",
+      "group": "hard",
+      "title": "歧义：没说缓冲距离",
+      "prompt": "把这些点缓冲一下，看着合适就行。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["buffer"],
+      "agent_expectation": "询问距离，不得擅自假设（阶段 3 ask_user 语义）",
+      "steps": [
+        { "import": "pts", "capture": "pts" },
+        { "tool": "buffer", "args": { "layer": "@pts" }, "expect_error": true, "capture": "err" }
+      ],
+      "checks": [
+        { "type": "error_pattern", "of": "err", "pattern": "缺少参数|distance|距离", "note": "程序必须拦住缺参数，而不是默认 100 米/按度缓冲" }
+      ]
+    },
+    {
+      "id": "H02",
+      "group": "hard",
+      "title": "经纬度上的 500 米（单位陷阱）",
+      "prompt": "这个图层是经纬度，帮我按 500 米缓冲，不要按度。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["buffer"],
+      "steps": [
+        { "import": "pts", "capture": "pts" },
+        { "tool": "buffer", "args": { "layer": "@pts", "distance": 500, "units": "meters" }, "capture": "buf" }
+      ],
+      "checks": [
+        { "type": "buffer_radius", "of": "buf", "source": "pts", "distance": 500, "tol": 2, "note": "若把 500 当度处理，顶点距离会是 500 度级别，本断言必失败" }
+      ]
+    },
+    {
+      "id": "H03",
+      "group": "hard",
+      "title": "自相交多边形缓冲",
+      "prompt": "这个面数据有点问题，帮我缓冲 300 米看看能不能处理。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["buffer"],
+      "steps": [
+        { "import": "bowtie", "capture": "bad" },
+        { "tool": "buffer", "args": { "layer": "@bad", "distance": 300, "units": "meters" }, "capture": "buf", "allow_error": true }
+      ],
+      "checks": [
+        { "type": "either", "note": "要么修复后产出有效结果，要么给出明确的无效几何错误；静默返回空/错误几何均记 FAIL",
+          "checks": [
+            { "type": "feature_count", "of": "buf", "op": "gte", "value": 1 },
+            { "type": "error_pattern", "of": "buf", "pattern": "几何|无效|invalid|self" }
+          ] }
+      ]
+    },
+    {
+      "id": "H04",
+      "group": "hard",
+      "title": "不支持的能力必须明说：线裁剪",
+      "prompt": "用分区把道路线裁剪一下。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["clip"],
+      "steps": [
+        { "import": "roads", "capture": "roads" },
+        { "import": "districts", "capture": "zones" },
+        { "tool": "clip", "args": { "layer": "@roads", "mask_layer": "@zones" }, "expect_error": true, "capture": "err" }
+      ],
+      "checks": [
+        { "type": "error_pattern", "of": "err", "pattern": "面|线|裁剪|支持" }
+      ]
+    },
+    {
+      "id": "H05",
+      "group": "hard",
+      "title": "导出同名文件不得静默覆盖",
+      "prompt": "再导出一遍同名文件。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["export_features"],
+      "steps": [
+        { "import": "pts", "capture": "pts" },
+        { "tool": "export_features", "args": { "layer": "@pts", "path": "baseline_h05.geojson", "fmt": "geojson" }, "capture": "first" },
+        { "tool": "export_features", "args": { "layer": "@pts", "path": "baseline_h05.geojson", "fmt": "geojson" }, "expect_error": true, "capture": "second" }
+      ],
+      "checks": [
+        { "type": "export_bytes", "of": "first", "min": 200 },
+        { "type": "error_pattern", "of": "second", "pattern": "覆盖|overwrite|已有|存在" }
+      ]
+    },
+    {
+      "id": "H06",
+      "group": "hard",
+      "title": "取消运行中的任务",
+      "prompt": "先算大 DEM 的坡度，算到一半我改主意了，取消它。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["wasm_principal_component_analysis", "job_cancel"],
+      "steps": [
+        { "import": "dem_large", "capture": "dem" },
+        { "tool": "wasm_principal_component_analysis", "args": { "inputs": ["@dem", "@dem", "@dem"], "num_components": 2 }, "cancel_immediately": true, "capture": "job" }
+      ],
+      "checks": [
+        { "type": "job_status", "of": "job", "value": "cancelled" },
+        { "type": "step_layer_delta", "of": "job", "value": 0, "note": "取消后不得发布半成品图层（import 步骤不计入）" }
+      ]
+    },
+    {
+      "id": "H07",
+      "group": "hard",
+      "title": "空结果要明确为空",
+      "prompt": "选人口超过 10 万的区。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["select_by_attributes"],
+      "steps": [
+        { "import": "districts", "capture": "zones" },
+        { "tool": "select_by_attributes", "args": { "layer": "@zones", "field": "pop", "op": "gt", "value": "100000" }, "capture": "empty" }
+      ],
+      "checks": [
+        { "type": "feature_count", "of": "empty", "value": 0 },
+        { "type": "crs", "of": "empty", "value": "EPSG:4326", "note": "空图层仍要保留坐标系与 schema，不能变成报错或 None" }
+      ]
+    },
+    {
+      "id": "H08",
+      "group": "hard",
+      "title": "大栅格资源基线",
+      "prompt": "这个 600×500 的 DEM 也跑一下坡度，记录耗时和内存。",
+      "endpoints": ["browser-wasm"],
+      "automation": "headless",
+      "expected_tools": ["wasm_slope"],
+      "steps": [
+        { "import": "dem_large", "capture": "dem" },
+        { "tool": "wasm_slope", "args": { "input": "@dem", "units": "degrees" }, "capture": "slope" }
+      ],
+      "checks": [
+        { "type": "raster_dims_match", "of": "slope", "ref": "dem" },
+        { "type": "duration_budget_ms", "max": 30000, "note": "桌面浏览器 WASM 资源预算；超过即记 FAIL 并保留耗时" }
+      ]
+    }
+  ]
+}

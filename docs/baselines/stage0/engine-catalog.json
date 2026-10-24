@@ -1,0 +1,1707 @@
+{
+  "generated_by": "scripts/export_engine_catalog.py",
+  "source": "engine/tools.py via FastMCP.list_tools()",
+  "count": 34,
+  "groups": {
+    "数据管理": [
+      "add_data",
+      "describe_layer",
+      "rename_layer",
+      "reorder_layers",
+      "reproject",
+      "export_features",
+      "remove_layer",
+      "list_supported_formats",
+      "import_arcgis_project"
+    ],
+    "邻近分析": [
+      "buffer"
+    ],
+    "叠加分析": [
+      "clip",
+      "intersection",
+      "union_layers",
+      "erase",
+      "spatial_join"
+    ],
+    "几何处理": [
+      "dissolve",
+      "convex_hull",
+      "simplify",
+      "calculate_geometry"
+    ],
+    "查询与选择": [
+      "select_by_attributes",
+      "select_by_location",
+      "field_statistics"
+    ],
+    "地图与显示": [
+      "zoom_to_layer",
+      "open_attribute_table",
+      "set_layer_symbology",
+      "set_layer_labels"
+    ],
+    "GEE": [
+      "gee_auth_status",
+      "gee_search_collection",
+      "gee_export_raster",
+      "gee_job_status"
+    ]
+  },
+  "tools": [
+    {
+      "id": "add_data",
+      "engine": "desktop-python",
+      "description": "Load a local GeoJSON or shapefile into the workspace and return layer info + URL for the map.\n\nArgs:\n    path: Absolute or project-relative path to GeoJSON / shapefile.\n    name: Optional layer display name (defaults to file stem).\n    source_crs: Required if the source has no CRS; never guessed.",
+      "category": "数据管理",
+      "groups": [
+        "数据管理"
+      ],
+      "input_schema": {
+        "properties": {
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          },
+          "source_crs": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Crs"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "add_dataArguments",
+        "type": "object"
+      },
+      "required": [
+        "path"
+      ],
+      "param_kinds": {
+        "path": "file",
+        "name": "value",
+        "source_crs": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "buffer",
+      "engine": "desktop-python",
+      "description": "Buffer a layer (geopandas). Returns a job_id immediately; poll job_status / job_cancel.\n\nParameter shape follows RustGIS analysis buffer (input/distance/units/dissolve/output)\nand GeoLibre unit names (meters|kilometers|miles). Implementation is geopandas.\n\nArgs:\n    layer: Source layer id or name.\n    distance: Buffer distance.\n    units: meters (default), kilometers, or miles.\n    dissolve: Merge all buffers into one polygon.\n    output_name: Optional output layer name.",
+      "category": "邻近分析",
+      "groups": [
+        "邻近分析"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "distance": {
+            "title": "Distance",
+            "type": "number"
+          },
+          "units": {
+            "default": "meters",
+            "enum": [
+              "meters",
+              "kilometers",
+              "miles"
+            ],
+            "title": "Units",
+            "type": "string"
+          },
+          "dissolve": {
+            "default": false,
+            "title": "Dissolve",
+            "type": "boolean"
+          },
+          "output_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Output Name"
+          }
+        },
+        "required": [
+          "layer",
+          "distance"
+        ],
+        "title": "bufferArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer",
+        "distance"
+      ],
+      "param_kinds": {
+        "layer": "value",
+        "distance": "value",
+        "units": "value",
+        "dissolve": "value",
+        "output_name": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "calculate_geometry",
+      "engine": "desktop-python",
+      "description": "Add area_m2 / length_m columns measured on a checked local UTM projection. Job-based.\n\nArgs:\n    layer: Layer id or name.\n    output_name: Optional output layer name.",
+      "category": "几何处理",
+      "groups": [
+        "几何处理"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "output_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Output Name"
+          }
+        },
+        "required": [
+          "layer"
+        ],
+        "title": "calculate_geometryArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer"
+      ],
+      "param_kinds": {
+        "layer": "value",
+        "output_name": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "clip",
+      "engine": "desktop-python",
+      "description": "Clip a layer by a mask layer (keeps this layer's attributes). Job-based.\n\nArgs:\n    layer: Layer id or name to clip.\n    mask_layer: Layer id or name whose extent cuts the input.\n    output_name: Optional output layer name.",
+      "category": "叠加分析",
+      "groups": [
+        "叠加分析"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "mask_layer": {
+            "title": "Mask Layer",
+            "type": "string"
+          },
+          "output_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Output Name"
+          }
+        },
+        "required": [
+          "layer",
+          "mask_layer"
+        ],
+        "title": "clipArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer",
+        "mask_layer"
+      ],
+      "param_kinds": {
+        "layer": "value",
+        "mask_layer": "value",
+        "output_name": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "convex_hull",
+      "engine": "desktop-python",
+      "description": "Convex hull of all features as one polygon. Job-based.\n\nArgs:\n    layer: Layer id or name.\n    output_name: Optional output layer name.",
+      "category": "几何处理",
+      "groups": [
+        "几何处理"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "output_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Output Name"
+          }
+        },
+        "required": [
+          "layer"
+        ],
+        "title": "convex_hullArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer"
+      ],
+      "param_kinds": {
+        "layer": "value",
+        "output_name": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "describe_layer",
+      "engine": "desktop-python",
+      "description": "Describe a layer: CRS, bounds, columns, sample rows.\n\nArgs:\n    layer: Layer id or name.",
+      "category": "数据管理",
+      "groups": [
+        "数据管理"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer"
+        ],
+        "title": "describe_layerArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer"
+      ],
+      "param_kinds": {
+        "layer": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "dissolve",
+      "engine": "desktop-python",
+      "description": "Dissolve features into fewer geometries, optionally grouped by a field. Job-based.\n\nArgs:\n    layer: Layer id or name.\n    by_field: Optional column to group by (omitted = merge everything).\n    output_name: Optional output layer name.",
+      "category": "几何处理",
+      "groups": [
+        "几何处理"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "by_field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "By Field"
+          },
+          "output_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Output Name"
+          }
+        },
+        "required": [
+          "layer"
+        ],
+        "title": "dissolveArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer"
+      ],
+      "param_kinds": {
+        "layer": "value",
+        "by_field": "value",
+        "output_name": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "erase",
+      "engine": "desktop-python",
+      "description": "Erase (difference): keep parts of the layer outside the mask layer. Job-based.\n\nArgs:\n    layer: Layer id or name to erase from.\n    mask_layer: Layer whose extent is removed.\n    output_name: Optional output layer name.",
+      "category": "叠加分析",
+      "groups": [
+        "叠加分析"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "mask_layer": {
+            "title": "Mask Layer",
+            "type": "string"
+          },
+          "output_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Output Name"
+          }
+        },
+        "required": [
+          "layer",
+          "mask_layer"
+        ],
+        "title": "eraseArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer",
+        "mask_layer"
+      ],
+      "param_kinds": {
+        "layer": "value",
+        "mask_layer": "value",
+        "output_name": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "export_features",
+      "engine": "desktop-python",
+      "description": "Write a verified layer to an absolute path; existing files require explicit overwrite approval.\n\nArgs:\n    layer: Layer id or name.\n    path: Absolute output file path.\n    fmt: geojson (default), gpkg, fgb, or csv.\n    overwrite: Replace an existing file only when explicitly requested (default false).",
+      "category": "数据管理",
+      "groups": [
+        "数据管理"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "fmt": {
+            "default": "geojson",
+            "enum": [
+              "geojson",
+              "gpkg",
+              "fgb",
+              "csv"
+            ],
+            "title": "Fmt",
+            "type": "string"
+          },
+          "overwrite": {
+            "default": false,
+            "title": "Overwrite",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "layer",
+          "path"
+        ],
+        "title": "export_featuresArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer",
+        "path"
+      ],
+      "param_kinds": {
+        "layer": "value",
+        "path": "file",
+        "fmt": "value",
+        "overwrite": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": true,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "field_statistics",
+      "engine": "desktop-python",
+      "description": "Compute summary statistics for one attribute field of a layer.\n\nNumeric fields report min/max/mean/median/std; other fields report the\nmost frequent values. Nulls are counted and excluded from the statistics.\n\nArgs:\n    layer: Layer id or name.\n    field: Column name.",
+      "category": "查询与选择",
+      "groups": [
+        "查询与选择"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "field": {
+            "title": "Field",
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer",
+          "field"
+        ],
+        "title": "field_statisticsArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer",
+        "field"
+      ],
+      "param_kinds": {
+        "layer": "value",
+        "field": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "gee_auth_status",
+      "engine": "desktop-python",
+      "description": "Return structured Google Earth Engine connection status.",
+      "category": "GEE",
+      "groups": [
+        "GEE"
+      ],
+      "input_schema": {
+        "properties": {},
+        "title": "gee_auth_statusArguments",
+        "type": "object"
+      },
+      "required": [],
+      "param_kinds": {},
+      "async": false,
+      "cancellable": false,
+      "read_only": true,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "gee_export_raster",
+      "engine": "desktop-python",
+      "description": "Create a GEE export job; real export requires configured credentials.",
+      "category": "GEE",
+      "groups": [
+        "GEE"
+      ],
+      "input_schema": {
+        "properties": {
+          "collection": {
+            "default": "COPERNICUS/S2_SR_HARMONIZED",
+            "title": "Collection",
+            "type": "string"
+          },
+          "band": {
+            "default": "B4",
+            "title": "Band",
+            "type": "string"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Start Date"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "End Date"
+          },
+          "scale": {
+            "default": 30,
+            "title": "Scale",
+            "type": "number"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Path"
+          }
+        },
+        "title": "gee_export_rasterArguments",
+        "type": "object"
+      },
+      "required": [],
+      "param_kinds": {
+        "collection": "value",
+        "band": "value",
+        "start_date": "value",
+        "end_date": "value",
+        "scale": "value",
+        "path": "file"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": true,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "gee_job_status",
+      "engine": "desktop-python",
+      "description": "Return a GEE-style status view for an export job.",
+      "category": "GEE",
+      "groups": [
+        "GEE"
+      ],
+      "input_schema": {
+        "properties": {
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "title": "gee_job_statusArguments",
+        "type": "object"
+      },
+      "required": [
+        "job_id"
+      ],
+      "param_kinds": {
+        "job_id": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": true,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "gee_search_collection",
+      "engine": "desktop-python",
+      "description": "Search a GEE collection; disconnected runtimes return an empty honest result.",
+      "category": "GEE",
+      "groups": [
+        "GEE"
+      ],
+      "input_schema": {
+        "properties": {
+          "collection": {
+            "default": "COPERNICUS/S2_SR_HARMONIZED",
+            "title": "Collection",
+            "type": "string"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Start Date"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "End Date"
+          },
+          "max_cloud": {
+            "default": 20,
+            "title": "Max Cloud",
+            "type": "integer"
+          },
+          "bbox": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Bbox"
+          }
+        },
+        "title": "gee_search_collectionArguments",
+        "type": "object"
+      },
+      "required": [],
+      "param_kinds": {
+        "collection": "value",
+        "start_date": "value",
+        "end_date": "value",
+        "max_cloud": "value",
+        "bbox": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": true,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "import_arcgis_project",
+      "engine": "desktop-python",
+      "description": "Explain MXD/APRX/File GDB limits and return open-format alternatives.",
+      "category": "数据管理",
+      "groups": [
+        "数据管理"
+      ],
+      "input_schema": {
+        "properties": {
+          "path": {
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "import_arcgis_projectArguments",
+        "type": "object"
+      },
+      "required": [
+        "path"
+      ],
+      "param_kinds": {
+        "path": "file"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": true,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "intersection",
+      "engine": "desktop-python",
+      "description": "Intersection of two layers; attributes combine. Job-based.\n\nArgs:\n    layer: First layer id or name.\n    other_layer: Second layer id or name.\n    output_name: Optional output layer name.",
+      "category": "叠加分析",
+      "groups": [
+        "叠加分析"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "other_layer": {
+            "title": "Other Layer",
+            "type": "string"
+          },
+          "output_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Output Name"
+          }
+        },
+        "required": [
+          "layer",
+          "other_layer"
+        ],
+        "title": "intersectionArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer",
+        "other_layer"
+      ],
+      "param_kinds": {
+        "layer": "value",
+        "other_layer": "value",
+        "output_name": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "job_cancel",
+      "engine": "desktop-python",
+      "description": "Request cancellation of a running job.\n\nArgs:\n    job_id: Job to cancel.",
+      "category": "未分组",
+      "groups": [],
+      "input_schema": {
+        "properties": {
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "title": "job_cancelArguments",
+        "type": "object"
+      },
+      "required": [
+        "job_id"
+      ],
+      "param_kinds": {
+        "job_id": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "job_status",
+      "engine": "desktop-python",
+      "description": "Get status/progress/result of a long-running job.\n\nArgs:\n    job_id: Id returned by analysis tools (buffer, clip, ...).",
+      "category": "未分组",
+      "groups": [],
+      "input_schema": {
+        "properties": {
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "title": "job_statusArguments",
+        "type": "object"
+      },
+      "required": [
+        "job_id"
+      ],
+      "param_kinds": {
+        "job_id": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "list_layers",
+      "engine": "desktop-python",
+      "description": "List layers currently loaded in the GIS workspace.",
+      "category": "未分组",
+      "groups": [],
+      "input_schema": {
+        "properties": {},
+        "title": "list_layersArguments",
+        "type": "object"
+      },
+      "required": [],
+      "param_kinds": {},
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "list_supported_formats",
+      "engine": "desktop-python",
+      "description": "List open formats TIPHYS can read, plus ArcGIS import limitations.",
+      "category": "数据管理",
+      "groups": [
+        "数据管理"
+      ],
+      "input_schema": {
+        "properties": {},
+        "title": "list_supported_formatsArguments",
+        "type": "object"
+      },
+      "required": [],
+      "param_kinds": {},
+      "async": false,
+      "cancellable": false,
+      "read_only": true,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "open_attribute_table",
+      "engine": "desktop-python",
+      "description": "Open a layer's paged attribute table below the map in the user's UI.",
+      "category": "地图与显示",
+      "groups": [
+        "地图与显示"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer"
+        ],
+        "title": "open_attribute_tableArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer"
+      ],
+      "param_kinds": {
+        "layer": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "ping",
+      "engine": "desktop-python",
+      "description": "Health check for the TIPHYS spatial engine.",
+      "category": "未分组",
+      "groups": [],
+      "input_schema": {
+        "properties": {},
+        "title": "pingArguments",
+        "type": "object"
+      },
+      "required": [],
+      "param_kinds": {},
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "remove_layer",
+      "engine": "desktop-python",
+      "description": "DESTRUCTIVE: remove a layer from the workspace and delete its file. Requires user approval.\n\nArgs:\n    layer: Layer id or name.",
+      "category": "数据管理",
+      "groups": [
+        "数据管理"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer"
+        ],
+        "title": "remove_layerArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer"
+      ],
+      "param_kinds": {
+        "layer": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": true,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "rename_layer",
+      "engine": "desktop-python",
+      "description": "Rename a layer's display name in the workspace. Does not alter analysis data.\n\nArgs:\n    layer: Layer id or name.\n    name: New display name (must be unique, not empty).",
+      "category": "数据管理",
+      "groups": [
+        "数据管理"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer",
+          "name"
+        ],
+        "title": "rename_layerArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer",
+        "name"
+      ],
+      "param_kinds": {
+        "layer": "value",
+        "name": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "reorder_layers",
+      "engine": "desktop-python",
+      "description": "Set the workspace layer order, which is also the map draw order (last = on top).\n\nArgs:\n    layer_ids: All existing layer ids, each exactly once, in the wanted order.",
+      "category": "数据管理",
+      "groups": [
+        "数据管理"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Layer Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "layer_ids"
+        ],
+        "title": "reorder_layersArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer_ids"
+      ],
+      "param_kinds": {
+        "layer_ids": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "reproject",
+      "engine": "desktop-python",
+      "description": "Reproject a layer to a target CRS (EPSG code or WKT/PROJ string). Job-based.\n\nArgs:\n    layer: Layer id or name.\n    target_crs: Target CRS, e.g. EPSG:3857 or EPSG:4326.\n    output_name: Optional output layer name.",
+      "category": "数据管理",
+      "groups": [
+        "数据管理"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "target_crs": {
+            "title": "Target Crs",
+            "type": "string"
+          },
+          "output_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Output Name"
+          }
+        },
+        "required": [
+          "layer",
+          "target_crs"
+        ],
+        "title": "reprojectArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer",
+        "target_crs"
+      ],
+      "param_kinds": {
+        "layer": "value",
+        "target_crs": "value",
+        "output_name": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "select_by_attributes",
+      "engine": "desktop-python",
+      "description": "Select features by an attribute condition into a new layer. Structured ops only (no free-form expressions).\n\nOps: eq, ne, gt, ge, lt, le, contains, startswith, endswith, isnull, notnull.\n\nArgs:\n    layer: Layer id or name.\n    field: Column name.\n    op: Comparison operator from the list above.\n    value: Comparison value (ignored for isnull/notnull).\n    output_name: Optional output layer name.",
+      "category": "查询与选择",
+      "groups": [
+        "查询与选择"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "op": {
+            "enum": [
+              "eq",
+              "ne",
+              "gt",
+              "ge",
+              "lt",
+              "le",
+              "contains",
+              "startswith",
+              "endswith",
+              "isnull",
+              "notnull"
+            ],
+            "title": "Op",
+            "type": "string"
+          },
+          "value": {
+            "default": "",
+            "title": "Value",
+            "type": "string"
+          },
+          "output_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Output Name"
+          }
+        },
+        "required": [
+          "layer",
+          "field",
+          "op"
+        ],
+        "title": "select_by_attributesArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer",
+        "field",
+        "op"
+      ],
+      "param_kinds": {
+        "layer": "value",
+        "field": "value",
+        "op": "value",
+        "value": "value",
+        "output_name": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "select_by_location",
+      "engine": "desktop-python",
+      "description": "Select features spatially related to a filter layer into a new layer.\n\nPredicates: intersects, within, contains, crosses, touches, overlaps.\n\nArgs:\n    layer: Layer id or name to select from.\n    filter_layer: Layer providing the filter geometries.\n    predicate: Spatial predicate from the list above (default intersects).\n    output_name: Optional output layer name.",
+      "category": "查询与选择",
+      "groups": [
+        "查询与选择"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "filter_layer": {
+            "title": "Filter Layer",
+            "type": "string"
+          },
+          "predicate": {
+            "default": "intersects",
+            "enum": [
+              "intersects",
+              "within",
+              "contains",
+              "crosses",
+              "touches",
+              "overlaps"
+            ],
+            "title": "Predicate",
+            "type": "string"
+          },
+          "output_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Output Name"
+          }
+        },
+        "required": [
+          "layer",
+          "filter_layer"
+        ],
+        "title": "select_by_locationArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer",
+        "filter_layer"
+      ],
+      "param_kinds": {
+        "layer": "value",
+        "filter_layer": "value",
+        "predicate": "value",
+        "output_name": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "set_layer_labels",
+      "engine": "desktop-python",
+      "description": "Show map labels from an attribute field; omit field to disable. Size is in pixels. Does not alter analysis data.",
+      "category": "地图与显示",
+      "groups": [
+        "地图与显示"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Field"
+          },
+          "size": {
+            "default": 13,
+            "maximum": 36,
+            "minimum": 8,
+            "title": "Size",
+            "type": "number"
+          },
+          "color": {
+            "default": "#172033",
+            "pattern": "^#[0-9a-fA-F]{6}$",
+            "title": "Color",
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer"
+        ],
+        "title": "set_layer_labelsArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer"
+      ],
+      "param_kinds": {
+        "layer": "value",
+        "field": "value",
+        "size": "value",
+        "color": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "set_layer_symbology",
+      "engine": "desktop-python",
+      "description": "Set a layer's single-symbol display color (#RRGGBB), opacity (0-1), point radius and line width (pixels). Does not alter analysis data.",
+      "category": "地图与显示",
+      "groups": [
+        "地图与显示"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "color": {
+            "pattern": "^#[0-9a-fA-F]{6}$",
+            "title": "Color",
+            "type": "string"
+          },
+          "opacity": {
+            "default": 0.65,
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Opacity",
+            "type": "number"
+          },
+          "point_size": {
+            "default": 5,
+            "maximum": 30,
+            "minimum": 1,
+            "title": "Point Size",
+            "type": "number"
+          },
+          "line_width": {
+            "default": 1.6,
+            "maximum": 20,
+            "minimum": 0.1,
+            "title": "Line Width",
+            "type": "number"
+          }
+        },
+        "required": [
+          "layer",
+          "color"
+        ],
+        "title": "set_layer_symbologyArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer",
+        "color"
+      ],
+      "param_kinds": {
+        "layer": "value",
+        "color": "value",
+        "opacity": "value",
+        "point_size": "value",
+        "line_width": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "simplify",
+      "engine": "desktop-python",
+      "description": "Topology-preserving simplify with a metre tolerance (checked local UTM). Job-based.\n\nArgs:\n    layer: Layer id or name.\n    tolerance: Simplification tolerance (> 0).\n    units: meters (default), kilometers, or miles.\n    output_name: Optional output layer name.",
+      "category": "几何处理",
+      "groups": [
+        "几何处理"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "tolerance": {
+            "title": "Tolerance",
+            "type": "number"
+          },
+          "units": {
+            "default": "meters",
+            "enum": [
+              "meters",
+              "kilometers",
+              "miles"
+            ],
+            "title": "Units",
+            "type": "string"
+          },
+          "output_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Output Name"
+          }
+        },
+        "required": [
+          "layer",
+          "tolerance"
+        ],
+        "title": "simplifyArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer",
+        "tolerance"
+      ],
+      "param_kinds": {
+        "layer": "value",
+        "tolerance": "value",
+        "units": "value",
+        "output_name": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "spatial_join",
+      "engine": "desktop-python",
+      "description": "Join attributes from another layer by a spatial predicate. Job-based.\n\nOne join feature is kept per target feature. Join attributes use the\nJOIN_ prefix; nearest adds NEAR_DIST in the target CRS units.\n\nArgs:\n    layer: Target layer receiving attributes.\n    join_layer: Layer providing attributes.\n    predicate: intersects, contains, within, or nearest.\n    keep_fields: Keep all join attributes (default true).\n    output_name: Optional output layer name.",
+      "category": "叠加分析",
+      "groups": [
+        "叠加分析"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "join_layer": {
+            "title": "Join Layer",
+            "type": "string"
+          },
+          "predicate": {
+            "default": "intersects",
+            "enum": [
+              "intersects",
+              "contains",
+              "within",
+              "nearest"
+            ],
+            "title": "Predicate",
+            "type": "string"
+          },
+          "keep_fields": {
+            "default": true,
+            "title": "Keep Fields",
+            "type": "boolean"
+          },
+          "output_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Output Name"
+          }
+        },
+        "required": [
+          "layer",
+          "join_layer"
+        ],
+        "title": "spatial_joinArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer",
+        "join_layer"
+      ],
+      "param_kinds": {
+        "layer": "value",
+        "join_layer": "value",
+        "predicate": "value",
+        "keep_fields": "value",
+        "output_name": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "union_layers",
+      "engine": "desktop-python",
+      "description": "Union of two overlapping polygon layers; attributes combine. Job-based.\n\nArgs:\n    layer: First layer id or name.\n    other_layer: Second layer id or name.\n    output_name: Optional output layer name.",
+      "category": "叠加分析",
+      "groups": [
+        "叠加分析"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "other_layer": {
+            "title": "Other Layer",
+            "type": "string"
+          },
+          "output_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Output Name"
+          }
+        },
+        "required": [
+          "layer",
+          "other_layer"
+        ],
+        "title": "union_layersArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer",
+        "other_layer"
+      ],
+      "param_kinds": {
+        "layer": "value",
+        "other_layer": "value",
+        "output_name": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    },
+    {
+      "id": "zoom_to_layer",
+      "engine": "desktop-python",
+      "description": "Zoom the user's map to a layer's actual bounds. This directly changes the UI view.",
+      "category": "地图与显示",
+      "groups": [
+        "地图与显示"
+      ],
+      "input_schema": {
+        "properties": {
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer"
+        ],
+        "title": "zoom_to_layerArguments",
+        "type": "object"
+      },
+      "required": [
+        "layer"
+      ],
+      "param_kinds": {
+        "layer": "value"
+      },
+      "async": false,
+      "cancellable": false,
+      "read_only": false,
+      "destructive": false,
+      "cost": "interactive",
+      "error_contract": "raises; MCP call returns isError with message"
+    }
+  ]
+}
