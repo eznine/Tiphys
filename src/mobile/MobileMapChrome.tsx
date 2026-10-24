@@ -13,9 +13,9 @@ type Props = {
 export function MobileMapChrome({ projectName, engineState, layerCount, onProject, onLayers, onTools }: Props) {
   return <div className="m-map-chrome">
     <button type="button" className="m-brand" onClick={onProject} aria-label={`当前工程 ${projectName}，打开工程页`}>
-      <span className="m-brand-mark" aria-hidden="true">T</span>
+      <span className="m-brand-mark"><img src="/brand/logo-badge.svg" alt="" aria-hidden="true" /></span>
       <span className="m-brand-text">
-        <strong>TIPHYS</strong>
+        <span className="m-brand-wordmark" role="img" aria-label="TIPHYS" />
         <small><span className="m-status-dot" data-state={engineState} />{projectName}</small>
       </span>
     </button>

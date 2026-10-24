@@ -1,6 +1,7 @@
 # TIPHYS Mobile V2.2 — 现状审查、设计规范与实施方案
 
 > 分支 `feat/mobile-ui-v22` · 独立 worktree（工作区内 `tiphys-mobile-v22`）· 基于 `main@a48c9c3`
+> 已快进合并到 `main@e159512`；v2.2.1 按用户参考图完成品牌与底部操作区精修。
 > 桌面布局不做视觉改动；所有移动端规则限定在 `.app-shell.mobile` 作用域内。
 
 ## 1. 现状审查（P0）
@@ -70,15 +71,15 @@
 
 深色主题给出对应色阶（`#0D1624` 底、`rgba(19,31,48,.72)` 玻璃、`#6FA5F0` 强调），保证卫星影像上的对比度。
 
-材质规则：轻量导航（顶部胶囊、Dock、输入台、抽屉头）用玻璃；图层行、工具表单、任务详情、工程文件用实体表面。禁止整屏透明玻璃。
+材质规则：轻量导航（顶部胶囊、抽屉头）用玻璃；Dock、输入台、图层行、工具表单、任务详情、工程文件用实体表面。禁止整屏透明玻璃。
 
 ### 2.3 形状、层次、动效
 
-主卡片 22–24px，Dock 26px，输入胶囊 999px，表单 14px，抽屉顶部 26px。阴影为低对比双层柔影，不使用霓虹描边。动效只做 transform/opacity：抽屉吸附 260ms、页面进入 220ms、Dock 选中 180ms；遵循 `prefers-reduced-motion`。低性能设备（`hardwareConcurrency ≤ 4`）关闭模糊与位移动画。
+主卡片 22–24px，Dock 28px，输入胶囊 999px，表单 14px，抽屉顶部 26px。阴影为低对比双层柔影，不使用霓虹描边。动效只做 transform/opacity：抽屉吸附 260ms、页面进入 220ms、Dock 选中 180ms；遵循 `prefers-reduced-motion`。低性能设备（`hardwareConcurrency ≤ 4`）关闭模糊与位移动画。
 
 ### 2.4 关键组件规范
 
-- **MobileDock**：4 项，图标 + 文字，选中态为浅蓝胶囊底 + 深色文字；任务运行或待审批时显示计数徽标（数字，不只靠颜色）。
+- **MobileDock**：4 项，图标 + 文字，选中态只用强调色（图标填充与文字）并加粗，不铺胶囊底；任务运行或待审批时显示计数徽标（数字，不只靠颜色）。
 - **MobileSheet**：真实三档高度（紧凑 28dvh / 半屏 55dvh / 扩展 92dvh），把手拖动实时跟手，松手吸附最近档；支持遮罩点击关闭、Esc、焦点回归。
 - **图层抽屉**：紧凑档显示概览与当前图层；半屏显示列表；扩展显示详情。行内显隐、符号、类型/数量、排序把手；上下文操作按图层类型裁剪（矢量才有属性表/标注，栅格才有拉伸）。
 - **工具箱**：搜索、分类、最近使用、收藏；工具页采用实体表单，必填校验、单位、字段下拉、图层下拉；提交后进入统一任务账本。
@@ -101,6 +102,12 @@
 
 手机竖屏为默认形态；横屏（`max-height: 520px`）把图层/工具抽屉变为右侧面板，Dock 变窄竖向排列；≥ 861px 回到桌面布局。安全区全部使用 `env(safe-area-inset-*)` 与 `dvh`，不依赖固定 `100vh`。
 
+### 2.7 品牌与底部操作区（v2.2.1）
+
+- **资产**：`public/brand/logo-mark.svg`（完整标志）、`logo-wordmark.svg` / `logo-wordmark-white.svg`、`logo-icon.svg`（透明方形）、`logo-badge.svg`（深色圆角徽章，favicon 与浅色胶囊内使用）。源图 `docs/brand/tiphys-logo-source.png`，字标平滑轮廓 `docs/brand/wordmark-traced.svg`，生成脚本 `scripts/brand/build_logo.py`。
+- **放置**：桌面顶栏（徽章 + 字标）、桌面 Agent 面板标题、移动地图左上角工程胶囊（徽章 + 字标 + 工程名）；favicon 与 Tauri 应用图标（`src-tauri/icons`）同样使用徽章。字标用 CSS mask + `currentColor` 渲染，明暗主题自动取色，不重复导出两套位图。
+- **底部操作区**：按参考图改为实体表面（浅色白面、深色 `--m-surface`）。输入台高 56px、圆角 28px，加号为中性浅灰圆钮；Dock 高 64px、圆角 28px，选中态只改强调色，不铺胶囊底。玻璃仅保留在顶部胶囊与抽屉头，减少合成开销。
+
 ## 3. 实施顺序
 
 1. **P0** 本文档。
@@ -115,5 +122,6 @@
 
 - 构建：`npm run build`（tsc + vite）。
 - 回归：`npm run test:contracts`、`npm run test:plans`、`npm run test:browser`（Chrome 可用时）。
-- 手机：Playwright iPhone 12 仿真 390×844，真实点击/拖动/输入；截图落在 `docs/screens/mobile-v22/`。
+- 手机：Playwright iPhone 12 仿真 390×844，真实点击/拖动/输入；截图落在 `docs/screens/mobile-v22/`（v2.2.1 已用新品牌、输入台与 Dock 复跑并更新）。
+- 交互回归：`MOBILE_APP=http://127.0.0.1:1426/ node scripts/mobile-v22-verify.mjs` → 17/17，通过真实缓冲区任务与任务卡执行。
 - 现有 `npm run baseline:mobile` 保留（聊天手柄、任务卡选择器兼容）。未验证项会在交付报告中逐条列出，不写“已完成”。

@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1070 610" role="img" aria-label="TIPHYS">
+  <defs>
+    <linearGradient id="bar-white" x1="395" y1="0" x2="1038" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset=".62" stop-color="#F6F9FE"/>
+      <stop offset="1" stop-color="#C9D8EC"/>
+    </linearGradient>
+    <linearGradient id="bar-blue" x1="395" y1="0" x2="836" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#16D2FF"/>
+      <stop offset=".42" stop-color="#0A9BFE"/>
+      <stop offset="1" stop-color="#0B4FE0"/>
+    </linearGradient>
+    <linearGradient id="badge-bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0A0F1C"/>
+      <stop offset=".58" stop-color="#081A36"/>
+      <stop offset="1" stop-color="#0B2A55"/>
+    </linearGradient>
+    <radialGradient id="badge-glow" cx="0" cy="0" r="1" gradientTransform="translate(316 250) rotate(90) scale(158 196)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0A6BFF" stop-opacity=".38"/>
+      <stop offset="1" stop-color="#0A6BFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fold-navy" x1="660" y1="150" x2="836" y2="203" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0A2A8C"/>
+      <stop offset="1" stop-color="#06123D"/>
+    </linearGradient>
+    <linearGradient id="leg-base" x1="515" y1="203" x2="814" y2="600" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0A6BFF"/>
+      <stop offset=".5" stop-color="#14B8F0"/>
+      <stop offset="1" stop-color="#06C8FA"/>
+    </linearGradient>
+    <linearGradient id="fade-white" x1="0" y1="0" x2="425" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset=".55" stop-color="#FFFFFF" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".95"/>
+    </linearGradient>
+    <linearGradient id="fade-ice" x1="0" y1="0" x2="415" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#BFE2FF" stop-opacity="0"/>
+      <stop offset="1" stop-color="#E8F6FF" stop-opacity=".95"/>
+    </linearGradient>
+    <linearGradient id="fade-cyan" x1="100" y1="0" x2="400" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#12C9FF" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#12C9FF" stop-opacity=".65"/>
+      <stop offset="1" stop-color="#0A8BFF" stop-opacity="1"/>
+    </linearGradient>
+    <linearGradient id="fade-blue" x1="85" y1="0" x2="435" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0A6BFF" stop-opacity="0"/>
+      <stop offset=".45" stop-color="#0B8DFF" stop-opacity=".8"/>
+      <stop offset="1" stop-color="#0A5FE8" stop-opacity="1"/>
+    </linearGradient>
+    <linearGradient id="fade-deep" x1="350" y1="0" x2="490" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0A2C8C" stop-opacity="0"/>
+      <stop offset="1" stop-color="#0A2C8C" stop-opacity="1"/>
+    </linearGradient>
+    <clipPath id="leg-clip"><path d="M 606 203 L 790 203 Q 786 280 778 340 Q 766 420 748 470 Q 730 520 690 548 L 583 585 L 518 585 Z"/></clipPath>
+  </defs>
+  <g>
+    
+    <g>
+      <path d="M 285 82 L 420 66 L 420 72 L 295 90 Z" fill="url(#fade-white)"/>
+      <path d="M 265 100 L 415 82 L 415 90 L 276 110 Z" fill="url(#fade-ice)"/>
+      <path d="M 100 155 L 400 108 L 400 142 L 122 180 Z" fill="url(#fade-cyan)"/>
+      <path d="M 85 300 L 435 235 L 435 275 L 110 325 Z" fill="url(#fade-blue)"/>
+      <path d="M 90 312 L 435 262 L 435 280 L 105 330 Z" fill="#21D4FF" fill-opacity=".78"/>
+      <path d="M 150 330 L 435 285 L 435 310 L 175 355 Z" fill="#0A2C8C" fill-opacity=".55"/>
+      <path d="M 0 355 L 425 318 L 425 338 L 18 372 Z" fill="url(#fade-white)"/>
+      <path d="M 200 458 L 435 425 L 435 445 L 220 478 Z" fill="url(#fade-blue)"/>
+      <path d="M 350 510 L 490 495 L 490 512 L 365 527 Z" fill="url(#fade-deep)"/>
+      <path d="M 330 558 L 490 545 L 490 557 L 340 570 Z" fill="#0A2C8C" fill-opacity=".85"/>
+    </g>
+    <g>
+      <path d="M 240 190 L 282 183 L 282 220 L 240 228 Z" fill="#16C8F8"/>
+      <path d="M 330 228 L 375 220 L 375 255 L 330 263 Z" fill="#0B4FE0"/>
+      <path d="M 458 200 L 498 193 L 498 228 L 458 236 Z" fill="#1FCDFC"/>
+      <path d="M 500 205 L 535 199 L 535 232 L 500 239 Z" fill="#0A2C8C"/>
+      <path d="M 178 372 L 220 364 L 220 400 L 178 408 Z" fill="#12C9FF"/>
+      <path d="M 330 365 L 370 358 L 370 395 L 330 402 Z" fill="#0A4DE0"/>
+      <path d="M 392 365 L 432 358 L 432 395 L 392 402 Z" fill="#23C6F4"/>
+      <path d="M 435 372 L 475 365 L 475 402 L 435 409 Z" fill="#69B8F5"/>
+      <path d="M 280 490 L 320 483 L 320 518 L 280 525 Z" fill="#12C9FF"/>
+      <path d="M 425 440 L 465 432 L 465 470 L 425 478 Z" fill="#0A4DE0"/>
+    </g>
+    <path d="M 395 40 L 1038 24 L 910 182 L 836 150 L 395 150 Z" fill="url(#bar-white)"/>
+    <path d="M 395 150 L 836 150 L 814 203 L 395 203 Z" fill="url(#bar-blue)"/>
+    <path d="M 735 150 L 836 150 L 814 203 L 660 203 Z" fill="url(#fold-navy)"/>
+    <path d="M 790 150 L 836 150 L 814 203 L 770 203 Z" fill="#8BD8FF" fill-opacity=".8"/>
+    <g clip-path="url(#leg-clip)">
+      <path d="M 606 203 L 790 203 Q 786 280 778 340 Q 766 420 748 470 Q 730 520 690 548 L 583 585 L 518 585 Z" fill="url(#leg-base)"/>
+      <path d="M 606 203 L 655.7 203 L 644 267 L 591.3 267 Z" fill="#14B4EC"/>
+      <path d="M 655.7 203 L 705.4 203 L 696.8 267 L 644 267 Z" fill="#0A5FE8"/>
+      <path d="M 705.4 203 L 753.2 203 L 747.6 267 L 696.8 267 Z" fill="#0A2A8C"/>
+      <path d="M 753.2 203 L 790 203 L 786.7 267 L 747.6 267 Z" fill="#BBD9F2"/>
+      <path d="M 591.3 267 L 644 267 L 631.2 331 L 576.5 331 Z" fill="#0B7DE8"/>
+      <path d="M 644 267 L 696.8 267 L 686 331 L 631.2 331 Z" fill="#0B4FE0"/>
+      <path d="M 696.8 267 L 747.6 267 L 738.7 331 L 686 331 Z" fill="#0B63F2"/>
+      <path d="M 747.6 267 L 786.7 267 L 779.2 331 L 738.7 331 Z" fill="#DCEFFF"/>
+      <path d="M 576.5 331 L 631.2 331 L 617.9 395 L 561.8 395 Z" fill="#06BEF5"/>
+      <path d="M 631.2 331 L 686 331 L 674.1 395 L 617.9 395 Z" fill="#1366F0"/>
+      <path d="M 686 331 L 738.7 331 L 728.2 395 L 674.1 395 Z" fill="#C9E7FF"/>
+      <path d="M 738.7 331 L 779.2 331 L 769.8 395 L 728.2 395 Z" fill="#F4FBFF"/>
+      <path d="M 561.8 395 L 617.9 395 L 602.4 459 L 547 459 Z" fill="#0AC8F8"/>
+      <path d="M 617.9 395 L 674.1 395 L 657.7 459 L 602.4 459 Z" fill="#2E8DF4"/>
+      <path d="M 674.1 395 L 728.2 395 L 711 459 L 657.7 459 Z" fill="#D8EFFF"/>
+      <path d="M 728.2 395 L 769.8 395 L 752 459 L 711 459 Z" fill="#FFFFFF"/>
+      <path d="M 547 459 L 602.4 459 L 584.5 523 L 532.3 523 Z" fill="#0A5CEB"/>
+      <path d="M 602.4 459 L 657.7 459 L 636.7 523 L 584.5 523 Z" fill="#5FB7F7"/>
+      <path d="M 657.7 459 L 711 459 L 687 523 L 636.7 523 Z" fill="#EAF7FF"/>
+      <path d="M 711 459 L 752 459 L 725.7 523 L 687 523 Z" fill="#F8FDFF"/>
+      <path d="M 532.3 523 L 584.5 523 L 535.5 585 L 518 585 Z" fill="#06C8FA"/>
+      <path d="M 584.5 523 L 636.7 523 L 553.1 585 L 535.5 585 Z" fill="#8FD4FA"/>
+      <path d="M 636.7 523 L 687 523 L 570 585 L 553.1 585 Z" fill="#E4F5FF"/>
+      <path d="M 687 523 L 725.7 523 L 583 585 L 570 585 Z" fill="#F4FBFF"/>
+      <path d="M 655.7 203 L 535.5 585" stroke="#BCE2F8" stroke-opacity=".6" stroke-width="1.6"/>
+      <path d="M 705.4 203 L 553.1 585" stroke="#BCE2F8" stroke-opacity=".6" stroke-width="1.6"/>
+      <path d="M 753.2 203 L 570 585" stroke="#BCE2F8" stroke-opacity=".6" stroke-width="1.6"/>
+      <path d="M 591.3 267 L 786.7 267" stroke="#BCE2F8" stroke-opacity=".6" stroke-width="1.6"/>
+      <path d="M 576.5 331 L 779.2 331" stroke="#BCE2F8" stroke-opacity=".6" stroke-width="1.6"/>
+      <path d="M 561.8 395 L 769.8 395" stroke="#BCE2F8" stroke-opacity=".6" stroke-width="1.6"/>
+      <path d="M 547 459 L 752 459" stroke="#BCE2F8" stroke-opacity=".6" stroke-width="1.6"/>
+      <path d="M 532.3 523 L 725.7 523" stroke="#BCE2F8" stroke-opacity=".6" stroke-width="1.6"/>
+    </g>
+    <path d="M 606 203 L 790 203 Q 786 280 778 340 Q 766 420 748 470 Q 730 520 690 548 L 583 585 L 518 585 Z" fill="none" stroke="#F4FDFF" stroke-opacity=".5" stroke-width="1.6"/>
+  </g>
+</svg>
