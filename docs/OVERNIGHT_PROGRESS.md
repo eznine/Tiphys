@@ -596,3 +596,11 @@
   - Verify: tsc + build + deploy tiphys.xyz. **APK needs rebuild** after for Keyboard+bundled web. Agent remains paused.
   - Also: map feature identify popup on mobile → fixed bottom sheet (full-width safe inset above dock, vertical field list, 2-col actions). No more clipped desktop floating card.
 
+
+- 2026-10-25 12:09 Asia/Shanghai — Ship Android APK **0.1.2** / versionCode **3** (box only; **Agent overnight stays paused**):
+  - Includes fold UX `d6d50d6` (dock hide on input + restore on dismiss; mobile identify bottom sheet) plus prior back stack / full toolbox / attr drawer.
+  - Bump: android/app/build.gradle, package.json, BUNDLED_* + DEFAULT_APK_URL in src/lib/appUpdate.ts, public/version.json notes.
+  - `npm run android:build` → dist-apk/tiphys-debug.apk **17.2 MiB** (18033176 B), aapt versionCode 3 / 0.1.2, sha256 `e4c237b3b2c46fd0ef17e776f75de45803adf3d6f4ca6a179fdf9a11ab5b44d6`.
+  - Uploaded https://tiphys.xyz/apk/tiphys-0.1.2.apk (+ mirrored tiphys.apk on origin). version.json apkUrl → versioned URL (CDN bust).
+  - `npm run build` + `npm run deploy:xyz` OK (live asset matches; live version.json 0.1.2 / code 3).
+  - **Do NOT start Agent overnight.** Builder/Agent remain paused.

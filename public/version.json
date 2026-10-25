@@ -1,6 +1,6 @@
 {
-  "version": "0.1.1",
-  "versionCode": 2,
-  "apkUrl": "https://tiphys.xyz/apk/tiphys-0.1.1.apk",
-  "notes": "0.1.1：OPPO IME 收起恢复输入栏 + 一键发送；设置「检查更新」；网页关于页新增「下载 Android APK」。debug 签名。"
+  "version": "0.1.2",
+  "versionCode": 3,
+  "apkUrl": "https://tiphys.xyz/apk/tiphys-0.1.2.apk",
+  "notes": "0.1.2：输入时折叠任务栏、收起后恢复；地图点选属性改为手机底栏；系统返回栈、工具箱全量、属性表抽屉。debug 签名。"
 }

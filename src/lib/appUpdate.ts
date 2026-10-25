@@ -4,11 +4,11 @@ import { Capacitor } from "@capacitor/core";
 export const VERSION_JSON_URL = "https://tiphys.xyz/version.json";
 
 /** Bundled fallback when Capacitor App plugin is unavailable (web / pre-sync APK). */
-export const BUNDLED_APP_VERSION = "0.1.1";
-export const BUNDLED_VERSION_CODE = 2;
+export const BUNDLED_APP_VERSION = "0.1.2";
+export const BUNDLED_VERSION_CODE = 3;
 
 /** Always-available download (versioned to bust CDN). */
-export const DEFAULT_APK_URL = "https://tiphys.xyz/apk/tiphys-0.1.1.apk";
+export const DEFAULT_APK_URL = "https://tiphys.xyz/apk/tiphys-0.1.2.apk";
 
 export type RemoteVersionInfo = {
   version: string;
