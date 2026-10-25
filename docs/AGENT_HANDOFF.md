@@ -139,7 +139,7 @@ tf-codex -C /workspace/tiphys   # 优先 tierflow_pro
 2. **生态模型（InVEST / Circuitscape / 真实阻力面）= 延后**，不要开批次。  
 3. **Overnight = PAUSED** — 用户未说「恢复」就不要启动 builder / tiphys-overnight-watch。
 
-**当前 A0 状态：** 浏览器预算/检索参数卡/诚实失败已落地；桌面 WASM bridge 已实现并有回归/文档；GeoAgentBench 2026-10-25 重评 **5/6**，仅 Bangkok 大矢量资源边界未过（已有预算守卫）。完整 30 任务在环基线仍未重跑。
+**当前 A0 状态：** 浏览器预算/检索参数卡/诚实失败已落地；桌面 WASM bridge 已实现并有回归/文档；GeoAgentBench 2026-10-25 重评 **5/6**（仅 Bangkok 大矢量资源边界未过，已有预算守卫）；完整 30 任务在环基线 **30/30 PASS**（单次，42.8 万输入 token；与 inspect 语义修改有时间重叠，非冻结构建；≥3 次方差与真机仍未做）。
 
 Densify / 工具目录加厚只在 A0 有进展之后。
 

@@ -153,3 +153,9 @@ iPhone 12 仿真（390×844，touch，deviceScaleFactor 3）× 真实 WASM 引�
 | geo-l2-bangkok-landuse-intersect | FAIL（无产物） | 21,660 个面 / 645,563 个顶点；`clip`/`intersection` 触发 WASM `unreachable`。已加浏览器矢量预算守卫（20,000 要素 / 500,000 顶点），超限时诚实拒绝并给桌面/分块降级，不再毒化 WASM 实例 |
 
 另修了评测器自身的三个问题：Shapefile 任务只喂 `.shp` 未带同名 sidecar；Windows grader 默认 GBK 读 JSON 触发 `UnicodeDecodeError`；失败任务缺少工具链/错误诊断。Capetown、KML、waterway 的单任务定跑分别为 9/9、10/10、12/12；完整 6 任务以上表为准。剩余靶子：Bangkok 的分块/桌面降级。
+
+### 2026-10-25 全量 30 任务复跑（tierflow_pro，单次）
+
+同一批 30 项固定任务在真实页面重跑：**30/30 PASS、0 FAIL、0 ERROR**，报告 `docs/baselines/stage4/agent-baseline.{json,md}`。总耗时 1,426 s（P50 30 s / P95 146 s / 最长 226 s），输入 428,028 tokens / 输出 14,352 tokens，预期工具命中 27/30，计划运行 11 次且 `auditRuns` 0 违规。唯一非门警告是 H08 的 48.7 s 超过 30 s 时长预算（warn，不影响 PASS）。
+
+这次复跑与“inspect_layers 显示范围/分析 CRS 语义”修改有时间重叠，**不是冻结构建的正式基准**；且仍是单次运行，路线图要求的每项 ≥3 次方差、真机与跨模型对照仍未做。因此结论只能写“在当前单次运行中 30/30”，不能写成稳定上限。M11 的轨迹已不再误判 DEM 的经纬度显示范围，明确按 EPSG:32650 米制网格推进。

@@ -660,3 +660,13 @@
   - **提交**：`f6b46b5`（空几何 + 矢量预算）、`80d28cb`（5/6 报告）；文档/PROGRESS 随后提交并推送。
   - **部署**：`npm run deploy:xyz` 完成；`https://tiphys.xyz` 实际返回 `assets/index-DzrDGMwm.js`，与本地 `dist/index.html` 一致（`curl --noproxy '*'` 复核；脚本自带 live 检查仍受本机 `HTTPS_PROXY` 干扰）。`/apk/tiphys-0.1.3.apk` 未变（17,994,932 B）。
   - **后续**：Bangkok 的大矢量分块或桌面降级（当前已诚实拒绝）；完整 30 任务自有基线；APK 未重建；overnight 保持 PAUSED。
+
+- 2026-10-25 16:42 Asia/Shanghai — A0.1 全量 30 任务基线 + inspect 数据上下文修复（Windows；overnight 仍 PAUSED）：
+  - **全量复跑**：30 项固定任务 **30/30 PASS，0 FAIL / 0 ERROR**；总耗时 1,426 s（P50 30 s / P95 146 s / 最长 226 s），输入 428,028 tokens / 输出 14,352 tokens，预期工具命中 27/30，计划运行 11 次且 `auditRuns` 0 违规。唯一非门警告为 H08 48.7 s 超过 30 s 时长预算（warn）。报告 `docs/baselines/stage4/agent-baseline.{json,md}` 已重写。
+  - **证据边界**：这次运行与 inspect 语义修改有时间重叠，不是冻结构建的正式基准；仍是单次运行，路线图要求的每项 ≥3 次方差、真机与跨模型对照仍未做，不能写成稳定上限。
+  - **inspect 数据上下文**：`inspect_layers` / `describe_layer` 现在显式区分 `analysisCrs`（源/分析 CRS）、`displayCrs`（EPSG:4326）、`displayBounds`、`boundsCrs`、`boundsAreDisplay` 与 `boundsNote`；浏览器提示词增加“bounds 是 WGS84 显示范围，分析 CRS 看 crs/analysisCrs，不要据显示范围推断像元单位”。
+  - **纠正一个此前的误判**：`dem_hills.tif` 实际是有效的 EPSG:32650 / 30 m / 120×100，不是“声明 UTM 但坐标为经纬度”；M11 之前看到的是 WGS84 显示范围。修复后 M11 轨迹明确按 EPSG:32650 米制网格推进。
+  - **验证**：`npx tsc --noEmit`、`npm run build` 通过；`browser-engine` 89/89（含 inspect 显示范围/分析 CRS 断言）；`test:plans` 31/31、`test:methods` 9/9、`test:search` 8/8、`test:contracts` 12/12、`test:centroid` 7/7、`test:vector-budget` 3/3、`test:baseline-eval` 6/6。
+  - **提交**：`fd19723`（inspect 语义）、`4822657`（30/30 报告）；文档/PROGRESS 随后提交。
+  - **部署**：构建 `assets/index-Ch4OIXyB.js`；部署与线上核对随后。
+  - **后续**：Bangkok 分块/桌面降级；≥3 次方差与真机；APK 未重建；overnight 保持 PAUSED。

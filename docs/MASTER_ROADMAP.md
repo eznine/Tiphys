@@ -306,12 +306,12 @@ interface ArtifactManifest {
 > | 1｜公共契约 + 桌面 WASM | ✅ 完成 | [STAGE1_CONTRACTS_AND_WASM.md](STAGE1_CONTRACTS_AND_WASM.md)、commit `4cbf212` |
 > | 2｜检索、方法、五操作 | ✅ 完成（缺口已记录） | [STAGE2_REPORT.md](STAGE2_REPORT.md)、[SEARCH_QUALITY.md](SEARCH_QUALITY.md)、[METHODS.md](METHODS.md)、[CROSS_ENGINE_SEMANTICS.md](CROSS_ENGINE_SEMANTICS.md) |
 > | 3｜自适应调度与审计 | ✅ 完成 | [STAGE3_REPORT.md](STAGE3_REPORT.md)、`docs/baselines/stage3/`、commit 记录见 HANDOVER |
-> | 4｜系统对照评测 + 手机 | ✅ 完成（仿真范围） | [STAGE4_REPORT.md](STAGE4_REPORT.md)：A/B 28→29/30（预算制修复 M09）、移动 9/9、GeoAgentBench 子集 2026-10-25 重评 **5/6**（Capetown 质心、KML、waterway 空几何过滤已修复；仅 Bangkok 大矢量 WASM 资源边界失败）；真机与 ≥3 次方差仍未做 |
+> | 4｜系统对照评测 + 手机 | ✅ 完成（仿真范围） | [STAGE4_REPORT.md](STAGE4_REPORT.md)：2026-10-25 全量 30 任务复跑 **30/30 PASS**（单次，P50 30 s / P95 146 s）；A/B 28→29/30（预算制修复 M09）、移动 9/9、GeoAgentBench 子集重评 **5/6**（Capetown 质心、KML、waterway 已修复；仅 Bangkok 大矢量 WASM 资源边界失败）；真机与 ≥3 次方差仍未做 |
 > | 5｜完整价值任务 | 🔶 5A/5B/5C 子集完成 | [STAGE5A_HYDROLOGY.md](STAGE5A_HYDROLOGY.md)（河网纵向 8/8 + 敏感性）、[STAGE5B_GIS.md](STAGE5B_GIS.md)（服务圈纵向 4 半径 + 守恒）、[STAGE5C_ECOLOGY.md](STAGE5C_ECOLOGY.md)（最小成本廊道 3 合成阻力方案 + 成本单调性；真实生态模型未做） |
 >
 > 阶段 2 的"完成"指验收门槛满足：207 条标注检索、五操作覆盖/缺口矩阵、11 张方法卡（2026-10-25 增补类型化 CRS/单位/叠加重复计数护栏，以及真质心/局部米制投影卡）、CRS/单位前置校验。后续桌面 Python 的 `gis.zonal_statistics` 已实现并验证；浏览器 `gis.dissolve` 与浏览器 `gis.zonal_statistics` 仍不可用，在 [STAGE2_REPORT.md](STAGE2_REPORT.md) 与 `OPERATION_SUPPORT` 中标为不支持并给出降级路径。
 > 阶段 3 的"完成"指：11 个真实 3–4 步任务（12 次运行）在确定性执行器上可执行/可安全中止/可断点恢复，运行记录可独立复算（sha256 重算 + auditRuns 不变量），故意制造的错误全部诚实失败；**不代表**模型在环成功率已测（阶段 4）、桌面端有计划执行器、客户端有回放 UI——见 [STAGE3_REPORT.md](STAGE3_REPORT.md) §8。
-> 阶段 4 的"完成（仿真范围）"：A/B 双臂已跑（28→29/30，预算制消除"检索吃光步数"失败模式）、移动任务卡 9/9（含河网/服务圈卡）、GeoAgentBench 兼容子集用基准自带评分器实测（2026-10-25 重评 **5/6**：Capetown 质心、KML 属性/2D 导出、waterway 空几何过滤已修复；仅 Bangkok 21,660 面/64.5 万顶点触发 WASM 资源边界，已加浏览器矢量预算守卫诚实拒绝）。**真机、≥3 次方差、GeoAnalystBench 仍未做**——见 [STAGE4_REPORT.md](STAGE4_REPORT.md) §5/§7/§8。
+> 阶段 4 的"完成（仿真范围）"：2026-10-25 全量 30 任务复跑 **30/30 PASS**（单次，P50 30 s / P95 146 s，输入 428k tokens；与 inspect 语义修改有时间重叠，非冻结构建）；A/B 双臂曾跑 28→29/30（预算制消除"检索吃光步数"失败模式）、移动任务卡 9/9（含河网/服务圈卡）、GeoAgentBench 兼容子集重评 **5/6**（Capetown 质心、KML 属性/2D 导出、waterway 空几何过滤已修复；仅 Bangkok 21,660 面/64.5 万顶点触发 WASM 资源边界，已加浏览器矢量预算守卫诚实拒绝）。**真机、≥3 次方差、GeoAnalystBench 仍未做**——见 [STAGE4_REPORT.md](STAGE4_REPORT.md) §5/§7/§8。
 > 阶段 5 的 5A/5B/5C 子集：河网、服务圈与最小成本廊道三条纵向有程序性验收 + 敏感性/守恒/单调性不变量 + 交付模板（[STAGE5A](STAGE5A_HYDROLOGY.md)/[STAGE5B](STAGE5B_GIS.md)/[STAGE5C](STAGE5C_ECOLOGY.md)）；5C 只用用户给定合成阻力，真实流域数据、路网距离、真实生态阻力/Circuitscape/InVEST 未做。
 
 ### 阶段 0｜测清现状，冻结可复现基线（P0）
