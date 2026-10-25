@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Settings2, Server, Palette, SlidersHorizontal, Info, X, Eye, EyeOff, Check, Sun, Moon, Monitor, PlugZap, LoaderCircle, RefreshCw, Download } from "lucide-react";
 import { agentRequest } from "../lib/service";
 import { matchProviderPreset, PROVIDER_PRESETS } from "../lib/defaults";
-import { checkForAppUpdate, openApkDownload, type RemoteVersionInfo, BUNDLED_APP_VERSION } from "../lib/appUpdate";
+import { checkForAppUpdate, openApkDownload, type RemoteVersionInfo, BUNDLED_APP_VERSION, DEFAULT_APK_URL } from "../lib/appUpdate";
 
 export type ThemeMode = "light" | "dark" | "system";
 type Settings = { provider: string; baseURL: string; model: string; hasApiKey: boolean; keyCount: number; keySource: string;
@@ -66,6 +66,16 @@ export function SettingsDialog({ theme, onTheme, density, onDensity, onClose, on
     try {
       await openApkDownload(updateOffer.apkUrl);
       setMessage("已打开下载链接。下载完成后请允许安装未知来源应用。");
+    } catch (err) {
+      setError(String(err));
+    }
+  };
+  const runDownloadApk = async () => {
+    setError("");
+    try {
+      const url = updateOffer?.apkUrl || DEFAULT_APK_URL;
+      await openApkDownload(url);
+      setMessage("已打开 APK 下载。下载完成后请允许安装未知来源应用。");
     } catch (err) {
       setError(String(err));
     }
@@ -157,12 +167,15 @@ export function SettingsDialog({ theme, onTheme, density, onDensity, onClose, on
             <p className="settings-help">遇到连接、工具或任务问题，可以在运行日志中查看详细记录与服务状态。</p>
             <button type="button" className="icon-btn" onClick={() => { onClose(); onLogs(); }}>打开运行日志</button>
             <h3>应用更新</h3>
-            <p className="settings-help">Android 应用可手动检查 tiphys.xyz 上的版本，不会自动强制更新。浏览器网页版可点此了解流程，但不会安装 APK。</p>
+            <p className="settings-help">Android 调试包可从 tiphys.xyz 下载安装；已安装的应用可「检查更新」。不会自动强制更新。</p>
             <div className="settings-update-row">
-              <button type="button" className="icon-btn" aria-label="检查更新" disabled={updatePending || !!pending} onClick={() => void runCheckUpdate()}>
+              <button type="button" className="primary-btn" aria-label="下载 Android APK" disabled={updatePending} onClick={() => void runDownloadApk()}>
+                <Download size={15} />下载 Android APK
+              </button>
+              <button type="button" className="secondary-btn" aria-label="检查更新" disabled={updatePending || !!pending} onClick={() => void runCheckUpdate()}>
                 {updatePending ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />}检查更新
               </button>
-              {updateOffer && <button type="button" className="primary-btn" aria-label="下载更新" disabled={updatePending} onClick={() => void runDownloadUpdate()}>
+              {updateOffer && <button type="button" className="secondary-btn" aria-label="下载更新" disabled={updatePending} onClick={() => void runDownloadUpdate()}>
                 <Download size={15} />下载更新 {updateOffer.version}
               </button>}
             </div>

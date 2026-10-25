@@ -557,3 +557,14 @@
     5. `capacitor.config.ts` Keyboard `resizeOnFullScreen: true`; `npx cap sync android`.
   - Last resort NOT taken (dock still folds on focus). If OPPO still stuck after native Keyboard hide, next step is stop `data-input-focused` dock collapse.
   - Verify: `npx tsc --noEmit` OK; `npm run build` OK. Deploy tiphys.xyz. Agent overnight remains paused. APK needs rebuild to embed Keyboard plugin.
+
+- 2026-10-25 11:49 Asia/Shanghai — APK 0.1.1 rebuild + web download button (box only; Agent/builder stay paused):
+  - User: downloaded APK still old morning debug; asked where web download link is.
+  - Root: live tiphys.apk was morning 0.1.0 (~18MB) uploaded without rebuild after mobile fixes; version.json matched so check-update said up-to-date; web Settings had no visible APK download button; CF Cache-Control 4h HIT on /apk/.
+  - Ship:
+    1. Bump to **0.1.1** / versionCode **2** (android/app/build.gradle, BUNDLED_* in src/lib/appUpdate.ts, public/version.json, package.json).
+    2. Settings → 关于与诊断: always-visible primary 「下载 Android APK」 via openApkDownload(DEFAULT_APK_URL); keep 「检查更新」 as secondary (native).
+    3. npm run android:build on top of 24dfb2c (IME dismiss + @capacitor/keyboard) → dist-apk/tiphys-debug.apk 17.2 MiB, versionCode 2 / 0.1.1, sha256 667d691316e4e08d04ff8187b6e770f587c4ef43af01d5ecae15abdf08c9a142.
+    4. Uploaded versioned https://tiphys.xyz/apk/tiphys-0.1.1.apk (+ mirrored tiphys.apk on origin); version.json apkUrl uses versioned name for CDN bust (CF still HIT on old tiphys.apk URL).
+    5. npm run build + npm run deploy:xyz OK (live asset matches).
+  - Confirm: live version.json 0.1.1 / code 2; tiphys-0.1.1.apk content-length 17987653 (was 18654959). Agent overnight remains paused.

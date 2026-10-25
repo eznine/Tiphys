@@ -969,7 +969,7 @@ textarea {
 .settings-feedback.error, .settings-warning { color: #c75e34; background: #c75e3410; }
 .settings-feedback.success { color: var(--tiphys-accent); background: var(--tiphys-accent-muted); }
 .settings-update-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 12px; }
-.settings-update-row .icon-btn, .settings-update-row .primary-btn { display: inline-flex; align-items: center; gap: 6px; }
+.settings-update-row .icon-btn, .settings-update-row .primary-btn, .settings-update-row .secondary-btn { display: inline-flex; align-items: center; gap: 6px; }
 .settings-update-notes { margin-top: 0; padding: 10px 12px; border-radius: 5px; background: var(--tiphys-accent-muted); color: var(--tiphys-text); }
 
 .settings-warning { padding: 10px; font-size: 11px; }

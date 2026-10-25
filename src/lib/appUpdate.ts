@@ -4,8 +4,11 @@ import { Capacitor } from "@capacitor/core";
 export const VERSION_JSON_URL = "https://tiphys.xyz/version.json";
 
 /** Bundled fallback when Capacitor App plugin is unavailable (web / pre-sync APK). */
-export const BUNDLED_APP_VERSION = "0.1.0";
-export const BUNDLED_VERSION_CODE = 1;
+export const BUNDLED_APP_VERSION = "0.1.1";
+export const BUNDLED_VERSION_CODE = 2;
+
+/** Always-available download (versioned to bust CDN). */
+export const DEFAULT_APK_URL = "https://tiphys.xyz/apk/tiphys-0.1.1.apk";
 
 export type RemoteVersionInfo = {
   version: string;
@@ -97,7 +100,7 @@ export async function checkForAppUpdate(signal?: AbortSignal): Promise<UpdateChe
     return {
       status: "web-only",
       local,
-      message: "检查更新仅适用于 Android 应用。可在 tiphys.xyz 下载 APK 后安装使用。",
+      message: "检查更新仅适用于 Android 应用。请点下方「下载 Android APK」获取安装包。",
     };
   }
   const remote = await fetchRemoteVersion(signal);
