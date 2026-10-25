@@ -648,5 +648,6 @@
   - **KML/GeoJSON 交付**：KML `<description>` 的“键：值”展开为真实属性（Catégorie / Dernière vérification 等）；GeoJSON 导出按 RFC 7946 统一 EPSG:4326、去 Z、把 4979 的 `crs` 重标为 4326，其他格式保留原生 CRS；导出结果显式返回 `source_crs` / `export_crs`。
   - **评测器**：Shapefile 任务自动收集同名 `.shx/.dbf/.prj/.cpg`；Windows grader 强制 `PYTHONUTF8=1`（此前 GBK 读 JSON 崩溃）；失败任务记录工具链/工具错误/最后回答并保留 submission 目录；Bangkok 单任务 600 s 预算。
   - **验证**：`npx tsc --noEmit` 通过；`npm run build` 通过；`test:plans` 31/31；`test:methods` 9/9；`test:search` 8/8；`test:contracts` 12/12；`test:centroid` 7/7；`test:baseline-eval` 6/6；`browser-engine` 88/88。
-  - **提交**：`ee93d7e`（真质心/KML/RFC 7946）、`573f3c9`（GeoAgentBench harness + 4/6 报告）；文档与 PROGRESS 随后提交。
+  - **提交**：`ee93d7e`（真质心/KML/RFC 7946）、`573f3c9`（GeoAgentBench harness + 4/6 报告）、`84a4a81`（文档/PROGRESS），已推送 `origin/main`。
+  - **部署**：`npm run deploy:xyz` 完成；`https://tiphys.xyz` 实际返回 `assets/index-BiKkbh-e.js`，与本地 `dist/index.html` 一致（`curl --noproxy '*'` 复核；脚本自带 live 检查仍受本机 `HTTPS_PROXY` 干扰）。`/apk/tiphys-0.1.3.apk` 未变（17,994,932 B）。
   - **未做/后续**：waterway 空几何过滤器与大矢量分块/降级；未重跑完整 30 任务自有基线；未重建 APK；overnight 保持 PAUSED。
