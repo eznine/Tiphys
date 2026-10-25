@@ -32,7 +32,7 @@
   --m-shadow-soft: 0 10px 26px -20px rgba(23, 43, 70, 0.3);
   --m-ease: cubic-bezier(0.32, 0.72, 0, 1);
   --m-ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
-  --m-tab-ms: 420ms;
+  --m-tab-ms: 560ms;
   --m-dock-height: 64px;
   --m-dock-space: calc(var(--m-dock-height) + env(safe-area-inset-bottom) + 18px);
   --m-bottom-card-h: 146px;
@@ -98,14 +98,17 @@
   background: #dfe8f2;
   opacity: 1;
   visibility: visible;
+  will-change: transform;
   transition: opacity 280ms var(--m-ease), visibility 280ms var(--m-ease);
 }
-/* data-tab is on .m-shell — hide map instantly so tab swaps never flash it */
+/* data-tab is on .m-shell — hide map instantly so non-map tab swaps never flash it */
 .app-shell.mobile .m-shell:not([data-tab="map"]) .m-map-stage {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   transition: none;
+  animation: none;
+  transform: none;
 }
 .app-shell.mobile .m-map-stage .map-canvas-wrap,
 .app-shell.mobile .m-map-stage .maplibre-map { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -624,7 +627,7 @@
   background: color-mix(in srgb, var(--m-accent) 14%, transparent);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
   transform: translate3d(calc(var(--dock-index, 0) * 100%), 0, 0);
-  transition: transform var(--m-tab-ms, 420ms) var(--m-ease);
+  transition: transform var(--m-tab-ms, 560ms) var(--m-ease-soft);
   pointer-events: none;
 }
 .app-shell.mobile .m-dock-item {
@@ -1066,7 +1069,7 @@ button.m-bottom-status { cursor: pointer; }
 .app-shell.mobile .chat-bubble { max-width: 92%; font-size: 13.5px; line-height: 1.55; border-radius: 16px; padding: 10px 12px; }
 .app-shell.mobile .chat-bubble[data-role="user"] { align-self: flex-end; background: var(--m-accent); color: #fff; border-bottom-right-radius: 6px; }
 .app-shell.mobile .chat-bubble[data-role="agent"] { align-self: flex-start; background: var(--m-surface); border: 1px solid var(--m-line); border-bottom-left-radius: 6px; }
-.app-shell.mobile .chat-bubble .meta { font-size: 9.5px; opacity: 0.7; }
+.app-shell.mobile .chat-bubble > .meta { display: none; } /* body only — no TIPHYS/你 labels */
 .app-shell.mobile .agent-markdown { font-size: 13.5px; }
 .app-shell.mobile .agent-markdown h1,
 .app-shell.mobile .agent-markdown h2,
@@ -2220,17 +2223,24 @@ button.m-bottom-status { cursor: pointer; }
 }
 
 .app-shell.mobile .m-shell[data-tab-dir="forward"] .m-page {
-  animation: m-slide-in-end var(--m-tab-ms, 420ms) var(--m-ease) both;
+  animation: m-slide-in-end var(--m-tab-ms, 560ms) var(--m-ease-soft) both;
 }
 .app-shell.mobile .m-shell[data-tab-dir="back"] .m-page {
-  animation: m-slide-in-start var(--m-tab-ms, 420ms) var(--m-ease) both;
+  animation: m-slide-in-start var(--m-tab-ms, 560ms) var(--m-ease-soft) both;
 }
-/* Map chrome: top-down scale-in only — never ride the horizontal page slide */
+/* Entering map: same bidirectional horizontal slide as other tabs (stage stays mounted) */
+.app-shell.mobile .m-shell[data-tab="map"][data-tab-dir="forward"] .m-map-stage {
+  animation: m-slide-in-end var(--m-tab-ms, 560ms) var(--m-ease-soft) both;
+}
+.app-shell.mobile .m-shell[data-tab="map"][data-tab-dir="back"] .m-map-stage {
+  animation: m-slide-in-start var(--m-tab-ms, 560ms) var(--m-ease-soft) both;
+}
+/* Map chrome: top-down scale-in only — alongside the map-stage slide, not instead of it */
 .app-shell.mobile .m-top-chrome {
-  animation: m-capsule-in 400ms var(--m-ease) both;
+  animation: m-capsule-in 400ms var(--m-ease-soft) both;
 }
 .app-shell.mobile .m-map-chrome {
-  animation: m-map-chrome-in 440ms var(--m-ease) both;
+  animation: m-map-chrome-in 480ms var(--m-ease-soft) both;
 }
 .app-shell.mobile .m-top-capsule,
 .app-shell.mobile .m-glass-round {
@@ -2279,6 +2289,7 @@ button.m-bottom-status { cursor: pointer; }
 .app-shell.mobile .m-dock-item:active { transform: scale(0.92); }
 
 .app-shell.mobile.m-shell-lite .m-page,
+.app-shell.mobile.m-shell-lite .m-map-stage,
 .app-shell.mobile.m-shell-lite .m-top-chrome,
 .app-shell.mobile.m-shell-lite .m-map-chrome,
 .app-shell.mobile.m-shell-lite .m-bottom-card,

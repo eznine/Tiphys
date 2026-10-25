@@ -523,3 +523,9 @@
   - Root causes: (1) `data-tab-dir` set in `useEffect` after mount → left/back hard-cut; (2) slide keyframes used opacity 0.78 + broken `.app-shell.mobile[data-tab]` map-stage hide (attr is on `.m-shell`) → map flashed between pages; (3) dock remounts across embedded/fixed hosts reset `--dock-index` with no transition on skip jumps; (4) map chrome overrode capsule enter with horizontal slide; (5) Send first-tap eaten: input blur restored dock layout before click landed; IME dismiss left `data-input-focused` stuck on OPPO WebView.
   - Fixes: sync `setTab` sets dir; soft `--m-ease` + `--m-tab-ms: 420ms` opaque slides both ways; module-level `lastDockIndex` FLIP so bubble interpolates any gap; map chrome `m-map-chrome-in` (translateY+scale) only; map-stage instant hide via `.m-shell:not([data-tab=map])`; Send `pointerdown` preventDefault + `requestSubmit` + ghost-click swallow; viewport recover + shrink-gated poll clears typing.
   - Verify: `npx tsc --noEmit` OK; `npm run build` OK. Deploy tiphys.xyz. Do NOT start Agent overnight.
+
+- 2026-10-25 11:35 Asia/Shanghai — Mobile polish (box only; Agent/builder stay paused):
+  - Chat bubbles: hide speaker `.meta` (「TIPHYS」/「你」) under `.app-shell.mobile`; message body only. Desktop unchanged.
+  - Tab slide slower: `--m-tab-ms: 560ms` + `--m-ease-soft` (cubic-bezier(0.22, 1, 0.36, 1)) for `.m-page`, dock bubble, and map enter.
+  - Map hard-cut root cause: `.m-map-stage` stays mounted and was shown/hidden with instant opacity/visibility (and `transition: none` off-tab) so any →map skipped `m-tab-slide`. Fix: when `data-tab=map`, apply the same bidirectional `m-slide-in-end/start` on `.m-map-stage`; chrome keeps separate top-down `m-map-chrome-in`. Map→other still slides via destination `.m-page`.
+  - Verify: `npx tsc --noEmit` OK; `npm run build` OK. Deploy tiphys.xyz. Do NOT start Agent overnight.
