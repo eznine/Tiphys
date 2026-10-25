@@ -493,7 +493,18 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
       status.setAttribute("role", "status");
       status.hidden = true;
       content.append(status);
-      identifyRef.current = new maplibregl.Popup({ closeButton: true, closeOnClick: false, maxWidth: "340px", offset: 10, className: "tiphys-identify-popup" })
+      // Mobile: bottom-sheet style (CSS pins full-width above dock). Desktop: anchored card.
+      const onMobile = mobileRef.current;
+      if (onMobile) content.classList.add("tiphys-identify-mobile");
+      const popupOpts: maplibregl.PopupOptions = {
+        closeButton: true,
+        closeOnClick: false,
+        maxWidth: onMobile ? "100%" : "340px",
+        offset: onMobile ? 0 : 10,
+        className: onMobile ? "tiphys-identify-popup tiphys-identify-popup-mobile" : "tiphys-identify-popup",
+      };
+      if (onMobile) popupOpts.anchor = "bottom";
+      identifyRef.current = new maplibregl.Popup(popupOpts)
         .setLngLat(event.lngLat)
         .setDOMContent(content)
         .once("close", closeIdentify)

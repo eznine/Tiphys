@@ -6,12 +6,31 @@ export type MobileBackEntry = {
   close: () => void;
 };
 
+export type MobileBackStack = {
+  push: (key: string, close: () => void) => void;
+  dismiss: (key: string) => void;
+  clearPrefix: (prefix: string) => void;
+  consume: () => boolean;
+  depth: () => number;
+  subscribe: (onRootBack: () => boolean) => () => void;
+};
+
+let activeStack: MobileBackStack | null = null;
+
+/** Shared stack so MobileBottomCard can push composer-fold without props. */
+export function getActiveMobileBackStack(): MobileBackStack | null {
+  return activeStack;
+}
+
 /**
  * In-app back stack synced with history.pushState (web) and Capacitor
  * App.backButton (native). Closers run one level at a time — tool detail →
  * tool list → closed, not a hard jump to the map.
+ *
+ * Composer fold (typing) pushes `composer-fold` so Back / OPPO side-swipe
+ * first blurs+unfolds instead of leaving an input-only layout or exiting.
  */
-export function createMobileBackStack() {
+export function createMobileBackStack(): MobileBackStack {
   const stack: MobileBackEntry[] = [];
   let suppressing = false;
   let rootReady = false;
@@ -135,7 +154,7 @@ export function createMobileBackStack() {
     };
   };
 
-  return { push, dismiss, clearPrefix, consume, depth, subscribe };
+  const api: MobileBackStack = { push, dismiss, clearPrefix, consume, depth, subscribe };
+  activeStack = api;
+  return api;
 }
-
-export type MobileBackStack = ReturnType<typeof createMobileBackStack>;

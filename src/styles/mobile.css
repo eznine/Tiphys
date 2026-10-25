@@ -707,8 +707,8 @@ button.m-bottom-status { cursor: pointer; }
 }
 .app-shell.mobile .m-bottom-status > svg { flex-shrink: 0; color: var(--m-accent); }
 .app-shell.mobile .m-bottom-composer { min-width: 0; }
-/* Fold UX removed: never hide dock/status while composer focused
-   (OPPO/Chrome side-swipe left input focused + dock gone). */
+.app-shell.mobile .m-bottom-card[data-input-focused="true"] .m-bottom-status-slot,
+.app-shell.mobile .m-bottom-card[data-input-focused="true"] .m-dock { display: none; }
 
 .app-shell.mobile .m-bottom-card .m-askbar,
 .app-shell.mobile .m-bottom-card .mobile-composer {
@@ -1926,6 +1926,94 @@ button.m-bottom-status { cursor: pointer; }
 
 /* ---------------------------------------------------- full-screen panels ---- */
 
+
+/* Map feature identify: phone bottom sheet (not desktop floating card). */
+.app-shell.mobile .maplibregl-popup.tiphys-identify-popup-mobile {
+  position: fixed !important;
+  left: 10px !important;
+  right: 10px !important;
+  bottom: calc(var(--m-bottom-card-space, 154px) + 6px) !important;
+  top: auto !important;
+  transform: none !important;
+  width: auto !important;
+  max-width: none !important;
+  z-index: 95;
+  pointer-events: none;
+}
+.app-shell.mobile .maplibregl-popup.tiphys-identify-popup-mobile .maplibregl-popup-content {
+  pointer-events: auto;
+  width: 100%;
+  max-width: none;
+  max-height: min(42vh, 340px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+  padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--m-line) 80%, transparent);
+  background: color-mix(in srgb, var(--m-surface) 92%, transparent);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  box-shadow: 0 18px 40px -24px rgba(23, 43, 70, 0.55), 0 2px 10px rgba(23, 43, 70, 0.08);
+}
+.app-shell.mobile .maplibregl-popup.tiphys-identify-popup-mobile .maplibregl-popup-tip {
+  display: none;
+}
+.app-shell.mobile .maplibregl-popup.tiphys-identify-popup-mobile .maplibregl-popup-close-button {
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+  line-height: 36px;
+  right: 4px;
+  top: 4px;
+  border-radius: 12px;
+}
+.app-shell.mobile .tiphys-identify-mobile {
+  max-height: none;
+  font-size: 13px;
+}
+.app-shell.mobile .tiphys-identify-mobile .tiphys-identify-title {
+  font-size: 13.5px;
+  padding-right: 36px;
+  margin-bottom: 8px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+.app-shell.mobile .tiphys-identify-mobile dl {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+}
+.app-shell.mobile .tiphys-identify-mobile dt {
+  margin-top: 8px;
+  font-size: 10.5px;
+  color: var(--m-ink-3);
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
+.app-shell.mobile .tiphys-identify-mobile dd {
+  margin: 2px 0 0;
+}
+.app-shell.mobile .tiphys-identify-mobile .tiphys-identify-value {
+  padding: 6px 0;
+  font-size: 13.5px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+.app-shell.mobile .tiphys-identify-mobile .tiphys-identify-actions {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.app-shell.mobile .tiphys-identify-mobile .tiphys-identify-actions button {
+  min-height: 40px;
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+}
 
 /* Attribute table as bottom sheet (mobile) — reuse sheet body scroll. */
 .app-shell.mobile .m-sheet .attribute-table {

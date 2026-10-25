@@ -577,3 +577,22 @@
   5. **Chat tab slide:** `.m-chat-page` no longer gets whole-page slide (that re-slid fixed bottom card/dock). Only chat content children animate; dock/composer stay put.
   - Verify: `npx tsc --noEmit` OK; `npm run build` OK. Deploy tiphys.xyz.
   - **APK:** web assets changed for back stack + fold removal. Recommend **0.1.2 rebuild** so Capacitor `backButton` + bundled web match; does **not** block web deploy (tiphys.xyz Chrome gets fixes immediately). Agent/builder remain paused.
+
+- 2026-10-25 12:15 Asia/Shanghai — Restore dock-fold UX + bulletproof IME restore (user REJECTED keeping dock visible while typing; box only; **Agent overnight stays paused**):
+  - User (pt226u): 打开对话框任务栏隐藏，退出后恢复 — NOT keep dock visible while typing; honesty required.
+  - Fold CSS restored: `.m-bottom-card[data-input-focused="true"]` hides `.m-dock` + status slot again.
+  - `MobileBottomCard` owns typing fold state again (focus → typing=true).
+  - Restore triggers (aggressive, OPPO Chrome + APK):
+    1. Capacitor `@capacitor/keyboard` willHide/didHide → unfold (APK)
+    2. `navigator.virtualKeyboard` geometrychange height 0
+    3. visualViewport resize/scroll shrink→recover (secondary; OPPO often never shrinks)
+    4. Document capture `pointerdown`/`touchstart` outside input/send/add → blur+unfold
+    5. `composer-fold` pushed on mobileBack stack while folded — Back / OPPO side-swipe / Cap `backButton` **first** blur+unfold (consume back; no exit / no tab jump)
+    6. document focusin/focusout: activeElement not composer for >50ms while folded → clear
+    7. 200ms activeElement poll while folded
+    8. pageshow / orientationchange / visibilitychange
+    9. Send pointerdown → onComposerIdle (one-tap send + unfold)
+  - Files: `src/mobile/{MobileBottomCard,imeRestore,mobileBack}.tsx|ts`, `src/styles/mobile.css`
+  - Verify: tsc + build + deploy tiphys.xyz. **APK needs rebuild** after for Keyboard+bundled web. Agent remains paused.
+  - Also: map feature identify popup on mobile → fixed bottom sheet (full-width safe inset above dock, vertical field list, 2-col actions). No more clipped desktop floating card.
+

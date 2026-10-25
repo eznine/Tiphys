@@ -4,9 +4,10 @@ import { Capacitor, type PluginListenerHandle } from "@capacitor/core";
  * Subscribe to IME / soft-keyboard dismiss signals.
  *
  * OPPO/ColorOS (and many Android WebViews) often dismiss the keyboard via
- * Back / side-swipe WITHOUT firing a document tap outside the input, and
- * without shrinking visualViewport. Capacitor Keyboard is the reliable native
- * path; blur + activeElement poll cover web / fallback.
+ * Back / side-swipe WITHOUT firing a document tap outside the input, WITHOUT
+ * blur, and WITHOUT shrinking visualViewport. Capacitor Keyboard is the
+ * reliable native path; web relies on popstate (composer-fold history),
+ * outside capture, focus polling, and shrink→recover when available.
  *
  * visualViewport is shrink→recover only (secondary). Ungated "full height"
  * checks are unsafe on OPPO: height often never shrinks while IME is open.
@@ -103,4 +104,12 @@ export function isTextControl(target: EventTarget | null): boolean {
     return !["checkbox", "radio", "range", "color", "file", "button", "submit", "reset"].includes(target.type);
   }
   return false;
+}
+
+/** True when the focused node is the bottom-card composer text field. */
+export function isComposerTextFocused(): boolean {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement)) return false;
+  if (!isTextControl(active)) return false;
+  return !!active.closest(".m-bottom-card");
 }
