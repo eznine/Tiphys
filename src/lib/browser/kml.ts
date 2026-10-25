@@ -6,17 +6,40 @@ export type KmlPlacemark = {
   hasGeometry: boolean;
 };
 
+const NAMED_ENTITIES: Record<string, string> = {
+  nbsp: " ", amp: "&", lt: "<", gt: ">", quot: '"', apos: "'",
+  eacute: "é", egrave: "è", agrave: "à", ccedil: "ç", ecirc: "ê", ocirc: "ô",
+  icirc: "î", ucirc: "û", euml: "ë", iuml: "ï", uuml: "ü", oelig: "œ",
+  ndash: "–", mdash: "—", hellip: "…",
+};
+
 function decodeXmlText(value: string): string {
   return value
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
     .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(Number.parseInt(hex, 16)))
     .replace(/&#([0-9]+);/g, (_, decimal: string) => String.fromCodePoint(Number.parseInt(decimal, 10)))
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, "&")
+    .replace(/&([a-zA-Z][a-zA-Z0-9]+);/g, (match, name: string) => NAMED_ENTITIES[name.toLocaleLowerCase()] ?? match)
     .trim();
+}
+
+/**
+ * KML descriptions are often an HTML blurb containing "Key: value" lines.
+ * Keep the original description, but expose the pairs as real properties so an
+ * Agent can rename/extract them instead of parsing HTML inside a chat reply.
+ */
+function descriptionFields(description: string | undefined): Record<string, string> {
+  if (!description) return {};
+  const text = decodeXmlText(description)
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ");
+  const fields: Record<string, string> = {};
+  for (const raw of text.split(/\n+/)) {
+    const line = raw.replace(/\s+/g, " ").trim();
+    const match = /^([^:：]{1,40})[:：]\s*(.+)$/.exec(line);
+    if (match) fields[match[1].trim()] = match[2].trim();
+  }
+  return fields;
 }
 
 function elementText(block: string, tag: string): string | undefined {
@@ -56,7 +79,7 @@ export function parseKmlPlacemarks(xml: string): KmlPlacemark[] {
       .replace(/<(?:[\w.-]+:)?SchemaData\b[^>]*>[\s\S]*?<\/(?:[\w.-]+:)?SchemaData>/gi, "");
     const name = elementText(withoutExtended, "name");
     const description = elementText(withoutExtended, "description");
-    const properties: Record<string, string> = { ...extended };
+    const properties: Record<string, string> = { ...descriptionFields(description), ...extended };
     if (name) properties.name = name;
     if (description) properties.description = description;
     marks.push({

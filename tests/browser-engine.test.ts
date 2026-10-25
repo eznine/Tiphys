@@ -71,6 +71,27 @@ test("actual WASM convex hull, point clipping and native centroid use the same l
   assert.equal(native.layer.feature_count, 1); assert.deepEqual(native.layer.geometry_types, ["Point"]);
 });
 
+test("native centroid uses the true area-weighted centroid and preserves attributes", async () => {
+  const lShape = {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: { building_id: "BLD1" },
+      geometry: { type: "Polygon", coordinates: [[[0, 0], [4, 0], [4, 1], [1, 1], [1, 4], [0, 4], [0, 0]]] },
+    }],
+  };
+  const input = (await importBrowserFile(new Blob([JSON.stringify(lShape)]), "lshape.geojson")).layer;
+  const result = await finished("centroid", { layer: input.id, output_name: "centroids" });
+  assert.equal(result.layer.feature_count, 1);
+  assert.deepEqual(result.layer.geometry_types, ["Point"]);
+  assert.equal(result.layer.crs, "EPSG:4326");
+  const stored: any = await readRecord(`layer:${result.layer.id}`);
+  const [x, y] = stored.geojson.features[0].geometry.coordinates;
+  assert.ok(Math.abs(x - 1.3571428571428572) < 1e-9, `x ${x}`);
+  assert.ok(Math.abs(y - 1.3571428571428572) < 1e-9, `y ${y}`);
+  assert.equal(stored.geojson.features[0].properties.building_id, "BLD1");
+});
+
 test("polygon union and measured geometry run with real WASM contracts", async () => {
   const square = (x: number, y: number, id: number) => ({ type: "Feature", properties: { id },
     geometry: { type: "Polygon", coordinates: [[[x, y], [x + .02, y], [x + .02, y + .02], [x, y + .02], [x, y]]] } });
@@ -162,12 +183,54 @@ test("KML ExtendedData survives the managed work copy and GeoJSON export", async
   const stored: any = await readRecord(`layer:${imported.layer.id}`);
   assert.ok(stored.geojson.features.every((feature: any) => "category" in feature.properties && "verified_date" in feature.properties));
   assert.equal(stored.extension, "fgb");
-  await finished("export_features", { layer: imported.layer.id, path: "paris_pois.geojson", fmt: "geojson" });
+  const exportResult = await finished("export_features", { layer: imported.layer.id, path: "paris_pois.geojson", fmt: "geojson" });
+  assert.equal(exportResult.export_crs, "EPSG:4326");
+  if (exportResult.source_crs !== "EPSG:4326") assert.match(exportResult.message, /RFC 7946.*EPSG:4326/);
   const exported: any = await readRecord("download:paris_pois.geojson");
   const json = JSON.parse(new TextDecoder().decode(exported.bytes));
+  assert.ok(!json.crs || /4326/.test(JSON.stringify(json.crs)), "GeoJSON must declare 4326 (or implicit WGS84)");
   assert.equal(json.features.length, 2);
+  assert.equal(json.features[0].geometry.coordinates.length, 2, "GeoJSON export must be 2D");
   assert.deepEqual(json.features.map((feature: any) => feature.properties.category).sort(), ["cafe", "museum"]);
   assert.deepEqual(json.features.map((feature: any) => feature.properties.verified_date).sort(), ["2026-01-02", "2026-02-03"]);
+});
+
+test("GeoJSON export normalizes projected layers to 4326", async () => {
+  const source = {
+    type: "FeatureCollection",
+    crs: { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } },
+    features: [{ type: "Feature", properties: { id: 1 }, geometry: { type: "Point", coordinates: [500000, 4400000] } }],
+  };
+  const layer = (await importBrowserFile(new Blob([JSON.stringify(source)]), "projected.geojson")).layer;
+  assert.equal(layer.crs, "EPSG:32650");
+  const result = await finished("export_features", { layer: layer.id, path: "projected.geojson", fmt: "geojson" });
+  assert.equal(result.source_crs, "EPSG:32650");
+  assert.equal(result.export_crs, "EPSG:4326");
+  assert.match(result.message, /RFC 7946.*EPSG:4326/);
+  const stored: any = await readRecord("download:projected.geojson");
+  const json = JSON.parse(new TextDecoder().decode(stored.bytes));
+  assert.ok(!json.crs || /4326/.test(JSON.stringify(json.crs)));
+  const [lon, lat] = json.features[0].geometry.coordinates;
+  assert.ok(lon > 100 && lon < 130, `lon ${lon}`);
+  assert.ok(lat > 20 && lat < 50, `lat ${lat}`);
+});
+
+test("KML HTML description key/value pairs become real properties", async () => {
+  const kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document><Folder><name>Cafés ouverts tard</name>
+  <Placemark><name>% Arabica</name>
+    <description><![CDATA[<b>% Arabica</b><br/>Cat&eacute;gorie&nbsp;: Cafés ouverts tard<br/><a href="https://example.org/poi/0">Voir la fiche</a><br/>Derni&egrave;re v&eacute;rification&nbsp;: 2026-01-01]]></description>
+    <Point><coordinates>2.324676,48.854156,0</coordinates></Point></Placemark>
+</Folder></Document></kml>`;
+  const marks = parseKmlPlacemarks(kml);
+  assert.equal(marks.length, 1);
+  assert.equal(marks[0].properties["Catégorie"], "Cafés ouverts tard");
+  assert.equal(marks[0].properties["Dernière vérification"], "2026-01-01");
+  assert.match(marks[0].properties.description, /Catégorie/);
+  const imported = await importBrowserFile(new Blob([kml]), "description_fields.kml");
+  const stored: any = await readRecord(`layer:${imported.layer.id}`);
+  assert.equal(stored.geojson.features[0].properties["Catégorie"], "Cafés ouverts tard");
+  assert.equal(stored.geojson.features[0].properties["Dernière vérification"], "2026-01-01");
 });
 
 test("polygon intersection and exact named export follow the Bangkok delivery path", async () => {
@@ -2671,10 +2734,10 @@ test("field_statistics reports numeric moments or top values with null counts", 
 
 test("catalog union, dedupe, L1 folders and every WASM L2 translation", async () => {
   await ensureBrowserCatalog();
-  assert.equal(browserCatalog.length, 1001, "38 shell/common tools (stage 3: +run_plan/plan_list/plan_get) + 958 WASM schemas + 5 plugin tools");
+  assert.equal(browserCatalog.length, 1002, "39 shell/common tools (stage 3: +run_plan/plan_list/plan_get; native centroid) + 958 WASM schemas + 5 plugin tools");
   assert.equal(new Set(browserCatalog.map(t => t.name)).size, browserCatalog.length);
   const desktop = desktopToolCatalog([{ name: "buffer", category: "邻近分析", parameters: { properties: {} } }]);
-  assert.equal(desktop.length, 1001, "desktop Python + WASM + shell-only stubs");
+  assert.equal(desktop.length, 1002, "desktop Python + WASM + shell-only stubs");
   assert.equal(new Set(desktop.map(t => t.name)).size, desktop.length);
   assert.ok(desktop.some(t => t.name === "gee_search_collection"));
   const l1 = new Set(browserCatalog.map(zhToolL1));
@@ -2725,6 +2788,10 @@ test("browser tool search ranks Chinese names and taxonomy, not only description
   assert.match(prompt, /交付纪律（文件导出）/);
   assert.match(prompt, /必须对最终结果图层调用 export_features/);
   assert.match(prompt, /metadata 参数显式传入/);
+  assert.match(prompt, /用户指定输出字段名时，导出前核对结果图层的精确列名/);
+  assert.match(prompt, /GeoJSON 按 RFC 7946 默认以 WGS84 经纬度交付/);
+  assert.match(prompt, /KML 的 description 若已展开为“键：值”字段/);
+  assert.match(prompt, /EPSG:4979 是 3D WGS84，不等于 2D GeoJSON 的 4326/);
   assert.equal((browserCatalog.find(tool => tool.name === "export_features")!.parameters.properties as any).metadata.type, "object");
   for (const name of ["linkage_mapper_corridor", "hydrology_flow_pipeline", "least_cost_path_pipeline", "clip_layers_to_aoi"]) assert.match(prompt, new RegExp(name));
   const recovered = buildBrowserSystemPrompt([{ id: "lyr_prompt", name: "道路", kind: "vector" }], {
@@ -2814,7 +2881,7 @@ test("catalog shell is immediately usable and async hydration reaches the honest
   assert.ok(shellToolCatalog.some(tool => tool.name === "gee_auth_status"));
   assert.ok(!shellToolCatalog.some(tool => tool.name.startsWith("wasm_")));
   assert.equal(state.wasm, 958);
-  assert.equal(state.total, 1001);
+  assert.equal(state.total, 1002);
   assert.equal(state.hydrated, true);
 });
 

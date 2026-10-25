@@ -34,6 +34,7 @@ const TOOL_ALIASES: Record<string, string[]> = {
   whitebox_extra: ["白盒扩展", "扩展工具箱", "额外工具"],
   central_feature: ["中心要素", "中央要素", "线性方向均值"],
   change_vector_analysis: ["变化矢量", "变化矢量分析", "CVA", "变化方向"],
+  centroid: ["质心", "几何中心", "中心点", "centroid", "area centroid"],
   centroid_vector: ["质心", "矢量质心", "几何中心", "中心点"],
   concave_hull: ["凹包", "凹壳", "concave hull", "贴合边界"],
   densify_features: ["要素加密", "几何加密", "折点加密", "densify"],

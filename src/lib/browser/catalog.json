@@ -378,6 +378,37 @@
     "annotations": {}
   },
   {
+    "name": "centroid",
+    "description": "True geometric centroid per feature in the layer's current CRS. Polygons use area-weighted centroids (holes subtract area); lines use length-weighted midpoints; points are copied. Properties are preserved. This does not reproject: for metric accuracy reproject to a local projected CRS first, then reproject the points back if needed. Job-based.\n\nArgs:\n    layer: Layer id or name.\n    output_name: Optional output layer name.\n",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        },
+        "output_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Name"
+        }
+      },
+      "required": [
+        "layer"
+      ],
+      "title": "centroidArguments",
+      "type": "object"
+    },
+    "category": "几何处理",
+    "annotations": {}
+  },
+  {
     "name": "simplify",
     "description": "Topology-preserving simplify with a metre tolerance (checked local UTM). Job-based.\n\nArgs:\n    layer: Layer id or name.\n    tolerance: Simplification tolerance (> 0).\n    units: meters (default), kilometers, or miles.\n    output_name: Optional output layer name.\n",
     "parameters": {

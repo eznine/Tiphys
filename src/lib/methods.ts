@@ -202,6 +202,29 @@ export const METHOD_CARDS: MethodCard[] = [
     negativeExample: { query: "算这个点的面积", why: "点没有面积；应改为统计点数或缓冲成面后再算。" },
   },
   {
+    id: "centroid-metric",
+    title: "质心与中心点",
+    triggers: ["质心", "centroid", "center point", "中心点", "几何中心"],
+    operation: undefined,
+    preconditions: [
+      "质心是平面几何量；在 EPSG:4326 度坐标下直接算，较大或跨带要素会偏移。",
+      "先投影到覆盖 AOI 的局部米制 CRS（如 UTM 带），算完再转回任务要求的 CRS。",
+      "保留源图层的稳定唯一 id，并核对每个输入要素恰好对应一个质心。",
+    ],
+    guardrails: [
+      { kind: "crs", check: "计算质心前确认输入为局部米制投影；只有 4326 时先重投影，算完再转回。", next: "按 AOI 选择 UTM/本地米制 EPSG；不要用度坐标下的平面质心冒充米级结果。" },
+    ],
+    clarify: ["输出用 WGS84 还是本地米制 CRS？", "是否保留源图层的哪个唯一 id？"],
+    antiPatterns: [
+      "直接在 4326 上算质心：大要素的偏移可超过 1 m，且随纬度/形状放大。",
+      "用包络框中心或多边形顶点平均值代替真实面积质心。",
+    ],
+    acceptance: ["每个输入要素恰有一个质心点，唯一 id 集合与输入一致。", "质心落在源要素包络内；与局部米制参考质心的偏差满足任务容差。", "输出 CRS 与任务要求一致，字段未被截断或改名。"],
+    positiveExample: { query: "为每个建筑面生成质心点", toolId: "centroid" },
+    negativeExample: { query: "直接在地理坐标下算质心并声称米级精度", why: "度坐标下的平面质心不是米制质心；大要素或跨带数据会超过米级容差。" },
+    workflow: ["reproject", "centroid"],
+  },
+  {
     id: "spatial-join",
     title: "空间连接与最近匹配",
     triggers: ["空间连接", "把属性连到点上", "最近站点", "join by location", "落在哪个区"],

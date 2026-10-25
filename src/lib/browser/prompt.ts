@@ -17,6 +17,10 @@ export const BROWSER_EXPORT_DISCIPLINE = `
 ## 交付纪律（文件导出）
 - 用户要求“保存/导出/写入/产出”文件，或明确给出文件名时，完成分析后必须对最终结果图层调用 export_features；path 使用用户指定的完整 basename（含扩展名），fmt 与扩展名一致（geojson/gpkg/fgb/csv）。
 - 不得只生成图层就声称已保存，也不得用空文件或未经验证的占位文件冒充结果。导出工具返回成功且文件有非零字节后，才能说已保存。
+- 用户指定输出字段名时，导出前核对结果图层的精确列名；源字段被截断（例如 Shapefile 的 10 字符限制）或大小写不一致时，先用 rename_field 改成用户要求的名字再导出，不能只在回答里说“就是这个字段”。
+- GeoJSON 按 RFC 7946 默认以 WGS84 经纬度交付；分析在投影米制 CRS 中进行时，导出前把最终图层重投影回 EPSG:4326（用户明确要求投影 GeoJSON 时除外），并在回答中说明分析用的 CRS。
+- KML 的 description 若已展开为“键：值”字段（例如 Catégorie、Dernière vérification），优先按语义直接 rename_field 成用户要求的列名（如 category、verified_date）；只有没有对应字段时才从 description 解析。不要把原始 HTML 当成目标列，也不要用 field_calculator 反复尝试正则/切片等不支持的函数。
+- EPSG:4979 是 3D WGS84，不等于 2D GeoJSON 的 4326；任务要求 4326 时要显式重投影/二维化，不能因为经纬度相同就跳过。回答里说明最终 CRS。
 - GeoJSON 需要顶层统计元数据（如 dropped_count）时，用 export_features 的 metadata 参数显式传入；gpkg/fgb/csv 不承载 GeoJSON 顶层元数据，工具会返回 not_supported，必须如实转述。`;
 
 const BROWSER_SEARCH_DISCIPLINE = `

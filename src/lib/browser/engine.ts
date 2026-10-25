@@ -13,6 +13,7 @@ import type { GeeAuthStatus } from "../gee";
 import { assertShapefileParts, groupShapefileParts, SHAPEFILE_EXTENSIONS } from "../shapefile";
 import { fieldRenameError, isNumericField, matchesDefinitionQuery, normalizeDefinitionOperator } from "../attribute-query";
 import { mergeKmlProperties, parseKmlPlacemarks } from "./kml";
+import { centroidOfGeometry } from "./centroid";
 
 type LayerRecord = {
   info: Omit<DataLayer, "url">;
@@ -610,10 +611,50 @@ async function spatialJoin(record: LayerRecord, other: LayerRecord, args: Record
   }
   return { ...(await adopt(bytes, "fgb", outputName, signal)), predicate, join_layer_id: other.info.id };
 }
+function dropZPosition(value: unknown): unknown {
+  if (!Array.isArray(value)) return value;
+  if (value.length >= 2 && value.every(item => typeof item === "number")) return [value[0], value[1]];
+  return value.map(dropZPosition);
+}
+function dropGeometryZ(geometry: Record<string, any>): Record<string, any> {
+  if (!geometry) return geometry;
+  if (geometry.type === "GeometryCollection") {
+    return { ...geometry, geometries: (geometry.geometries ?? []).map(dropGeometryZ) };
+  }
+  return geometry.coordinates ? { ...geometry, coordinates: dropZPosition(geometry.coordinates) } : geometry;
+}
+/**
+ * True planar centroid per feature, in the layer's own CRS. This intentionally
+ * does not use the catalog's `centroid_vector`, whose "mean coordinate" centre
+ * diverges from an area-weighted centroid on irregular polygons.
+ */
+async function centroidLayer(record: LayerRecord, outputName: string, signal?: AbortSignal) {
+  if ((record.info.kind ?? "vector") !== "vector") throw new Error("质心仅适用于矢量图层。");
+  const source = await originalGeojson(record.bytes, record.extension, signal) as FeatureCollection;
+  if (source?.type !== "FeatureCollection" || !Array.isArray(source.features)) throw new Error("源数据无法读回为有效的矢量要素集合。");
+  if (!source.features.length) throw new Error("图层没有要素。");
+  const features = source.features.map((feature, index) => {
+    if (!feature?.geometry) throw new Error(`第 ${index + 1} 个要素没有几何。`);
+    const [x, y] = centroidOfGeometry(feature.geometry);
+    return { ...feature, properties: { ...(feature.properties ?? {}) }, geometry: { type: "Point" as const, coordinates: [x, y] } };
+  });
+  const epsg = String(record.info.crs ?? "").match(/EPSG:(\d+)/i)?.[1];
+  const collection = {
+    type: "FeatureCollection",
+    ...(epsg ? { crs: { type: "name", properties: { name: `urn:ogc:def:crs:EPSG::${epsg}` } } } : {}),
+    features,
+  } as FeatureCollection;
+  const output = await adopt(encoder.encode(JSON.stringify(collection)), "geojson", outputName, signal);
+  return { ...output, method: "true-area-centroid", crs: record.info.crs ?? null };
+}
 async function execute(name: string, args: Record<string, any>, signal?: AbortSignal): Promise<Record<string, any>> {
   if (name.startsWith("wasm_")) return runNative(name.slice(5), args, signal);
   if (name === "dissolve") rejectBrowserDissolve();
   if (name === "run_plan") return runBrowserPlan(args, signal);
+  if (name === "centroid") {
+    const record = await resolve(args.layer);
+    return centroidLayer(record, String(args.output_name || `${record.info.name}_质心`), signal);
+  }
   if (name === "remove_layer") return removeLayer(args.layer);
   if (pluginToolNames.has(name)) return runPluginTool(name, args, {
     runTool: (toolName, toolArgs) => execute(toolName, toolArgs, signal),
@@ -775,8 +816,25 @@ async function execute(name: string, args: Record<string, any>, signal?: AbortSi
     if (inferred && ["geojson", "json", "gpkg", "fgb", "csv"].includes(pathExtension ?? "") && inferred !== format) {
       throw new Error(`导出路径扩展名 .${pathExtension} 与格式 ${format} 不一致；请使用匹配的文件名，避免生成名实不符的文件。`);
     }
+    const sourceCrs = record.info.crs ?? null;
+    const sourceEpsg = Number(String(sourceCrs ?? "").match(/^EPSG:(\d+)$/i)?.[1]);
+    // RFC 7946 GeoJSON is WGS84. Deliver 4326 even when the analysis layer is
+    // projected or 3D (EPSG:4979); GPKG/FGB/CSV keep the native CRS.
+    const exportCrs = format === "geojson" ? "EPSG:4326" : sourceCrs;
+    let exportBytes = record.bytes, exportExtension = record.extension;
+    if (format === "geojson" && Number.isInteger(sourceEpsg) && sourceEpsg !== 4326) {
+      if (sourceEpsg === 4979 && record.geojson) {
+        // 4979 is 3D WGS84; the horizontal CRS is already 4326. The WASM
+        // reprojector does not know 4979, so use the display copy and keep Z.
+        exportBytes = encoder.encode(JSON.stringify(record.geojson));
+        exportExtension = "geojson";
+      } else {
+        exportBytes = await project(record, 4326, signal);
+        exportExtension = "fgb";
+      }
+    }
     let bytes = format === "csv" ? await exportCsv(record, signal)
-      : (await wasmTool("vector_convert", { [`input.${record.extension}`]: record.bytes }, { input: `/work/input.${record.extension}`, output: `/work/export.${format}` }, signal)).files[`export.${format}`];
+      : (await wasmTool("vector_convert", { [`input.${exportExtension}`]: exportBytes }, { input: `/work/input.${exportExtension}`, output: `/work/export.${format}` }, signal)).files[`export.${format}`];
     if (!bytes?.length) throw new Error("导出未生成有效文件。");
     const metadata = exportMetadata(record, args.metadata);
     const metadataKeys = Object.keys(metadata);
@@ -786,15 +844,31 @@ async function execute(name: string, args: Record<string, any>, signal?: AbortSi
       Object.assign(collection, metadata);
       bytes = encoder.encode(JSON.stringify(collection));
     }
+    if (format === "geojson") {
+      const collection = JSON.parse(new TextDecoder().decode(bytes));
+      let changed = false;
+      for (const feature of collection.features ?? []) {
+        if (feature?.geometry) { feature.geometry = dropGeometryZ(feature.geometry); changed = true; }
+      }
+      if (/4979/.test(JSON.stringify(collection?.crs ?? ""))) {
+        collection.crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::4326" } };
+        changed = true;
+      }
+      if (changed) bytes = encoder.encode(JSON.stringify(collection));
+    }
     const filename = String(args.path).replace(/\\/g, "/").split("/").pop() || `${record.info.name}.${format}`;
     if (await readRecord(`download:${filename}`) && !args.overwrite) throw new Error("浏览器存储中已有同名导出文件，若要替换请明确勾选覆盖。");
     const type = format === "csv" ? "text/csv;charset=utf-8" : format === "geojson" ? "application/geo+json" : "application/octet-stream";
     const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type }));
     await writeRecord(`download:${filename}`, { filename, bytes });
+    const reprojected = format === "geojson" && Number.isInteger(sourceEpsg) && sourceEpsg !== 4326;
     return { ok: true, path: filename, download_url: url, bytes: bytes.length, feature_count: record.info.feature_count,
+      source_crs: sourceCrs, export_crs: exportCrs,
       metadata, metadata_status: !metadataKeys.length ? "none" : format === "geojson" ? "included" : "not_supported",
       ...(metadataKeys.length && format !== "geojson" ? { metadata_not_supported: `格式 ${format} 不支持 GeoJSON 顶层元数据；这些字段未写入文件：${metadataKeys.join(", ")}` } : {}),
-      message: "点击下载文件保存到电脑。" };
+      message: reprojected
+        ? `GeoJSON 已按 RFC 7946 从 ${sourceCrs} 转为 EPSG:4326；原始分析图层未改变。点击下载文件保存到电脑。`
+        : "点击下载文件保存到电脑。" };
   }
   let inputBytes = record.bytes, extension = record.extension;
   let tool = name, params: Record<string, string | number | boolean> = {};

@@ -51,7 +51,7 @@ export const INTENTS: Intent[] = [
   { match: /成本路径|最小成本路径|最低成本/, tools: ["cost_pathway"] },
   { match: /服务区|可达范围|覆盖范围/, tools: ["network_service_area"] },
   { match: /廊道/, tools: ["corridor"] },
-  { match: /质心|中心点|几何中心/, tools: ["centroid_vector"] },
+  { match: /质心|中心点|几何中心/, tools: ["centroid", "centroid_vector"] },
   { match: /最小外包(?!圆)|外接矩形|外包框|包围盒/, tools: ["minimum_bounding_box"] },
   { match: /外接圆|包围圆|覆盖圆/, tools: ["minimum_bounding_circle"] },
   { match: /凹包|凹壳/, tools: ["concave_hull"] },

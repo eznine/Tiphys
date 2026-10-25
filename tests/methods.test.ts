@@ -106,3 +106,12 @@ test("the hydrology workflow is injected as names, not as parameter values", () 
   assert.match(prompt, /先用 search_browser_tools 核对参数卡/);
   assert.match(prompt, /不要凭名字猜参数/);
 });
+
+test("centroid requests retrieve a metric-CRS guardrail", () => {
+  const methods = findMethods("calculate a centroid for each building footprint");
+  assert.equal(methods[0]?.id, "centroid-metric");
+  assert.deepEqual(methodById("centroid-metric")?.workflow, ["reproject", "centroid"]);
+  const prompt = buildBrowserSystemPrompt([], {}, "", methods);
+  assert.match(prompt, /计算质心前确认输入为局部米制投影/);
+  assert.match(prompt, /reproject → centroid/);
+});
