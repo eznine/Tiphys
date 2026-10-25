@@ -226,7 +226,7 @@ tf-codex -C /workspace/tiphys   # 优先 tierflow_pro；配额不足再轮换
 当用户允许继续 Agent 工作时（**不是**恢复整晚 densify 乱打）：
 
 1. **Browser Agent 可靠性** — 降低 search→param 摩擦；任务类预算；不支持时诚实失败。  
-2. **Desktop WASM bridge** — `wasm_run` 发现 + 参数 + 图层/文件绑定；至少 2–3 个 WASM 工具端到端回归；文档写进 desktop-wasm / agent-core-line。
+2. **Desktop WASM bridge** — `wasm_run` 发现 + 参数 + 图层/文件绑定；至少 2–3 个 WASM 工具端到端回归（已完成，见 `agent/tests/wasm.test.ts`）；**语义与边界见 `docs/DESKTOP_WASM_BRIDGE.md`**。
 
 生态模型、Play Store 打磨、未要求的 tiphys.xyz 重部署 → 仍延后。
 

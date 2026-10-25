@@ -630,3 +630,14 @@
   - `docs/AGENT_HANDOFF.md` 最开头加醒目「怎么做得快 / Speed playbook」+「读这个再动手 / READ THIS FIRST」：工作在哪（box 默认热环境 / Windows 仅用户要求）、治理文档顺序、窄任务形状、关键脚本、overnight 配方（PAUSED）、当前 ship（APK 0.1.3 / `2ca7d9e`）、速度技巧与禁止项。
   - `docs/OVERNIGHT_BRIEF.md` 顶 banner 改为必读 HANDOFF 开头「怎么做得快」。
   - 未恢复 overnight、未重建 APK、未重部署 tiphys.xyz。Windows `F:\tiphys` 随后 `git pull --ff-only`。
+
+- 2026-10-25 13:52 Asia/Shanghai — A0 Agent reliability batch（Windows `F:\tiphys`；overnight 仍 PAUSED；web 已部署）:
+  - **基线归因**：新增 `scripts/agent-tool-calls.ts`，把 `run_browser_tool({name})`、`wasm_run({tool})`、`run_plan(plan.steps[].tool)` 的内层具体工具计入 `tool_called` / `expected_tool_hit`。M11 此前失败只是评测器只看顶层事件名，产品实际已执行 `wasm_basins`；`npm run test:baseline-eval` 6/6。
+  - **M11 在环复测**（tierflow_pro，真实页面）：**PASS 2/2**，14 次工具调用 / 79 s；一次 4 步 `run_plan`（填洼 → D8 指针 → basins → 面化），`auditRuns` 干净，tokens 输入 16,997 / 输出 676。此前同任务单跑为 15 次/201 s、17 次/108 s，模型方差存在，只作为路径证据，不是稳定分数。报告单独保存为 `docs/baselines/stage4/agent-baseline-m11.{json,md}`；30 任务 `agent-baseline` 报告已从 HEAD 原样恢复，未被单任务运行覆盖。
+  - **计划验收清理**（`shared/plans.ts` + browser adapter）：步骤验收失败时，回收该步刚产出的图层（仅契约 operation 与 `wasm_*` 生产者；绝不删 UI/元数据工具返回的已有图层，也不删步骤自身输入）。`StepRun.discardedLayer` 留审计痕迹，`outputLayer` 清空；移除失败记 `discard_error`，不假装已收回。修复了“CRS 断言失败 + resume”后工作区出现两个同名 `RasterToVectorPolygons` 的问题。
+  - **`run_plan` schema 收紧**：`plan.required=[goal,steps]`；每步 `id+kind`；operation 步骤 `spec{operation,version,input,params}`；tool 步骤 `tool+args`。模型不再靠猜 `spec` 还是 `tool+args`。DEM 水文方法卡新增已验证参考链（`wasm_fill_depressions → wasm_d8_pointer → wasm_basins → wasm_raster_to_vector_polygons`），但仍要求先查 `search_browser_tools` 参数卡，不把工具名当参数。
+  - **Desktop WASM bridge 文档**：新增 `docs/DESKTOP_WASM_BRIDGE.md`（搜索卡、精确 wire name 绑定、图层/文件解析、输出、900 s 预算、取消与超时区分、dissolve/zonal 已知边界）；回归仍在 `agent/tests/wasm.test.ts`。`AGENT_HANDOFF.md` §9 已指向该文档。
+  - **验证**：`npx tsc --noEmit` 通过；`npm run build` 通过；`test:plans` 31/31；`test:methods` 8/8；`test:search` 8/8；`test:contracts` 12/12；`test:baseline-eval` 6/6；`browser-engine` 85/85；完整 `test:browser` 为 85/87，两个 `map-render` 用例在本机代理环境下卡在 `page.goto(..., networkidle)` 超时，非应用代码失败。
+  - **部署**：`npm run deploy:xyz` 完成；`https://tiphys.xyz` 实际返回 `assets/index-4tgg2VZX.js`，与本地 `dist/index.html` 一致（用 `curl --noproxy '*'` 复核；部署脚本自带的 live 检查被本机 `HTTPS_PROXY=127.0.0.1:8668` 干扰）。`/apk/tiphys-0.1.3.apk` 仍在线（17,994,932 B），`version.json` 仍为 0.1.3 / versionCode 4。
+  - **提交**：`5b12b9d`（lock 版本同步）、`c9ef12f`（基线归因）、`cffd8a2`（计划回收/schema/水文链）；本 PROGRESS 与 bridge 文档随后提交。
+  - **未做**：未重跑完整 30 任务模型在环基线；未重建 APK；桌面侧尚无 plan adapter，故 `discardLayer` 目前只有浏览器实现；overnight 保持 PAUSED。
