@@ -1265,9 +1265,14 @@ async function inspectLayerRecord(record: LayerRecord) {
     revision: digest ? `sha256:${sha256!.slice(0, 12)}:${record.bytes.length}` : `size:${record.bytes.length}`,
   };
   const layer: Record<string, any> = {
-    id: record.info.id, name: record.info.name, kind, crs: record.info.crs ?? "", displayCrs: "EPSG:4326",
+    id: record.info.id, name: record.info.name, kind, crs: record.info.crs ?? "",
+    analysisCrs: record.info.crs ?? "", displayCrs: "EPSG:4326",
     geometryTypes: record.info.geometry_types ?? [], featureCount: record.info.feature_count ?? 0,
-    bounds: record.info.bounds ?? null, data,
+    bounds: record.info.bounds ?? null,
+    boundsCrs: "EPSG:4326", boundsAreDisplay: true,
+    displayBounds: record.info.bounds ?? null,
+    boundsNote: "bounds/displayBounds 是 WGS84 显示范围；分析 CRS 见 crs/analysisCrs。不要用显示范围推断像元单位或分析坐标。",
+    data,
   };
   if (kind === "raster" && record.info.raster) {
     layer.raster = { width: record.info.raster.width, height: record.info.raster.height, bands: record.info.raster.bands };
@@ -1292,7 +1297,11 @@ function describe(record: LayerRecord) {
   const kind = record.info.kind ?? "vector";
   const path = kind === "raster" ? `此浏览器 / ${record.info.name}.tif（${record.info.raster?.width}×${record.info.raster?.height}，${record.info.raster?.bands} 波段）`
     : kind === "table" ? `此浏览器 / ${record.info.name}.csv` : `此浏览器 / ${record.info.name}.${record.extension}`;
-  return { ...publicLayer(record), columns: fields(record), metadata: record.metadata ?? {}, path, sample: record.geojson?.features.slice(0, 5).map(f => f.properties) ?? [] };
+  return { ...publicLayer(record), columns: fields(record), metadata: record.metadata ?? {}, path,
+    analysisCrs: record.info.crs ?? "", displayCrs: "EPSG:4326", boundsCrs: "EPSG:4326",
+    displayBounds: record.info.bounds ?? null,
+    boundsNote: "bounds 是 WGS84 显示范围；分析 CRS 看 crs/analysisCrs。",
+    sample: record.geojson?.features.slice(0, 5).map(f => f.properties) ?? [] };
 }
 export async function browserEngineRequest(path: string, init: RequestInit = {}): Promise<Response> {
   init.signal?.throwIfAborted();

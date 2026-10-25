@@ -2804,6 +2804,7 @@ test("browser tool search ranks Chinese names and taxonomy, not only description
   assert.match(prompt, /116\.1,39\.1,116\.4,39\.4/);
   assert.match(prompt, /lyr_prompt/);
   assert.match(prompt, /当前要素选择.*"feature_ids":\[7,9\]/);
+  assert.match(prompt, /图层 bounds 是 WGS84 显示范围，分析 CRS 看 crs\/analysisCrs/);
   assert.match(prompt, /交付纪律（文件导出）/);
   assert.match(prompt, /必须对最终结果图层调用 export_features/);
   assert.match(prompt, /metadata 参数显式传入/);
@@ -3070,7 +3071,11 @@ test("inspect_layers reports real storage, digest and raster facts instead of th
   const single = await runBrowserTool("inspect_layers", { layer: input.id });
   assert.equal(single.layer.kind, "vector");
   assert.equal(single.layer.crs, "EPSG:4326");
+  assert.equal(single.layer.analysisCrs, "EPSG:4326");
   assert.equal(single.layer.displayCrs, "EPSG:4326");
+  assert.equal(single.layer.boundsCrs, "EPSG:4326");
+  assert.equal(single.layer.boundsAreDisplay, true);
+  assert.deepEqual(single.layer.displayBounds, single.layer.bounds);
   assert.equal(single.layer.data.engine, "browser-wasm");
   assert.equal(single.layer.data.storage, "indexeddb");
   assert.equal(single.layer.data.location, `indexeddb:layer:${input.id}`);
@@ -3090,6 +3095,13 @@ test("inspect_layers reports real storage, digest and raster facts instead of th
   const raster = (await importBrowserFile(new Blob([tif]), "dem_hills.tif")).layer;
   const inspected = await runBrowserTool("inspect_layers", { layer: raster.id });
   assert.equal(inspected.layer.kind, "raster");
+  assert.equal(inspected.layer.crs, "EPSG:32650");
+  assert.equal(inspected.layer.analysisCrs, "EPSG:32650");
+  assert.equal(inspected.layer.displayCrs, "EPSG:4326");
+  assert.equal(inspected.layer.boundsCrs, "EPSG:4326");
+  assert.equal(inspected.layer.boundsAreDisplay, true);
+  assert.ok(inspected.layer.displayBounds[0] > 100, "display bounds are lon/lat, not UTM metres");
+  assert.match(inspected.layer.boundsNote, /WGS84 显示范围/);
   assert.equal(inspected.layer.raster.width, 120);
   assert.equal(inspected.layer.raster.height, 100);
   assert.equal(inspected.layer.raster.bands, 1);
