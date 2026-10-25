@@ -21,6 +21,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { chromium } from "playwright";
 import { auditRuns, type PlanRun } from "../shared/plans.ts";
+import { calledTool, toolCallLabel, toolCallNames } from "./agent-tool-calls.ts";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const TASKS_PATH = path.join(ROOT, "tests", "baseline", "tasks.json");
@@ -125,13 +126,13 @@ function evaluate(c: Criteria, ctx: TaskRecord, durationMs: number): Outcome {
       return done(!!hit, hit ? `导出 ${hit.filename}` : "没有导出通知");
     }
     case "tool_called": {
-      const hit = ctx.events.find(e => e.type === "tool-call" && e.toolName === c.name);
-      return done(!!hit, hit ? `调用了 ${c.name}` : `没有调用 ${c.name}`);
+      const hit = calledTool(ctx.events, String(c.name));
+      return done(hit, hit ? `调用了 ${c.name}` : `没有调用 ${c.name}`);
     }
     case "tool_called_any": {
       const names = new Set(c.names as string[]);
-      const hit = ctx.events.find(e => e.type === "tool-call" && names.has(e.toolName));
-      return done(!!hit, hit ? `调用了 ${hit.toolName}` : `没有调用 ${c.names.join("/")}`);
+      const hit = ctx.events.flatMap(toolCallNames).find(name => names.has(name));
+      return done(!!hit, hit ? `调用了 ${hit}` : `没有调用 ${c.names.join("/")}`);
     }
     case "tool_error_contains": {
       const hit = ctx.events.find(e => e.type === "tool-error" && new RegExp(String(c.pattern), "i").test(String(e.error ?? "")));
@@ -305,9 +306,10 @@ async function main() {
       : spec.criteria.map(c => evaluate(c, record, durationMs));
     const gates = outcomes.filter(o => o.severity === "gate");
     const status = fatal ? "ERROR" : gates.every(o => o.ok) ? "PASS" : "FAIL";
-    const toolCalls = record.events.filter(e => e.type === "tool-call").map(e => e.toolName);
+    const toolCalls = record.events.filter(e => e.type === "tool-call").map(toolCallLabel);
+    const calledNames = new Set(record.events.flatMap(toolCallNames));
     const usage = record.events.filter(e => e.type === "usage").reduce((acc, e) => ({ input: acc.input + (e.inputTokens ?? 0), output: acc.output + (e.outputTokens ?? 0) }), { input: 0, output: 0 });
-    const expectedHit = taskInfo.expected_tools.some(tool => toolCalls.includes(tool));
+    const expectedHit = taskInfo.expected_tools.some(tool => calledNames.has(tool));
     results.push({
       task: spec.task, prompt: taskInfo.prompt, status, duration_ms: durationMs, fatal: fatal ?? null,
       tool_calls: toolCalls, tool_errors: record.events.filter(e => e.type === "tool-error").map(e => ({ tool: e.toolName, error: String(e.error).slice(0, 200) })),
