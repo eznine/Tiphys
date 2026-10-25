@@ -70,7 +70,7 @@ tf-codex -C /workspace/tiphys   # 优先 tierflow_pro
 | 项 | 值 |
 |---|---|
 | APK | **0.1.3** / versionCode **4** → https://tiphys.xyz/apk/tiphys-0.1.3.apk |
-| 代码时代 | `2ca7d9e`（APK 0.1.3）+ A0 修复至 `fd19723`；最新 main 以 `git log` 为准 |
+| 代码时代 | `2ca7d9e`（APK 0.1.3）+ A0/A1 修复至 `a74d7a0`；最新 main 以 `git log` 为准 |
 | Web | https://tiphys.xyz 已 live（`assets/index-Bcx4Lw_p.js`） |
 | Windows 桌面 | portable 重建于 2026-10-25 17:20 → `C:\Users\alex\Desktop\TIPHYS`；NSIS 83.27 MiB；GUI 未实机点击验收 |
 | Overnight | **PAUSED**（builder + tiphys-overnight-watch） |
@@ -242,17 +242,20 @@ tf-codex -C /workspace/tiphys   # 优先 tierflow_pro；配额不足再轮换
 
 ---
 
-## 9. 恢复 densify / Agent 主线时的下一批 / Next Agent-core line
+## 9. 下一阶段 / Next line（A0 已基本收口）
 
-当用户允许继续 Agent 工作时（**不是**恢复整晚 densify 乱打）：
+A0.1 单次 30/30、A0.2 desktop WASM bridge、A0.3 契约、A0.4 GeoAgentBench 5/6 均已完成；不要重复做参数卡/预算/bridge。
 
-1. **Browser Agent 可靠性** — 降低 search→param 摩擦；任务类预算；不支持时诚实失败。  
-2. **Desktop WASM bridge** — `wasm_run` 发现 + 参数 + 图层/文件绑定；至少 2–3 个 WASM 工具端到端回归（已完成，见 `agent/tests/wasm.test.ts`）；**语义与边界见 `docs/DESKTOP_WASM_BRIDGE.md`**。
+1. **证据硬化（优先，不改产品逻辑）** — 30 任务 ≥3 次方差与 CI、OPPO 真机、桌面 GUI 启动/关闭；30/30 是单次且与 inspect 修改重叠，不能写成稳定上限。
+2. **阶段 5A 真实小流域** — 建立“下载 → CRS/网格/NoData 体检 → 入库 → 河网/流域纵向”最小管线，至少 2 个真实 DEM。
+3. **阶段 5B 路网距离** — 接入可复现的路网 provider（OSRM/Valhalla 或预计算图），区分欧式与路网距离。
+4. **阶段 6 数据与交付** — GEE 真实链路、STAC/COG/OSM、打印布局；A1 剩余全表 CSV/XLSX、字段编辑、撤销、大图层性能基准。
+5. **Bangkok 大矢量** — 仅当出现高频 2 万级矢量任务再投入；5,000 个清理后要素仍 368 s 失败，当前保留预算守卫与桌面/分块降级。
 
-生态模型、Play Store 打磨、未要求的 tiphys.xyz 重部署 → 仍延后。
+生态模型、Play Store 打磨、未要求的 tiphys.xyz 重部署、多 Agent、3D/LiDAR → 仍延后。完整顺序见 `docs/MASTER_ROADMAP.md` 的「2026-10-25 进度快照与下一阶段决策」。
 
 ---
 
 ## 10. 给父 Agent / 用户的一句话
 
-仓库已在 `main` 上干净发布 APK **0.1.3**；overnight **暂停**；**速度 playbook 在 `docs/AGENT_HANDOFF.md` 最开头**。Windows `F:\tiphys` 上线后 `git pull`，交给本机 Agent 时先让他读第 0 节。
+仓库 `main` 已干净发布 APK **0.1.3**、Web `assets/index-Bcx4Lw_p.js` 与 Windows portable（2026-10-25 17:20）；模型在环 **30/30 单次**、GeoAgentBench **5/6**；overnight **暂停**。下一阶段先补 ≥3 次方差/真机，再做阶段 5A 真实小流域与 5B 路网距离。**速度 playbook 在本文件最开头**；Windows `F:\tiphys` 上线后 `git pull`，交给本机 Agent 时先读第 0 节。

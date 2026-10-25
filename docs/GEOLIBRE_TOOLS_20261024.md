@@ -1,5 +1,7 @@
 # 2026-10-24 · GeoLibre 工具全面接入与中文化
 
+> **2026-10-25 更新：** 桌面 Agent 已通过 `wasm_search` / `wasm_run` 触达同一 WASM 目录；本文“桌面版仍是 24 个 MCP 工具”是当时快照，最新语义见 [DESKTOP_WASM_BRIDGE](DESKTOP_WASM_BRIDGE.md) 与 [CLIENT_RUNTIME](CLIENT_RUNTIME.md)。
+
 ## 背景与目标
 
 用户要求把 GeoLibre 的全部工具接入 TIPHYS 并做高质量中文翻译（对照 RustGIS 的 "1,000+ GeoLibre and Whitebox tools" 宣传口径）。此前浏览器桥只放行 257 个"矢量进/矢量出"工具，其余 808 个被参数/输出类型过滤。

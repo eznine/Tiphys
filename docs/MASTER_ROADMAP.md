@@ -36,11 +36,11 @@
 | 能力 | 已有实现 | 现在的问题 |
 |---|---|---|
 | 桌面 WebView / 手机 Web / 电脑浏览器 | Tauri、React、MapLibre 和移动适配；Android debug Capacitor 外壳已可构建（2026-10-25，真机 `NOT_TESTED`） | UI 统一不代表 Agent 与算子能力一致 |
-| 浏览器 GIS 算子 | `geolibre-wasm`，浏览器目录已约 958 个 WASM schema；合并目录约 997 项（见 `CLIENT_PARITY.md`） | Agent 用 `search_browser_tools` → `run_browser_tool`，检索语义和参数语境薄弱 |
-| 桌面分析 | Node Agent sidecar + Python MCP 引擎，约 34 个工具 | 桌面 Agent 原生只看到 Python MCP；用户手动能调用的 WASM 未必能由 Agent 调用 |
-| 图层系统 | 前端地图层 + 浏览器 IndexedDB 原始数据 + Python 工作空间 | 缺少跨环境逻辑 LayerRef、来源、版本、执行可见性和数据搬运 |
-| 任务 | 双端已有 job 轮询、取消、审批、事件和恢复机制 | 两边模型/状态、审批标记、产物验收方式尚不一致 |
-| Agent | 两套 AI SDK 工具调用循环、上下文/日志基础 | `stepCountIs(8)` 的静态限制与复杂任务不匹配；没有统一任务级验收与能力调度 |
+| 浏览器 GIS 算子 | `geolibre-wasm`，958 个 WASM schema；合并目录 999 个（见 `CLIENT_PARITY.md`） | 检索已有中文别名/参数卡；浏览器 dissolve、矢量分区 zonal 和 2 万级 overlay 仍是明确缺口 |
+| 桌面分析 | Node Agent sidecar + Python MCP 34 个工具 + `wasm_search`/`wasm_run` 桥 | Python 与 WASM 语义仍不完全一致；桌面尚无 `run_plan` 适配器 |
+| 图层系统 | 前端地图层 + 浏览器 IndexedDB 原始数据 + Python 工作空间 | 跨环境 LayerRef 已用于契约；大数据搬运/分块仍有限 |
+| 任务 | 双端 job 轮询、取消、审批、事件和恢复；浏览器 `run_plan` + 审计/检查点 | 桌面计划执行器、可视化回放 UI、跨端任务统一仍未做 |
+| Agent | 两套 AI SDK 工具调用循环；任务类预算（quick/standard/pipeline）替代固定 8 步 | 30/30 只是单次；≥3 次方差、真机、跨模型仍未做 |
 
 已核对具体代码位置：`src/lib/browser/agent.ts`、`src/lib/browser/search.ts`、`src/lib/browser/engine.ts`、`src/lib/dataLayers.ts`、`agent/src/server.ts`、`agent/src/mcp.ts`、`engine/tools.py`、`engine/jobs.py`。现有可复用能力须保留，不以“大统一”推倒重写。
 
@@ -313,6 +313,28 @@ interface ArtifactManifest {
 > 阶段 3 的"完成"指：11 个真实 3–4 步任务（12 次运行）在确定性执行器上可执行/可安全中止/可断点恢复，运行记录可独立复算（sha256 重算 + auditRuns 不变量），故意制造的错误全部诚实失败；**不代表**模型在环成功率已测（阶段 4）、桌面端有计划执行器、客户端有回放 UI——见 [STAGE3_REPORT.md](STAGE3_REPORT.md) §8。
 > 阶段 4 的"完成（仿真范围）"：2026-10-25 全量 30 任务复跑 **30/30 PASS**（单次，P50 30 s / P95 146 s，输入 428k tokens；与 inspect 语义修改有时间重叠，非冻结构建）；A/B 双臂曾跑 28→29/30（预算制消除"检索吃光步数"失败模式）、移动任务卡 9/9（含河网/服务圈卡）、GeoAgentBench 兼容子集重评 **5/6**（Capetown 质心、KML 属性/2D 导出、waterway 空几何过滤已修复；仅 Bangkok 21,660 面/64.5 万顶点触发 WASM 资源边界，已加浏览器矢量预算守卫诚实拒绝）。**真机、≥3 次方差、GeoAnalystBench 仍未做**——见 [STAGE4_REPORT.md](STAGE4_REPORT.md) §5/§7/§8。
 > 阶段 5 的 5A/5B/5C 子集：河网、服务圈与最小成本廊道三条纵向有程序性验收 + 敏感性/守恒/单调性不变量 + 交付模板（[STAGE5A](STAGE5A_HYDROLOGY.md)/[STAGE5B](STAGE5B_GIS.md)/[STAGE5C](STAGE5C_ECOLOGY.md)）；5C 只用用户给定合成阻力，真实流域数据、路网距离、真实生态阻力/Circuitscape/InVEST 未做。
+
+### 2026-10-25 进度快照与下一阶段决策
+
+**已完成（功能与单次证据）：** 阶段 0–4 的 P0 主线；30 项模型在环基线单次 **30/30 PASS**（P50 30 s / P95 146 s，H08 时长 warn；与 inspect 修改有时间重叠，非冻结构建）；GeoAgentBench 兼容子集 **5/6**（0.833）；移动仿真 9/9；5A 河网 8/8、5B 服务圈 4/4、5C 廊道 3/3（均为合成数据）；真质心、空几何过滤、KML 字段、RFC 7946 GeoJSON、矢量预算守卫、属性表真 XLSX 已落地；Web/桌面已交付。
+
+**仍未完成或证据不足：**
+
+1. **阶段 4 证据强度**：每项 ≥3 次方差、真机（非仿真）、跨模型对照；30/30 不能写成稳定上限。
+2. **阶段 5 真实数据**：5A 缺 2 个真实小流域（SRTM/ALOS）；5B 缺路网距离/OSRM/Valhalla 与真实学校/居住区；5C 缺真实阻力、InVEST/Circuitscape 与敏感性分布。
+3. **阶段 6**：GEE 真实授权→检索→导出/队列、STAC/COG/OSM、项目保存/分享、打印出版布局、PySAL/OD、离线瓦片、第三方 MCP provider SDK 均未开始。
+4. **A1 产品工作台**：全表（非本页）CSV/XLSX、字段编辑、撤销/回退、分等级专题+一页地图、系统化大图层性能基准仍未做。
+5. **Bangkok 大矢量**：21,660 面 / 645,563 顶点在浏览器 WASM overlay 下 `unreachable`（5000 面清理后仍 368 s 失败）；保留预算守卫与桌面/分块降级，不为单任务重写几何引擎。
+
+**下一阶段顺序（建议）：**
+
+1. **证据硬化**：先补 ≥3 次 30 任务方差与真机；不改变产品行为，只补可信度。
+2. **阶段 5A 真实小流域**：建立“下载 → CRS/网格/NoData 体检 → 入库 → 河网/流域纵向”的最小数据管线，至少 2 个真实 DEM。
+3. **阶段 5B 路网距离**：接入一个可复现的路网 provider（OSRM/Valhalla 或本地预计算），把服务圈从欧式扩展到路网，并保留口径声明。
+4. **阶段 6 数据与交付**：GEE 真实链路、STAC/COG、全表导出、字段编辑/撤销、打印布局按用户需求排序。
+5. **Bangkok/分块**：仅当出现高频 2 万级矢量任务时再投入；当前只保留诚实拒绝。
+
+**继续明确不做：** 多 Agent 竞赛式编排、GIS 微调模型、3D/时间轴、RTK/LiDAR/InSAR 全套、全工具多引擎对等——除非有新的用户任务和对照证据。
 
 ### 阶段 0｜测清现状，冻结可复现基线（P0）
 

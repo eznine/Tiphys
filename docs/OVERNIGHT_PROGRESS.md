@@ -684,3 +684,12 @@
   - 上线：web 部署 `assets/index-Bcx4Lw_p.js`，线上与本机 `dist/index.html` 一致；桌面 `desktop:build` + `portable:zip` 重建（NSIS 83.27 MiB），新版 portable 复制到 `C:\Users\alex\Desktop\TIPHYS`（`tiphys.exe` 13,953,024 B），上一版 17:00 构建移入 `.trash/TIPHYS_desktop_20261025_1715` 备份。
   - 提交：`a74d7a0`（真 XLSX 导出）；文档/PROGRESS 随后提交。
   - 边界：XLSX 仍只导当前页，不是全表；未启动桌面 GUI 做实机点击验收；APK 未重建；overnight 保持 PAUSED。
+
+- 2026-10-25 17:30 Asia/Shanghai — 方案与文档刷新（纯文档）：
+  - `README.md`：新增「当前状态（2026-10-25）」，更新工具目录 999/995、30/30 单次、GeoAgentBench 5/6、真 XLSX、Android/桌面交付与明确未做项；验证命令补齐。
+  - `MASTER_ROADMAP.md`：新增「2026-10-25 进度快照与下一阶段决策」，明确证据硬化 → 5A 真实小流域 → 5B 路网 → 阶段 6 → Bangkok 按需；能力快照行改为任务预算/桌面桥/999 工具。
+  - `OVERNIGHT_BRIEF.md`：A0 标记为基本收口，下一阶段重排；保持 PAUSED，禁止自动恢复。
+  - `AGENT_HANDOFF.md`：当前 HEAD/Web `index-Bcx4Lw_p.js`/桌面 17:20/30/30/5/6；§9 改为证据硬化与阶段 5；§10 一句话更新。
+  - `CLIENT_PARITY.md` / `CLIENT_RUNTIME.md`：999/995 工具；属性表 CSV/XLSX、定义查询、分级设色、栅格显示、MapLayout PNG；后续顺序重排。
+  - `SEARCH_QUALITY.md`：目录 999，标注检索分数是加入原生工具前的实测，未重算；`STAGE2_REPORT` 方法卡 11 张；`STAGE5A` 说明 M11 已过但流域未进纵向；`STAGE5B` XLSX 标为已补；`BASELINE_STAGE0` / `GEOLIBRE_TOOLS` / `RELIABILITY_STATUS` 加当前状态指针，避免把历史快照当现状。
+  - 未改代码；overnight 仍 PAUSED；下次开工按 `AGENT_HANDOFF` 第 0 节与 `MASTER_ROADMAP` 快照执行。

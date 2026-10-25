@@ -2,6 +2,8 @@
 
 > 依据：[MASTER_ROADMAP.md](MASTER_ROADMAP.md) 第 4 节阶段 0、第 7 节 T-001。
 > 本轮交付的是**可复现的测量工具与第一份事实记录**，不是功能宣称。凡是没跑的部分都标 `NOT_TESTED` 并写明原因。
+>
+> **2026-10-25 更新：** 当前合并目录 999、工具箱可见 995（新增原生 `centroid` / `drop_empty_geometries`），见 [CLIENT_RUNTIME](CLIENT_RUNTIME.md)；本文的 997 是阶段 0 快照。
 
 ## 1. 这一阶段做了什么
 

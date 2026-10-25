@@ -1,5 +1,7 @@
 # 可靠性基础版本验收记录
 
+> **2026-10-25 当前状态**以 [README 当前状态](../README.md)、[MASTER_ROADMAP 进度快照](MASTER_ROADMAP.md) 和 [STAGE4_REPORT](STAGE4_REPORT.md) 为准；本文是 2026-10-23 的可靠性批次历史记录。
+>
 > 后续更新：2026-10-23 的 API、分类工具箱、图层工作区、日志和最终桌面交付见 [客户端续作验收](WORKSPACE_STATUS_20261023.md)。本文下方的工具数、产物哈希和“未完成”清单是第二批历史记录，以新记录为准。
 
 日期：2026-10-23（第二批：release 启动修复与端口迁移）。所有工作在当前项目内完成，未使用子 Agent。当前目标见 [RELIABILITY_PLAN](RELIABILITY_PLAN.md)。

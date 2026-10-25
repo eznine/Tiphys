@@ -13,12 +13,12 @@
 | 检索质量报告 | [SEARCH_QUALITY.md](SEARCH_QUALITY.md) |
 | 五操作契约（buffer / reproject / clip / dissolve / zonal_statistics） | `shared/contracts/{types,operations,index}.ts` |
 | 契约测试 | `tests/contracts.test.ts`（11 项） |
-| 方法卡（8 张）与测试 | `src/lib/methods.ts`、`tests/methods.test.ts`、[METHODS.md](METHODS.md) |
+| 方法卡（阶段 2 交付 8 张；现 11 张）与测试 | `src/lib/methods.ts`、`tests/methods.test.ts`、[METHODS.md](METHODS.md) |
 | D1/D2 复现基线 | `docs/baselines/stage2/dissolve-baseline.json` |
 
 ## 2. 检索：实测数字
 
-同一批 207 条标注（116 自然句 / 69 别名 / 22 应诚实为空），同一份 998 条目录：
+同一批 207 条标注（116 自然句 / 69 别名 / 22 应诚实为空），同一份 998 条目录（当时快照；2026-10-25 目录已增至 999，新增原生 centroid/空几何过滤，未重算）：
 
 | 组 | Top-1 | Top-5 | MRR |
 |---|---|---|---|
@@ -68,7 +68,7 @@
 
 ## 5. 方法卡
 
-10 张：缓冲与距离、重投影、裁剪与叠加、融合与分组、分区统计、面积/长度量算、空间连接、DEM 水文、坡度坡向、叠加汇总与重复计数（索引见 [METHODS.md](METHODS.md)）。2026-10-25 增补类型化 `crs` / `units` / `overlay-double-count` / `nodata` / `predicate` 护栏，并随命中的方法卡注入浏览器 Agent 提示词；这不是外部 Skill 全量导入，也没有建立向量知识库。
+11 张：缓冲与距离、重投影、裁剪与叠加、融合与分组、分区统计、面积/长度量算、真质心/局部米制投影、空间连接、DEM 水文、坡度坡向、叠加汇总与重复计数（索引见 [METHODS.md](METHODS.md)）。2026-10-25 增补类型化 `crs` / `units` / `overlay-double-count` / `nodata` / `predicate` 护栏，并随命中的方法卡注入浏览器 Agent 提示词；这不是外部 Skill 全量导入，也没有建立向量知识库。
 
 - 每张卡含触发词、前置条件、类型化护栏、追问条件、禁止误用、验收规则、正反例七段，缺段测试失败。
 - **检索与工具目录分开**：`findMethods()` 只做触发词匹配，不参与工具排序；工具检索不读方法卡。
