@@ -158,24 +158,26 @@ function buildTools(s: Session): ToolSet {
       + "Call wasm_search first when the id or parameter names are uncertain. Bind each manifest input by its exact wire name in `inputs` (for example slope: {input}; basins: {d8_pntr}; zonal_statistics: {input, features}). "
       + "Each input value may be a workspace layer id/name or an absolute analysis file path. "
       + "Vector outputs return geojson_path ready for add_data; raster TIFF outputs can also be passed to add_data. Never claim a layer is on the map until add_data succeeds.",
-    inputSchema: jsonSchema<{ tool: string; input_path?: string; inputs?: Record<string, string>; params?: Record<string, unknown> }>({
+    inputSchema: jsonSchema<{ tool: string; input_path?: string; inputs?: Record<string, string>; params?: Record<string, unknown>; timeout_seconds?: number }>({
       type: "object",
       properties: {
         tool: { type: "string", description: "Exact geolibre tool id from wasm_search, e.g. slope, basins, zonal_statistics." },
         inputs: { type: "object", additionalProperties: { type: "string" }, description: "Manifest input wire name → workspace layer id/name or absolute file path." },
         input_path: { type: "string", description: "Compatibility shortcut only for tools with exactly one input." },
         params: { type: "object", description: "Scalar/enum parameters by exact manifest name. Do not put file inputs here." },
+        timeout_seconds: { type: "integer", minimum: 5, maximum: 900, description: "Optional run limit. Defaults to 900 seconds; cancellation is reported separately from timeout." },
       },
       required: ["tool"],
       additionalProperties: false,
     }),
-    execute: async (input: { tool: string; input_path?: string; inputs?: Record<string, string>; params?: Record<string, unknown> }, { abortSignal }) => {
+    execute: async (input: { tool: string; input_path?: string; inputs?: Record<string, string>; params?: Record<string, unknown>; timeout_seconds?: number }, { abortSignal }) => {
       try {
         if (input.input_path && input.inputs && Object.keys(input.inputs).length) {
           return { ok: false, error_class: "INPUT_ERROR", message: "input_path 与 inputs 不能同时使用；多输入工具请只使用 inputs。" };
         }
         const { paths, bindings } = await resolveWasmInputs(input.inputs, layer => engine.call("inspect_layers", { layer }));
-        const result = await runWasmTool({ tool: input.tool, inputPath: input.input_path, inputs: paths, params: input.params, signal: abortSignal });
+        const result = await runWasmTool({ tool: input.tool, inputPath: input.input_path, inputs: paths, params: input.params,
+          timeoutMs: input.timeout_seconds === undefined ? undefined : input.timeout_seconds * 1000, signal: abortSignal });
         return { ...result, input_bindings: bindings };
       } catch (err) {
         return { ok: false, error_class: "INPUT_ERROR", message: err instanceof Error ? err.message : String(err) };

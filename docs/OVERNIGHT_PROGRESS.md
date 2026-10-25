@@ -475,4 +475,14 @@
   - UI direction unchanged: blue `#2563eb`, light default, logo system, honest ~958 catalog, chat-first map; no teal/mythology/fake counts/mobile-layout ownership, Windows, deploy or secrets. Box only.
   - Ship status: commit/push blocked by read-only `.git/index.lock`. Patch-checked against a fresh `HEAD` export: `/tmp/tiphys-batch41.patch`; full handoff `/tmp/tiphys-batch41-files.tar.gz`. Suggested commit: `P0: reliable Agent WASM discovery, bindings and task budgets`.
 
+- 2026-10-25 11:08 Asia/Shanghai — Batch42 Agent WASM run semantics and hydrology discovery:
+  - Removed the hidden 2-minute WASM kill: desktop `wasm_run` now defaults to a 900-second budget and accepts `timeout_seconds` (5–900); the pipeline task budget already stops the turn first when needed. Timeout and user cancellation are now separate fields (`timedOut` vs `cancelled`) with honest messages.
+  - `wasm_search` no longer exposes manifest placeholder filenames (`dem.tif`, `features.shp`) as input defaults; only scalar defaults such as `units=degrees` are shown. File inputs must be bound explicitly.
+  - Corrected hydrology aliases that pointed to non-existent ids: `d8_flow_accum`, `d8_pointer`, `watershed`, `subbasins`, `extract_streams`, and `raster_streams_to_vector` now resolve from Chinese workflow wording in both agents. `汇流累积量` reaches `d8_flow_accum`; `D8 流向` ranks `d8_pointer` with input `dem`.
+  - Added a second real two-input regression: `zonal_statistics` with `input` + `features` produced a non-empty TIFF and a mean report, alongside the existing `add(input1,input2)` case. Cancellation and timeout now have separate assertions.
+  - Verification: `npx tsc --noEmit` passed; WASM agent suite and `npm run test:search` passed. Batch41's browser-engine, contracts, methods, plans and build results remain the current full-tree evidence; loopback tests stay blocked by the sandbox `EPERM`.
+  - UI direction unchanged: blue `#2563eb`, light default, logo system, honest ~958 catalog, chat-first map; no teal/mythology/fake counts/mobile-layout ownership, Windows, deploy or secrets. Box only.
+
 - 2026-10-25 10:43 Asia/Shanghai — Overnight watch: batch41 tf-codex alive (pids 689459/689467/689479; TLS ESTAB; log growing 4382298→bytes mid-check; dirty Agent-first: budget/search/agent + desktop wasm bridge  13 files changed, 542 insertions(+), 170 deletions(-)). HEAD `5e54314` on origin/main. Progress last 10:07 (~36m, under stall). Direction OK (blue `#2563eb`, light default, logo-badge, honest catalog, Agent-first brief; no ecology/densify-only drift). Box-only. No user ping.
+
+- 2026-10-25 11:08 Asia/Shanghai — User mobile UX bugs in flight (drawer scroll, delete style, map-send no tab jump, settings mobile, hide lat/lon). Overnight Agent batch paused for this. Box only.

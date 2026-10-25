@@ -97,6 +97,7 @@ npm run test:agent            # 含 wasm_run 的三项测试
 - `agent/src/wasm.ts`：从 `wasm-catalog.json` 读 manifest，只使用 **manifest 默认值 + 调用者显式参数**，未知参数直接拒绝。`wasm_search` 返回精确 wire name、kind、required、enum/default 与输出参数卡；`wasm_run` 支持 0..N 个命名输入和多个输出，不靠“第一个输入”猜测。
 - `agent/src/wasm-inputs.ts`：工作区图层 id/名称经 `inspect_layers(...).layer.data.location` 解析为真实分析文件，绝不使用 WGS84 展示副本；本地文件路径直接绑定。
 - 运行目录：子进程作业与输出统一放在 `TIPHYS_STATE_DIR/wasm-runs`（默认 `<project>/.tiphys/wasm-runs`），不再写只读的 `~/.tiphys`。
+- 运行时限：默认 15 分钟，可由 `wasm_run.timeout_seconds` 调整为 5–900 秒；用户取消与超时分开报告，超时不会伪装成取消或成功。
 - 转换：每个矢量输出都用 `vector_convert` 转 GeoJSON，并按 RFC 7946 写入 `crs: EPSG:4326`，这样 `add_data` 不会因为“无 CRS”拒绝或猜错；转换失败会如实返回失败，不发布半成品。
 - `agent/src/server.ts`：`wasm_search` + `wasm_run` 工具；系统提示要求先查参数卡、按 wire name 绑定输入，并在 `add_data` 成功后才声称已上图。
 
@@ -107,6 +108,8 @@ npm run test:agent            # 含 wasm_run 的三项测试
 | `reproject_vector`（bj_points → EPSG:32650） | 249 ms，产出 `.fgb` |
 | `buffer_vector`（500 m） | 213 ms，产出 `.fgb` + `converted.geojson` |
 | Python `LayerStore.add_from_path` + `inspect` | 3 要素、`EPSG:4326` 图层、有可访问 URL、sha256 记录 |
+| `slope` → `raster_to_vector_polygons` | 真实 DEM 链，12,000 个面要素，GeoJSON 带 EPSG:4326 |
+| `add` / `zonal_statistics` 双输入 | 按 `input1/input2` 与 `input/features` wire name 绑定，输出 TIFF 非空 |
 
 取消与错误（agent 测试）：50 ms 超时 → `cancelled=true`、无输出；随后同一工具正常运行（证明子进程隔离有效）；未知工具/未知参数/文件不存在均返回明确错误。
 

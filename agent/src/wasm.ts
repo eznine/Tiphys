@@ -61,6 +61,8 @@ export type WasmRunResult = {
   ok: boolean;
   tool: string;
   cancelled: boolean;
+  /** True only when the configured run timeout killed the child. */
+  timedOut?: boolean;
   durationMs: number;
   exitCode: number | null;
   /** Every file the child actually wrote, including converted GeoJSON. */
@@ -118,16 +120,21 @@ const SEARCH_ALIASES: Record<string, string[]> = {
   aspect: ["坡向", "方位角"],
   hillshade: ["山体阴影", "晕渲", "阴影图"],
   basins: ["流域", "盆地", "汇水区", "d8_pntr", "d8 pointer", "d8流向"],
+  subbasins: ["子流域", "子集水区", "子盆地"],
   zonal_statistics: ["分区统计", "区域统计", "分区统计栅格"],
   add: ["栅格相加", "相加", "加和", "raster add"],
   raster_to_vector_polygons: ["栅格转面", "转成面", "转为面", "转面", "生成面", "面图层", "栅格面化"],
   raster_to_vector_lines: ["栅格转线", "转成线", "转为线", "线图层"],
   raster_to_vector_points: ["栅格转点", "转成点", "转为点", "点图层"],
   fill_depressions: ["填洼", "洼地填充", "depression fill"],
+  fill_depressions_wang_and_liu: ["填洼", "洼地填充"],
   breach_depressions_least_cost: ["填洼", "洼地", "breach"],
-  flow_accumulation: ["汇流累积量", "流量累积", "flow accumulation"],
-  flow_direction: ["流向", "d8", "flow direction"],
-  watershed: ["流域", "集水区", "watershed"],
+  d8_flow_accum: ["d8汇流累积", "d8 汇流累积量", "汇流累积量", "流量累积", "flow accumulation"],
+  d8_pointer: ["d8流向", "d8 流向", "流向栅格", "flow direction", "d8 pointer"],
+  extract_streams: ["提取河网", "河网提取", "河流提取", "stream extraction"],
+  raster_streams_to_vector: ["河网转矢量", "河网矢量化", "河流栅格转线"],
+  watershed: ["流域", "集水区", "分水岭", "watershed"],
+  wetness_index: ["地形湿度指数", "湿度指数", "wetness index"],
 };
 
 function extensionOf(file: string) {
@@ -149,7 +156,9 @@ function cardOf(manifest: Manifest, param: ManifestParam): WasmParamCard {
     kind: kindOf(param),
     required: Boolean(param.required),
     ...(param.description ? { description: param.description } : {}),
-    ...(manifest.defaults?.[param.name] !== undefined ? { default: manifest.defaults[param.name] } : {}),
+    // Manifest defaults for file inputs are sample placeholders (dem.tif,
+    // features.shp), not usable caller defaults. Only expose scalar defaults.
+    ...(!param.io_role && manifest.defaults?.[param.name] !== undefined ? { default: manifest.defaults[param.name] } : {}),
     ...(options.length ? { options } : {}),
     ...(param.schema?.cardinality ? { cardinality: param.schema.cardinality } : {}),
   };
@@ -329,6 +338,7 @@ export async function runWasmTool(options: {
     const child = spawn(process.execPath, [CLI, jobFile], { cwd: ROOT, stdio: "ignore", windowsHide: true });
     let settled = false;
     let cancelled = false;
+    let timedOut = false;
     let timer: NodeJS.Timeout | undefined;
     const finish = (patch: Partial<WasmRunResult>) => {
       if (settled) return;
@@ -343,10 +353,13 @@ export async function runWasmTool(options: {
     const onAbort = () => { cancelled = true; child.kill(); };
     if (options.signal?.aborted) { cancelled = true; child.kill(); }
     options.signal?.addEventListener("abort", onAbort, { once: true });
-    timer = setTimeout(() => { cancelled = true; child.kill(); }, options.timeoutMs ?? 120_000);
+    const timeoutMs = options.timeoutMs ?? 15 * 60_000;
+    timer = setTimeout(() => { timedOut = true; child.kill(); }, timeoutMs);
     child.once("error", err => finish({ error: err.message }));
     child.once("exit", code => {
       if (cancelled) return finish({ cancelled: true, error: "已取消：子进程被终止。" });
+      if (timedOut) return finish({ timedOut: true,
+        error: `WASM 运行超过 ${timeoutMs >= 1000 ? `${Math.round(timeoutMs / 1000)} 秒` : `${timeoutMs} 毫秒`}预算，已终止子进程；未完成的输出不能作为结果。` });
       let parsed: any = null;
       try { parsed = JSON.parse(fs.readFileSync(resultFile, "utf8")); } catch { /* reported below */ }
       if (!parsed) return finish({ exitCode: code, error: `WASM 子进程未写出结果（exit ${code}）。` });

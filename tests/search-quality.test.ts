@@ -104,6 +104,14 @@ test("generic polygon phrasing reaches the raster-to-polygon tool", () => {
   assert.ok(rasterOnly.every(tool => toolCapabilities(tool).inputKinds.includes("raster")));
 });
 
+test("hydrology wording reaches the real D8 accumulation and pointer ids", () => {
+  const { tools, searchable } = catalogForEvaluation();
+  const flow = searchBrowserTools(tools, "汇流累积量", { searchable, inputKind: "raster", limit: 5 });
+  assert.ok(flow.some(tool => tool.name === "wasm_d8_flow_accum"), "汇流累积量 must reach d8_flow_accum");
+  const pointer = searchBrowserToolCandidates(tools, "D8 流向", { searchable, inputKind: "raster", limit: 5 });
+  assert.equal(pointer[0]?.name, "wasm_d8_pointer", "D8 流向 must rank d8_pointer first");
+});
+
 test("compact view never invents capabilities the catalog lacks", () => {
   const { tools } = catalogForEvaluation();
   const noInputs = tools.find(tool => (tool.parameters.properties ?? {}) && Object.values(tool.parameters.properties ?? {}).every(schema => !schema["x-layer"]));

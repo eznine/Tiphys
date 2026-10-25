@@ -66,8 +66,16 @@ test("wasm_search exposes exact wire names and required flags from the real cata
   const slope = searchWasmTools("坡度").tools.find(tool => tool.id === "slope");
   assert.ok(slope, "Chinese slope alias must surface slope");
   assert.equal(slope!.inputs[0].name, "input");
+  assert.equal(slope!.inputs[0].default, undefined, "sample file names are not usable input defaults");
   assert.ok(slope!.parameters.some(parameter => parameter.name === "units" && parameter.options?.includes("percent")));
+  assert.equal(slope!.parameters.find(parameter => parameter.name === "units")?.default, "degrees");
   assert.equal(slope!.outputs[0].name, "output");
+
+  const flow = searchWasmTools("汇流累积量", { inputKind: "raster", limit: 5 });
+  assert.ok(flow.tools.some(tool => tool.id === "d8_flow_accum"), "hydrology wording must reach the real d8_flow_accum id");
+  const d8Pointer = searchWasmTools("D8 流向", { inputKind: "raster", limit: 5 });
+  assert.equal(d8Pointer.tools[0]?.id, "d8_pointer", "flow-direction wording must rank the real d8_pointer id first");
+  assert.equal(d8Pointer.tools[0]?.inputs[0]?.name, "dem");
   assert.throws(() => searchWasmTools("  "), /需要 query/);
 });
 
@@ -95,6 +103,12 @@ test("wasm_run binds every manifest input name for a real multi-input tool", asy
   assert.equal(added.namedOutputs[0].name, "output");
   assert.ok(fs.statSync(added.namedOutputs[0].path).size > 0);
 
+  const zonal = await runWasmTool({ tool: "zonal_statistics", inputs: { input: dem, features: dem }, params: { stat_type: "mean" } });
+  assert.equal(zonal.ok, true, zonal.error);
+  assert.equal(zonal.namedOutputs[0].kind, "raster");
+  assert.ok(fs.statSync(zonal.namedOutputs[0].path).size > 0);
+  assert.match(zonal.stdout ?? "", /Zone ID/);
+
   await assert.rejects(() => runWasmTool({ tool: "add", inputs: { input1: dem } }), /缺少必填输入：input2/);
   await assert.rejects(() => runWasmTool({ tool: "add", inputs: { input1: dem, wrong: dem } }), /不认识输入：wrong/);
   await assert.rejects(() => runWasmTool({ tool: "add", inputPath: dem }), /需要 2 个输入/);
@@ -120,12 +134,22 @@ test("workspace layer ids resolve through inspect_layers to the analysis file, n
   await assert.rejects(() => resolveWasmInput("missing-layer", async () => ({ layer: {} })), /找不到 WASM 输入图层或文件/);
 });
 
-test("wasm_run propagates cancellation and keeps later runs isolated", async () => {
+test("wasm_run reports cancellation and timeout honestly and keeps later runs isolated", async () => {
   const input = await projectedPoints();
-  const cancelled = await runWasmTool({ tool: "buffer_vector", inputPath: input, params: { distance: 500 }, timeoutMs: 50 });
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), 50);
+  const cancelled = await runWasmTool({ tool: "buffer_vector", inputPath: input, params: { distance: 500 }, signal: controller.signal });
   assert.equal(cancelled.cancelled, true);
+  assert.equal(cancelled.timedOut, undefined);
   assert.equal(cancelled.ok, false);
   assert.deepEqual(cancelled.outputs, []);
+
+  const timedOut = await runWasmTool({ tool: "buffer_vector", inputPath: input, params: { distance: 500 }, timeoutMs: 50 });
+  assert.equal(timedOut.cancelled, false);
+  assert.equal(timedOut.timedOut, true);
+  assert.equal(timedOut.ok, false);
+  assert.match(timedOut.error ?? "", /超过 50 毫秒预算/);
+  assert.deepEqual(timedOut.outputs, []);
 
   // A killed child cannot poison the next run: this is the whole point of the bridge.
   const next = await runWasmTool({ tool: "buffer_vector", inputPath: input, params: { distance: 250 } });
