@@ -15,8 +15,8 @@ import { OPERATION_IDS, operationSupport } from "../shared/contracts/index.ts";
 const shellIds = new Set((JSON.parse(fs.readFileSync(new URL("../src/lib/browser/catalog.json", import.meta.url), "utf8")) as { name: string }[]).map(tool => tool.name));
 const wasmIds = new Set((JSON.parse(fs.readFileSync(new URL("../src/lib/browser/wasm-catalog.json", import.meta.url), "utf8")) as { id: string }[]).map(tool => tool.id));
 
-test("there are at least eight cards and every field carries content", () => {
-  assert.ok(METHOD_CARDS.length >= 8, `only ${METHOD_CARDS.length} cards`);
+test("there are at least ten cards and every field carries content", () => {
+  assert.ok(METHOD_CARDS.length >= 10, `only ${METHOD_CARDS.length} cards`);
   const ids = new Set<string>();
   for (const card of METHOD_CARDS) {
     assert.ok(!ids.has(card.id), `duplicate id ${card.id}`);

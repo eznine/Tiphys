@@ -170,6 +170,39 @@ test("KML ExtendedData survives the managed work copy and GeoJSON export", async
   assert.deepEqual(json.features.map((feature: any) => feature.properties.verified_date).sort(), ["2026-01-02", "2026-02-03"]);
 });
 
+test("polygon intersection and exact named export follow the Bangkok delivery path", async () => {
+  const square = (x: number, y: number, name: string) => ({
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: { name },
+      geometry: { type: "Polygon", coordinates: [[[x, y], [x + .04, y], [x + .04, y + .04], [x, y + .04], [x, y]]] },
+    }],
+  });
+  const landuse = (await importBrowserFile(new Blob([JSON.stringify(square(100.5, 13.7, "landuse"))]), "bangkok_landuse.geojson")).layer;
+  const boundary = (await importBrowserFile(new Blob([JSON.stringify(square(100.52, 13.72, "boundary"))]), "bangkok_boundary.geojson")).layer;
+  const intersected = await finished("intersection", {
+    layer: landuse.id,
+    other_layer: boundary.id,
+    output_name: "bma_landcover_intersect",
+  });
+  assert.equal(intersected.layer.feature_count, 1);
+  assert.ok(intersected.layer.geometry_types.every((type: string) => ["Polygon", "MultiPolygon"].includes(type)));
+
+  const exported = await finished("export_features", {
+    layer: intersected.layer.id,
+    path: "bma_landcover_intersect.geojson",
+    fmt: "geojson",
+  });
+  assert.equal(exported.path, "bma_landcover_intersect.geojson");
+  assert.ok(exported.bytes > 0);
+  const stored: any = await readRecord("download:bma_landcover_intersect.geojson");
+  const json = JSON.parse(new TextDecoder().decode(stored.bytes));
+  assert.equal(json.type, "FeatureCollection");
+  assert.equal(json.features.length, intersected.layer.feature_count);
+  assert.ok(json.features[0].geometry.coordinates.length > 0);
+});
+
 test("attribute filters carry dropped_count into GeoJSON exports and report unsupported formats", async () => {
   const source = { type: "FeatureCollection", features: [
     { type: "Feature", properties: { id: 1, name: "clean" }, geometry: { type: "Point", coordinates: [2.35, 48.85] } },

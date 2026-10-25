@@ -6,7 +6,7 @@ import { PipelineResultDetails, pipelineResult } from "./ToolResultDetails";
 import { TaskCards, type TaskCardEvent } from "./TaskCards";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Layers3, Network, Waves, Route, Scissors, Sparkles, History, Mountain, Shapes, CircleDot, Hexagon, ChartScatter, Expand, Boxes, SlidersHorizontal, RefreshCw, Square } from "lucide-react";
+import { Layers3, Network, Waves, Route, Scissors, Sparkles, History, Mountain, Shapes, CircleDot, Hexagon, ChartScatter, Expand, Boxes, SlidersHorizontal, RefreshCw, Square, FileOutput } from "lucide-react";
 
 /** Chat timeline shared by the desktop ChatDock and the mobile chat sheet. */
 export const SUGGESTIONS = ["加载样例点，做 500 米缓冲", "查看当前图层信息"];
@@ -20,6 +20,7 @@ const JOB_STEPS: Record<string, string> = {
   gee_export_raster: "GEE 导出",
 };
 const RECIPES = [
+  { title: "保存结果", detail: "选图层与文件名，导出 GeoJSON/GPKG/FGB/CSV", tool: "export_features", Icon: FileOutput },
   { title: "线密度", detail: "线要素 → 搜索半径密度栅格", tool: "wasm_line_density", Icon: Route },
   { title: "凹包", detail: "生成贴合点群边界的凹包面", tool: "wasm_concave_hull", Icon: Hexagon },
   { title: "网络服务区", detail: "线网络 + 起点，打开服务区表单", tool: "wasm_network_service_area", Icon: Network },
