@@ -538,7 +538,7 @@ async function runNative(id: string, args: Record<string, any>, signal?: AbortSi
       const suffix = componentFiles.length ? `_comp${file.match(/_comp(\d+)\./)?.[1] ?? ""}` : outputs.length > 1 ? `_${p.name}` : "";
       const name = `${base}${suffix}`;
       firstName = firstName || base;
-      const kind = outputKind(id, p);
+      const kind = wasmOutputKind(id, p);
       // Vector outputs may be written in the tool's example format (e.g. shp);
       // adopt with the actual extension so the read-back conversion is correct.
       if (kind === "vector") published.layers.push(await adopt(bytes, file.split(".").pop() || "fgb", name, signal));
