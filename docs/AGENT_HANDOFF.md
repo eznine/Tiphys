@@ -70,8 +70,8 @@ tf-codex -C /workspace/tiphys   # 优先 tierflow_pro
 | 项 | 值 |
 |---|---|
 | APK | **0.1.3** / versionCode **4** → https://tiphys.xyz/apk/tiphys-0.1.3.apk |
-| 代码时代 | `2ca7d9e`（APK 0.1.3）+ A0 修复至 `80d28cb`；最新 main 为本行所在 docs commit |
-| Web | https://tiphys.xyz 已 live（`assets/index-DzrDGMwm.js`） |
+| 代码时代 | `2ca7d9e`（APK 0.1.3）+ A0 修复至 `fd19723`；最新 main 以 `git log` 为准 |
+| Web | https://tiphys.xyz 已 live（`assets/index-Ch4OIXyB.js`） |
 | Overnight | **PAUSED**（builder + tiphys-overnight-watch） |
 | 优先级 | **Agent-first**（browser Agent 可靠性 + desktop WASM bridge）；生态模型延后 |
 
@@ -112,6 +112,10 @@ tf-codex -C /workspace/tiphys   # 优先 tierflow_pro
 - **沉浸式顶栏：** 地图/聊天背景延伸到状态栏下；chrome 用 `--safe-top` / `env(safe-area-inset-top)` 避让；Capacitor StatusBar overlay + 透明。
 - **检查更新：** 原生端用 `CapacitorHttp` 拉 `version.json`，绕过 WebView CORS；错误文案更清晰。
 - nginx 片段保护 `/version.json` + `/apk/` CORS/短缓存（部署脚本不改 Certbot SSL）。
+
+### A0.1 全量 30 任务基线（2026-10-25 16:42）
+- **30/30 PASS，0 FAIL / 0 ERROR**；P50 30 s / P95 146 s / 最长 226 s；输入 428,028 tokens / 输出 14,352；预期工具命中 27/30；计划 11 次，`auditRuns` 0 违规；H08 48.7 s 为 warn。
+- 报告 `docs/baselines/stage4/agent-baseline.{json,md}`。**证据边界：** 与 inspect 语义修改有时间重叠，非冻结构建；单次运行，≥3 次方差/真机/跨模型仍未做。
 
 ### A0.4 GeoAgentBench 重评分（2026-10-25 16:15）
 - 6 任务兼容子集 **5/6 PASS，加权 0.833**（此前 2/6）：Paris 重投影 11/11、Cairo 凸包 10/10、Capetown 质心 9/9、Paris KML 10/10、Capetown waterway 12/12。

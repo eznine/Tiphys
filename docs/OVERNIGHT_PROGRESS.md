@@ -668,5 +668,5 @@
   - **纠正一个此前的误判**：`dem_hills.tif` 实际是有效的 EPSG:32650 / 30 m / 120×100，不是“声明 UTM 但坐标为经纬度”；M11 之前看到的是 WGS84 显示范围。修复后 M11 轨迹明确按 EPSG:32650 米制网格推进。
   - **验证**：`npx tsc --noEmit`、`npm run build` 通过；`browser-engine` 89/89（含 inspect 显示范围/分析 CRS 断言）；`test:plans` 31/31、`test:methods` 9/9、`test:search` 8/8、`test:contracts` 12/12、`test:centroid` 7/7、`test:vector-budget` 3/3、`test:baseline-eval` 6/6。
   - **提交**：`fd19723`（inspect 语义）、`4822657`（30/30 报告）；文档/PROGRESS 随后提交。
-  - **部署**：构建 `assets/index-Ch4OIXyB.js`；部署与线上核对随后。
+  - **部署**：`npm run deploy:xyz` 完成；`https://tiphys.xyz` 返回 `assets/index-Ch4OIXyB.js`，与本地 `dist/index.html` 一致；APK 0.1.3 未变（17,994,932 B）。
   - **后续**：Bangkok 分块/桌面降级；≥3 次方差与真机；APK 未重建；overnight 保持 PAUSED。
