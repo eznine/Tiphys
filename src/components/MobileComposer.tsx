@@ -1,5 +1,6 @@
 import { FormEvent, PointerEvent, useRef } from "react";
 import { ArrowUp, Plus, Square } from "lucide-react";
+import { deferComposerIdle } from "../mobile/imeRestore";
 
 type Props = {
   value: string;
@@ -108,6 +109,10 @@ export function MobileComposer({
         aria-label="对话消息"
         enterKeyHint="send"
         autoComplete="off"
+        onBlur={() => {
+          // Back / side-swipe IME dismiss often blurs without a document tap.
+          deferComposerIdle(() => onComposerIdle?.());
+        }}
         onKeyDown={e => {
           if (e.key === "Enter" && !e.nativeEvent.isComposing) {
             e.preventDefault();

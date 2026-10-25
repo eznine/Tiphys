@@ -193,4 +193,4 @@ The Capacitor APK does **not** auto-update. Users tap **设置 → 关于与诊�
 4. Edit `public/version.json` (`version`, `versionCode`, `notes`, `apkUrl` if the filename changed).
 5. `npm run build && npm run deploy:xyz` so the new `version.json` is live.
 
-Plugins used: `@capacitor/app`, `@capacitor/browser` (Capacitor 6). Run `npx cap sync android` (or `npm run android:build`) after install so the next APK embeds them.
+Plugins used: `@capacitor/app`, `@capacitor/browser`, `@capacitor/keyboard` (Capacitor 6). Run `npx cap sync android` (or `npm run android:build`) after install so the next APK embeds them.

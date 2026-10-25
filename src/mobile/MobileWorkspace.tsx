@@ -21,6 +21,7 @@ import { MobileTasksPage, TaskDetail } from "./MobileTasksPage";
 import { MobilePage } from "./MobilePage";
 import { MobileProjectPage } from "./MobileProjectPage";
 import { MobileSheet } from "./MobileSheet";
+import { subscribeImeDismiss } from "./imeRestore";
 import type { TaskCardEvent } from "../components/TaskCards";
 import type { ToolTaskEvent } from "../components/ToolPanel";
 import {
@@ -157,33 +158,35 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
       // Android WebView often skips blur when IME closes; re-check shortly after.
       window.setTimeout(syncFromActive, 120);
     };
-    let sawShrink = false;
-    const clearIfKeyboardClosed = () => {
-      const vv = window.visualViewport;
-      if (!vv) return;
-      if (vv.height < window.innerHeight - 8) {
-        sawShrink = true;
-        return;
-      }
-      if (!sawShrink) return;
-      sawShrink = false;
-      // Viewport recovered ≈ keyboard dismissed — restore bottom card without needing a map tap.
-      setFormFocused(false);
-    };
     document.addEventListener("focusin", focusin);
     document.addEventListener("focusout", focusout);
-    const vv = window.visualViewport;
-    vv?.addEventListener("resize", clearIfKeyboardClosed);
-    vv?.addEventListener("scroll", clearIfKeyboardClosed);
-    window.addEventListener("resize", clearIfKeyboardClosed);
+    const unsubIme = subscribeImeDismiss(() => setFormFocused(false));
     return () => {
       document.removeEventListener("focusin", focusin);
       document.removeEventListener("focusout", focusout);
-      vv?.removeEventListener("resize", clearIfKeyboardClosed);
-      vv?.removeEventListener("scroll", clearIfKeyboardClosed);
-      window.removeEventListener("resize", clearIfKeyboardClosed);
+      unsubIme();
     };
   }, []);
+
+  // While a non-card form is focused, poll in case Back dismisses IME without blur.
+  useEffect(() => {
+    if (!formFocused) return;
+    const id = window.setInterval(() => {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && active.closest(".m-bottom-card")) {
+        setFormFocused(false);
+        return;
+      }
+      const editable = active instanceof HTMLElement && (
+        active.isContentEditable
+        || active instanceof HTMLTextAreaElement
+        || active instanceof HTMLSelectElement
+        || (active instanceof HTMLInputElement && !["checkbox", "radio", "range", "color", "file", "button", "submit", "reset"].includes(active.type))
+      );
+      if (!editable) setFormFocused(false);
+    }, 300);
+    return () => window.clearInterval(id);
+  }, [formFocused]);
 
   const [storesReady, setStoresReady] = useState(false);
   const tasks = useTasks();

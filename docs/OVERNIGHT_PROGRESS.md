@@ -545,3 +545,15 @@
   - Verify: `npx tsc --noEmit` OK; `npm run build` OK. Deploy tiphys.xyz. Do NOT start Agent overnight.
 
 - 2026-10-25 11:42 Asia/Shanghai — Uploaded current `dist-apk/tiphys-debug.apk` (18 MiB) to `https://tiphys.xyz/apk/tiphys.apk` (octet-stream 200). version.json already live. Agent/builder still paused.
+
+- 2026-10-25 11:46 Asia/Shanghai — Mobile IME dismiss restore (OPPO Back/side-swipe; box only; Agent/builder stay paused):
+  - User: one-tap Send fixed; still broken — focus input → IME open → Back/side-swipe dismisses keyboard but bottom card stays input-only (`data-input-focused`, dock gone, 「没有任务了」) until Map tap.
+  - Root: prior outside-tap restore never fires on system IME dismiss; focus may stay or blur without document pointer; OPPO often never shrinks visualViewport.
+  - Fix (aggressive, fold UX kept):
+    1. `src/mobile/imeRestore.ts` — Capacitor `@capacitor/keyboard` `keyboardWillHide`/`keyboardDidHide` → clear; VirtualKeyboard `geometrychange` height 0; visualViewport shrink→recover only.
+    2. Composer `input` `onBlur` → deferred `onComposerIdle` (rAF+setTimeout 0 so Send pointerdown still wins).
+    3. `MobileBottomCard` — same + focusout + 300ms `activeElement` poll while `data-input-focused`.
+    4. `MobileWorkspace` form-focus uses same IME dismiss + poll.
+    5. `capacitor.config.ts` Keyboard `resizeOnFullScreen: true`; `npx cap sync android`.
+  - Last resort NOT taken (dock still folds on focus). If OPPO still stuck after native Keyboard hide, next step is stop `data-input-focused` dock collapse.
+  - Verify: `npx tsc --noEmit` OK; `npm run build` OK. Deploy tiphys.xyz. Agent overnight remains paused. APK needs rebuild to embed Keyboard plugin.

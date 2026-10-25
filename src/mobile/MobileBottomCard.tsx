@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { MobileDock, type MobileTab } from "./MobileDock";
+import { deferComposerIdle, isTextControl, subscribeImeDismiss } from "./imeRestore";
 
 type Props = {
   active: MobileTab;
@@ -24,21 +25,6 @@ type Props = {
 type ComposerIdleChildProps = {
   onComposerIdle?: () => void;
 };
-
-function isTextControl(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) return false;
-  if (target.isContentEditable) return true;
-  if (target instanceof HTMLTextAreaElement) return true;
-  if (target instanceof HTMLInputElement) {
-    return !["checkbox", "radio", "range", "color", "file", "button", "submit", "reset"].includes(target.type);
-  }
-  return false;
-}
-
-function viewportLooksClosed(vv: VisualViewport) {
-  // Secondary fallback only — OPPO/ColorOS WebView often never shrinks.
-  return vv.height >= window.innerHeight - 8;
-}
 
 function isComposerChromeButton(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false;
@@ -59,20 +45,26 @@ function isCardTextInput(target: EventTarget | null) {
  * input visible; the shell hides the whole card when another form field is
  * focused.
  *
- * OPPO/ColorOS WebView often never fires visualViewport shrink on IME open, so
- * restore cannot depend on viewport gates. Primary restore: any pointer outside
- * the text input blurs + clears typing (send/stop/add handle themselves first).
+ * OPPO/ColorOS: Back / side-swipe often dismisses IME without a document tap
+ * outside the input and without visualViewport shrink. Restore paths:
+ * 1) Capacitor Keyboard willHide/didHide (native APK)
+ * 2) input blur → deferred clear (Send pointerdown still wins)
+ * 3) outside pointer / touch
+ * 4) focusout + 300ms activeElement poll while folded
+ * 5) visualViewport shrink→recover (secondary)
  */
 export function MobileBottomCard({ active, onChange, running, pending, status, children }: Props) {
   const [typing, setTyping] = useState(false);
   const typingRef = useRef(false);
   typingRef.current = typing;
   const cardRef = useRef<HTMLDivElement>(null);
-  const sawShrinkRef = useRef(false);
+
+  const clearTypingOnly = () => {
+    setTyping(false);
+  };
 
   const releaseComposer = () => {
     setTyping(false);
-    sawShrinkRef.current = false;
     const activeEl = document.activeElement;
     if (activeEl instanceof HTMLElement && isTextControl(activeEl) && activeEl.closest(".m-bottom-card")) {
       activeEl.blur();
@@ -82,25 +74,31 @@ export function MobileBottomCard({ active, onChange, running, pending, status, c
   const focus = (event: FocusEvent<HTMLDivElement>) => {
     if (isTextControl(event.target)) setTyping(true);
   };
+
+  // Always clear on card blur (deferred so Send pointerdown runs first).
   const blur = (event: FocusEvent<HTMLDivElement>) => {
     if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
       if (isTextControl(event.relatedTarget)) return;
     }
-    setTyping(false);
-    sawShrinkRef.current = false;
+    deferComposerIdle(() => {
+      if (!typingRef.current) return;
+      const activeEl = document.activeElement;
+      if (isTextControl(activeEl) && activeEl instanceof HTMLElement && activeEl.closest(".m-bottom-card")) {
+        return;
+      }
+      clearTypingOnly();
+    });
   };
 
-  // Primary: any tap outside the text input restores dock (OPPO-safe; no viewport needed).
+  // Primary for taps: any pointer outside the text input restores dock.
   useEffect(() => {
     const onOutsidePointer = (event: Event) => {
       if (!typingRef.current) return;
       const target = event.target;
       if (isCardTextInput(target)) return;
-      // Send/stop/add must run their own handlers first (direct send / open sheet).
       if (isComposerChromeButton(target)) return;
       releaseComposer();
     };
-    // capture so we beat scroll/focus quirks; both pointer + touch for older WebViews
     document.addEventListener("pointerdown", onOutsidePointer, true);
     document.addEventListener("touchstart", onOutsidePointer, true);
     return () => {
@@ -109,46 +107,46 @@ export function MobileBottomCard({ active, onChange, running, pending, status, c
     };
   }, []);
 
-  // Secondary fallback when a WebView does report viewport shrink→recover.
+  // Native Keyboard hide + viewport shrink→recover (no ungated full-height).
   useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-
-    const onViewport = () => {
-      if (!viewportLooksClosed(vv)) {
-        sawShrinkRef.current = true;
-        return;
-      }
-      if (!sawShrinkRef.current) return;
-      sawShrinkRef.current = false;
+    return subscribeImeDismiss(() => {
       if (typingRef.current) releaseComposer();
-    };
-
-    vv.addEventListener("resize", onViewport);
-    vv.addEventListener("scroll", onViewport);
-    window.addEventListener("resize", onViewport);
-    return () => {
-      vv.removeEventListener("resize", onViewport);
-      vv.removeEventListener("scroll", onViewport);
-      window.removeEventListener("resize", onViewport);
-    };
+    });
   }, []);
 
+  // focusout: Android may blur without relatedTarget / bubble quirks.
   useEffect(() => {
-    const onFocusOut = () => {
-      window.setTimeout(() => {
+    const onFocusOut = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement) || !target.closest(".m-bottom-card")) return;
+      if (!isTextControl(target)) return;
+      deferComposerIdle(() => {
         if (!typingRef.current) return;
         const activeEl = document.activeElement;
         if (isTextControl(activeEl) && activeEl instanceof HTMLElement && activeEl.closest(".m-bottom-card")) {
           return;
         }
-        setTyping(false);
-        sawShrinkRef.current = false;
-      }, 100);
+        clearTypingOnly();
+      });
     };
     document.addEventListener("focusout", onFocusOut);
     return () => document.removeEventListener("focusout", onFocusOut);
   }, []);
+
+  // While folded: poll activeElement — Back/side-swipe sometimes moves focus
+  // off the input without a usable blur/pointer event.
+  useEffect(() => {
+    if (!typing) return;
+    const id = window.setInterval(() => {
+      if (!typingRef.current) return;
+      const activeEl = document.activeElement;
+      if (isTextControl(activeEl) && activeEl instanceof HTMLElement && activeEl.closest(".m-bottom-card")) {
+        return;
+      }
+      clearTypingOnly();
+    }, 300);
+    return () => window.clearInterval(id);
+  }, [typing]);
 
   // Clear stuck input-only mode across app resume / rotate (IME often gone).
   useEffect(() => {

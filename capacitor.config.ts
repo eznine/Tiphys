@@ -5,6 +5,12 @@ const config: CapacitorConfig = {
   appName: "TIPHYS",
   webDir: "dist",
   server: { androidScheme: "https" },
+  plugins: {
+    Keyboard: {
+      // Help Android WebView report resize/hide even with overlay chrome.
+      resizeOnFullScreen: true,
+    },
+  },
 };
 
 export default config;

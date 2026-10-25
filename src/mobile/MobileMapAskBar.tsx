@@ -1,5 +1,6 @@
 import { FormEvent, PointerEvent, useRef } from "react";
 import { ArrowUp, Plus, Square } from "lucide-react";
+import { deferComposerIdle } from "./imeRestore";
 
 type Props = {
   value: string;
@@ -102,6 +103,9 @@ export function MobileMapAskBar({
       aria-label="向 Agent 描述任务"
       enterKeyHint="send"
       autoComplete="off"
+      onBlur={() => {
+        deferComposerIdle(() => onComposerIdle?.());
+      }}
       onKeyDown={event => {
         if (event.key === "Enter" && !event.nativeEvent.isComposing) {
           event.preventDefault();
