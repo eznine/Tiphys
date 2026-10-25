@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Settings2, Server, Palette, SlidersHorizontal, Info, X, Eye, EyeOff, Check, Sun, Moon, Monitor, PlugZap, LoaderCircle, RefreshCw } from "lucide-react";
+import { Settings2, Server, Palette, SlidersHorizontal, Info, X, Eye, EyeOff, Check, Sun, Moon, Monitor, PlugZap, LoaderCircle, RefreshCw, Download } from "lucide-react";
 import { agentRequest } from "../lib/service";
 import { matchProviderPreset, PROVIDER_PRESETS } from "../lib/defaults";
+import { checkForAppUpdate, openApkDownload, type RemoteVersionInfo, BUNDLED_APP_VERSION } from "../lib/appUpdate";
 
 export type ThemeMode = "light" | "dark" | "system";
 type Settings = { provider: string; baseURL: string; model: string; hasApiKey: boolean; keyCount: number; keySource: string;
@@ -23,8 +24,11 @@ export function SettingsDialog({ theme, onTheme, density, onDensity, onClose, on
   const [pending, setPending] = useState<"test" | "save" | "models" | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [updatePending, setUpdatePending] = useState(false);
+  const [updateOffer, setUpdateOffer] = useState<RemoteVersionInfo | null>(null);
   const dialog = useRef<HTMLDivElement>(null);
   const controller = useRef<AbortController | null>(null);
+  const updateController = useRef<AbortController | null>(null);
   useEffect(() => {
     const abort = new AbortController();
     void agentRequest("/settings", { signal: abort.signal }).then(r => r.json()).then((s: Settings) => {
@@ -34,8 +38,38 @@ export function SettingsDialog({ theme, onTheme, density, onDensity, onClose, on
       setContextWindow(s.contextWindow); setMaxOutput(s.maxToolOutputChars);
     }).catch(err => { if (!abort.signal.aborted) setError(String(err)); });
     dialog.current?.focus();
-    return () => { abort.abort(); controller.current?.abort(); };
+    return () => { abort.abort(); controller.current?.abort(); updateController.current?.abort(); };
   }, []);
+  const runCheckUpdate = async () => {
+    setError(""); setMessage(""); setUpdateOffer(null); setUpdatePending(true);
+    updateController.current?.abort();
+    updateController.current = new AbortController();
+    try {
+      const result = await checkForAppUpdate(updateController.current.signal);
+      if (result.status === "web-only") {
+        setMessage(result.message);
+      } else if (result.status === "up-to-date") {
+        setMessage(`已是最新（当前 ${result.local.version} / ${result.local.versionCode}）`);
+      } else {
+        setUpdateOffer(result.remote);
+        setMessage(`发现新版本 ${result.remote.version}（当前 ${result.local.version}）`);
+      }
+    } catch (err) {
+      if (!updateController.current.signal.aborted) setError(String(err));
+    } finally {
+      setUpdatePending(false);
+    }
+  };
+  const runDownloadUpdate = async () => {
+    if (!updateOffer?.apkUrl) return;
+    setError("");
+    try {
+      await openApkDownload(updateOffer.apkUrl);
+      setMessage("已打开下载链接。下载完成后请允许安装未知来源应用。");
+    } catch (err) {
+      setError(String(err));
+    }
+  };
   const submit = async (test: boolean) => {
     setError(""); setMessage(""); setPending(test ? "test" : "save");
     controller.current = new AbortController();
@@ -115,13 +149,24 @@ export function SettingsDialog({ theme, onTheme, density, onDensity, onClose, on
             <p className="settings-help">每轮对话会注入项目记忆。桌面版同时读取 <code>~/.tiphys/memory.md</code>；浏览器版读取构建时内置的项目记忆。请勿在记忆文件中保存密钥。</p>
           </>}
           {tab === "about" && <>
-            <div className="settings-section-heading"><h2>TIPHYS</h2><p>Agent 驱动的地理空间工作区 · 0.1.0</p></div>
+            <div className="settings-section-heading"><h2>TIPHYS</h2><p>Agent 驱动的地理空间工作区 · {BUNDLED_APP_VERSION}</p></div>
             <div className="settings-static"><span>数据处理</span><strong>本地空间引擎</strong></div>
             <label className="settings-field"><span>配置文件位置</span><input readOnly aria-label="配置文件位置" value={settings?.configPath ?? "读取中…"} /></label>
             <div className="settings-static"><span>配置备份</span><strong title={settings?.backupPath}>{settings?.backupPath ?? "—"}</strong></div>
             <p className="settings-help">保存 API 配置时会自动在用户目录留一份备份；更新、重装或清理应用数据后，配置会自动恢复。密钥只存在本机。</p>
             <p className="settings-help">遇到连接、工具或任务问题，可以在运行日志中查看详细记录与服务状态。</p>
             <button type="button" className="icon-btn" onClick={() => { onClose(); onLogs(); }}>打开运行日志</button>
+            <h3>应用更新</h3>
+            <p className="settings-help">Android 应用可手动检查 tiphys.xyz 上的版本，不会自动强制更新。浏览器网页版可点此了解流程，但不会安装 APK。</p>
+            <div className="settings-update-row">
+              <button type="button" className="icon-btn" aria-label="检查更新" disabled={updatePending || !!pending} onClick={() => void runCheckUpdate()}>
+                {updatePending ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />}检查更新
+              </button>
+              {updateOffer && <button type="button" className="primary-btn" aria-label="下载更新" disabled={updatePending} onClick={() => void runDownloadUpdate()}>
+                <Download size={15} />下载更新 {updateOffer.version}
+              </button>}
+            </div>
+            {updateOffer?.notes && <p className="settings-help settings-update-notes">{updateOffer.notes}</p>}
           </>}
           {(error || message) && <div role={error ? "alert" : "status"} className={error ? "settings-feedback error" : "settings-feedback success"}>{error || message}</div>}
         </div>

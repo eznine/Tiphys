@@ -41,7 +41,8 @@ if ($LASTEXITCODE -ne 0) { throw "upload failed" }
 
 Write-Host "→ sudo install $RemoteWeb"
 # Feed password to remote sudo -S
-$Password | & ssh @sshArgs "sudo -S rsync -a --delete '$RemoteTmp/' '$RemoteWeb/'"
+# Protect /apk/ so separately uploaded APKs survive --delete of the SPA tree.
+$Password | & ssh @sshArgs "sudo -S rsync -a --delete --filter='P apk/' --filter='P apk/**' '$RemoteTmp/' '$RemoteWeb/'"
 if ($LASTEXITCODE -ne 0) { throw "sudo rsync failed. Check password in $PassFile" }
 
 $local = ([regex]::Match((Get-Content -Raw dist\index.html), 'assets/index-[^"\s]+\.js')).Value

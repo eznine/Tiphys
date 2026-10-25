@@ -49,6 +49,8 @@
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.87",
     "@capacitor/android": "^6.2.2",
+    "@capacitor/app": "^6.0.3",
+    "@capacitor/browser": "^6.0.6",
     "@capacitor/core": "^6.2.2",
     "@tauri-apps/api": "2.11.1",
     "@tauri-apps/plugin-opener": "^2.5.5",

@@ -153,3 +153,44 @@ The APK archive contains `index.html`, relative asset paths, the MapLibre worker
 - Release signing, store packaging, iOS, native GIS, and Play Store policy work.
 
 No emulator/device was available on the Linux box, so this is a buildable, statically verified debug shell rather than an on-device acceptance result.
+
+## Manual check for updates（检查更新）
+
+The Capacitor APK does **not** auto-update. Users tap **设置 → 关于与诊断 → 检查更新**.
+
+### How it works
+
+1. Server hosts `https://tiphys.xyz/version.json` (copied from `public/version.json` on every `npm run deploy:xyz`).
+2. The app fetches that JSON with a cache-bust query, compares `versionCode` (then `version`) to the local app via `@capacitor/app` `App.getInfo()` (bundled fallback `0.1.0` / code `1` if the plugin is missing).
+3. Up to date → toast 「已是最新」. Newer → show notes + 「下载更新」, which opens `apkUrl` with `@capacitor/browser` (falls back to `window.open` / navigation).
+4. Web tiphys.xyz shows the same button but replies politely that the feature is for the Android app (no forced install).
+
+### `version.json` shape
+
+```json
+{
+  "version": "0.1.0",
+  "versionCode": 1,
+  "apkUrl": "https://tiphys.xyz/apk/tiphys.apk",
+  "notes": "变更说明（可选）"
+}
+```
+
+### Shipping a new APK
+
+1. Bump `versionName` / `versionCode` in `android/app/build.gradle` (and keep `package.json` / `public/version.json` / `BUNDLED_*` in `src/lib/appUpdate.ts` in sync for the web fallback).
+2. `npm run android:build` → `dist-apk/tiphys-debug.apk`.
+3. Upload the APK to the origin (survives SPA deploys; deploy scripts protect `/apk/`):
+
+   ```bash
+   # example — after ssh/rsync auth is configured
+   sshpass -e scp -i "$KEY" dist-apk/tiphys-debug.apk eznine@20.214.241.113:/tmp/tiphys.apk
+   sshpass -e ssh -i "$KEY" eznine@20.214.241.113 \
+     "printf '%s\n' \"$PASSWORD\" | sudo -S mkdir -p /srv/tiphys-web/apk && \
+      printf '%s\n' \"$PASSWORD\" | sudo -S mv /tmp/tiphys.apk /srv/tiphys-web/apk/tiphys.apk"
+   ```
+
+4. Edit `public/version.json` (`version`, `versionCode`, `notes`, `apkUrl` if the filename changed).
+5. `npm run build && npm run deploy:xyz` so the new `version.json` is live.
+
+Plugins used: `@capacitor/app`, `@capacitor/browser` (Capacitor 6). Run `npx cap sync android` (or `npm run android:build`) after install so the next APK embeds them.

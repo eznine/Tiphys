@@ -1,0 +1,6 @@
+{
+  "version": "0.1.0",
+  "versionCode": 1,
+  "apkUrl": "https://tiphys.xyz/apk/tiphys.apk",
+  "notes": "初始调试版 Android APK（debug 签名）。安装后可在设置 → 关于与诊断 → 检查更新。"
+}

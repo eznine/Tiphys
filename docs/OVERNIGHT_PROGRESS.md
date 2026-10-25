@@ -535,3 +535,11 @@
   - Fix: document capture `pointerdown`/`touchstart` — any tap outside the text input blurs + clears typing (send/stop/add excepted). `MobileComposer`/`MobileMapAskBar` send use button `onPointerDown`, read value from input ref, call `onSend` directly, blur + `onComposerIdle` (injected by `MobileBottomCard` via cloneElement). Also clear typing on `visibilitychange`/`pageshow`/`orientationchange`. Viewport shrink path kept as secondary only. Fold UX (`data-input-focused` dock hide) retained.
   - Note: user approved adding manual APK check-update later — NOT implemented in this batch.
   - Verify: `npx tsc --noEmit` OK; `npm run build` OK. Deploy tiphys.xyz. Do NOT start Agent overnight.
+
+- 2026-10-25 11:41 Asia/Shanghai — Manual APK「检查更新」(box only; Agent/builder stay paused):
+  - `public/version.json` hosted at `https://tiphys.xyz/version.json` (`version`, `versionCode`, `apkUrl`, `notes`).
+  - Settings → 关于与诊断 → 「检查更新」: fetch with cache-bust, compare via `@capacitor/app` (bundled 0.1.0/1 fallback); up-to-date toast / newer → notes + 「下载更新」 via `@capacitor/browser`.
+  - Web tiphys.xyz: same button, polite no-op (Android-only). Plugins added + `cap sync android`.
+  - Deploy scripts protect `/srv/tiphys-web/apk/` from `--delete`. Docs in `docs/ANDROID_APK.md` for bumping version.json + uploading APK.
+  - APK URL `https://tiphys.xyz/apk/tiphys.apk` — upload existing `dist-apk/tiphys-debug.apk` if/when available on server (placeholder path until then).
+  - Verify: `npx tsc --noEmit` OK; `npm run build` OK. Deploy tiphys.xyz. Do NOT start Agent overnight.

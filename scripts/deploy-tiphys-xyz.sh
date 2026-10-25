@@ -64,8 +64,9 @@ fi
 
 echo "→ sudo install → ${REMOTE_WEB}"
 # Password must be expanded locally into the remote printf (remote has no SSHPASS).
+# Protect /apk/ so separately uploaded APKs survive --delete of the SPA tree.
 sshpass -e ssh "${SSH_OPTS[@]}" "${USER}@${HOST}" \
-  "printf '%s\n' $(printf '%q' "$PASSWORD") | sudo -S rsync -a --delete '${REMOTE_TMP}/' '${REMOTE_WEB}/'"
+  "printf '%s\n' $(printf '%q' "$PASSWORD") | sudo -S rsync -a --delete --filter='P apk/' --filter='P apk/**' '${REMOTE_TMP}/' '${REMOTE_WEB}/'"
 
 LOCAL_JS="$(grep -oE 'assets/index-[^\"[:space:]]+\.js' dist/index.html | head -1 || true)"
 REMOTE_JS="$(curl -fsS "https://tiphys.xyz/?v=$(date +%s)" | grep -oE 'assets/index-[^\"[:space:]]+\.js' | head -1 || true)"
