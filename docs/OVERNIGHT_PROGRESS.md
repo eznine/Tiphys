@@ -514,3 +514,5 @@
   - Placeholders: drop「例如…」; short copy; ~14.5px centered (left-align when typed).
   - Tab motion: horizontal slide (~320ms) by dock order; dock selected bubble slides via `--dock-index`. Lite + `prefers-reduced-motion` respected.
   - Commit `d95da89` pushed origin/main; `npm run deploy:xyz` OK (tiphys.xyz). Agent overnight pause can lift.
+
+- 2026-10-25 11:23 Asia/Shanghai — Mobile chat hotfix `d95da89` live; Agent pause lifted; restarting batch43+.
