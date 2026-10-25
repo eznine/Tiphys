@@ -2,6 +2,8 @@ import { FolderKanban, ListChecks, Map, MessageSquareText } from "lucide-react";
 
 export type MobileTab = "chat" | "map" | "tasks" | "project";
 
+export const MOBILE_TAB_ORDER: MobileTab[] = ["chat", "map", "tasks", "project"];
+
 const TABS: { id: MobileTab; label: string; Icon: typeof Map }[] = [
   { id: "chat", label: "对话", Icon: MessageSquareText },
   { id: "map", label: "地图", Icon: Map },
@@ -20,8 +22,15 @@ type Props = {
 
 /** Four-entry dock. Badges show real counts, not decoration. */
 export function MobileDock({ active, onChange, running, pending, embedded = false }: Props) {
+  const index = Math.max(0, MOBILE_TAB_ORDER.indexOf(active));
   return (
-    <nav className={"m-dock" + (embedded ? " m-dock-embedded" : "")} aria-label="主要导航">
+    <nav
+      className={"m-dock" + (embedded ? " m-dock-embedded" : "")}
+      aria-label="主要导航"
+      style={{ ["--dock-index" as string]: String(index) }}
+      data-dock-index={index}
+    >
+      <span className="m-dock-bubble" aria-hidden="true" />
       {TABS.map(({ id, label, Icon }) => {
         const badge = id === "tasks" ? running + pending : 0;
         return (

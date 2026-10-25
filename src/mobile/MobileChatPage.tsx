@@ -117,7 +117,7 @@ export function MobileChatPage(props: Props) {
         </div>}>
         <MobileComposer value={draft} onChange={onDraft} busy={busy} connected={connected} unconfigured={unconfigured}
           onSend={async text => onSend(text, { includeLayer, includeSelection, includeAoi })} onCancelTurn={onCancelTurn}
-          onActions={onOpenActions} placeholder="描述空间分析目标，或追问上一步…" />
+          onActions={onOpenActions} placeholder="描述目标，或继续追问" />
       </MobileBottomCard>
     </section>
   );

@@ -505,3 +505,12 @@
 - 2026-10-25 11:10 Asia/Shanghai — Supervisor: overnight watch shipped batch42 (`02942ba`) and started batch43; paused batch43 immediately because user mobile UX fixes are in flight (drawer scroll / delete / map-send / settings / hide coords). Resume Agent-first after mobile UX ships.
 
 - 2026-10-25 11:15 Asia/Shanghai — Mobile UX batch shipped `4947ca1` + tiphys.xyz deploy (drawer scroll, delete style, map-send no jump, settings mobile, hide coords, liquid-glass project capsule, chat blue gradient, motion). Mobile UX pause lifted; resume Agent-first overnight from batch43+.
+
+- 2026-10-25 11:18 Asia/Shanghai — User: mobile UX overshot chat layout (full-screen chat, no scroll, keyboard dismiss stuck); only wanted transparent top + project capsule + side buttons. Also placeholder: drop「例如…」, smaller, centered. Mobile UX fix in flight; pause Agent overnight.
+
+- 2026-10-25 11:23 Asia/Shanghai — Mobile chat hotfix shipped (post-`4947ca1` regression):
+  - Root cause no-scroll / missing composer: `.m-chat-page { position: relative }` broke viewport height; with `m-rise` transform, `position:fixed` bottom card stuck to tall page bottom (off-screen). Restored flex column `height:100%; min-height:0` fill; kept liquid-glass `MobileTopCapsule`.
+  - Keyboard dismiss stuck: Android WebView blur often fails → `data-input-focused` / `data-form-focused` left dock/status folded. `MobileBottomCard` + `MobileWorkspace` now clear on `visualViewport` shrink→recover and `focusout` timeout.
+  - Placeholders: drop「例如…」; short copy; ~14.5px centered (left-align when typed).
+  - Tab motion: horizontal slide (~320ms) by dock order; dock selected bubble slides via `--dock-index`. Lite + `prefers-reduced-motion` respected.
+  - Verification: `npx tsc --noEmit` + `npm run build` passed. Deploy tiphys.xyz. Agent overnight pause can lift after ship.

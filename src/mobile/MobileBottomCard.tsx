@@ -1,4 +1,4 @@
-import { useState, type FocusEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FocusEvent, type ReactNode } from "react";
 import { MobileDock, type MobileTab } from "./MobileDock";
 
 type Props = {
@@ -21,6 +21,12 @@ function isTextControl(target: EventTarget | null) {
   return false;
 }
 
+function viewportLooksClosed(vv: VisualViewport) {
+  // Android WebView often leaves focus stuck after IME dismiss; treat a recovered
+  // visual viewport (~window.innerHeight) as keyboard-closed.
+  return vv.height >= window.innerHeight - 8;
+}
+
 /**
  * The composer and the four-entry dock are one floating card. While the user is
  * typing, the status line and dock fold away so the keyboard only keeps the
@@ -29,6 +35,8 @@ function isTextControl(target: EventTarget | null) {
  */
 export function MobileBottomCard({ active, onChange, running, pending, status, children }: Props) {
   const [typing, setTyping] = useState(false);
+  const typingRef = useRef(false);
+  typingRef.current = typing;
 
   const focus = (event: FocusEvent<HTMLDivElement>) => {
     if (isTextControl(event.target)) setTyping(true);
@@ -39,6 +47,59 @@ export function MobileBottomCard({ active, onChange, running, pending, status, c
     }
     setTyping(false);
   };
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    let sawShrink = false;
+
+    const clearTyping = () => {
+      if (!typingRef.current) return;
+      setTyping(false);
+      const activeEl = document.activeElement;
+      if (activeEl instanceof HTMLElement && isTextControl(activeEl) && activeEl.closest(".m-bottom-card")) {
+        activeEl.blur();
+      }
+    };
+
+    const onViewport = () => {
+      if (!viewportLooksClosed(vv)) {
+        sawShrink = true;
+        return;
+      }
+      // Only restore after a shrink→recover cycle (keyboard open then closed).
+      if (!sawShrink) return;
+      sawShrink = false;
+      clearTyping();
+    };
+
+    vv.addEventListener("resize", onViewport);
+    vv.addEventListener("scroll", onViewport);
+    window.addEventListener("resize", onViewport);
+    return () => {
+      vv.removeEventListener("resize", onViewport);
+      vv.removeEventListener("scroll", onViewport);
+      window.removeEventListener("resize", onViewport);
+    };
+  }, []);
+
+  useEffect(() => {
+    const onFocusOut = () => {
+      window.setTimeout(() => {
+        const activeEl = document.activeElement;
+        if (isTextControl(activeEl) && activeEl instanceof HTMLElement && activeEl.closest(".m-bottom-card")) {
+          const vv = window.visualViewport;
+          // Still focused inside the card and keyboard appears open — keep typing.
+          if (vv && !viewportLooksClosed(vv)) return;
+        }
+        if (!(activeEl instanceof HTMLElement) || !isTextControl(activeEl) || !activeEl.closest(".m-bottom-card")) {
+          setTyping(false);
+        }
+      }, 100);
+    };
+    document.addEventListener("focusout", onFocusOut);
+    return () => document.removeEventListener("focusout", onFocusOut);
+  }, []);
 
   return <div className="m-bottom-card" data-input-focused={typing} onFocus={focus} onBlur={blur}>
     {status && <div className="m-bottom-status-slot">{status}</div>}

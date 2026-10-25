@@ -587,10 +587,12 @@
   border: 0;
   background: transparent;
   color: var(--m-ink);
-  font-size: 16px;
+  font-size: 14.5px;
+  text-align: center;
   outline: none;
 }
-.app-shell.mobile .m-askbar input::placeholder { color: var(--m-ink-3); }
+.app-shell.mobile .m-askbar input:not(:placeholder-shown) { text-align: left; }
+.app-shell.mobile .m-askbar input::placeholder { color: var(--m-ink-3); text-align: center; }
 
 /* ------------------------------------------------------------------ dock --- */
 
@@ -609,8 +611,23 @@
   border: 1px solid var(--m-line);
   box-shadow: 0 18px 38px -26px rgba(23, 43, 70, 0.5), 0 2px 10px rgba(23, 43, 70, 0.05);
 }
+.app-shell.mobile .m-dock-bubble {
+  position: absolute;
+  z-index: 0;
+  top: 6px;
+  bottom: 6px;
+  left: 8px;
+  width: calc((100% - 16px) / 4);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--m-accent) 14%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  transform: translate3d(calc(var(--dock-index, 0) * 100%), 0, 0);
+  transition: transform 320ms var(--m-ease);
+  pointer-events: none;
+}
 .app-shell.mobile .m-dock-item {
   position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -708,9 +725,17 @@ button.m-bottom-status { cursor: pointer; }
 .app-shell.mobile .m-bottom-card .m-askbar-send,
 .app-shell.mobile .m-bottom-card .mobile-composer-send { background: var(--m-accent); color: #fff; }
 .app-shell.mobile .m-bottom-card .m-askbar input,
-.app-shell.mobile .m-bottom-card .mobile-composer input { height: 39px; font-size: 15.5px; }
+.app-shell.mobile .m-bottom-card .mobile-composer input {
+  height: 39px;
+  font-size: 14.5px;
+  text-align: center;
+}
+.app-shell.mobile .m-bottom-card .m-askbar input:not(:placeholder-shown),
+.app-shell.mobile .m-bottom-card .mobile-composer input:not(:placeholder-shown) {
+  text-align: left;
+}
 .app-shell.mobile .m-dock.m-dock-embedded {
-  position: static;
+  position: relative; /* keep containing block for sliding bubble */
   z-index: auto;
   left: auto;
   right: auto;
@@ -722,6 +747,13 @@ button.m-bottom-status { cursor: pointer; }
   background: transparent;
   box-shadow: none;
   transition: none;
+}
+.app-shell.mobile .m-dock.m-dock-embedded .m-dock-bubble {
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: calc(100% / 4);
+  border-radius: 16px;
 }
 .app-shell.mobile .m-dock.m-dock-embedded .m-dock-item { border-radius: 16px; }
 
@@ -919,8 +951,14 @@ button.m-bottom-status { cursor: pointer; }
 /* ---------------------------------------------------------- chat page ------ */
 
 .app-shell.mobile .m-chat-page {
-  position: relative;
-  padding-top: 0;
+  /* Keep .m-page absolute inset fill (do NOT use position:relative — unbounded
+     height breaks .m-chat-scroll flex overflow, and with m-rise transform the
+     fixed bottom card sticks to the tall page bottom, off-screen). */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding-top: 0; /* chrome owns safe-area; avoid double inset from .m-page */
   padding-bottom: var(--m-bottom-card-space);
   background:
     radial-gradient(120% 70% at 50% -10%, rgba(37, 99, 235, 0.18), transparent 58%),
@@ -944,10 +982,6 @@ button.m-bottom-status { cursor: pointer; }
 .app-shell.mobile .m-chat-chrome {
   position: absolute;
   z-index: 50;
-}
-.app-shell.mobile .m-chat-page {
-  /* chrome owns safe-area; avoid double inset from .m-page */
-  padding-top: 0;
 }
 .app-shell.mobile .m-chat-kicker {
   display: inline-flex;
@@ -1167,9 +1201,12 @@ button.m-bottom-status { cursor: pointer; }
   border: 0;
   background: transparent;
   color: var(--m-ink);
-  font-size: 16px;
+  font-size: 14.5px;
+  text-align: center;
   outline: none;
 }
+.app-shell.mobile .mobile-composer input:not(:placeholder-shown) { text-align: left; }
+.app-shell.mobile .mobile-composer input::placeholder { color: var(--m-ink-3); text-align: center; }
 
 /* ---------------------------------------------------------- tasks page ----- */
 
@@ -2154,6 +2191,14 @@ button.m-bottom-status { cursor: pointer; }
   from { opacity: 0; transform: translate3d(0, 14px, 0); }
   to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
+@keyframes m-slide-in-end {
+  from { opacity: 0.78; transform: translate3d(14%, 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes m-slide-in-start {
+  from { opacity: 0.78; transform: translate3d(-14%, 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
 @keyframes m-sheet-up {
   from { opacity: 0.72; transform: translate3d(0, 18px, 0); }
   to { opacity: 1; transform: translate3d(0, 0, 0); }
@@ -2167,8 +2212,18 @@ button.m-bottom-status { cursor: pointer; }
   to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 
-.app-shell.mobile .m-page {
-  animation: m-rise 320ms var(--m-ease) both;
+.app-shell.mobile .m-shell[data-tab-dir="forward"] .m-page {
+  animation: m-slide-in-end 320ms var(--m-ease) both;
+}
+.app-shell.mobile .m-shell[data-tab-dir="back"] .m-page {
+  animation: m-slide-in-start 320ms var(--m-ease) both;
+}
+/* Map chrome: soft horizontal enter when landing on map (not bottom-card — avoid fighting keyboard focus transforms) */
+.app-shell.mobile .m-shell[data-tab="map"][data-tab-dir="forward"] .m-map-chrome {
+  animation: m-slide-in-end 300ms var(--m-ease) both;
+}
+.app-shell.mobile .m-shell[data-tab="map"][data-tab-dir="back"] .m-map-chrome {
+  animation: m-slide-in-start 300ms var(--m-ease) both;
 }
 .app-shell.mobile .m-top-chrome,
 .app-shell.mobile .m-map-chrome {
@@ -2223,11 +2278,15 @@ button.m-bottom-status { cursor: pointer; }
 .app-shell.mobile.m-shell-lite .m-page,
 .app-shell.mobile.m-shell-lite .m-top-chrome,
 .app-shell.mobile.m-shell-lite .m-map-chrome,
+.app-shell.mobile.m-shell-lite .m-bottom-card,
 .app-shell.mobile.m-shell-lite .m-sheet-root .m-sheet,
 .app-shell.mobile.m-shell-lite .m-sheet-root .m-sheet-backdrop,
 .app-shell.mobile.m-shell-lite .settings-backdrop,
 .app-shell.mobile.m-shell-lite .settings-dialog {
   animation: none;
+}
+.app-shell.mobile.m-shell-lite .m-dock-bubble {
+  transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

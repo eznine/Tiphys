@@ -10,7 +10,7 @@ import { MapCanvas, type TiphysMapView } from "../components/MapCanvas";
 import { MapLegend } from "../components/MapLegend";
 import { AttributeTable } from "../components/AttributeTable";
 import { LayerProperties } from "../components/LayerProperties";
-import { MobileDock, type MobileTab } from "./MobileDock";
+import { MobileDock, MOBILE_TAB_ORDER, type MobileTab } from "./MobileDock";
 import { MobileBottomCard } from "./MobileBottomCard";
 import { MobileMapChrome } from "./MobileMapChrome";
 import { MobileMapAskBar } from "./MobileMapAskBar";
@@ -100,6 +100,14 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
   } = props;
 
   const [tab, setTab] = useState<MobileTab>("map");
+  const [tabDir, setTabDir] = useState<"forward" | "back">("forward");
+  const prevTabRef = useRef<MobileTab>("map");
+  useEffect(() => {
+    const from = MOBILE_TAB_ORDER.indexOf(prevTabRef.current);
+    const to = MOBILE_TAB_ORDER.indexOf(tab);
+    if (to !== from) setTabDir(to > from ? "forward" : "back");
+    prevTabRef.current = tab;
+  }, [tab]);
   const [layersOpen, setLayersOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [toolboxOpen, setToolboxOpen] = useState(false);
@@ -135,18 +143,41 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
       if (target?.closest(".m-bottom-card")) { setFormFocused(false); return; }
       setFormFocused(editable(target));
     };
+    const syncFromActive = () => {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && active.closest(".m-bottom-card")) { setFormFocused(false); return; }
+      setFormFocused(editable(active));
+    };
     const focusout = () => {
-      window.requestAnimationFrame(() => {
-        const active = document.activeElement;
-        if (active instanceof HTMLElement && active.closest(".m-bottom-card")) { setFormFocused(false); return; }
-        setFormFocused(editable(active));
-      });
+      window.requestAnimationFrame(syncFromActive);
+      // Android WebView often skips blur when IME closes; re-check shortly after.
+      window.setTimeout(syncFromActive, 120);
+    };
+    let sawShrink = false;
+    const clearIfKeyboardClosed = () => {
+      const vv = window.visualViewport;
+      if (!vv) return;
+      if (vv.height < window.innerHeight - 8) {
+        sawShrink = true;
+        return;
+      }
+      if (!sawShrink) return;
+      sawShrink = false;
+      // Viewport recovered ≈ keyboard dismissed — restore bottom card without needing a map tap.
+      setFormFocused(false);
     };
     document.addEventListener("focusin", focusin);
     document.addEventListener("focusout", focusout);
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", clearIfKeyboardClosed);
+    vv?.addEventListener("scroll", clearIfKeyboardClosed);
+    window.addEventListener("resize", clearIfKeyboardClosed);
     return () => {
       document.removeEventListener("focusin", focusin);
       document.removeEventListener("focusout", focusout);
+      vv?.removeEventListener("resize", clearIfKeyboardClosed);
+      vv?.removeEventListener("scroll", clearIfKeyboardClosed);
+      window.removeEventListener("resize", clearIfKeyboardClosed);
     };
   }, []);
 
@@ -663,7 +694,7 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
     if (item.kind === "msg" && item.role === "agent") { lastAgentMessage = item.text.replace(/\s+/g, " "); break; }
   }
 
-  return <div className={"m-shell" + (effects === "lite" ? " m-shell-lite" : "")} data-tab={tab} data-form-focused={formFocused || undefined}>
+  return <div className={"m-shell" + (effects === "lite" ? " m-shell-lite" : "")} data-tab={tab} data-tab-dir={tabDir} data-form-focused={formFocused || undefined}>
     <div className="m-map-stage" aria-hidden={tab !== "map"}>
       <MapCanvas variant="mobile" theme={theme} dataLayers={layers} focusBounds={focus} onStatus={onMapStatus}
         selection={selection} onSelect={onSelection} aoi={aoi} onAoiChange={onAoi} onOpenTable={openTable}

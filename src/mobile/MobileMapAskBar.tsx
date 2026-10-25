@@ -22,7 +22,7 @@ export function MobileMapAskBar({ value, onChange, busy, connected, unconfigured
   };
   return <form className="m-askbar" onSubmit={submit}>
     <button type="button" className="m-askbar-add" aria-label="更多操作" onClick={onOpenActions}><Plus size={20} /></button>
-    <input value={value} onChange={event => onChange(event.target.value)} placeholder="描述目标，例如：为学校生成 1 公里服务圈"
+    <input value={value} onChange={event => onChange(event.target.value)} placeholder="描述你的空间分析目标"
       aria-label="向 Agent 描述任务" enterKeyHint="send" autoComplete="off"
       onKeyDown={event => { if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} />
     {busy
