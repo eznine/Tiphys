@@ -513,4 +513,4 @@
   - Keyboard dismiss stuck: Android WebView blur often fails → `data-input-focused` / `data-form-focused` left dock/status folded. `MobileBottomCard` + `MobileWorkspace` now clear on `visualViewport` shrink→recover and `focusout` timeout.
   - Placeholders: drop「例如…」; short copy; ~14.5px centered (left-align when typed).
   - Tab motion: horizontal slide (~320ms) by dock order; dock selected bubble slides via `--dock-index`. Lite + `prefers-reduced-motion` respected.
-  - Verification: `npx tsc --noEmit` + `npm run build` passed. Deploy tiphys.xyz. Agent overnight pause can lift after ship.
+  - Commit `d95da89` pushed origin/main; `npm run deploy:xyz` OK (tiphys.xyz). Agent overnight pause can lift.
