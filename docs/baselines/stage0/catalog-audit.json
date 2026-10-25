@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-24T13:11:29.446Z",
+  "generated_at": "2026-10-25T01:53:03.363Z",
   "generated_by": "scripts/catalog-audit.ts",
   "sources": {
     "python": "engine/tools.py → FastMCP.list_tools() (scripts/export_engine_catalog.py)",
@@ -14,13 +14,13 @@
     "hydrated": true
   },
   "counts": {
-    "python_mcp": 35,
+    "python_mcp": 36,
     "browser_shell": 43,
     "browser_plugins": 5,
     "wasm": 958,
     "merged_browser_catalog": 1001,
     "searchable_wasm": 958,
-    "desktop_agent_direct": 36,
+    "desktop_agent_direct": 37,
     "browser_agent_direct": 46
   },
   "reconciliation": {
@@ -61,7 +61,9 @@
       "union_layers",
       "zoom_to_layer"
     ],
-    "only_python": [],
+    "only_python": [
+      "zonal_statistics"
+    ],
     "only_shell": [
       "clip_layers_to_aoi",
       "hydrology_flow_pipeline",
@@ -93,7 +95,7 @@
     "邻近分析": 1,
     "叠加分析": 5,
     "几何处理": 4,
-    "查询与选择": 3,
+    "查询与选择": 4,
     "地图与显示": 4,
     "GEE": 4
   },
@@ -300,7 +302,7 @@
   },
   "surfaces": {
     "desktop-agent": {
-      "count": 36,
+      "count": 37,
       "detail": "Python MCP tools + read_tool_output. WASM/GeoLibre tools are NOT reachable from the desktop agent loop.",
       "names": [
         "add_data",
@@ -337,12 +339,13 @@
         "simplify",
         "spatial_join",
         "union_layers",
+        "zonal_statistics",
         "zoom_to_layer",
         "read_tool_output"
       ]
     },
     "desktop-toolbox": {
-      "count": 1001,
+      "count": 1002,
       "detail": "ToolPanel renders python + every WASM schema + plugin tools inside the Tauri WebView."
     },
     "browser-agent": {
@@ -1367,8 +1370,8 @@
     }
   },
   "totals": {
-    "distinct_tool_ids": 993,
-    "python_desktop_only": 0,
+    "distinct_tool_ids": 994,
+    "python_desktop_only": 1,
     "wasm_browser_only": 958
   },
   "tools": [
@@ -2198,6 +2201,35 @@
         "desktop-agent": true,
         "desktop-toolbox": true,
         "browser-agent": true,
+        "browser-toolbox": true,
+        "browser-search": false
+      }
+    },
+    {
+      "id": "zonal_statistics",
+      "engines": [
+        "desktop-python"
+      ],
+      "category": "查询与选择",
+      "async": false,
+      "read_only": false,
+      "destructive": false,
+      "inputs": [
+        "layer",
+        "zones_layer",
+        "statistic",
+        "value_field",
+        "ignore_nodata",
+        "output_name"
+      ],
+      "required": [
+        "layer",
+        "zones_layer"
+      ],
+      "surfaces": {
+        "desktop-agent": true,
+        "desktop-toolbox": true,
+        "browser-agent": false,
         "browser-toolbox": true,
         "browser-search": false
       }

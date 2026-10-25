@@ -456,13 +456,24 @@ ${timeline}`.matchAll(/tool: "(wasm_[^"]+)"/g)].map(match => match[1]);
     "wasm_central_feature", "wasm_directional_distribution", "wasm_frost_filter", "wasm_cut_fill",
     "wasm_balance_contrast_enhancement", "wasm_contours_from_points", "wasm_total_curvature",
     "wasm_principal_component_analysis", "wasm_anisotropic_diffusion_filter", "wasm_multiscale_roughness",
-    "wasm_plan_curvature", "wasm_topology_validation_report", "wasm_tin_interpolation"]) {
+    "wasm_plan_curvature", "wasm_topology_validation_report", "wasm_tin_interpolation",
+    "wasm_median_filter", "wasm_gaussian_filter", "wasm_breach_depressions_least_cost",
+    "wasm_wetness_index", "wasm_find_identical", "wasm_integrate", "wasm_ordinary_kriging"]) {
     assert.ok(recipeTools.includes(name), `${name} should be available as an agent recipe`);
     assert.ok(browserCatalog.some(tool => tool.name === name), `${name} recipe must resolve to a catalog tool`);
   }
   for (const name of ["wasm_plan_curvature", "wasm_profile_curvature", "wasm_openness",
     "wasm_feature_preserving_smoothing", "wasm_lee_filter", "wasm_tin_interpolation",
     "wasm_topology_validation_report", "wasm_repair_geometry"]) {
+    assert.ok(names.includes(name), `${name} should be a curated ribbon action`);
+  }
+  for (const name of ["wasm_mean_filter", "wasm_median_filter", "wasm_gaussian_filter",
+    "wasm_bilateral_filter", "wasm_laplacian_filter", "wasm_edge_preserving_mean_filter",
+    "wasm_breach_depressions_least_cost", "wasm_wetness_index"]) {
+    assert.ok(names.includes(name), `${name} should be a curated ribbon action`);
+  }
+  for (const name of ["wasm_find_identical", "wasm_near", "wasm_median_center", "wasm_integrate",
+    "wasm_extend_vector_lines", "wasm_split_vector_lines", "wasm_ordinary_kriging"]) {
     assert.ok(names.includes(name), `${name} should be a curated ribbon action`);
   }
 });
@@ -992,6 +1003,15 @@ test("Chinese GIS aliases rank conversion, interpolation and service-area tools"
     ["拓扑检查", "wasm_topology_validation_report"], ["几何修复", "wasm_repair_geometry"]]) {
     assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
   }
+  for (const [query, expected] of [["洼地修复", "wasm_breach_depressions_least_cost"],
+    ["地形湿度指数", "wasm_wetness_index"], ["高斯降噪", "wasm_gaussian_filter"],
+    ["拉普拉斯边缘", "wasm_laplacian_filter"]]) {
+    assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
+  }
+  for (const [query, expected] of [["去重", "wasm_find_identical"], ["邻近距离", "wasm_near"],
+    ["空间中位中心", "wasm_median_center"], ["拓扑整合", "wasm_integrate"]]) {
+    assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
+  }
   const streamOrders = searchBrowserTools(browserCatalog, "河网分级", { limit: 4 }).map(tool => tool.name);
   assert.ok(streamOrders.includes("wasm_strahler_stream_order") && streamOrders.includes("wasm_hack_stream_order"),
     "河网分级 should surface both Strahler and Hack stream ordering");
@@ -1168,6 +1188,42 @@ test("new densify ribbon actions publish real terrain, QA and interpolation laye
   const repairedLayer = repaired.layer ?? repaired.layers?.[0]?.layer;
   assert.deepEqual(repairedLayer.geometry_types, ["Polygon"]);
   assert.equal(repairedLayer.feature_count, 1);
+});
+
+test("batch39 filter and terrain ribbon actions publish real rasters", async () => {
+  const dem = (await importBrowserFile(new Blob([fs.readFileSync(new URL("../tests/fixtures/dem_hills.tif", import.meta.url))]), "dem_hills.tif")).layer;
+  for (const [name, args] of [
+    ["wasm_mean_filter", { input: dem.id, filter_size_x: 3, filter_size_y: 3, output_name: "batch39_mean" }],
+    ["wasm_median_filter", { input: dem.id, filter_size_x: 3, filter_size_y: 3, sig_digits: 2, output_name: "batch39_median" }],
+    ["wasm_gaussian_filter", { input: dem.id, sigma: 1, treat_as_rgb: false, assume_three_band_rgb: false, output_name: "batch39_gaussian" }],
+    ["wasm_bilateral_filter", { input: dem.id, sigma_dist: 1, sigma_int: 2, treat_as_rgb: false,
+      assume_three_band_rgb: false, output_name: "batch39_bilateral" }],
+    ["wasm_laplacian_filter", { input: dem.id, variant: "3x3(1)", clip_amount: 0, output_name: "batch39_laplacian" }],
+    ["wasm_edge_preserving_mean_filter", { input: dem.id, filter_size: 3, threshold: 15, output_name: "batch39_edge_mean" }],
+    ["wasm_breach_depressions_least_cost", { dem: dem.id, fill_deps: true, max_dist: 20, minimize_dist: false,
+      output_name: "batch39_breached" }],
+  ] as const) {
+    const result = await finished(name, args);
+    const layer = result.layer ?? result.layers?.[0]?.layer;
+    assert.equal(layer.kind, "raster", `${name} must publish a displayed raster`);
+    assert.ok(layer.raster?.width > 1 && layer.raster?.height > 1, `${name} raster must be readable`);
+    assert.equal(result.attachments, undefined);
+  }
+
+  const slope = await finished("wasm_slope", { input: dem.id, units: "degrees", z_factor: 1, output_name: "batch39_slope" });
+  const pointer = await finished("wasm_d8_pointer", { dem: dem.id, output_name: "batch39_pointer" });
+  const sca = await finished("wasm_d8_flow_accum", {
+    input: (pointer.layer ?? pointer.layers?.[0]?.layer).id, input_is_pointer: true, out_type: "sca", output_name: "batch39_sca",
+  });
+  const wetness = await finished("wasm_wetness_index", {
+    sca: (sca.layer ?? sca.layers?.[0]?.layer).id,
+    slope: (slope.layer ?? slope.layers?.[0]?.layer).id,
+    output_name: "batch39_wetness",
+  });
+  const wetnessLayer = wetness.layer ?? wetness.layers?.[0]?.layer;
+  assert.equal(wetnessLayer.kind, "raster", "wetness index must publish a raster");
+  assert.equal(wetnessLayer.raster?.width, dem.raster?.width);
+  assert.equal(wetness.attachments, undefined);
 });
 
 test("Lee, downslope and cost-back-link raster tools publish real result layers", async () => {

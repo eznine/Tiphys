@@ -441,8 +441,34 @@ const WASM_OUTPUT_KIND_OVERRIDES: Record<string, Record<string, string>> = {
   standard_deviation_filter: { output: "raster" },
   total_curvature: { output: "raster" },
   wetness_index: { output: "raster" },
+  adaptive_filter: { output: "raster" },
+  diff_of_gaussians_filter: { output: "raster" },
+  diversity_filter: { output: "raster" },
+  emboss_filter: { output: "raster" },
+  enhanced_lee_filter: { output: "raster" },
+  frangi_filter: { output: "raster" },
+  gamma_map_filter: { output: "raster" },
+  guided_filter: { output: "raster" },
+  high_pass_bilateral_filter: { output: "raster" },
+  high_pass_filter: { output: "raster" },
+  high_pass_median_filter: { output: "raster" },
+  k_nearest_mean_filter: { output: "raster" },
+  kuan_filter: { output: "raster" },
+  kuwahara_filter: { output: "raster" },
+  line_detection_filter: { output: "raster" },
+  maximum_filter: { output: "raster" },
+  minimum_filter: { output: "raster" },
+  non_local_means_filter: { output: "raster" },
+  olympic_filter: { output: "raster" },
+  range_filter: { output: "raster" },
+  refined_lee_filter: { output: "raster" },
+  savitzky_golay_2d_filter: { output: "raster" },
+  sobel_filter: { output: "raster" },
+  total_filter: { output: "raster" },
+  user_defined_weights_filter: { output: "raster" },
+  wiener_filter: { output: "raster" },
 };
-function outputKind(id: string, param: { name: string; data_kind: string }): string {
+export function wasmOutputKind(id: string, param: { name: string; data_kind: string }): string {
   return WASM_OUTPUT_KIND_OVERRIDES[id]?.[param.name] ?? param.data_kind;
 }
 async function runNative(id: string, args: Record<string, any>, signal?: AbortSignal) {
@@ -455,7 +481,7 @@ async function runNative(id: string, args: Record<string, any>, signal?: AbortSi
   const outputExt = (p: { name: string; data_kind: string }) => {
     const example = (manifest.examples?.[0]?.args as Record<string, unknown> | undefined)?.[p.name];
     const fromExample = typeof example === "string" && example.includes(".") ? example.split(".").pop()! : "";
-    const kind = outputKind(id, p);
+    const kind = wasmOutputKind(id, p);
     const allowed = SUPPORTED_EXT[kind];
     if (allowed && !allowed.includes(fromExample)) return OUTPUT_EXT[kind] ?? "bin";
     return fromExample || (OUTPUT_EXT[kind] ?? "bin");

@@ -6,7 +6,7 @@ import { PipelineResultDetails, pipelineResult } from "./ToolResultDetails";
 import { TaskCards, type TaskCardEvent } from "./TaskCards";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Layers3, Network, Waves, Route, Scissors, Sparkles, History, Mountain, Shapes, CircleDot, Hexagon, ChartScatter, Expand, Boxes, SlidersHorizontal, RefreshCw, Square, FileOutput, ListChecks, Triangle } from "lucide-react";
+import { Layers3, Network, Waves, Route, Scissors, Sparkles, History, Mountain, Shapes, CircleDot, Hexagon, ChartScatter, Expand, Boxes, Combine, SlidersHorizontal, RefreshCw, Square, FileOutput, ListChecks, Triangle } from "lucide-react";
 
 /** Chat timeline shared by the desktop ChatDock and the mobile chat sheet. */
 export const SUGGESTIONS = ["加载样例点，做 500 米缓冲", "查看当前图层信息"];
@@ -40,9 +40,16 @@ const RECIPES = [
   { title: "地形崎岖度", detail: "从 DEM 计算 Riley 地形粗糙度指数，打开表单", tool: "wasm_ruggedness_index", Icon: Mountain },
   { title: "对称差", detail: "保留两个面图层互不重叠的区域，打开表单", tool: "wasm_symmetrical_difference", Icon: Boxes },
   { title: "均值滤波", detail: "对 DEM 或影像做局部均值平滑，打开表单", tool: "wasm_mean_filter", Icon: SlidersHorizontal },
+  { title: "中值滤波", detail: "抑制椒盐噪声并保留边缘，打开表单", tool: "wasm_median_filter", Icon: SlidersHorizontal },
+  { title: "高斯降噪", detail: "按距离权重平滑栅格，打开表单", tool: "wasm_gaussian_filter", Icon: SlidersHorizontal },
+  { title: "洼地修复", detail: "最小代价破除洼地，打开填洼参数表单", tool: "wasm_breach_depressions_least_cost", Icon: Waves },
+  { title: "地形湿度指数", detail: "汇流面积与坡度合成 TWI，打开表单", tool: "wasm_wetness_index", Icon: Waves },
   { title: "变化矢量", detail: "双日期多波段影像 → 变化幅度与方向栅格", tool: "wasm_change_vector_analysis", Icon: RefreshCw },
   { title: "邻近分析", detail: "输入图层 → 最近要素 ID 与距离", tool: "wasm_near", Icon: CircleDot },
   { title: "线延伸分割", detail: "端点延伸或按长度拆分折线，打开表单", tool: "wasm_extend_vector_lines", Icon: Scissors },
+  { title: "重复要素查重", detail: "按字段与几何查找重复要素，打开表单", tool: "wasm_find_identical", Icon: ListChecks },
+  { title: "拓扑整合", detail: "按容差吸附顶点与 T 形交点，打开表单", tool: "wasm_integrate", Icon: Combine },
+  { title: "普通克里金", detail: "从点采样做普通克里金插值，打开表单", tool: "wasm_ordinary_kriging", Icon: ChartScatter },
   { title: "中心要素", detail: "找出到所有要素总距离最小的位置，打开表单", tool: "wasm_central_feature", Icon: ChartScatter },
   { title: "标准差椭圆", detail: "方向分布与标准差椭圆，打开表单", tool: "wasm_directional_distribution", Icon: ChartScatter },
   { title: "Frost 滤波", detail: "SAR 斑点抑制并保留边缘，打开表单", tool: "wasm_frost_filter", Icon: SlidersHorizontal },

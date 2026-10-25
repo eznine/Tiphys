@@ -1,76 +1,41 @@
-# TIPHYS Overnight Build Brief (2026-10-25)
+# TIPHYS Overnight Build Brief (updated 2026-10-25 ~10:00 Asia/Shanghai)
 
-Owner is asleep until morning (Asia/Shanghai). Work **continuously** on **/workspace/tiphys** (this Linux box). Prefer `tf-codex` with tierflow_pro; rotate keys on quota (`tf-codex` already rotates). Fallbacks: another key → plain `codex` → `tf-chat` / grok. **Do not stop.** Watcher restarts every ~30m if dead.
+Work **continuously** on **/workspace/tiphys** (Linux box). Prefer `tf-codex` with tierflow_pro; rotate keys on quota. Fallbacks: plain `codex` → `tf-chat` / grok. **Do not stop.** Watcher restarts every ~30m if dead.
 
-Windows PC `F:\tiphys` is in sync with GitHub at kickoff (`017709e`); overnight coding stays on the box. Sync/copy to Windows only if asked later. tiphys.xyz deploy = nginx rsync (see `docs/DEPLOY_TIPHYS_XYZ.md`), not Cloudflare Pages. No secrets in git. Password/keys live outside repo (`F:\server\…` on Windows; box uses env / `~/.config/tiphys`).
+Governing docs: `docs/MASTER_ROADMAP.md` (V4), stage reports, `docs/OVERNIGHT_PROGRESS.md`. Append every batch to OVERNIGHT_PROGRESS; commit + push when green.
 
-Governing docs (read these, do not invent a parallel plan):
-- `docs/MASTER_ROADMAP.md` (V4) — decision + acceptance
-- `docs/AI_GIS_STRATEGY_20261024.md` → points at roadmap
-- `docs/research_20261024/*` especially `05_product_strategy.md`
-- `docs/USER_NEEDS_RESEARCH.md`
-- Stage reports: STAGE1–5B, BASELINE_STAGE0
+UI direction (do not drift): blue accent `#2563eb`, light default, logo system, honest ~958 WASM catalog + 2-level taxonomy, chat-first map center. No teal, mythology chrome, fake tool counts. No mobile-layout ownership changes. Box only; no Windows; no tiphys.xyz deploy unless asked; no secrets in git.
 
-Progress log: append every batch to `docs/OVERNIGHT_PROGRESS.md`. Commit + push when a batch is green. Update roadmap progress table when a stage item closes.
+## User priority lock (2026-10-25 ~09:53 Asia/Shanghai) — SUPERSEDES earlier order
 
-## Current status (2026-10-25 ~03:30 CST)
+**Main line = Agent + whole-product reliability.** Ecology models (InVEST / Circuitscape / real resistance surfaces beyond the synthetic 5C corridor already shipped) are **deferred**. Do not spend batches on them.
 
-Stages 0–4 ✅ (sim scope); 5A hydrology ✅; 5B service-zone (euclidean) ✅; **5C ecology NOT started**.
-Known gaps still open from the plan:
-- Browser `gis.dissolve` broken (WASM FGB writer; D1/D2) — do not ship silent-wrong GeoJSON workaround
-- `gis.zonal_statistics` designed only — **implement** (vector zones + raster values) on at least one engine, honest contracts
-- Stage4 M11 still fails (search → param-name friction, e.g. `d8_pntr`)
-- GeoAgentBench subset 2/6; schema fidelity / export discipline / bare-.shp import gaps
-- Real-device mobile variance ≥3 not done (skip waking user; use Playwright 390×844)
-- Network distance for service-zone, real watershed data — later if time
+Already shipped tonight (do not redo): P0 leftovers (zonal_stats desktop, Identify, layer menu, M11 params, symbology), Stage 5C synthetic corridor, Android debug APK shell, attr-table rename/definition query, GeoAgentBench schema/export product fixes, dissolve fail-loud + densify/layout/recipe batches through ~40.
 
-UI direction: blue accent `#2563eb`, light default, SVG logo system, full ~958 WASM catalog + 2-level taxonomy, chat-first map center. **No teal, no mythology chrome, no fake tool counts.**
+## Current priority order (do in this order)
 
-## Priority order tonight
+### A0 — Agent can finish real GIS jobs (highest)
+1. **Browser Agent reliability**: reduce search→param friction (aliases, param cards, clearer tool schemas for hydrology IDs like `d8_pntr`); prefer task-class budgets over a brittle fixed step cap where the code still uses one; honest failure when tools/export are unsupported.
+2. **Desktop Agent ↔ WASM bridge**: desktop Agent already has `wasm_run` — make discovery + params + layer/file binding reliable so Agent can use the same catalog tools the ribbon exposes (not only ~34 Python MCP tools). Document the bridge; add regressions for at least 2–3 WASM tools end-to-end from Agent.
+3. **Shared contracts stay honest**: keep `OPERATION_SUPPORT` accurate; never silent-wrong dissolve/zonal on browser; prefer desktop Python degrade paths when browser cannot.
+4. **GeoAgentBench product path**: keep schema/export/shp multifile discipline green; if the bench repo is available, re-score the compatible subset and report separately (do not invent scores). If network/clone blocked, leave a note and keep product regressions.
 
-### LOCKED ORDER (do not reorder)
-1. **P0 plan leftovers** → 2. **P1 including Stage 5C** → 3. **P2 Android APK (rough)** → 4. **P3 densify/OSS**.
-APK is explicitly **after** incomplete MASTER_ROADMAP / plan items, not interleaved.
+### A1 — Product GIS workbench that Agent depends on
+5. Attribute / Identify / layer / symbology polish only when it unblocks Agent or delivery.
+6. Export/delivery discipline (named files, metadata fields, no fake PDF/print claims).
+7. Performance / large-layer safety that affects Agent jobs.
 
-### P0 — finish plan leftovers (do these first)
-1. **`gis.zonal_statistics`**: real implementation + tests + update OPERATION_SUPPORT / STAGE2 notes. Prefer Python desktop provider first if WASM path is unclear; then browser if feasible.
-2. **Identify / attribute UX** (USER_NEEDS P0): copy value/row, export, filter-by-value, jump to table row.
-3. **Layer context menu**: reload from source, export/save-as, metadata view.
-4. **M11 friction**: better tool param cards / aliases so hydrology params like `d8_pntr` are discoverable; re-run relevant baseline slice if cheap.
-5. **Symbology**: graduated colors with manual min/max + auto breaks (at least vector).
+### A2 — Densify only after Agent batches move
+8. More catalog-backed ribbon/recipes is fine **after** A0 has forward motion each cycle — never instead of Agent work.
+9. OSS idea borrows into `/workspace/tiphys-refs/` with licenses — ideas only, no restricted copy.
 
-### P1 — Stage 5C + workbench
-6. **5C ecology corridor vertical** (min-cost corridor style; Linkage Mapper *concepts*, not ArcPy). Fixtures + task card + procedural checks + `docs/STAGE5C_*.md`. Clone/reference OSS under `/workspace/tiphys-refs/` with license notes.
-7. Attribute-table basics: rename field, simple definition query.
-8. Expand GeoAgentBench compatible subset or fix schema/export failures that blocked scores.
-9. Method skills from `muend/geoai-skills` style: more guardrails in knowledge (CRS/units/overlay double-count), not RAG dump.
+### Explicitly deferred
+- Real ecology models, network-distance service areas, real watershed datasets, Play Store APK polish, tiphys.xyz redeploy, Windows sync unless asked.
 
-### P2 — Android offline APK (ONLY AFTER P0+P1 including 5C)
-
-**HARD GATE (user clarified 2026-10-25 ~03:30 Asia/Shanghai):** Do **not** start Capacitor/APK work until every P0 item above and P1 item 6 (Stage 5C ecology corridor) have either **landed on main** or an honest written block note in OVERNIGHT_PROGRESS.md explaining why that item cannot proceed tonight. Rough WebView shell is enough once the gate opens — not polish. User wants APK eventually, but plan leftovers on the roadmap come first.
-
-
-10. Scaffold **offline-capable Android APK** wrapping the existing web app (Capacitor or similar WebView shell). Bundle `dist/` + WASM assets so it opens without network for core map/tools. Document build steps in `docs/ANDROID_APK.md`. Prefer getting a debug APK artifact under `android/` or `dist-apk/` on the box; do not need Play Store signing tonight. Keep engine = browser WASM (no native GIS rewrite). Note memory limits for big rasters.
-
-### P3 — densify / OSS borrow (after P0–P2 have forward motion)
-11. Pull useful OSS into `/workspace/tiphys-refs/` (GISclaw patterns, geoai-skills, Whitebox notes, DuckDB-spatial spike, PMTiles, InVEST habitat-quality spike, pysheds cross-check) — adapt ideas into TIPHYS; record licenses in `docs/licenses/` / THIRD_PARTY.
-12. Desktop WASM bridge polish; recipe/export improvements; layout/print stub; performance for large layers.
-13. Anything clearly valuable from research that fits “reliable GIS task completion” — keep going.
-
-## Constraints
-- Box only for coding. Don’t fight Windows overnight.
-- Don’t touch mobile layout the user owns unless fixing regressions from your changes.
-- No secrets in git. No wrangler/Pages deploy path.
-- Prefer small verified batches: implement → test (`npm run test:browser`, `npm run test:contracts`, `npx tsc --noEmit`, relevant vertical scripts) → commit → push → append OVERNIGHT_PROGRESS → next batch.
-- If a key/quota dies, rotate and continue. If sandbox blocks `.git`, save patch under `/tmp` and note in progress for supervisor.
-- About hourly: self-check UI direction (blue/light/logo/catalog honesty).
+## Verification before commit
+- `npx tsc --noEmit`
+- Relevant: `npm run test:browser` (or browser-engine + note map-render EPERM), `test:contracts`, `test:methods`, `test:search`, `test:plans`, agent/sidecar tests if present
+- Append OVERNIGHT_PROGRESS.md; commit + push if `.git` writable; else `/tmp` patch for supervisor
 
 ## Models
-`tf-codex -C /workspace/tiphys` with tierflow profile. Keep a long-running loop: after each successful batch, immediately start the next. Never idle waiting for the user.
-
-## User order lock (2026-10-25 ~03:29 CST)
-1. **Finish the plan leftovers first** (MASTER_ROADMAP incomplete items: zonal_statistics, Identify UX, layer menu, M11 params, symbology, then 5C ecology, etc.).
-2. **Only after that**: Android offline APK — rough Capacitor/WebView shell prototype is enough.
-3. **Then** keep advancing later roadmap items and continuous optimization.
-
-Do not start APK work until P0/P1 plan items above have landed or are honestly blocked with a written note in OVERNIGHT_PROGRESS.md.
+`tf-codex -C /workspace/tiphys` with tierflow. After each green batch, immediately start the next Agent-focused batch. Never idle.
