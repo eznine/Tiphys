@@ -3,7 +3,7 @@ import type { DataLayer } from "../lib/dataLayers";
 import { engineRequest } from "../lib/service";
 import { copyText } from "../lib/clipboard";
 import { identifyValueText, type IdentifyTableFilter } from "../lib/identify";
-import { selectedFeaturesGeoJson, selectedGeoJsonFilename, tableExportFilename, tablePageCsv } from "../lib/table-export";
+import { selectedFeaturesGeoJson, selectedGeoJsonFilename, tableExportFilename, tablePageCsv, tablePageXlsx, tableXlsxFilename } from "../lib/table-export";
 import {
   DEFINITION_OPERATORS, definitionOperatorNeedsValue, definitionQueryText, fieldRenameError,
   type AttributeDefinitionQuery, type DefinitionOperator,
@@ -130,6 +130,16 @@ export function AttributeTable({ layer, selectedIds, initialFilter = null, reset
     document.body.append(link); link.click(); link.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 500);
     setActionNotice(`已导出本页 ${page.rows.length} 条记录`);
+  };
+  const downloadPageXlsx = () => {
+    if (!page?.rows.length) return;
+    const blob = new Blob([tablePageXlsx(page)], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url; link.download = tableXlsxFilename(layer.name);
+    document.body.append(link); link.click(); link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 500);
+    setActionNotice(`已导出本页 ${page.rows.length} 条记录为 Excel`);
   };
   const copySelectedIds = async () => {
     if (!selectedIds.length) return;
@@ -279,7 +289,8 @@ export function AttributeTable({ layer, selectedIds, initialFilter = null, reset
     <footer className="attribute-footer"><div className="attribute-footer-meta"><span>单元格只读 · 字段可重命名 · 双击记录定位 · Shift 连选</span>{actionNotice && <span role="status">{actionNotice}</span>}</div>
       <div className="attribute-actions"><button type="button" className="icon-btn" disabled={!selectedIds.length || loading} onClick={() => void copySelectedIds()}>复制已选 ID</button>
         {(layer.kind ?? "vector") === "vector" && <button type="button" className="icon-btn" title="导出已选要素的 GeoJSON（保留真实几何）" disabled={!selectedIds.length || loading || exportingGeoJson} onClick={() => void downloadSelectedGeoJson()}>{exportingGeoJson ? "导出中…" : "导出已选 GeoJSON"}</button>}
-        <button type="button" className="icon-btn" title="导出当前可见页的属性 CSV（不含几何）" disabled={!page?.rows.length || loading} onClick={downloadPage}>导出本页属性 CSV</button></div>
+        <button type="button" className="icon-btn" title="导出当前可见页的属性 CSV（不含几何）" disabled={!page?.rows.length || loading} onClick={downloadPage}>导出本页属性 CSV</button>
+        <button type="button" className="icon-btn" title="导出当前可见页的 Excel（.xlsx，不含几何）" disabled={!page?.rows.length || loading} onClick={downloadPageXlsx}>导出本页 Excel</button></div>
       <div>
       <button type="button" className="icon-btn" disabled={offset === 0 || loading} onClick={() => setOffset(offset - 100)}>上一页</button>
       <span>{Math.floor(offset / 100) + 1} / {Math.max(1, Math.ceil((page?.total ?? 0) / 100))}</span>

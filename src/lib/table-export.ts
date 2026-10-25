@@ -1,3 +1,5 @@
+import { buildXlsxSheet, type XlsxValue } from "./xlsx";
+
 export type ExportableTablePage = {
   fields: { name: string; type?: string }[];
   rows: { id: number; attributes: Record<string, unknown> }[];
@@ -22,6 +24,27 @@ export function tablePageCsv(page: ExportableTablePage): string {
 export function tableExportFilename(layerName: string): string {
   const stem = layerName.trim().replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, "_").slice(0, 80) || "attributes";
   return `${stem}_本页.csv`;
+}
+
+function xlsxCell(value: unknown): XlsxValue {
+  if (value == null) return null;
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return value;
+  return JSON.stringify(value);
+}
+
+/** Export exactly the visible table page as a real single-sheet XLSX workbook. */
+export function tablePageXlsx(page: ExportableTablePage): Uint8Array<ArrayBuffer> {
+  const fields = page.fields.map(field => field.name);
+  return buildXlsxSheet({
+    name: "属性",
+    headers: ["记录", ...fields],
+    rows: page.rows.map(row => [row.id + 1, ...fields.map(field => xlsxCell(row.attributes[field]))]),
+  });
+}
+
+export function tableXlsxFilename(layerName: string): string {
+  const stem = layerName.trim().replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, "_").slice(0, 80) || "attributes";
+  return `${stem}_本页.xlsx`;
 }
 
 type FeatureCollectionLike = { type: "FeatureCollection"; features: unknown[]; bbox?: unknown; [key: string]: unknown };

@@ -33,6 +33,7 @@
     "test:baseline-eval": "node --import ./agent/node_modules/tsx/dist/loader.mjs --test tests/baseline-attribution.test.ts",
     "test:centroid": "node --import ./agent/node_modules/tsx/dist/loader.mjs --test tests/centroid.test.ts",
     "test:vector-budget": "node --import ./agent/node_modules/tsx/dist/loader.mjs --test tests/vector-budget.test.ts",
+    "test:xlsx": "node --import ./agent/node_modules/tsx/dist/loader.mjs --test tests/xlsx.test.ts",
     "baseline:plans": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/run-plan-baseline.ts",
     "baseline:agent": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/run-agent-baseline.ts",
     "baseline:mobile": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/run-mobile-baseline.ts",
