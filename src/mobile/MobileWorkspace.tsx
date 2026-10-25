@@ -697,7 +697,7 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
           <MessageSquareText size={14} />
         </button>}>
         <MobileMapAskBar value={draft} onChange={setDraft} busy={agent.state.busy} connected={agent.state.connected} unconfigured={agentUnconfigured}
-          onSend={async text => { const ok = await send(text, { includeLayer: true, includeSelection: true, includeAoi: true }); if (ok) setTab("chat"); return ok; }}
+          onSend={async text => send(text, { includeLayer: true, includeSelection: true, includeAoi: true })}
           onCancelTurn={agent.cancelTurn} onOpenActions={openActions} />
       </MobileBottomCard>
     </>}

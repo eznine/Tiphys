@@ -207,8 +207,8 @@ export function MobileLayersSheet(props: Props) {
 
         <div className="m-action-danger">
           {confirmRemove
-            ? <button type="button" className="danger" onClick={() => act(layer => onRemove(layer))}><Trash2 size={18} /><span>确认从工作区移除「{actionLayer.name}」</span><small>原始数据文件不受影响</small></button>
-            : <button type="button" onClick={() => setConfirmRemove(true)}><Trash2 size={18} /><span>从工作区移除</span><small>删除工作副本，不删除原始文件</small></button>}
+            ? <button type="button" className="danger" onClick={() => act(layer => onRemove(layer))}><Trash2 size={18} /><span>确认移除</span><small>将「{actionLayer.name}」从工作区移除，原始文件不受影响</small></button>
+            : <button type="button" onClick={() => setConfirmRemove(true)}><Trash2 size={18} /><span>从工作区移除</span><small>不删除原始文件</small></button>}
         </div>
       </div>}
     </MobileSheet>

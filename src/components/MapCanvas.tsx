@@ -212,7 +212,6 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   const exportStatusTimer = useRef<number | undefined>(undefined);
   const draftAoiRef = useRef<number[] | null>(null);
   drawingAoiRef.current = drawingAoi;
-  const [center, setCenter] = useState({ lng: 20, lat: 20, zoom: 1.6 });
   const [mobileBasemapOpen, setMobileBasemapOpen] = useState(false);
   const [measuring, setMeasuring] = useState(false);
   const measuringRef = useRef(false);
@@ -240,7 +239,6 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   function reportView(map: Map) {
     const current = map.getCenter();
     const zoom = map.getZoom();
-    setCenter({ lng: current.lng, lat: current.lat, zoom });
     onViewChangeRef.current?.({
       lng: current.lng, lat: current.lat, zoom,
       bearing: map.getBearing(), pitch: map.getPitch(),
@@ -1073,11 +1071,6 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
         {basemapNotice && <div className="map-basemap-notice" role="status">{basemapNotice}</div>}
         {!mapReady && !basemapNotice && <div className="map-basemap-notice" role="status">正在加载底图…</div>}
 
-        {!measuring && <div className="map-touch-readout" aria-label="地图坐标与比例">
-          <span>{center.lng.toFixed(4)}°, {center.lat.toFixed(4)}°</span>
-          <span>Z {center.zoom.toFixed(1)}</span>
-          {aoi && <span className="map-touch-aoi">AOI</span>}
-        </div>}
       </>}
     </div>
   );

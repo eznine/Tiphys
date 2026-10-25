@@ -94,11 +94,14 @@
   inset: 0;
   z-index: 1;
   background: #dfe8f2;
+  opacity: 1;
   visibility: visible;
+  transition: opacity 280ms var(--m-ease), visibility 280ms var(--m-ease);
 }
 .app-shell.mobile[data-tab="chat"] .m-map-stage,
 .app-shell.mobile[data-tab="tasks"] .m-map-stage,
 .app-shell.mobile[data-tab="project"] .m-map-stage {
+  opacity: 0;
   visibility: hidden;
   pointer-events: none;
 }
@@ -137,79 +140,80 @@
 .app-shell.mobile .map-controls { display: none; }
 
 /* Top chrome */
+.app-shell.mobile .m-top-chrome,
 .app-shell.mobile .m-map-chrome {
   position: absolute;
   z-index: 60;
-  top: calc(env(safe-area-inset-top) + 10px);
-  left: 12px;
-  right: 12px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
   gap: 10px;
+  padding: calc(env(safe-area-inset-top) + 8px) 14px 8px;
   pointer-events: none;
+  background: transparent;
 }
-.app-shell.mobile .m-brand {
+.app-shell.mobile .m-top-chrome-side {
   pointer-events: auto;
   display: flex;
   align-items: center;
-  gap: 9px;
-  min-width: 0;
-  padding: 6px 15px 6px 6px;
-  border: 1px solid var(--m-edge);
+  justify-content: center;
+  min-height: 40px;
+}
+.app-shell.mobile .m-top-chrome-left { justify-content: flex-start; }
+.app-shell.mobile .m-top-chrome-right { justify-content: flex-end; }
+.app-shell.mobile .m-top-capsule {
+  pointer-events: auto;
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  max-width: min(220px, 58vw);
+  min-height: 36px;
+  padding: 7px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: 999px;
-  background: var(--m-glass);
-  box-shadow: var(--m-shadow-soft);
-  -webkit-backdrop-filter: blur(18px) saturate(1.35);
-  backdrop-filter: blur(18px) saturate(1.35);
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 10px 28px -18px rgba(37, 99, 235, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  -webkit-backdrop-filter: blur(22px) saturate(1.45);
+  backdrop-filter: blur(22px) saturate(1.45);
   color: var(--m-ink);
   cursor: pointer;
-  text-align: left;
+  text-align: center;
 }
-.app-shell.mobile .m-brand-mark {
-  flex-shrink: 0;
-  width: 34px;
-  height: 34px;
-  border-radius: 11px;
-  display: block;
-  overflow: hidden;
-  box-shadow: 0 4px 10px -6px rgba(9, 23, 43, 0.55);
-}
-.app-shell.mobile .m-brand-mark img { display: block; width: 100%; height: 100%; }
-.app-shell.mobile .m-brand-text { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.app-shell.mobile .m-brand-wordmark {
-  display: block;
-  width: 86px;
-  height: 11.3px;
-  background: currentColor;
-  -webkit-mask: url("/brand/logo-wordmark.svg") no-repeat left center / contain;
-  mask: url("/brand/logo-wordmark.svg") no-repeat left center / contain;
-}
-.app-shell.mobile .m-brand-text small {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  max-width: 150px;
+.app-shell.mobile .m-top-capsule-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
-  color: var(--m-ink-2);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.app-shell.mobile .m-top-capsule .m-status-dot {
+  flex-shrink: 0;
 }
 .app-shell.mobile .m-map-chrome-actions { pointer-events: auto; display: flex; gap: 8px; }
 .app-shell.mobile .m-glass-round {
   position: relative;
-  width: 46px;
-  height: 46px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--m-edge);
-  border-radius: 16px;
-  background: var(--m-glass);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
   color: var(--m-ink);
-  box-shadow: var(--m-shadow-soft);
-  -webkit-backdrop-filter: blur(18px) saturate(1.35);
-  backdrop-filter: blur(18px) saturate(1.35);
+  box-shadow:
+    0 8px 22px -16px rgba(37, 99, 235, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  -webkit-backdrop-filter: blur(22px) saturate(1.45);
+  backdrop-filter: blur(22px) saturate(1.45);
   cursor: pointer;
 }
 .app-shell.mobile .m-glass-round:active { transform: scale(0.94); }
@@ -402,25 +406,7 @@
 }
 .app-shell.mobile .map-measure-actions button:disabled { opacity: 0.4; }
 
-.app-shell.mobile .map-touch-readout {
-  position: absolute;
-  z-index: 54;
-  left: 12px;
-  bottom: calc(var(--m-bottom-card-space) + 6px);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: var(--m-glass);
-  border: 1px solid var(--m-edge);
-  color: var(--m-ink-2);
-  font-family: var(--tiphys-font-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.02em;
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-}
+.app-shell.mobile .map-touch-readout { display: none !important; }
 .app-shell.mobile .map-touch-aoi { color: var(--m-accent-strong); font-weight: 700; }
 
 /* Map legend, above the AI bar */
@@ -860,15 +846,15 @@ button.m-bottom-status { cursor: pointer; }
   left: 0;
   right: 0;
   bottom: 0;
-  height: 94dvh;
+  height: var(--m-sheet-h, 56dvh);
+  max-height: 94dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   border-radius: 26px 26px 0 0;
   background: var(--m-sheet-bg);
   box-shadow: 0 -24px 60px -28px rgba(10, 25, 45, 0.55);
-  transition: transform 280ms var(--m-ease);
-  will-change: transform;
+  transition: height 280ms var(--m-ease);
   outline: none;
 }
 .m-sheet.is-dragging { transition: none; }
@@ -909,11 +895,13 @@ button.m-bottom-status { cursor: pointer; }
 .m-sheet-close { flex-shrink: 0; width: 36px; height: 36px; border-radius: 12px; border: 0; background: var(--m-bg); }
 .m-sheet-back { flex-shrink: 0; width: 36px; height: 36px; margin-left: -6px; display: grid; place-items: center; border: 0; border-radius: 12px; background: var(--m-bg); color: var(--m-ink); cursor: pointer; }
 .m-sheet-body {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  touch-action: pan-y;
   padding: 12px 16px calc(20px + env(safe-area-inset-bottom));
 }
 .m-sheet-footer { flex-shrink: 0; padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--m-line); background: var(--m-surface); }
@@ -930,14 +918,36 @@ button.m-bottom-status { cursor: pointer; }
 
 /* ---------------------------------------------------------- chat page ------ */
 
-.app-shell.mobile .m-chat-page { padding-bottom: var(--m-bottom-card-space); }
-.app-shell.mobile .m-chat-head {
-  flex-shrink: 0;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 14px 16px 6px;
+.app-shell.mobile .m-chat-page {
+  position: relative;
+  padding-top: 0;
+  padding-bottom: var(--m-bottom-card-space);
+  background:
+    radial-gradient(120% 70% at 50% -10%, rgba(37, 99, 235, 0.18), transparent 58%),
+    linear-gradient(180deg,
+      #dbe8fb 0%,
+      #e8f0fc 18%,
+      #f3f7fc 42%,
+      #f7f9fc 68%,
+      #f4f6f9 100%);
+}
+[data-theme="dark"] .app-shell.mobile .m-chat-page {
+  background:
+    radial-gradient(120% 70% at 50% -10%, rgba(96, 165, 250, 0.22), transparent 58%),
+    linear-gradient(180deg,
+      #101b2c 0%,
+      #121f31 28%,
+      #0f1826 62%,
+      #0d1624 100%);
+}
+.app-shell.mobile .m-chat-page .m-top-chrome,
+.app-shell.mobile .m-chat-chrome {
+  position: absolute;
+  z-index: 50;
+}
+.app-shell.mobile .m-chat-page {
+  /* chrome owns safe-area; avoid double inset from .m-page */
+  padding-top: 0;
 }
 .app-shell.mobile .m-chat-kicker {
   display: inline-flex;
@@ -947,14 +957,24 @@ button.m-bottom-status { cursor: pointer; }
   letter-spacing: 0.04em;
   color: var(--m-ink-2);
 }
-.app-shell.mobile .m-chat-heading h1 {
-  margin: 2px 0 0;
-  font-size: 26px;
-  letter-spacing: -0.04em;
-  line-height: 1.1;
-}
 .app-shell.mobile .m-chat-head-actions { display: flex; gap: 6px; }
 .app-shell.mobile .m-counter-btn { position: relative; }
+.app-shell.mobile .m-glass-round.m-counter-btn > span:not(.m-round-count) {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 17px;
+  height: 17px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  padding: 0 4px;
+  background: var(--m-danger);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  border: 2px solid rgba(255,255,255,0.85);
+}
 .app-shell.mobile .m-counter-btn > span {
   position: absolute;
   top: -4px;
@@ -977,7 +997,8 @@ button.m-bottom-status { cursor: pointer; }
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  padding: 6px 14px 4px;
+  /* leave room for absolute liquid-glass capsule; bubbles scroll under it */
+  padding: calc(env(safe-area-inset-top) + 56px) 14px 4px;
 }
 .app-shell.mobile .m-banner {
   display: flex;
@@ -1152,6 +1173,17 @@ button.m-bottom-status { cursor: pointer; }
 
 /* ---------------------------------------------------------- tasks page ----- */
 
+/* soft blue wash under tasks chrome */
+.app-shell.mobile .m-tasks-page {
+  background:
+    radial-gradient(120% 70% at 50% -10%, rgba(37, 99, 235, 0.14), transparent 58%),
+    linear-gradient(180deg, #e4eefb 0%, #f3f7fc 42%, #f7f9fc 100%);
+}
+[data-theme="dark"] .app-shell.mobile .m-tasks-page {
+  background:
+    radial-gradient(120% 70% at 50% -10%, rgba(96, 165, 250, 0.16), transparent 58%),
+    linear-gradient(180deg, #101b2c 0%, #0d1624 100%);
+}
 .app-shell.mobile .m-tasks-body { padding-top: 2px; }
 .app-shell.mobile .m-stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-bottom: 12px; }
 .app-shell.mobile .m-stat {
@@ -1589,10 +1621,45 @@ button.m-bottom-status { cursor: pointer; }
 .app-shell.mobile .m-action-list > button svg { color: var(--m-accent-strong); }
 .app-shell.mobile .m-action-list > button span { font-size: 12.5px; font-weight: 500; }
 .app-shell.mobile .m-action-list > button small { grid-column: 2 / 4; font-size: 9.5px; color: var(--m-ink-2); }
-.app-shell.mobile .m-action-danger { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--m-line); }
-.app-shell.mobile .m-action-danger > button { color: var(--m-danger); }
-.app-shell.mobile .m-action-danger > button svg { color: var(--m-danger); }
-.app-shell.mobile .m-action-danger > button.danger { background: var(--m-danger-soft); }
+.app-shell.mobile .m-action-danger {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--m-line);
+}
+.app-shell.mobile .m-action-danger > button {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 2px;
+  width: 100%;
+  padding: 12px 10px;
+  border: 0;
+  border-radius: 13px;
+  background: transparent;
+  color: var(--m-danger);
+  text-align: left;
+  cursor: pointer;
+}
+.app-shell.mobile .m-action-danger > button svg {
+  grid-row: 1 / span 2;
+  color: var(--m-danger);
+}
+.app-shell.mobile .m-action-danger > button span {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--m-danger);
+}
+.app-shell.mobile .m-action-danger > button small {
+  font-size: 9.5px;
+  font-weight: 400;
+  color: var(--m-ink-2);
+  line-height: 1.4;
+}
+.app-shell.mobile .m-action-danger > button.danger,
+.app-shell.mobile .m-action-danger > button:active {
+  background: var(--m-danger-soft);
+}
 .app-shell.mobile .m-inline-form { display: flex; flex-direction: column; gap: 8px; padding: 10px; margin: 6px 0; border-radius: 13px; background: var(--m-bg); }
 .app-shell.mobile .m-inline-form label { display: flex; flex-direction: column; gap: 5px; font-size: 11px; color: var(--m-ink-2); }
 .app-shell.mobile .m-inline-form input { height: 42px; border: 1px solid var(--m-line); border-radius: 12px; padding: 0 11px; font-size: 16px; background: var(--m-surface); color: var(--m-ink); }
@@ -2035,6 +2102,7 @@ button.m-bottom-status { cursor: pointer; }
 /* ------------------------------------------------------- effects fallback --- */
 
 @supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+  .app-shell.mobile .m-top-capsule,
   .app-shell.mobile .m-brand,
   .app-shell.mobile .m-glass-round,
   .app-shell.mobile .m-askbar,
@@ -2053,6 +2121,7 @@ button.m-bottom-status { cursor: pointer; }
   .m-sheet-grab { background: var(--m-surface); }
 }
 
+.app-shell.mobile.m-shell-lite .m-top-capsule,
 .app-shell.mobile.m-shell-lite .m-brand,
 .app-shell.mobile.m-shell-lite .m-glass-round,
 .app-shell.mobile.m-shell-lite .m-askbar,
@@ -2073,6 +2142,94 @@ button.m-bottom-status { cursor: pointer; }
 .app-shell.mobile.m-shell-lite .m-sheet { transition: none; }
 .app-shell.mobile.m-shell-lite .m-dock-item { transition: none; }
 
+
+
+/* ------------------------------------------------------- motion polish ---- */
+
+@keyframes m-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes m-rise {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes m-sheet-up {
+  from { opacity: 0.72; transform: translate3d(0, 18px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes m-capsule-in {
+  from { opacity: 0; transform: translate3d(0, -6px, 0) scale(0.96); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes m-scale-in {
+  from { opacity: 0; transform: translate3d(0, 8px, 0) scale(0.98); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+.app-shell.mobile .m-page {
+  animation: m-rise 320ms var(--m-ease) both;
+}
+.app-shell.mobile .m-top-chrome,
+.app-shell.mobile .m-map-chrome {
+  animation: m-capsule-in 340ms var(--m-ease) both;
+}
+.app-shell.mobile .m-top-capsule,
+.app-shell.mobile .m-glass-round {
+  transition:
+    transform 180ms var(--m-ease),
+    background 200ms var(--m-ease),
+    box-shadow 200ms var(--m-ease),
+    border-color 200ms var(--m-ease);
+}
+.app-shell.mobile .m-glass-round:active,
+.app-shell.mobile .m-top-capsule:active {
+  transform: scale(0.94);
+}
+
+.m-sheet-root .m-sheet-backdrop {
+  animation: m-fade 240ms var(--m-ease) both;
+}
+.m-sheet-root .m-sheet {
+  animation: m-sheet-up 320ms var(--m-ease) both;
+}
+.m-sheet.is-dragging {
+  animation: none;
+}
+
+.app-shell.mobile .m-bottom-card {
+  transition:
+    opacity 240ms var(--m-ease),
+    transform 280ms var(--m-ease),
+    visibility 240ms var(--m-ease),
+    box-shadow 240ms var(--m-ease);
+}
+
+.app-shell.mobile .settings-backdrop {
+  animation: m-fade 240ms var(--m-ease) both;
+}
+.app-shell.mobile .settings-dialog {
+  animation: m-scale-in 340ms var(--m-ease) both;
+}
+
+.app-shell.mobile .m-dock-item {
+  transition:
+    color 180ms var(--m-ease),
+    background 180ms var(--m-ease),
+    transform 180ms var(--m-ease);
+}
+.app-shell.mobile .m-dock-item:active { transform: scale(0.92); }
+
+.app-shell.mobile.m-shell-lite .m-page,
+.app-shell.mobile.m-shell-lite .m-top-chrome,
+.app-shell.mobile.m-shell-lite .m-map-chrome,
+.app-shell.mobile.m-shell-lite .m-sheet-root .m-sheet,
+.app-shell.mobile.m-shell-lite .m-sheet-root .m-sheet-backdrop,
+.app-shell.mobile.m-shell-lite .settings-backdrop,
+.app-shell.mobile.m-shell-lite .settings-dialog {
+  animation: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-shell.mobile *,
   .app-shell.mobile *::before,
@@ -2084,10 +2241,6 @@ button.m-bottom-status { cursor: pointer; }
   }
 }
 
-@keyframes m-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
 
 /* Dark-theme surface corrections for shared components */
 [data-theme="dark"] .app-shell.mobile .chat-bubble[data-role="agent"],
@@ -2103,3 +2256,132 @@ button.m-bottom-status { cursor: pointer; }
 [data-theme="dark"] .app-shell.mobile .m-chip-row button,
 [data-theme="dark"] .app-shell.mobile .m-context-chip,
 [data-theme="dark"] .app-shell.mobile .m-icon-btn { background: var(--m-surface); }
+
+
+/* ---- mobile settings dialog ---- */
+
+.app-shell.mobile .settings-backdrop {
+  padding: 0;
+  place-items: stretch;
+  align-items: stretch;
+  background: rgba(7, 20, 37, 0.45);
+}
+.app-shell.mobile .settings-dialog {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  border-radius: 0;
+  border: 0;
+  box-shadow: none;
+}
+.app-shell.mobile .settings-header {
+  height: auto;
+  min-height: 56px;
+  padding: calc(10px + env(safe-area-inset-top)) 16px 12px;
+  gap: 8px;
+}
+.app-shell.mobile .settings-header > div {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.app-shell.mobile .settings-header span {
+  margin-left: 0;
+  width: 100%;
+}
+.app-shell.mobile .settings-body {
+  flex-direction: column;
+  min-height: 0;
+}
+.app-shell.mobile .settings-nav {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  border-right: 0;
+  border-bottom: 1px solid var(--tiphys-border);
+  background: var(--tiphys-bg);
+}
+.app-shell.mobile .settings-nav button {
+  flex: 0 0 auto;
+  width: auto;
+  margin-bottom: 0;
+  padding: 10px 12px;
+  white-space: nowrap;
+  border-radius: 999px;
+  font-size: 12px;
+}
+.app-shell.mobile .settings-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 16px 16px 20px;
+}
+.app-shell.mobile .settings-section-heading h2 { font-size: 17px; }
+.app-shell.mobile .settings-field { margin-bottom: 14px; font-size: 13px; }
+.app-shell.mobile .settings-field input,
+.app-shell.mobile .settings-field select {
+  height: 44px;
+  padding: 10px 12px;
+  font-size: 16px; /* avoid iOS input zoom */
+  border-radius: 10px;
+}
+.app-shell.mobile .settings-model-row {
+  flex-wrap: wrap;
+}
+.app-shell.mobile .settings-model-row .icon-btn {
+  height: 44px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+.app-shell.mobile .settings-secret button {
+  top: 6px;
+  right: 6px;
+}
+.app-shell.mobile .theme-choices {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.app-shell.mobile .settings-footer {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  min-height: 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+}
+.app-shell.mobile .settings-footer > span {
+  font-size: 11px;
+  line-height: 1.5;
+}
+.app-shell.mobile .settings-footer > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+.app-shell.mobile .settings-footer > div:has(> :only-child) {
+  grid-template-columns: 1fr;
+}
+.app-shell.mobile .settings-footer button {
+  justify-content: center;
+  min-height: 44px;
+  width: 100%;
+}
+
+
+[data-theme="dark"] .app-shell.mobile .m-top-capsule,
+[data-theme="dark"] .app-shell.mobile .m-glass-round {
+  background: rgba(19, 31, 48, 0.55);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 10px 28px -16px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}

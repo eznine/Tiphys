@@ -10,6 +10,7 @@ import { MobileBottomCard } from "./MobileBottomCard";
 import type { MobileTab } from "./MobileDock";
 import type { TaskCardEvent } from "../components/TaskCards";
 import { ChevronRight, FolderKanban, Layers, ListChecks, Settings2, Shapes, X } from "lucide-react";
+import { MobileTopCapsule } from "./MobileTopCapsule";
 
 export type ChatSendContext = { includeLayer: boolean; includeSelection: boolean; includeAoi: boolean };
 
@@ -58,19 +59,22 @@ export function MobileChatPage(props: Props) {
 
   return (
     <section className="m-page m-chat-page" aria-label="对话">
-      <header className="m-chat-head">
-        <div className="m-chat-heading">
-          <span className="m-chat-kicker"><FolderKanban size={12} />{projectName}</span>
-          <h1>对话</h1>
-        </div>
-        <div className="m-chat-head-actions">
-          <button type="button" className="m-icon-btn m-counter-btn" aria-label={`任务中心，${activeTasks.length} 个进行中`} onClick={onOpenTasks}>
-            <ListChecks size={19} />
+      <MobileTopCapsule
+        className="m-chat-chrome"
+        projectName={projectName}
+        onProject={() => onTab("project")}
+        left={
+          <button type="button" className="m-glass-round m-counter-btn" aria-label={`任务中心，${activeTasks.length} 个进行中`} onClick={onOpenTasks}>
+            <ListChecks size={18} strokeWidth={1.8} />
             {activeTasks.length > 0 && <span>{activeTasks.length}</span>}
           </button>
-          <button type="button" className="m-icon-btn" aria-label="设置" onClick={onOpenSettings}><Settings2 size={19} /></button>
-        </div>
-      </header>
+        }
+        right={
+          <button type="button" className="m-glass-round" aria-label="设置" onClick={onOpenSettings}>
+            <Settings2 size={18} strokeWidth={1.8} />
+          </button>
+        }
+      />
 
       <div className="m-chat-scroll">
         {!connected && <div className="m-banner" role="status">

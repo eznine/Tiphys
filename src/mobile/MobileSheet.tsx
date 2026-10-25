@@ -20,37 +20,35 @@ type Props = {
 const DEFAULT_SNAPS = [0.28, 0.56, 0.93];
 
 /**
- * Real draggable bottom sheet: the handle/header follows the finger and snaps to
- * one of three heights. Only the grab area starts a drag, so inner scrolling and
- * map gestures do not fight it. Heights use dvh-safe measurements and re-measure
- * on keyboard/viewport changes.
+ * Draggable bottom sheet sized by snap height (not a full-height panel translated
+ * down). The body is a flex child with min-height:0 + overflow-y:auto, so inner
+ * scroll works immediately without waiting for a handle tug to remount layout.
+ * Drag is limited to the grab/header area.
  */
 export function MobileSheet({ open, title, subtitle, onClose, onBack, children, footer, initialSnap = 1, snapPoints = DEFAULT_SNAPS, level = 0 }: Props) {
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const bodyRef = useRef<HTMLDivElement | null>(null);
-  const startRef = useRef<{ y: number; offset: number } | null>(null);
-  const [offset, setOffset] = useState<number | null>(null);
-  const offsetRef = useRef<number | null>(null);
+  const startRef = useRef<{ y: number; height: number } | null>(null);
+  const [height, setHeight] = useState<number | null>(null);
+  const heightRef = useRef<number | null>(null);
   const [snap, setSnap] = useState(initialSnap);
   const [dragging, setDragging] = useState(false);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
-  const snapOffsets = () => {
-    const panel = panelRef.current;
+  const snapHeights = () => {
     const viewport = window.visualViewport?.height ?? window.innerHeight;
-    if (!panel) return { offsets: [] as number[], maxOffset: 0 };
-    const full = panel.offsetHeight;
-    const offsets = snapPoints.map(fraction => Math.max(0, full - viewport * fraction));
-    return { offsets, maxOffset: Math.max(0, ...offsets) };
+    const ceiling = viewport * 0.94;
+    const heights = snapPoints.map(fraction => Math.max(120, Math.min(ceiling, viewport * fraction)));
+    return { heights, maxHeight: Math.max(120, ...heights), minHeight: Math.min(...heights), viewport };
   };
 
   useLayoutEffect(() => {
     if (!open) return;
     setSnap(initialSnap);
-    const { offsets } = snapOffsets();
-    setOffset(offsets[initialSnap] ?? 0);
-    offsetRef.current = offsets[initialSnap] ?? 0;
+    const { heights } = snapHeights();
+    const next = heights[initialSnap] ?? heights[0] ?? 0;
+    setHeight(next);
+    heightRef.current = next;
     const previous = document.activeElement as HTMLElement | null;
     const timer = window.setTimeout(() => {
       const active = document.activeElement;
@@ -65,33 +63,16 @@ export function MobileSheet({ open, title, subtitle, onClose, onBack, children, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  useLayoutEffect(() => {
-    if (!open) return;
-    const update = () => {
-      const body = bodyRef.current;
-      if (!body) return;
-      const viewport = window.visualViewport?.height ?? window.innerHeight;
-      const top = body.getBoundingClientRect().top;
-      body.style.maxHeight = `${Math.max(120, viewport - top - 8)}px`;
-    };
-    update();
-    window.addEventListener("resize", update);
-    window.visualViewport?.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("resize", update);
-      window.visualViewport?.removeEventListener("resize", update);
-    };
-  }, [open, offset, title]);
-
   useEffect(() => {
     if (!open) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const escape = (event: KeyboardEvent) => { if (event.key === "Escape") onCloseRef.current(); };
     const resize = () => {
-      const { offsets } = snapOffsets();
-      setOffset(offsets[snap] ?? offsets[0] ?? 0);
-      offsetRef.current = offsets[snap] ?? offsets[0] ?? 0;
+      const { heights } = snapHeights();
+      const next = heights[snap] ?? heights[0] ?? 0;
+      setHeight(next);
+      heightRef.current = next;
     };
     window.addEventListener("keydown", escape);
     window.addEventListener("resize", resize);
@@ -109,9 +90,9 @@ export function MobileSheet({ open, title, subtitle, onClose, onBack, children, 
 
   const beginDrag = (event: React.PointerEvent) => {
     if (event.button !== 0 && event.pointerType === "mouse") return;
-    const { offsets } = snapOffsets();
-    const currentOffset = offsetRef.current ?? offset ?? offsets[snap] ?? 0;
-    startRef.current = { y: event.clientY, offset: currentOffset };
+    const { heights } = snapHeights();
+    const current = heightRef.current ?? height ?? heights[snap] ?? 0;
+    startRef.current = { y: event.clientY, height: current };
     setDragging(true);
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
   };
@@ -119,14 +100,15 @@ export function MobileSheet({ open, title, subtitle, onClose, onBack, children, 
   const moveDrag = (event: React.PointerEvent) => {
     const start = startRef.current;
     if (!start) return;
-    const { offsets, maxOffset } = snapOffsets();
-    const next = Math.min(maxOffset, Math.max(0, start.offset + event.clientY - start.y));
-    setOffset(next);
-    offsetRef.current = next;
-    // Keep the nearest snap highlighted while dragging.
+    const { heights, maxHeight } = snapHeights();
+    // Finger down collapses the sheet (smaller height).
+    const floor = Math.max(72, heights[0] * 0.55);
+    const next = Math.min(maxHeight, Math.max(floor, start.height - (event.clientY - start.y)));
+    setHeight(next);
+    heightRef.current = next;
     let nearest = 0;
-    offsets.forEach((value, index) => {
-      if (Math.abs(value - next) < Math.abs(offsets[nearest] - next)) nearest = index;
+    heights.forEach((value, index) => {
+      if (Math.abs(value - next) < Math.abs(heights[nearest] - next)) nearest = index;
     });
     setSnap(nearest);
   };
@@ -135,15 +117,21 @@ export function MobileSheet({ open, title, subtitle, onClose, onBack, children, 
     if (!startRef.current) return;
     startRef.current = null;
     setDragging(false);
-    const { offsets } = snapOffsets();
-    const current = offsetRef.current ?? offset ?? 0;
+    const { heights } = snapHeights();
+    const current = heightRef.current ?? height ?? 0;
     let nearest = 0;
-    offsets.forEach((value, index) => {
-      if (Math.abs(value - current) < Math.abs(offsets[nearest] - current)) nearest = index;
+    heights.forEach((value, index) => {
+      if (Math.abs(value - current) < Math.abs(heights[nearest] - current)) nearest = index;
     });
+    // Dismiss when dragged well below the lowest snap.
+    if (current < heights[0] * 0.7) {
+      onCloseRef.current();
+      try { (event.currentTarget as HTMLElement).releasePointerCapture(event.pointerId); } catch { /* already released */ }
+      return;
+    }
     setSnap(nearest);
-    setOffset(offsets[nearest]);
-    offsetRef.current = offsets[nearest];
+    setHeight(heights[nearest]);
+    heightRef.current = heights[nearest];
     try { (event.currentTarget as HTMLElement).releasePointerCapture(event.pointerId); } catch { /* already released */ }
   };
 
@@ -155,7 +143,10 @@ export function MobileSheet({ open, title, subtitle, onClose, onBack, children, 
       <div
         ref={panelRef}
         className={"m-sheet" + (dragging ? " is-dragging" : "")}
-        style={{ transform: offset === null ? undefined : `translate3d(0, ${offset}px, 0)`, visibility: offset === null ? "hidden" : "visible" }}
+        style={{
+          ["--m-sheet-h" as string]: height === null ? undefined : `${height}px`,
+          visibility: height === null ? "hidden" : "visible",
+        }}
         tabIndex={-1}
       >
         <div className="m-sheet-grab" onPointerDown={beginDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag}>
@@ -173,7 +164,7 @@ export function MobileSheet({ open, title, subtitle, onClose, onBack, children, 
             </button>
           </div>
         </div>
-        <div ref={bodyRef} className="m-sheet-body">{children}</div>
+        <div className="m-sheet-body">{children}</div>
         {footer && <div className="m-sheet-footer">{footer}</div>}
         <div className="m-sheet-snaps" aria-hidden="true">
           {snapPoints.map((_, index) => <span key={index} data-active={index === snap} />)}

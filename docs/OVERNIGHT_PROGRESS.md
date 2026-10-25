@@ -487,4 +487,19 @@
 
 - 2026-10-25 11:08 Asia/Shanghai — User mobile UX bugs in flight (drawer scroll, delete style, map-send no tab jump, settings mobile, hide lat/lon). Overnight Agent batch paused for this. Box only.
 
+- 2026-10-25 11:20 Asia/Shanghai — Mobile UX batch (drawer scroll, delete row, map-send stay, settings mobile, hide lat/lon, unified liquid-glass project capsule, chat blue gradient, motion polish):
+  - Bottom sheets: `MobileSheet` now sizes by snap height (flex column + `min-height:0` body scroll) instead of translating a full-height panel + JS `maxHeight`; grab-only drag; nested sheets scroll immediately.
+  - Layer delete: clean danger row (trash + 「从工作区移除」 / 「不删除原始文件」) using `--m-danger` tokens; confirm state clear.
+  - Map ask-bar send no longer `setTab("chat")`; chat jump only via status chip / dock / running-task tip paths.
+  - Settings: full-height mobile layout under `.app-shell.mobile` (horizontal pill nav, 44px fields, safe-area, scrollable body).
+  - Removed on-screen lat/lon readout (`MapCanvas` + desktop footer coordinates); zoom chips / status callbacks kept.
+  - Shared `MobileTopCapsule`: map + chat top chrome = center liquid-glass project name + circular glass flanking actions; transparent top (content scrolls under).
+  - Chat page soft vertical gradient in TIPHYS blue family (`#2563eb` sky → pale neutrals); tasks page light wash; map keeps map.
+  - Motion polish: page rise, sheet/backdrop fade-up, capsule appear, bottom-card + settings scale/fade, dock press; `--m-ease` ~240–340ms; lite + `prefers-reduced-motion` disable.
+  - Verification: `npx tsc --noEmit` passed; `npm run build` passed (app ~2.37 MB, catalog ~1.95 MB, CLI WASM 24.11 MB). Map-render EPERM unchanged if hit.
+  - UI direction: blue `#2563eb`, light default, logo system; no teal/mythology; no ecology densify / Agent-core batch churn. Box only + deploy tiphys.xyz.
+
+
 - 2026-10-25 11:09 Asia/Shanghai — Overnight watch: builder dead mid-batch42 final verify (log last 11:08:49; no tf-codex/npm children; progress had just recorded batch42). Re-verified `npx tsc --noEmit`, `npm run test:search` 8/8, agent wasm suite 7/7. Committed+pushed batch42 as `02942ba`. Direction OK (blue `#2563eb`, light default, logo system, honest catalog, Agent-first; no ecology/densify-only drift). Box-only. Restarting tf-codex for batch43 = continue Agent reliability. Log: `.tooling/overnight/batch43-agent-core.log`. User ping: restarted after dead builder.
+
+- 2026-10-25 11:10 Asia/Shanghai — Supervisor: overnight watch shipped batch42 (`02942ba`) and started batch43; paused batch43 immediately because user mobile UX fixes are in flight (drawer scroll / delete / map-send / settings / hide coords). Resume Agent-first after mobile UX ships.

@@ -5,7 +5,7 @@ import { ChatDock } from "./components/ChatDock";
 import { MapCanvas } from "./components/MapCanvas";
 import { LayerRail } from "./components/LayerRail";
 import { pingEngine, PingResult } from "./lib/engine";
-import { Map as MapIcon, Layers, Crosshair, X } from "lucide-react";
+import { Map as MapIcon, Layers, X } from "lucide-react";
 import { SettingsDialog, type ThemeMode } from "./components/SettingsDialog";
 import { CommandRibbon } from "./components/CommandRibbon";
 import { useAgent, type TimelineItem } from "./lib/agent";
@@ -516,7 +516,7 @@ export default function App() {
           onToolResult={agent.mergeToolResult}
         />
       </div>
-      <footer className="workspace-status"><span><span className="status-dot" data-state={engineState} />{engineState === "ok" ? browserRuntime ? "Browser-WASM · 数据保存在本机" : "Python 本地引擎已就绪" : "正在加载空间引擎"}</span><span><Layers size={13} />{layers.length} 个图层</span><span className="status-coordinates"><Crosshair size={13} />{mapStatus.lng.toFixed(5)}°，{mapStatus.lat.toFixed(5)}°</span><span>级别 {mapStatus.zoom.toFixed(1)}</span><span>坐标 WGS 84</span></footer>
+      <footer className="workspace-status"><span><span className="status-dot" data-state={engineState} />{engineState === "ok" ? browserRuntime ? "Browser-WASM · 数据保存在本机" : "Python 本地引擎已就绪" : "正在加载空间引擎"}</span><span><Layers size={13} />{layers.length} 个图层</span><span>级别 {mapStatus.zoom.toFixed(1)}</span><span>坐标 WGS 84</span></footer>
         </>
       )}
       {settingsOpen && <SettingsDialog theme={themeMode} onTheme={setThemeMode} density={density} onDensity={setDensity} onClose={() => setSettingsOpen(false)} onSaved={() => void agent.refreshProvider()} onLogs={() => setLogsOpen(true)} />}
