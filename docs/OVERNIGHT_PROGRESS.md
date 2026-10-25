@@ -651,3 +651,12 @@
   - **提交**：`ee93d7e`（真质心/KML/RFC 7946）、`573f3c9`（GeoAgentBench harness + 4/6 报告）、`84a4a81`（文档/PROGRESS），已推送 `origin/main`。
   - **部署**：`npm run deploy:xyz` 完成；`https://tiphys.xyz` 实际返回 `assets/index-BiKkbh-e.js`，与本地 `dist/index.html` 一致（`curl --noproxy '*'` 复核；脚本自带 live 检查仍受本机 `HTTPS_PROXY` 干扰）。`/apk/tiphys-0.1.3.apk` 未变（17,994,932 B）。
   - **未做/后续**：waterway 空几何过滤器与大矢量分块/降级；未重跑完整 30 任务自有基线；未重建 APK；overnight 保持 PAUSED。
+
+- 2026-10-25 16:15 Asia/Shanghai — A0.4 收口：GeoAgentBench **5/6**（Windows `F:\tiphys`；overnight 仍 PAUSED；web 部署随后）：
+  - **空几何过滤器**：新增原生 `drop_empty_geometries`（null/empty 几何过滤，保留属性并写 `dropped_count`），检索别名/意图和提示词同步；waterway 单任务 **PASS 12/12**。
+  - **正式 6 任务重评**：**5/6 全过，加权 0.833**（Paris 11/11、Cairo 10/10、Capetown 9/9、KML 10/10、waterway 12/12；仅 Bangkok 失败）。报告 `docs/baselines/stage4/geoagentbench.{json,md}` 已重写。
+  - **浏览器矢量预算**：Bangkok 为 21,660 个面 / 645,563 个顶点，`clip`/`intersection` 会触发 WASM `unreachable` 并毒化实例。新增 `src/lib/browser/vector-budget.ts`（20,000 要素 / 500,000 顶点），在 clip/intersection/erase/select_by_location/union/spatial_join/buffer/simplify/convex_hull/calculate_geometry 前诚实拒绝，并给“先筛选/导出 GeoPackage 用桌面 Python/分块”降级路径；错误分类走 RESOURCE_LIMIT。
+  - **验证**：`npx tsc --noEmit`、`npm run build`（`assets/index-DzrDGMwm.js`）通过；`test:plans` 31/31、`test:methods` 9/9、`test:search` 8/8、`test:contracts` 12/12、`test:centroid` 7/7、`test:vector-budget` 3/3、`test:baseline-eval` 6/6、`browser-engine` 89/89。
+  - **提交**：`f6b46b5`（空几何 + 矢量预算）、`80d28cb`（5/6 报告）；文档/PROGRESS 随后提交并推送。
+  - **部署**：`npm run deploy:xyz` 完成；`https://tiphys.xyz` 实际返回 `assets/index-DzrDGMwm.js`，与本地 `dist/index.html` 一致（`curl --noproxy '*'` 复核；脚本自带 live 检查仍受本机 `HTTPS_PROXY` 干扰）。`/apk/tiphys-0.1.3.apk` 未变（17,994,932 B）。
+  - **后续**：Bangkok 的大矢量分块或桌面降级（当前已诚实拒绝）；完整 30 任务自有基线；APK 未重建；overnight 保持 PAUSED。

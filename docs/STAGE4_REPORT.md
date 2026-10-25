@@ -141,7 +141,7 @@ iPhone 12 仿真（390×844，touch，deviceScaleFactor 3）× 真实 WASM 引�
 
 ### 2026-10-25 重评分（tierflow_pro，单次运行）
 
-本轮在 Windows `F:\tiphys` 用已存在的 `reference/gis/GeoAgentBench` 重跑同一 6 任务子集，结果 **4/6 全过、加权平均 0.764**；报告 `docs/baselines/stage4/geoagentbench.{json,md}` 已按本轮结果重写，旧表保留为历史。
+本轮在 Windows `F:\tiphys` 用已存在的 `reference/gis/GeoAgentBench` 重跑同一 6 任务子集，结果 **5/6 全过、加权平均 0.833**；报告 `docs/baselines/stage4/geoagentbench.{json,md}` 已按本轮结果重写，旧表保留为历史。
 
 | 任务 | 本轮结果 | 变化 |
 |---|---|---|
@@ -149,7 +149,7 @@ iPhone 12 仿真（390×844，touch，deviceScaleFactor 3）× 真实 WASM 引�
 | geo-l1-cairo-multipoint-hull | **PASS 10/10** | 稳定 |
 | geo-l1-capetown-building-centroids | **PASS 9/9** | ERROR → PASS；驱动器补齐 Shapefile sidecar；新增原生真质心工具（面积加权 + 大坐标局部原点稳定化） |
 | fio-l1-paris-kml-pois | **PASS 10/10** | FAIL → PASS；KML 描述键值展开为字段；GeoJSON 导出按 RFC 7946 转 4326 并去 Z |
-| dc-l1-capetown-waterway-nulls | FAIL 8/12 | PASS → FAIL；模型只过滤了空 `waterway_type`，没有去掉 5 个 null + 5 个 empty 几何（产品缺少“空几何”过滤器） |
-| geo-l2-bangkok-landuse-intersect | FAIL（无产物） | 13 MB GeoParquet 上 `clip`/`intersection` 均触发 WASM `unreachable`；属于浏览器大矢量资源边界，不是超时 |
+| dc-l1-capetown-waterway-nulls | **PASS 12/12** | 新增原生 `drop_empty_geometries`；模型先过滤空 `waterway_type`，再过滤 5 个 null + 5 个 empty 几何，dropped_count=20 |
+| geo-l2-bangkok-landuse-intersect | FAIL（无产物） | 21,660 个面 / 645,563 个顶点；`clip`/`intersection` 触发 WASM `unreachable`。已加浏览器矢量预算守卫（20,000 要素 / 500,000 顶点），超限时诚实拒绝并给桌面/分块降级，不再毒化 WASM 实例 |
 
-另修了评测器自身的三个问题：Shapefile 任务只喂 `.shp` 未带同名 sidecar；Windows grader 默认 GBK 读 JSON 触发 `UnicodeDecodeError`；失败任务缺少工具链/错误诊断。Capetown 与 KML 的单任务定跑分别为 9/9、10/10，完整 6 任务仍以上表为准。后续靶子：空几何过滤（waterway）与大矢量分块/降级（Bangkok）。
+另修了评测器自身的三个问题：Shapefile 任务只喂 `.shp` 未带同名 sidecar；Windows grader 默认 GBK 读 JSON 触发 `UnicodeDecodeError`；失败任务缺少工具链/错误诊断。Capetown、KML、waterway 的单任务定跑分别为 9/9、10/10、12/12；完整 6 任务以上表为准。剩余靶子：Bangkok 的分块/桌面降级。

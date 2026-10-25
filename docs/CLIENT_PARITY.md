@@ -2,14 +2,14 @@
 
 核对日期：2026-10-24。以本机 `F:\GeoAgentPro` 当前源码为依据，参考 `src/GeoAgentPro/Config.daml`、`Agent/ToolRegistry.cs` 和 `Chat/LogWindow.xaml(.cs)`。以下是源码入口对照，不把插件中出现一个按钮等同于该功能在客户端已经实现。
 
-当前目录以运行时合并结果为准：浏览器和 Tauri 联合目录均包含 958 个 GeoLibre WASM schema，加上 34 个公共 MCP 工具、5 个扩展工具和原生 `centroid` 几何工具，去重后为 998 个；工具箱隐藏 4 个引擎控制项后显示 994 个。Python sidecar 自身仍只有 34 个 MCP 工具，WASM 与扩展走混合路由。
+当前目录以运行时合并结果为准：浏览器和 Tauri 联合目录均包含 958 个 GeoLibre WASM schema，加上 34 个公共 MCP 工具、5 个扩展工具和原生 `centroid`、`drop_empty_geometries` 几何/清洗工具，去重后为 999 个；工具箱隐藏 4 个引擎控制项后显示 995 个。Python sidecar 自身仍只有 34 个 MCP 工具，WASM 与扩展走混合路由。
 
 ## 浏览器与 Tauri 路径
 
 | 路径 | 纯浏览器 | Tauri 混合 |
 |---|---|---|
 | 空间引擎 | 页面内 GeoLibre WASM | `wasm_*` 在 WebView worker；其他工具走 Python MCP |
-| 工具目录 | 39 个壳层工具，异步 hydrate 到 998 | Python 目录 + 同批 WASM/壳层工具，去重到 998 |
+| 工具目录 | 40 个壳层工具，异步 hydrate 到 999 | Python 目录 + 同批 WASM/壳层工具，去重到 999 |
 | Agent | 浏览器内 AI SDK 工具循环 | Node Agent sidecar + Python MCP；WASM 手动工具并行可用 |
 | 文件导入 | 浏览器文件选择器 / 沙箱样例 | 原生文件选择器 + Python sidecar |
 | 持久化 | IndexedDB | 桌面应用数据目录与项目 `.tiphys` |

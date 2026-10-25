@@ -38,10 +38,11 @@
 
 ## 重评分状态（2026-10-25）
 
-已用本机现有的 `reference/gis/GeoAgentBench` 重跑同一 6 任务子集：**4/6 全过，加权平均 0.764**（报告 `docs/baselines/stage4/geoagentbench.{json,md}`）。相对 2026-10-24 的 2/6：
+已用本机现有的 `reference/gis/GeoAgentBench` 重跑同一 6 任务子集：**5/6 全过，加权平均 0.833**（报告 `docs/baselines/stage4/geoagentbench.{json,md}`）。相对 2026-10-24 的 2/6：
 
 - **Capetown 建筑质心：ERROR → PASS 9/9。** 驱动器补齐 Shapefile sidecar；新增原生 `centroid`（面按面积加权、洞减面积、UTM 大坐标先平移到局部原点再算，避免双精度抵消），并在方法卡/提示词里要求先投影到局部米制 CRS。
 - **巴黎 KML：FAIL → PASS 10/10。** KML `<description>` 中的“键：值”文本展开为真实属性；GeoJSON 导出按 RFC 7946 统一 EPSG:4326、去 Z、把 4979 的 `crs` 重标为 4326；评测器在 Windows 上强制 UTF-8，避免 GBK 读中文/重音字符崩溃。
-- **仍然失败：** `dc-l1-capetown-waterway-nulls` 8/12（模型只过滤空 `waterway_type`，没有去掉 5 个 null + 5 个 empty 几何；产品尚无“空几何”过滤器）；`geo-l2-bangkok-landuse-intersect` 无产物（13 MB GeoParquet 上 `clip`/`intersection` 触发 WASM `unreachable`，是浏览器大矢量资源边界，不是超时）。
+- **Capetown waterway：FAIL → PASS 12/12。** 新增原生 `drop_empty_geometries`（null/empty 几何过滤，保留属性并写 `dropped_count`）；模型先过滤空 `waterway_type`，再去掉 5 个 null + 5 个 empty 几何。
+- **仍然失败：** `geo-l2-bangkok-landuse-intersect` 无产物（21,660 个面 / 645,563 个顶点；`clip`/`intersection` 触发 WASM `unreachable`）。已加浏览器矢量预算守卫（20,000 要素 / 500,000 顶点），超限时诚实拒绝并给桌面/分块降级，不再毒化 WASM 实例。
 
-验证：`npx tsc --noEmit`、`npm run build`、`test:plans` 31/31、`test:methods` 9/9、`test:search` 8/8、`test:contracts` 12/12、`test:centroid` 7/7、`browser-engine` 88/88。后续靶子：空几何过滤与大矢量分块/降级。
+验证：`npx tsc --noEmit`、`npm run build`、`test:plans` 31/31、`test:methods` 9/9、`test:search` 8/8、`test:contracts` 12/12、`test:centroid` 7/7、`test:vector-budget` 3/3、`browser-engine` 89/89。后续靶子：Bangkok 的大矢量分块/桌面降级（当前已诚实拒绝并给降级路径）。

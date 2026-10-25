@@ -70,8 +70,8 @@ tf-codex -C /workspace/tiphys   # 优先 tierflow_pro
 | 项 | 值 |
 |---|---|
 | APK | **0.1.3** / versionCode **4** → https://tiphys.xyz/apk/tiphys-0.1.3.apk |
-| 代码时代 | `2ca7d9e`（APK 0.1.3）+ A0 修复至 `ee93d7e`；最新 main `84a4a81` |
-| Web | https://tiphys.xyz 已 live（`assets/index-BiKkbh-e.js`） |
+| 代码时代 | `2ca7d9e`（APK 0.1.3）+ A0 修复至 `80d28cb`；最新 main 为本行所在 docs commit |
+| Web | https://tiphys.xyz 已 live（`assets/index-DzrDGMwm.js`） |
 | Overnight | **PAUSED**（builder + tiphys-overnight-watch） |
 | 优先级 | **Agent-first**（browser Agent 可靠性 + desktop WASM bridge）；生态模型延后 |
 
@@ -113,10 +113,10 @@ tf-codex -C /workspace/tiphys   # 优先 tierflow_pro
 - **检查更新：** 原生端用 `CapacitorHttp` 拉 `version.json`，绕过 WebView CORS；错误文案更清晰。
 - nginx 片段保护 `/version.json` + `/apk/` CORS/短缓存（部署脚本不改 Certbot SSL）。
 
-### A0.4 GeoAgentBench 重评分（2026-10-25 15:42）
-- 6 任务兼容子集 **4/6 PASS，加权 0.764**（此前 2/6）：Paris 重投影 11/11、Cairo 凸包 10/10、Capetown 质心 9/9、Paris KML 10/10。
-- 修复：原生真质心（面积加权 + UTM 大坐标稳定化）、KML description 键值展开、GeoJSON 导出按 RFC 7946 统一 EPSG:4326/去 Z、Shapefile sidecar 与 Windows UTF-8 grader。
-- 仍失败：`dc-l1-capetown-waterway-nulls` 8/12（缺空几何过滤器）、`geo-l2-bangkok-landuse-intersect`（13 MB GeoParquet 触发 WASM `unreachable`）。见 `docs/baselines/stage4/geoagentbench.md`。
+### A0.4 GeoAgentBench 重评分（2026-10-25 16:15）
+- 6 任务兼容子集 **5/6 PASS，加权 0.833**（此前 2/6）：Paris 重投影 11/11、Cairo 凸包 10/10、Capetown 质心 9/9、Paris KML 10/10、Capetown waterway 12/12。
+- 修复：原生真质心（面积加权 + UTM 大坐标稳定化）、KML description 键值展开、GeoJSON 导出按 RFC 7946 统一 EPSG:4326/去 Z、原生空几何过滤、Shapefile sidecar 与 Windows UTF-8 grader。
+- 仅剩失败：`geo-l2-bangkok-landuse-intersect`（21,660 面 / 64.5 万顶点，超过浏览器矢量预算；已加 20,000 要素 / 500,000 顶点守卫，诚实拒绝并给桌面/分块降级）。见 `docs/baselines/stage4/geoagentbench.md`。
 
 ### 此前移动端修复（在 Linux box 执行，**不是** overnight tf-codex）
 | 版本 | 要点 |
@@ -139,7 +139,7 @@ tf-codex -C /workspace/tiphys   # 优先 tierflow_pro
 2. **生态模型（InVEST / Circuitscape / 真实阻力面）= 延后**，不要开批次。  
 3. **Overnight = PAUSED** — 用户未说「恢复」就不要启动 builder / tiphys-overnight-watch。
 
-**当前 A0 状态：** 浏览器预算/检索参数卡/诚实失败已落地；桌面 WASM bridge 已实现并有回归/文档；GeoAgentBench 2026-10-25 重评 **4/6**。剩余 A0 靶子：waterway 空几何过滤、Bangkok 大矢量 WASM 资源边界；完整 30 任务在环基线仍未重跑。
+**当前 A0 状态：** 浏览器预算/检索参数卡/诚实失败已落地；桌面 WASM bridge 已实现并有回归/文档；GeoAgentBench 2026-10-25 重评 **5/6**，仅 Bangkok 大矢量资源边界未过（已有预算守卫）。完整 30 任务在环基线仍未重跑。
 
 Densify / 工具目录加厚只在 A0 有进展之后。
 
