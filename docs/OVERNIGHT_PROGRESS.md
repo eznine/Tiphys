@@ -670,3 +670,10 @@
   - **提交**：`fd19723`（inspect 语义）、`4822657`（30/30 报告）；文档/PROGRESS 随后提交。
   - **部署**：`npm run deploy:xyz` 完成；`https://tiphys.xyz` 返回 `assets/index-Ch4OIXyB.js`，与本地 `dist/index.html` 一致；APK 0.1.3 未变（17,994,932 B）。
   - **后续**：Bangkok 分块/桌面降级；≥3 次方差与真机；APK 未重建；overnight 保持 PAUSED。
+
+- 2026-10-25 17:00 Asia/Shanghai — Windows 桌面 portable 重建并更新交付目录（overnight 仍 PAUSED）：
+  - `npm run desktop:build` 成功：tsc + vite build + bundle-sidecars + Tauri release；NSIS 安装包 `src-tauri/target/release/bundle/nsis/TIPHYS_0.1.0_x64-setup.exe`（83.29 MiB）。
+  - `npm run portable:zip` 成功：`src-tauri/target/release/bundle/portable/TIPHYS-0.1.0-x64-portable.zip`（119,554,139 B）；解压目录 290 MB。
+  - 交付：旧 `C:\Users\alex\Desktop\TIPHYS` 已移动到工作区 `.trash/TIPHYS_desktop_20261025` 备份；新版 portable 目录复制到 `C:\Users\alex\Desktop\TIPHYS`（`tiphys.exe` 13,948,416 B，`runtime/` 含 Node/Python sidecar）。
+  - 包含本轮 A0 修复：真质心、KML 字段、RFC 7946 GeoJSON、空几何过滤、矢量预算守卫、inspect 显示/分析 CRS 语义。**未启动桌面 GUI 做实机点击验收**；APK 仍未重建。
+  - 验证：`npx tsc --noEmit`、`npm run build` 通过；桌面构建与 portable 打包 exit 0。
