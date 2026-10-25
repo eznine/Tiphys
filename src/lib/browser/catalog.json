@@ -1106,7 +1106,49 @@
       "properties": {
         "plan": {
           "type": "object",
-          "description": "计划对象：goal + steps[{id, kind: operation|tool, spec|tool+args, dependsOn?, acceptance?}] + confirmations?",
+          "description": "计划对象。operation 步骤用 spec；tool 步骤用 tool + args。上游输出写成 \"@步骤id\"。",
+          "properties": {
+            "goal": { "type": "string", "description": "一句话说明本次计划要达成的结果" },
+            "provider": { "type": "string", "enum": ["browser-wasm", "desktop-python"], "description": "可选；默认当前执行端" },
+            "confirmations": { "type": "array", "items": { "type": "string" }, "description": "用户已明确同意的删除/导出步骤 id" },
+            "steps": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 8,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "string", "description": "本步骤唯一 id，供后续步骤用 @id 引用" },
+                  "title": { "type": "string" },
+                  "kind": { "type": "string", "enum": ["operation", "tool"], "description": "operation 用 spec；tool 用 tool + args" },
+                  "spec": {
+                    "type": "object",
+                    "description": "kind=operation 时必填：{operation, version:1, input, params}",
+                    "properties": {
+                      "operation": { "type": "string", "enum": ["gis.buffer", "gis.reproject", "gis.clip", "gis.dissolve", "gis.zonal_statistics"] },
+                      "version": { "type": "integer", "enum": [1] },
+                      "input": { "type": "string", "description": "输入图层 id/名称，或 \"@上游步骤id\"" },
+                      "params": { "type": "object", "additionalProperties": true, "description": "契约参数，例如 buffer 的 distance/units" }
+                    },
+                    "required": ["operation", "version", "input", "params"]
+                  },
+                  "tool": { "type": "string", "description": "kind=tool 时必填：目录中的精确工具 id，例如 wasm_basins" },
+                  "args": { "type": "object", "additionalProperties": true, "description": "kind=tool 时使用；参数名来自 search_browser_tools 参数卡，上游图层写 \"@步骤id\"" },
+                  "dependsOn": { "type": "array", "items": { "type": "string" } },
+                  "acceptance": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "description": "可验证断言，例如 {type:feature_count, of:阶段id, op:gte, value:1} 或 {type:crs, of:阶段id, value:EPSG:4326}"
+                    }
+                  }
+                },
+                "required": ["id", "kind"]
+              }
+            }
+          },
+          "required": ["goal", "steps"],
           "additionalProperties": true
         },
         "resume_of": {

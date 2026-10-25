@@ -7,6 +7,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import {
   APPROVAL_TOOLS, auditRuns, classifyError, executePlan, honestReport, resumePlan,
   validatePlan, type LayerLite, type Plan, type PlanAdapter, type PlanRun, type ResolvedStep, type StepOutcome,
@@ -199,20 +200,58 @@ test("step budget expiry classifies as RESOURCE_LIMIT even when the adapter igno
   assert.equal(auditRuns([run]).ok, true);
 });
 
-test("acceptance gate failure yields VALIDATION_ERROR and withholds the deliverable", async () => {
+test("acceptance gate failure yields VALIDATION_ERROR, discards the layer and withholds the deliverable", async () => {
   const plan: Plan = { goal: "验收门", steps: [
     { id: "b", kind: "operation", spec: { operation: "gis.buffer", version: 1, input: "pts", params: { distance: 500, units: "meters" } },
       acceptance: [{ type: "feature_count", value: 999 }] },
     { id: "z", kind: "tool", dependsOn: ["b"], tool: "zoom_to_layer", args: { layer: "@b" } },
   ] };
-  const run = await executePlan(plan, fakeAdapter(defaultBehavior));
+  const discarded: string[] = [];
+  const adapter = fakeAdapter(defaultBehavior);
+  adapter.discardLayer = async layerId => { discarded.push(layerId); };
+  const run = await executePlan(plan, adapter);
   assert.equal(run.status, "failed");
   assert.equal(run.steps[0].phase, "fail");
   assert.equal(run.steps[0].error!.class, "VALIDATION_ERROR");
   assert.equal(run.steps[0].acceptance![0].ok, false);
+  assert.equal(discarded.length, 1, "the produced layer must be removed, not left in the workspace");
+  assert.equal(run.steps[0].discardedLayer!.id, discarded[0]);
+  assert.equal(run.steps[0].outputLayer, null);
   assert.equal(run.steps[1].phase, "skipped");
   assert.equal(run.honest.deliverables.length, 0, "a gate-failed output is not a deliverable");
   assert.match(run.honest.headline, /未通过验收/);
+  assert.equal(auditRuns([run]).ok, true);
+});
+
+test("acceptance failure on a UI tool never deletes a layer", async () => {
+  const plan: Plan = { goal: "改名", steps: [
+    { id: "r", kind: "tool", tool: "rename_layer", args: { layer: "pts", name: "改名后" },
+      acceptance: [{ type: "crs", value: "EPSG:9999" }] },
+  ] };
+  const discarded: string[] = [];
+  const adapter = fakeAdapter(async () => ({ layer: layer({ id: "r_result", crs: "EPSG:4326", geometryTypes: ["Point"] }) }));
+  adapter.discardLayer = async layerId => { discarded.push(layerId); };
+  const run = await executePlan(plan, adapter);
+  assert.equal(run.status, "failed");
+  assert.equal(run.steps[0].error!.class, "VALIDATION_ERROR");
+  assert.equal(discarded.length, 0, "a UI tool must not delete the layer it returned");
+  assert.equal(run.steps[0].outputLayer!.id, "r_result");
+  assert.equal(run.steps[0].discardedLayer, undefined);
+  assert.equal(auditRuns([run]).ok, true);
+});
+
+test("a failed discard is reported instead of pretending the layer was withheld", async () => {
+  const plan: Plan = { goal: "验收门", steps: [
+    { id: "b", kind: "operation", spec: { operation: "gis.buffer", version: 1, input: "pts", params: { distance: 500, units: "meters" } },
+      acceptance: [{ type: "feature_count", value: 999 }] },
+  ] };
+  const adapter = fakeAdapter(defaultBehavior);
+  adapter.discardLayer = async () => { throw new Error("权限不足"); };
+  const run = await executePlan(plan, adapter);
+  assert.equal(run.status, "failed");
+  assert.ok(run.steps[0].outputLayer, "the layer remains when removal fails");
+  assert.equal(run.steps[0].discardedLayer, undefined);
+  assert.match(String(run.steps[0].resultSummary?.discard_error), /权限不足/);
   assert.equal(auditRuns([run]).ok, true);
 });
 
@@ -285,6 +324,24 @@ test("auditRuns catches fabricated completions", async () => {
   const verdictGate = auditRuns([forgedAcceptance]);
   assert.equal(verdictGate.ok, false);
   assert.ok(verdictGate.violations.some(v => /验收断言/.test(v)));
+});
+
+test("run_plan exposes the step shape the executor validates", () => {
+  const catalog = JSON.parse(fs.readFileSync(new URL("../src/lib/browser/catalog.json", import.meta.url), "utf8")) as Array<{
+    name: string;
+    parameters: any;
+  }>;
+  const plan = catalog.find(tool => tool.name === "run_plan")?.parameters?.properties?.plan;
+  assert.ok(plan, "run_plan must expose a plan object schema");
+  assert.deepEqual(plan.required, ["goal", "steps"]);
+  const step = plan.properties.steps.items;
+  assert.deepEqual(step.required, ["id", "kind"]);
+  assert.deepEqual(step.properties.kind.enum, ["operation", "tool"]);
+  assert.deepEqual(step.properties.spec.required, ["operation", "version", "input", "params"]);
+  assert.equal(step.properties.spec.properties.version.enum[0], 1);
+  assert.ok(step.properties.tool.type === "string");
+  assert.ok(step.properties.args.type === "object");
+  assert.match(step.properties.args.description, /@步骤id|@step/i);
 });
 
 test("honestReport on a cancelled run states progress and the resume path", () => {

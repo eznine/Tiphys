@@ -48,8 +48,8 @@ export function buildBrowserSystemPrompt(
   const session = workspace.agentSession;
   const matchedMethods = methods.length ? methods : [];
   const methodSection = matchedMethods.length
-    ? `\n\n## 相关方法卡（方法知识，不是工具清单；可行性由 run_plan 的支持矩阵判定）\n${matchedMethods.map(card =>
-      `- ${card.title}${card.operation ? `（${card.operation}）` : ""}：${card.clarify.length ? `先问清：${card.clarify.join("／")}。` : ""}护栏：${card.guardrails.map(item => `[${item.kind}] ${item.check}${item.next ? `否则：${item.next}` : ""}`).join("；")}。验收：${card.acceptance.join("；")}。易错：${card.antiPatterns[0] ?? ""}`,
+    ? `\n\n## 相关方法卡（方法知识＋参考链；参数以 search 参数卡为准，可行性由 run_plan 的支持矩阵判定）\n${matchedMethods.map(card =>
+      `- ${card.title}${card.operation ? `（${card.operation}）` : ""}：${card.clarify.length ? `先问清：${card.clarify.join("／")}。` : ""}护栏：${card.guardrails.map(item => `[${item.kind}] ${item.check}${item.next ? `否则：${item.next}` : ""}`).join("；")}。${card.workflow?.length ? `参考工具链（只给工具名；运行前先用 search_browser_tools 核对参数卡，不要凭名字猜参数）：${card.workflow.join(" → ")}。` : ""}验收：${card.acceptance.join("；")}。易错：${card.antiPatterns[0] ?? ""}`,
     ).join("\n")}`
     : "";
   let recoveryContext = recovery

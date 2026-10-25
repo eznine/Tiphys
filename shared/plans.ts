@@ -108,6 +108,8 @@ export type StepRun = {
   args?: Record<string, unknown>;
   input?: { layerId: string; crs?: string; sha256?: string | null } | null;
   outputLayer?: LayerLite | null;
+  /** Produced layer removed because the step failed its acceptance gate. */
+  discardedLayer?: LayerLite | null;
   /** Non-layer result (statistics, export path…), trimmed to JSON-safe size. */
   resultSummary?: Record<string, unknown> | null;
   validation?: Validation;
@@ -161,6 +163,12 @@ export type PlanAdapter = {
   geojson?(layerId: string): Promise<unknown>;
   /** Run one resolved step; must throw on failure. */
   runStep(resolved: ResolvedStep, signal: AbortSignal): Promise<StepOutcome>;
+  /**
+   * Remove a layer produced by a step that failed its acceptance gate. Called
+   * only for a newly produced layer (never for the step's input), so a failed
+   * result cannot linger in the workspace and be duplicated by a resume.
+   */
+  discardLayer?(layerId: string): Promise<void>;
   /** Persist a checkpoint; called after every step and at the end. */
   save?(run: PlanRun): Promise<void>;
 };
@@ -596,6 +604,26 @@ export async function executePlan(plan: Plan, adapter: PlanAdapter, options: Exe
     if (acceptance.some(item => !item.ok) && stepRun.phase === "pass") {
       stepRun.phase = "fail";
       stepRun.error = { class: "VALIDATION_ERROR", message: `验收未通过：${acceptance.filter(item => !item.ok).map(item => item.detail).join("；")}` };
+      // A result that failed acceptance must not stay in the workspace as if it
+      // were usable, and a resume must not create a second copy of it. Only an
+      // explicit GIS producer is discarded: UI/meta tools (rename, symbology)
+      // can return an existing user layer and must never trigger a delete.
+      const produced = stepRun.outputLayer;
+      const producer = step.kind === "operation" || Boolean(step.tool?.startsWith("wasm_"));
+      if (producer && produced && produced.id !== stepRun.input?.layerId && adapter.discardLayer) {
+        try {
+          await adapter.discardLayer(produced.id);
+          stepRun.discardedLayer = produced;
+          stepRun.outputLayer = null;
+          outputs.delete(step.id);
+        } catch (discardError) {
+          stepRun.resultSummary = {
+            ...(stepRun.resultSummary ?? {}),
+            discard_error: `未通过验收的图层未能移除：${discardError instanceof Error ? discardError.message : String(discardError)}`,
+          };
+        }
+      }
+      stepRun.durationMs = Date.parse(now().toISOString()) - Date.parse(startedAt);
     }
     await checkpoint();
   }

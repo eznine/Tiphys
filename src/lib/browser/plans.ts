@@ -86,6 +86,9 @@ export const browserPlanAdapter: PlanAdapter = {
     if (!info && result?.ok === false) throw new Error(String(result?.message ?? "工具执行失败。"));
     return { layer: info ? await toLayerLite(info) : null, result };
   },
+  async discardLayer(layerId) {
+    await runEngineStep("remove_layer", { layer: layerId });
+  },
   async save(run) {
     await writeRecord(`plan-run:${run.runId}`, run);
   },

@@ -55,7 +55,19 @@ test("every cited tool exists in the real catalogs", () => {
     if (card.negativeExample.toolId) {
       assert.ok(exists(card.negativeExample.toolId), `${card.id} negative example cites ${card.negativeExample.toolId}`);
     }
+    for (const toolId of card.workflow ?? []) {
+      assert.ok(exists(toolId), `${card.id} workflow cites unknown tool ${toolId}`);
+    }
   }
+});
+
+test("the hydrology card carries the verified watershed-to-polygon chain", () => {
+  assert.deepEqual(methodById("dem-hydrology")?.workflow, [
+    "wasm_fill_depressions",
+    "wasm_d8_pointer",
+    "wasm_basins",
+    "wasm_raster_to_vector_polygons",
+  ]);
 });
 
 test("contract-backed cards use real operation ids and honour the support matrix", () => {
@@ -86,4 +98,11 @@ test("retrieved guardrails are injected into the browser system prompt", () => {
   assert.match(prompt, /\[units\]/);
   assert.match(prompt, /\[crs\]/);
   assert.match(prompt, /否则：/);
+});
+
+test("the hydrology workflow is injected as names, not as parameter values", () => {
+  const prompt = buildBrowserSystemPrompt([], {}, "", findMethods("从这个 DEM 提取河网和流域"));
+  assert.match(prompt, /wasm_fill_depressions → wasm_d8_pointer → wasm_basins → wasm_raster_to_vector_polygons/);
+  assert.match(prompt, /先用 search_browser_tools 核对参数卡/);
+  assert.match(prompt, /不要凭名字猜参数/);
 });

@@ -45,6 +45,11 @@ export type MethodCard = {
   guardrails: MethodGuardrail[];
   /** Questions that must be answered before running, if any. */
   clarify: string[];
+  /**
+   * Verified catalog tool ids for this method, in execution order. Names only:
+   * parameters still come from `search_browser_tools` parameter cards.
+   */
+  workflow?: string[];
   /** Common mistakes and the wrong request that invites them. */
   antiPatterns: string[];
   /** Checks that make the result acceptable rather than merely produced. */
@@ -234,6 +239,7 @@ export const METHOD_CARDS: MethodCard[] = [
       { kind: "units", check: "坡度输出单位、像元尺寸和流量累积阈值采用同一米制口径。", next: "未说明阈值单位时先追问，不把像元数或度值当米制阈值。" },
     ],
     clarify: ["流量累积阈值取多少？", "要整条河网还是只到出口的流域？"],
+    workflow: ["wasm_fill_depressions", "wasm_d8_pointer", "wasm_basins", "wasm_raster_to_vector_polygons"],
     antiPatterns: [
       "跳过填洼直接算流向：平原区会出现大量平行/断流伪影。",
       "对 4326 DEM 算坡度：x/y 单位不一致，坡度数值失真。",
