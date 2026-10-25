@@ -1,7 +1,7 @@
 /** Stage 4: turn budgets replace the static 8-step cap (M09/M11 finding). */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { budgetVerdict, contextBudget, DEFAULT_BUDGET } from "../src/lib/browser/budget.ts";
+import { budgetVerdict, classifyTask, contextBudget, DEFAULT_BUDGET, taskBudget } from "../src/lib/browser/budget.ts";
 
 const limits = { maxToolSteps: 24, maxTurnMs: 60_000, maxContextTokens: 50_000 };
 
@@ -34,4 +34,17 @@ test("zero disables a dimension; context budget is 85% of the window", () => {
   assert.equal(contextBudget(64_000), 54_400);
   assert.equal(contextBudget(0), 0);
   assert.ok(DEFAULT_BUDGET.maxToolSteps >= 24, "the cap must be materially above the old static 8");
+});
+
+test("task classes give pipelines room and keep lookups short", () => {
+  assert.equal(classifyTask("列出当前图层"), "quick");
+  assert.equal(classifyTask("识别这里的要素"), "quick");
+  assert.equal(classifyTask("计算坡度"), "standard");
+  assert.equal(classifyTask("从 DEM 做水文流程并导出流域面"), "pipeline");
+  const quick = taskBudget("显示图层");
+  const pipeline = taskBudget("先填洼，然后流向，接着流域并导出");
+  assert.equal(quick.taskClass, "quick");
+  assert.equal(pipeline.taskClass, "pipeline");
+  assert.ok(quick.maxToolSteps < pipeline.maxToolSteps);
+  assert.ok(pipeline.maxToolSteps > 24, "multi-step GIS work must not stop at the old 24-step public floor");
 });

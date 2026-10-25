@@ -93,6 +93,17 @@ test("input-kind filters exclude tools whose data contract does not fit", () => 
   assert.ok(gee.length > 0 && gee.every(tool => tool.name.startsWith("gee_")));
 });
 
+test("generic polygon phrasing reaches the raster-to-polygon tool", () => {
+  const { tools, searchable } = catalogForEvaluation();
+  for (const query of ["转成面图层", "把栅格转为面", "生成面图层", "栅格面化"]) {
+    const found = searchBrowserToolCandidates(tools, query, { searchable, limit: 5 });
+    assert.ok(found.some(candidate => candidate.name === "wasm_raster_to_vector_polygons"), `${query} must surface raster_to_vector_polygons`);
+  }
+  const rasterOnly = searchBrowserTools(tools, "转成面图层", { searchable, inputKind: "raster", limit: 5 });
+  assert.ok(rasterOnly.some(tool => tool.name === "wasm_raster_to_vector_polygons"));
+  assert.ok(rasterOnly.every(tool => toolCapabilities(tool).inputKinds.includes("raster")));
+});
+
 test("compact view never invents capabilities the catalog lacks", () => {
   const { tools } = catalogForEvaluation();
   const noInputs = tools.find(tool => (tool.parameters.properties ?? {}) && Object.values(tool.parameters.properties ?? {}).every(schema => !schema["x-layer"]));

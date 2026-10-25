@@ -94,9 +94,11 @@ npm run test:agent            # 含 wasm_run 的三项测试
 实现要点：
 
 - `scripts/wasm-cli.mjs`：一个子进程只跑一个工具；读 `job.json`、把结果文件写回目录、写 `result.json`。stdout 不参与协议。
-- `agent/src/wasm.ts`：从 `wasm-catalog.json` 读 manifest，只使用 **manifest 默认值 + 调用者显式参数**，未知参数直接拒绝；单输入工具之外明确报错（不猜）。
-- 转换：矢量输出用 `vector_convert` 转 GeoJSON，并按 RFC 7946 写入 `crs: EPSG:4326`，这样 `add_data` 不会因为“无 CRS”拒绝或猜错。
-- `agent/src/server.ts`：`wasm_run` 工具 + 系统提示一句话说明“输出要 add_data”。
+- `agent/src/wasm.ts`：从 `wasm-catalog.json` 读 manifest，只使用 **manifest 默认值 + 调用者显式参数**，未知参数直接拒绝。`wasm_search` 返回精确 wire name、kind、required、enum/default 与输出参数卡；`wasm_run` 支持 0..N 个命名输入和多个输出，不靠“第一个输入”猜测。
+- `agent/src/wasm-inputs.ts`：工作区图层 id/名称经 `inspect_layers(...).layer.data.location` 解析为真实分析文件，绝不使用 WGS84 展示副本；本地文件路径直接绑定。
+- 运行目录：子进程作业与输出统一放在 `TIPHYS_STATE_DIR/wasm-runs`（默认 `<project>/.tiphys/wasm-runs`），不再写只读的 `~/.tiphys`。
+- 转换：每个矢量输出都用 `vector_convert` 转 GeoJSON，并按 RFC 7946 写入 `crs: EPSG:4326`，这样 `add_data` 不会因为“无 CRS”拒绝或猜错；转换失败会如实返回失败，不发布半成品。
+- `agent/src/server.ts`：`wasm_search` + `wasm_run` 工具；系统提示要求先查参数卡、按 wire name 绑定输入，并在 `add_data` 成功后才声称已上图。
 
 端到端证据（`npm run wasm:spike`，[wasm-spike.json](baselines/stage1/wasm-spike.json)）：
 
@@ -125,8 +127,8 @@ npm run test:agent            # 含 wasm_run 的三项测试
 |---|---|---|
 | 真实模型经 `wasm_run` 完成任务 | 需要模型配额；本阶段只验证执行层，不编造“Agent 会用” | 阶段 4 的 Playwright + 模型基线 |
 | 打包后的 sidecar 里 `wasm-cli.mjs` 与 wasm 二进制路径 | 生产包尚未携带该脚本；本阶段只在源码树内验证 | 阶段 2 前的打包任务（需与 `bundle-sidecars` 一起设计） |
-| 多输入 WASM 工具（PCA、加权叠加等） | 桥接明确只支持单输入并会报错 | 阶段 3 调度需要时扩展 |
-| 栅格 WASM 经 `wasm_run` | 本阶段只跑了矢量 buffer 链 | 阶段 3/5 水文链 |
+| 多输入 WASM 工具（PCA、加权叠加等） | 阶段 1 只支持单输入；**batch41 已解决**，现按 manifest wire name 绑定全部输入 | 已完成 |
+| 栅格 WASM 经 `wasm_run` | 阶段 1 只跑了矢量 buffer 链；**batch41 已补**真实 `slope → raster_to_vector_polygons` 链与双输入 `add` | 已完成 |
 | WebView 桥接的实测数据 | 未实现，只有设计比较 | 若阶段 4 出现字节搬运瓶颈再补 |
 | 移动端 | 不在本阶段范围 | 阶段 4 |
 

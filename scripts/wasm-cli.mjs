@@ -46,25 +46,43 @@ try {
 
   if (job.convertToGeojson && result.ok) {
     const vectorExts = ["fgb", "gpkg", "shp", "geojson"];
-    const source = result.files.find(entry => vectorExts.includes(entry.file.split(".").pop().toLowerCase()));
-    if (source) {
-      const converted = await runTool("vector_convert", {
-        args: [`--input=/work/${source.file}`, "--output=/work/converted.geojson"],
-        input: { [source.file]: new Uint8Array(fs.readFileSync(source.path)) },
-      });
-      const bytes = converted.files?.["converted.geojson"];
-      if (converted.exitCode === 0 && bytes?.length) {
-        const out = path.join(job.outputDir, "converted.geojson");
+    const sources = result.files.filter(entry => vectorExts.includes(entry.file.split(".").pop().toLowerCase()));
+    const conversionErrors = [];
+    for (const source of sources) {
+      const targetName = `${path.parse(source.file).name}.geojson`;
+      try {
+        let out;
+        if (source.file.toLowerCase().endsWith(".geojson")) {
+          out = source.path;
+        } else {
+          const converted = await runTool("vector_convert", {
+            args: [`--input=/work/${source.file}`, `--output=/work/${targetName}`],
+            input: { [source.file]: new Uint8Array(fs.readFileSync(source.path)) },
+          });
+          const bytes = converted.files?.[targetName];
+          if (converted.exitCode !== 0 || !bytes?.length) {
+            conversionErrors.push(`${source.file}: ${(converted.stdout ?? []).join(" ").slice(-400) || `exit ${converted.exitCode}`}`);
+            continue;
+          }
+          out = path.join(job.outputDir, targetName);
+          fs.writeFileSync(out, bytes);
+        }
         // RFC 7946: a GeoJSON file is WGS84 by definition. The WASI converter
         // writes lon/lat without a `crs` member; state it so add_data cannot
         // mistake the file for an unknown-CRS dataset (it refuses to guess).
-        const parsed = JSON.parse(Buffer.from(bytes).toString("utf8"));
+        const parsed = JSON.parse(fs.readFileSync(out, "utf8"));
         parsed.crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::4326" } };
         fs.writeFileSync(out, JSON.stringify(parsed));
-        result.files.push({ file: "converted.geojson", path: out, bytes: fs.statSync(out).size });
-      } else {
-        result.error = `vector_convert failed: ${(converted.stdout ?? []).join(" ").slice(-400)}`;
+        const existing = result.files.find(entry => entry.path === out);
+        if (existing) existing.bytes = fs.statSync(out).size;
+        else result.files.push({ file: targetName, path: out, bytes: fs.statSync(out).size });
+      } catch (err) {
+        conversionErrors.push(`${source.file}: ${err instanceof Error ? err.message : String(err)}`);
       }
+    }
+    if (conversionErrors.length) {
+      result.ok = false;
+      result.error = `vector_convert failed: ${conversionErrors.join("; ").slice(-1200)}`;
     }
   }
 } catch (err) {

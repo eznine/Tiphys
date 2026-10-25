@@ -146,6 +146,14 @@ test("the support matrix is explicit about what is and is not verified", () => {
   assert.equal(operationSupport("gis.zonal_statistics", "browser-wasm").supported, false);
 });
 
+test("unknown model-authored operations become honest plan rejections, not TypeErrors", () => {
+  const support = operationSupport("gis.not_a_real_operation" as never, "browser-wasm");
+  assert.equal(support.supported, false);
+  assert.equal(support.verified, false);
+  assert.match(support.reason, /未知操作/);
+  assert.match(support.degrade ?? "", /支持矩阵|不要/);
+});
+
 test("clip plans an overlay call and dissolve keeps the optional grouping field", () => {
   const clip: ClipSpec = { operation: "gis.clip", version: 1, input: "lyr_1", params: { maskLayerId: "lyr_mask" } };
   const clipped = planOperation(clip, vector);

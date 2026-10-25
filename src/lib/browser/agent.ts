@@ -8,7 +8,7 @@ import { compactBrowserMessages, estimateBrowserTokens, readBrowserContextRecord
 import { browserProjectMemory } from "./memory";
 import { buildBrowserSystemPrompt } from "./prompt";
 import { findMethods } from "../methods";
-import { budgetVerdict, contextBudget, DEFAULT_BUDGET } from "./budget";
+import { budgetVerdict, contextBudget, taskBudget } from "./budget";
 import { isBrowserSearchable, searchBrowserToolCandidates } from "./search";
 import { normalizeAgentSessionStub, normalizeWorkspaceRecovery } from "../workspace";
 import { BUILTIN_API } from "../defaults";
@@ -190,9 +190,20 @@ async function runTurn(s: Session, text: string) {
         execute: async (input: any, options) => callTool(s, t.name, input, options.toolCallId, signal) });
     }
     const searchable = (name: string) => isBrowserSearchable(name) || pluginToolNames.has(name);
-    tools.search_browser_tools = tool({ description: "Find additional local GeoLibre WASM, GEE stub and extension tools. Returns compact candidates (input kinds + parameters) ranked for the query; run one with run_browser_tool using those parameters.",
-      inputSchema: jsonSchema<{ query: string }>({ type: "object", properties: { query: { type: "string" } }, required: ["query"], additionalProperties: false }),
-      execute: async ({ query }) => searchBrowserToolCandidates(await ensureBrowserCatalog(), query, { searchable }) });
+    tools.search_browser_tools = tool({ description: "Find additional local GeoLibre WASM, GEE stub and extension tools. Returns compact candidates (input kinds + exact parameter names) ranked for the query; run one with run_browser_tool using those parameters. Narrow with input_kind when the data type is known.",
+      inputSchema: jsonSchema<{ query: string; input_kind?: "vector" | "raster" | "table"; provider?: "local" | "gee" | "plugin"; limit?: number }>({
+        type: "object",
+        properties: {
+          query: { type: "string" },
+          input_kind: { type: "string", enum: ["vector", "raster", "table"], description: "Only return tools that accept this input kind." },
+          provider: { type: "string", enum: ["local", "gee", "plugin"] },
+          limit: { type: "integer", minimum: 1, maximum: 12, description: "Defaults to 8." },
+        },
+        required: ["query"], additionalProperties: false,
+      }),
+      execute: async ({ query, input_kind, provider, limit }) => searchBrowserToolCandidates(await ensureBrowserCatalog(), query, {
+        searchable, inputKind: input_kind, provider, limit,
+      }) });
     tools.run_browser_tool = tool({ description: "Run an additional browser tool found by search_browser_tools. Arguments must follow that tool's schema. Metric parameters use the source CRS units; reproject when needed. Raster layers are inputs like vector layers; raster results render automatically. GEE tools report connection status honestly.",
       inputSchema: jsonSchema<{ name: string; arguments: Record<string, any> }>({ type: "object", properties: { name: { type: "string" }, arguments: { type: "object", additionalProperties: true } }, required: ["name", "arguments"], additionalProperties: false }),
       execute: async (input, options) => { if (!searchable(input.name)) throw new Error("仅接受浏览器 WASM、GEE 或扩展工具名称。"); return callTool(s, input.name, input.arguments, options.toolCallId, signal); } });
@@ -209,8 +220,9 @@ async function runTurn(s: Session, text: string) {
     s.messages = context.messages;
     if (context.compacted) await emit(s, { type: "compaction", before: context.before, after: context.after, summary: context.summary });
     else if (context.trimmed) recordLog("context-trim", "旧工具输出已精简", { before: context.before, after: context.after });
-    // Turn budgets (stage 4): steps/time/context replace the static 8-step cap.
-    const budget = { ...DEFAULT_BUDGET, maxContextTokens: contextBudget(config.contextWindow) };
+    // Task-class budgets: quick lookups get a small ceiling; GIS pipelines and
+    // delivery work get room for search + execution + export.
+    const budget = { ...taskBudget(text), maxContextTokens: contextBudget(config.contextWindow) };
     const turnStarted = Date.now();
     let toolSteps = 0;
     const result = streamText({ model, system,

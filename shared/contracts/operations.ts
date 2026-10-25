@@ -421,5 +421,14 @@ export const OPERATION_SUPPORT: Record<OperationId, Record<ExecutionRun["provide
 };
 
 export function operationSupport(id: OperationId, provider: ExecutionRun["provider"]): OperationSupport {
-  return OPERATION_SUPPORT[id][provider];
+  const support = OPERATION_SUPPORT[id]?.[provider];
+  if (support) return support;
+  // Plans are model-authored JSON. An unknown operation must produce a
+  // plan-time rejection, not an internal TypeError that hides the real gap.
+  return {
+    supported: false,
+    verified: false,
+    reason: `未知操作 ${String(id)}；支持矩阵只包含 ${Object.keys(OPERATION_SUPPORT).join("、")}。`,
+    degrade: "改用支持矩阵中的操作名重新提交；不要用名称相近的工具假装完成了该操作。",
+  };
 }

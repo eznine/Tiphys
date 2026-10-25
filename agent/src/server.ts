@@ -16,10 +16,11 @@ import { listModels } from "./models.js";
 import { EngineMcp } from "./mcp.js";
 import { createMockModel } from "./mock.js";
 import { Session, type AgentEvent } from "./session.js";
-import { COMPACT_PROMPT, loadMemory, maybeCompact, readToolOutput, spillIfLarge, workspaceSnapshot } from "./context.js";
+import { COMPACT_PROMPT, estimateTokens, loadMemory, maybeCompact, readToolOutput, spillIfLarge, workspaceSnapshot } from "./context.js";
 import { allowedOrigins, authorized, serviceToken } from "./security.js";
-import { makeOperationSpec } from "../../shared/contracts/index.ts";
-import { runWasmTool } from "./wasm.js";
+import { budgetVerdict, contextBudget, makeOperationSpec, taskBudget, type BudgetVerdict } from "../../shared/contracts/index.ts";
+import { runWasmTool, searchWasmTools } from "./wasm.js";
+import { resolveWasmInputs } from "./wasm-inputs.js";
 
 let cfg = loadConfig();
 ensureSettingsBackup();
@@ -132,24 +133,50 @@ function buildTools(s: Session): ToolSet {
     }, required: ["spill_id"], additionalProperties: false }),
     execute: async input => readToolOutput(input.spill_id, input.offset, input.length),
   });
-  tools.wasm_run = tool({
-    description: "Run one geolibre/Whitebox WASM tool (from the 958-tool WASM catalog) on a local file. "
-      + "Use it only when no Python engine tool covers the job (e.g. hydrology/terrain tools). "
-      + "The result is a file path: to show it, call add_data with the returned geojson_path. "
-      + "Unknown parameters and multi-input tools are rejected instead of guessed.",
-    inputSchema: jsonSchema<{ tool: string; input_path: string; params?: Record<string, unknown> }>({
+  tools.wasm_search = tool({
+    description: "Search the real 958-tool geolibre/Whitebox WASM catalog. Returns compact parameter cards with exact input wire names, kinds, required flags, enums/defaults and outputs. Use this before wasm_run when the tool id or parameter names are uncertain; stop searching once a matching card appears.",
+    inputSchema: jsonSchema<{ query: string; input_kind?: string; output_kind?: string; limit?: number }>({
       type: "object",
       properties: {
-        tool: { type: "string", description: "geolibre tool id, e.g. buffer_vector or slope." },
-        input_path: { type: "string", description: "Local file path readable by the engine." },
-        params: { type: "object", description: "Tool parameters by manifest name (numbers, strings, booleans)." },
+        query: { type: "string", description: "User wording, tool id, or a wire name such as d8_pntr, slope, 坡度, 栅格转面." },
+        input_kind: { type: "string", enum: ["raster", "vector", "table", "file"], description: "Optional input-kind filter." },
+        output_kind: { type: "string", enum: ["raster", "vector", "table", "file", "json", "text"], description: "Optional output-kind filter." },
+        limit: { type: "integer", minimum: 1, maximum: 20, description: "Defaults to 8." },
       },
-      required: ["tool", "input_path"],
+      required: ["query"], additionalProperties: false,
+    }),
+    execute: async (input: { query: string; input_kind?: string; output_kind?: string; limit?: number }) => {
+      try {
+        return searchWasmTools(input.query, { inputKind: input.input_kind, outputKind: input.output_kind, limit: input.limit });
+      } catch (err) {
+        return { ok: false, error_class: "INPUT_ERROR", message: err instanceof Error ? err.message : String(err) };
+      }
+    },
+  });
+  tools.wasm_run = tool({
+    description: "Run one geolibre/Whitebox WASM catalog tool (same catalog as the ribbon). "
+      + "Call wasm_search first when the id or parameter names are uncertain. Bind each manifest input by its exact wire name in `inputs` (for example slope: {input}; basins: {d8_pntr}; zonal_statistics: {input, features}). "
+      + "Each input value may be a workspace layer id/name or an absolute analysis file path. "
+      + "Vector outputs return geojson_path ready for add_data; raster TIFF outputs can also be passed to add_data. Never claim a layer is on the map until add_data succeeds.",
+    inputSchema: jsonSchema<{ tool: string; input_path?: string; inputs?: Record<string, string>; params?: Record<string, unknown> }>({
+      type: "object",
+      properties: {
+        tool: { type: "string", description: "Exact geolibre tool id from wasm_search, e.g. slope, basins, zonal_statistics." },
+        inputs: { type: "object", additionalProperties: { type: "string" }, description: "Manifest input wire name → workspace layer id/name or absolute file path." },
+        input_path: { type: "string", description: "Compatibility shortcut only for tools with exactly one input." },
+        params: { type: "object", description: "Scalar/enum parameters by exact manifest name. Do not put file inputs here." },
+      },
+      required: ["tool"],
       additionalProperties: false,
     }),
-    execute: async (input: { tool: string; input_path: string; params?: Record<string, unknown> }, { abortSignal }) => {
+    execute: async (input: { tool: string; input_path?: string; inputs?: Record<string, string>; params?: Record<string, unknown> }, { abortSignal }) => {
       try {
-        return await runWasmTool({ tool: input.tool, inputPath: input.input_path, params: input.params, signal: abortSignal });
+        if (input.input_path && input.inputs && Object.keys(input.inputs).length) {
+          return { ok: false, error_class: "INPUT_ERROR", message: "input_path 与 inputs 不能同时使用；多输入工具请只使用 inputs。" };
+        }
+        const { paths, bindings } = await resolveWasmInputs(input.inputs, layer => engine.call("inspect_layers", { layer }));
+        const result = await runWasmTool({ tool: input.tool, inputPath: input.input_path, inputs: paths, params: input.params, signal: abortSignal });
+        return { ...result, input_bindings: bindings };
       } catch (err) {
         return { ok: false, error_class: "INPUT_ERROR", message: err instanceof Error ? err.message : String(err) };
       }
@@ -209,7 +236,7 @@ function buildTools(s: Session): ToolSet {
 function systemPrompt(s: Session) {
   return [
     "You are TIPHYS, a GIS agent. Use the engine tools for spatial work; long jobs return job_id (progress is shown to the user; do not busy-poll).",
-    "When no Python tool covers a raster/hydrology/terrain operation, use wasm_run with a geolibre tool id and a local file path; its output is a file, so add it to the map with add_data using the returned geojson_path.",
+    "When no Python tool covers a raster/hydrology/terrain operation, call wasm_search to find the exact geolibre tool and its parameter card, then wasm_run with the exact input wire names in `inputs`. Input values may be workspace layer ids/names (resolved through inspect_layers) or absolute files. Add vector geojson_path or raster TIFF outputs through add_data before claiming they are on the map.",
     "Reply in the user's language. Never invent layer ids; use the workspace snapshot.",
     loadMemory(),
     `## GIS workspace snapshot (refreshed each turn)\n${workspaceSnapshot(s.workspace)}`,
@@ -220,6 +247,7 @@ async function runTurn(s: Session, text: string) {
   s.busy = true;
   s.controller = new AbortController();
   const turnId = `turn_${Date.now()}`;
+  let budgetStop: BudgetVerdict | undefined;
   emit(s, { type: "user", text, turnId });
   try {
     const turnModel = model;
@@ -238,14 +266,33 @@ async function runTurn(s: Session, text: string) {
       s.messages = c.messages;
       emit(s, { type: "compaction", before: c.before, after: c.after, summary: c.summary });
     }
-    const result = streamText({ model: turnModel, system, messages: s.messages, tools, abortSignal: s.controller.signal, stopWhen: stepCountIs(8) });
+    // Task-class budgets replace the old fixed 8-step cap. Search and execution
+    // both count; the SDK ceiling leaves room for the final text step.
+    const budget = { ...taskBudget(text), maxContextTokens: contextBudget(cfg.contextWindow) };
+    const turnStarted = Date.now();
+    let toolSteps = 0;
+    const result = streamText({ model: turnModel, system, messages: s.messages, tools, abortSignal: s.controller.signal,
+      stopWhen: stepCountIs(budget.maxToolSteps + 4), maxRetries: 0 });
     let buf = "";
     for await (const p of result.fullStream as AsyncIterable<any>) {
       if (p.type === "text-delta") {
         buf += p.text;
         emit(s, { type: "text-delta", text: p.text, turnId });
       } else if (p.type === "tool-call") emit(s, { type: "tool-call", toolCallId: p.toolCallId, toolName: p.toolName, input: p.input, turnId });
-      else if (p.type === "tool-result") emit(s, { type: "tool-result", toolCallId: p.toolCallId, toolName: p.toolName, output: p.output });
+      else if (p.type === "tool-result") {
+        toolSteps++;
+        emit(s, { type: "tool-result", toolCallId: p.toolCallId, toolName: p.toolName, output: p.output });
+        let verdict = budgetVerdict({ toolSteps, elapsedMs: Date.now() - turnStarted, estimatedTokens: 0 }, budget);
+        if (!verdict.stop && toolSteps % 3 === 0) {
+          verdict = budgetVerdict({ toolSteps, elapsedMs: Date.now() - turnStarted,
+            estimatedTokens: estimateTokens(s.messages, system) }, budget);
+        }
+        if (verdict.stop) {
+          budgetStop = verdict;
+          emit(s, { type: "notice", text: `预算停止：${verdict.reason}${verdict.advice}` });
+          s.controller.abort();
+        }
+      }
       else if (p.type === "tool-error") emit(s, { type: "tool-error", toolCallId: p.toolCallId, toolName: p.toolName, error: String(p.error) });
       else if (p.type === "finish-step" && buf) {
         emit(s, { type: "assistant-text", text: buf, turnId });
@@ -253,11 +300,15 @@ async function runTurn(s: Session, text: string) {
       } else if (p.type === "error") emit(s, { type: "error", error: String(p.error) });
     }
     if (buf) emit(s, { type: "assistant-text", text: buf, turnId });
-    s.messages.push(...(await result.response).messages);
-    if ((await result.finishReason) === "tool-calls")
+    try {
+      s.messages.push(...(await result.response).messages);
+    } catch (err) {
+      if (!budgetStop?.stop) throw err;
+    }
+    if (!budgetStop?.stop && (await result.finishReason) === "tool-calls")
       emit(s, { type: "notice", text: "本轮已达到工具步骤上限，已有结果已保留；任务可能尚未完成，请检查工作区后再继续。" });
   } catch (err) {
-    emit(s, { type: "error", error: err instanceof Error ? err.message : String(err) });
+    if (!budgetStop?.stop) emit(s, { type: "error", error: err instanceof Error ? err.message : String(err) });
   } finally {
     s.busy = false;
     s.controller = null;
