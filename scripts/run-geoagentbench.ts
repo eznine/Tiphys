@@ -48,6 +48,10 @@ const INCLUDED = [
   "fio-l1-paris-kml-pois",
 ];
 /** Excluded with reasons; the report shows them so the subset is auditable. */
+/** Heavy inputs need more than the default five-minute turn budget. */
+const TASK_TIMEOUT_MS: Record<string, number> = {
+  "geo-l2-bangkok-landuse-intersect": 600000,
+};
 const EXCLUDED: { id: string; reason: string }[] = [
   { id: "geo-l1-tokyo-busstop-buffer", reason: "输出 GeoParquet，浏览器导出暂不支持该格式" },
   { id: "spa-l1-capetown-hospital-nn", reason: "输入为 GeoParquet 且要求精确列名（nearest_hospital_name/distance_m），第一轮不接" },
@@ -85,7 +89,13 @@ function runGrader(taskId: string, submissionDir: string): { ok: boolean; json: 
   const gradePy = path.join(BENCH, "tasks", taskId, "grade.py");
   const child = spawnChild(PYTHON, [gradePy, submissionDir], {
     cwd: BENCH, windowsHide: true, encoding: "utf8",
-    env: { ...process.env, PYTHONPATH: path.join(BENCH, "eval"), PYTHONDONTWRITEBYTECODE: "1" },
+    env: {
+      ...process.env,
+      PYTHONPATH: path.join(BENCH, "eval"),
+      PYTHONDONTWRITEBYTECODE: "1",
+      PYTHONUTF8: "1",
+      PYTHONIOENCODING: "utf-8",
+    },
   });
   const stdout = String(child.stdout ?? "");
   const stderr = [child.error ? String(child.error) : "", String(child.stderr ?? "")].filter(Boolean).join("\n");
@@ -96,6 +106,31 @@ function runGrader(taskId: string, submissionDir: string): { ok: boolean; json: 
   } catch {
     return { ok: false, json: null, stderr: stderr.slice(0, 500) || stdout.slice(0, 500) };
   }
+}
+
+/**
+ * Benchmark task.json often lists only the `.shp` even though the sidecars sit
+ * next to it. Feed the real multi-file selection; a bare .shp is not importable.
+ */
+function taskInputFiles(task: BenchTask): { name: string; path: string }[] {
+  const files = new Map<string, { name: string; path: string }>();
+  for (const input of task.inputs) {
+    const absolute = path.join(BENCH, input.url);
+    if (input.format === "shapefile") {
+      const directory = path.dirname(absolute);
+      const stem = path.basename(absolute, path.extname(absolute)).toLocaleLowerCase();
+      for (const name of fs.readdirSync(directory)) {
+        const extension = path.extname(name).toLocaleLowerCase();
+        if (!/^\.(?:shp|shx|dbf|prj|cpg|sbn|sbx)$/.test(extension)) continue;
+        if (path.basename(name, extension).toLocaleLowerCase() !== stem) continue;
+        const full = path.join(directory, name);
+        files.set(full, { name, path: full });
+      }
+    } else if (fs.existsSync(absolute)) {
+      files.set(absolute, { name: path.basename(absolute), path: absolute });
+    }
+  }
+  return [...files.values()];
 }
 
 async function main() {
@@ -114,6 +149,7 @@ async function main() {
     const started = Date.now();
     const submissionDir = fs.mkdtempSync(path.join(os.tmpdir(), "tiphys-gab-"));
     let fatal: string | undefined;
+    let events: any[] = [];
     try {
       const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
       const page = await context.newPage();
@@ -125,12 +161,12 @@ async function main() {
           name: input.name,
           blob: new Blob([Uint8Array.from(atob(input.b64), ch => ch.charCodeAt(0))]),
         }));
-        // Bare Shapefile tasks list .shp/.shx/.dbf separately. Feed them as one
-        // real multi-file selection; the single-file importer cannot see sidecars.
+        // Shapefile sidecars are expanded by the Node-side helper. Feed them as
+        // one real multi-file selection; the single-file importer cannot see them.
         const shapefile = files.filter(file => /\.(?:shp|shx|dbf|prj|cpg|sbn|sbx)$/i.test(file.name));
         if (shapefile.length) await engine.importBrowserShapefiles(shapefile);
         for (const file of files.filter(file => !shapefile.includes(file))) await engine.importBrowserFile(file.blob, file.name);
-      }, { inputs: task.inputs.map(input => ({ name: path.basename(input.url), b64: fs.readFileSync(path.join(BENCH, input.url)).toString("base64") })) });
+      }, { inputs: taskInputFiles(task).map(file => ({ name: file.name, b64: fs.readFileSync(file.path).toString("base64") })) });
 
       const session = "gab_" + taskId;
       await page.evaluate(async (payload: { session: string; text: string }) => {
@@ -139,8 +175,7 @@ async function main() {
         if (!response.ok) throw new Error("chat rejected");
       }, { session, text: task.instruction });
 
-      const deadline = Date.now() + 300000;
-      let events: any[] = [];
+      const deadline = Date.now() + (TASK_TIMEOUT_MS[taskId] ?? 300000);
       for (;;) {
         await page.waitForTimeout(700);
         const snapshot: any = await page.evaluate(async (session: string) => {
@@ -194,16 +229,22 @@ async function main() {
       && Array.isArray(gates) && gates.length > 0
       && gates.every((gate: any) => gate.passed)
       && subchecks.every((check: any) => check.passed);
+    const toolCalls = events.filter(event => event.type === "tool-call").map(event => String(event.toolName));
+    const toolErrors = events.filter(event => event.type === "tool-error").map(event => `${event.toolName}: ${String(event.error).slice(0, 160)}`);
+    const assistantTail = events.filter(event => event.type === "assistant-text").slice(-2).map(event => String(event.text).slice(0, 240));
     results.push({
       task_id: taskId, instruction_chars: task.instruction.length,
       expected_files: expectedFiles, produced_files: producedFiles,
       gates, subchecks, weighted_score: Number(weighted.toFixed(3)),
       pass: passed, fatal: fatal ?? null,
       grader_error: graded && !graded.ok ? graded.stderr : null,
+      tool_calls: toolCalls, tool_errors: toolErrors, assistant_tail: assistantTail,
       duration_ms: Date.now() - started,
     });
     console.log(`  ${taskId} ${fatal ? "ERROR" : passed ? "PASS" : "FAIL"} gates=${gates.filter((g: any) => g.passed).length}/${gates.length} subchecks=${subchecks.filter((c: any) => c.passed).length}/${subchecks.length} w=${weighted.toFixed(2)}`);
-    fs.rmSync(submissionDir, { recursive: true, force: true });
+    if (!passed) console.log(`    calls: ${toolCalls.join(" → ") || "(none)"}${toolErrors.length ? ` | errors: ${toolErrors.join(" | ")}` : ""}${assistantTail.length ? ` | text: ${assistantTail[assistantTail.length - 1]}` : ""}`);
+    if (!passed || process.env.TIPHYS_KEEP_SUBMISSION === "1") console.log(`    submission: ${submissionDir}`);
+    else fs.rmSync(submissionDir, { recursive: true, force: true });
   }
   await browser.close();
 
@@ -232,6 +273,9 @@ async function main() {
     for (const c of r.subchecks.filter((c: any) => !c.passed)) lines.push(`- ✗ ${c.name}：${String(c.detail).slice(0, 140)}`);
     if (r.fatal) lines.push(`- 驱动器错误：${r.fatal}`);
     if (r.grader_error) lines.push(`- 评分器错误：${r.grader_error}`);
+    if (r.tool_calls?.length) lines.push(`- 工具链：${r.tool_calls.join(" → ")}`);
+    for (const error of r.tool_errors ?? []) lines.push(`- 工具错误：${error}`);
+    if (r.assistant_tail?.length) lines.push(`- 最后回答：${r.assistant_tail[r.assistant_tail.length - 1]}`);
     lines.push(`- 产物：${JSON.stringify(r.produced_files)}（期望 ${JSON.stringify(r.expected_files)}）`, "");
   }
   fs.writeFileSync(path.join(OUT_DIR, "geoagentbench.md"), lines.join("\n") + "\n");
