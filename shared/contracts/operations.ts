@@ -402,7 +402,7 @@ export const OPERATION_SUPPORT: Record<OperationId, Record<ExecutionRun["provide
   "gis.dissolve": {
     "browser-wasm": {
       supported: false, verified: false,
-      reason: "WASM 1.7.1 的 dissolve 写出损坏投影的 FlatGeobuf（EPSG:436207616，D1），vector_info 随后 panic（D2）；GPKG 输出会破坏下游工具，GeoJSON 输出返回 0 要素。",
+      reason: "WASM 1.7.1 的 dissolve 会静默丢弃部分几何：实测 5 个缓冲面只保留 1 个较小范围，且 FlatGeobuf 投影损坏（EPSG:436207616，D1）并可在读回时 panic（D2）；GeoJSON 也可能返回空集合。直接调用与 wasm_dissolve 均被拦截。",
       degrade: "改用桌面 Python 引擎；或先按组求并集（union）再删列。",
     },
     "desktop-python": { supported: true, verified: false, reason: "dissolve 工具存在；v1 尚未纳入可复现基线，不能用“支持”当已验证。" },

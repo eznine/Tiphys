@@ -679,6 +679,36 @@ textarea {
   white-space: nowrap;
 }
 
+.map-layout-backdrop { position: fixed; inset: 0; z-index: 220; display: grid; place-items: center; padding: 20px; background: #07142566; backdrop-filter: blur(3px); }
+.map-layout-dialog { width: 560px; max-width: 100%; max-height: 100%; display: flex; flex-direction: column; overflow: hidden; outline: 0; background: var(--tiphys-surface); color: var(--tiphys-text); border: 1px solid var(--tiphys-border); border-radius: var(--tiphys-radius); box-shadow: 0 24px 90px #0004; }
+.map-layout-header { min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 18px; border-bottom: 1px solid var(--tiphys-border); }
+.map-layout-header > div { display: flex; align-items: center; gap: 8px; }
+.map-layout-header svg { color: var(--tiphys-accent); }
+.map-layout-header strong { font-size: 14px; }
+.map-layout-header span { margin-left: 4px; color: var(--tiphys-text-muted); font-size: 10px; }
+.map-layout-body { display: grid; gap: 15px; padding: 18px; overflow: auto; }
+.map-layout-intro { display: grid; gap: 5px; padding: 11px 12px; border: 1px solid color-mix(in srgb, var(--tiphys-accent) 22%, var(--tiphys-border)); border-radius: 8px; background: var(--tiphys-accent-muted); }
+.map-layout-intro strong { font-size: 12px; }
+.map-layout-intro p { margin: 0; color: var(--tiphys-text-secondary); font-size: 11px; line-height: 1.65; }
+.map-layout-field { display: grid; gap: 6px; color: var(--tiphys-text-secondary); font-size: 11px; }
+.map-layout-field input { width: 100%; height: 36px; padding: 7px 10px; border: 1px solid var(--tiphys-border); border-radius: 6px; outline: 0; background: var(--tiphys-bg); color: var(--tiphys-text); font: inherit; font-size: 12px; }
+.map-layout-field input:focus { border-color: var(--tiphys-accent); }
+.map-layout-sizes { min-width: 0; margin: 0; padding: 0; border: 0; }
+.map-layout-sizes legend { margin-bottom: 7px; color: var(--tiphys-text-secondary); font-size: 11px; }
+.map-layout-sizes > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.map-layout-sizes button { display: grid; gap: 2px; padding: 9px 8px; border: 1px solid var(--tiphys-border); border-radius: 7px; background: var(--tiphys-bg); color: var(--tiphys-text); text-align: left; font: inherit; cursor: pointer; }
+.map-layout-sizes button:hover { border-color: color-mix(in srgb, var(--tiphys-accent) 45%, var(--tiphys-border)); }
+.map-layout-sizes button[data-active="true"] { border-color: var(--tiphys-accent); background: var(--tiphys-accent-muted); color: var(--tiphys-accent); }
+.map-layout-sizes strong { font-size: 11px; }
+.map-layout-sizes small { color: var(--tiphys-text-muted); font-size: 9px; }
+.map-layout-check { display: flex; align-items: center; gap: 7px; color: var(--tiphys-text-secondary); font-size: 11px; }
+.map-layout-check input { accent-color: var(--tiphys-accent); }
+.map-layout-contract { padding: 8px 10px; border: 1px dashed var(--tiphys-border); border-radius: 6px; color: var(--tiphys-text-muted); font-size: 10px; line-height: 1.6; }
+.map-layout-footer { min-height: 62px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 18px; border-top: 1px solid var(--tiphys-border); background: var(--tiphys-bg); }
+.map-layout-footer > span { color: var(--tiphys-text-muted); font-size: 10px; line-height: 1.5; }
+.map-layout-footer > div { display: flex; flex-shrink: 0; gap: 8px; }
+.map-layout-footer .primary-btn { display: inline-flex; align-items: center; gap: 6px; }
+
 .basemap-switcher {
   position: relative;
 }
@@ -1086,6 +1116,7 @@ textarea {
 .task-card-blocked { display: grid; gap: 2px; margin: 0; padding: 8px 9px; border-left: 3px solid #d97706; background: color-mix(in srgb, #d97706 12%, var(--tiphys-surface)); border-radius: 0 7px 7px 0; color: var(--tiphys-text); font-size: 10.5px; }
 .task-card-blocked small { color: var(--tiphys-text-muted); }
 .task-card-actions { display: flex; align-items: center; gap: 8px; }
+.task-card-recipe-notice { margin: 0; color: var(--tiphys-accent); background: var(--tiphys-accent-muted); border-radius: 5px; padding: 6px 8px; font-size: 10px; line-height: 1.55; }
 .task-card-error { margin: 0; color: #b91c1c; font-size: 10.5px; }
 .task-card-result { display: grid; gap: 7px; padding: 10px; border: 1px solid var(--tiphys-border); border-radius: 8px; background: var(--tiphys-bg); }
 .task-card-result[data-status="completed"] { border-color: color-mix(in srgb, #15803d 40%, var(--tiphys-border)); }

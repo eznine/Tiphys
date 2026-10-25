@@ -64,6 +64,8 @@
 
 结论：这不是参数问题，是 WASM 1.7.1 FGB 写入器在 dissolve 路径上的缺陷（D1），加上读取器的 panic（D2）。**没有采用任何"看起来能跑"的绕行**：GeoJSON 方案的静默空结果不可接受，GPKG 方案破坏多步链。改动已全部回退，基线保留在 `docs/baselines/stage2/dissolve-baseline.json`（6/6 ERROR），契约中标为不支持并给出"改桌面引擎 / 先 union 再删列"的降级路径。后续若要修，应替换上游 writer 或在 WASM 外重写 FGB CRS 头，并补一条"投影输入 dissolve 后下游可读"的回归。
 
+2026-10-25 复盘补充：不仅空结果，**看似非空的结果也会丢几何**。对 5 个投影缓冲面执行无字段 dissolve，WASM 返回 1 个要素，但 bbox 从输入 `447004…451016` 收缩为 `447694…449294`；分区样例也只保留 3 个区中的 1–2 个。GPKG 容器同样出现 0 要素，说明问题在 union/dissolve 计算与写出链，不是单个扩展名。因此浏览器 `dissolve` 与裸 `wasm_dissolve` 现在都在结果 adopt 前显式拒绝，`tests/browser-engine.test.ts` 用上述缓冲形态断言失败且不新增图层；不再有任何返回"看起来正确"的 GeoJSON 路径。真正修复仍需替换上游 writer/union 实现并用投影输入 + 下游 `calculate_geometry` 做回归。
+
 ## 5. 方法卡
 
 10 张：缓冲与距离、重投影、裁剪与叠加、融合与分组、分区统计、面积/长度量算、空间连接、DEM 水文、坡度坡向、叠加汇总与重复计数（索引见 [METHODS.md](METHODS.md)）。2026-10-25 增补类型化 `crs` / `units` / `overlay-double-count` / `nodata` / `predicate` 护栏，并随命中的方法卡注入浏览器 Agent 提示词；这不是外部 Skill 全量导入，也没有建立向量知识库。

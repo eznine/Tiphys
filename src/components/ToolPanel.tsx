@@ -42,7 +42,7 @@ const ACTIVE = new Set(["submitting", "queued", "running", "cancelling"]);
 const LABELS: Record<string, string> = {
   add_data: "加载矢量数据", describe_layer: "查看图层属性", buffer: "缓冲区",
   clip: "裁剪", intersection: "相交", union_layers: "联合", erase: "擦除",
-  dissolve: "融合", convex_hull: "凸包", simplify: "简化几何",
+  dissolve: "融合（需桌面）", convex_hull: "凸包", simplify: "简化几何",
   spatial_join: "空间连接",
   select_by_attributes: "按属性选择", select_by_location: "按位置选择",
   reproject: "重投影", export_features: "导出要素", calculate_geometry: "计算面积与长度", remove_layer: "移除图层",
@@ -58,7 +58,7 @@ const DESCRIPTIONS: Record<string, string> = {
   intersection: "提取两个图层的相交部分，并合并双方属性。",
   union_layers: "合并两个面图层的覆盖范围，保留各区域的属性。",
   erase: "从输入图层中扣除与掩膜重叠的部分。",
-  dissolve: "按字段或全部要素融合几何，生成新的结果图层。",
+  dissolve: "浏览器 WASM dissolve 已知会静默丢几何，尚未开放；请改用桌面 Python 引擎，或先求并集再处理属性。",
   convex_hull: "创建包围输入要素的最小凸几何。",
   simplify: "按指定距离容差简化几何，保留拓扑关系。",
   select_by_attributes: "按字段条件筛选要素，将匹配结果保存为新图层。",

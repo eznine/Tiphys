@@ -7,7 +7,7 @@ import { deleteRecord, readRecord, records, writeRecord } from "./storage";
 import { fileInfo, loadWasmManifests, originalGeojson, wasmTool } from "./wasm";
 import { browserCatalogState, browserToolCatalog, ensureBrowserCatalog, hydrateWasmCatalog, isWasmInputParam, isWasmOutputParam, wasmInputKind } from "./catalog-schema";
 import { pluginToolNames, runPluginTool } from "../plugins/registry";
-import { planOperation } from "../../../shared/contracts/index.ts";
+import { operationSupport, planOperation } from "../../../shared/contracts/index.ts";
 import { listPlanRuns, readPlanRun, runBrowserPlan } from "./plans";
 import type { GeeAuthStatus } from "../gee";
 import { assertShapefileParts, groupShapefileParts, SHAPEFILE_EXTENSIONS } from "../shapefile";
@@ -36,6 +36,13 @@ export const engineEvents = new EventTarget();
 const channel = typeof window === "undefined" || typeof BroadcastChannel === "undefined" ? null : new BroadcastChannel("tiphys-browser-workspace-v1");
 channel?.addEventListener("message", () => engineEvents.dispatchEvent(new CustomEvent("workspace")));
 const notify = () => { engineEvents.dispatchEvent(new CustomEvent("workspace")); channel?.postMessage("changed"); };
+/** The WASM dissolve writes corrupt or partial geometry, so both the named
+ * browser action and its raw `wasm_dissolve` catalog form must stop before a
+ * result layer is adopted. The shared contract carries the measured reason. */
+function rejectBrowserDissolve(tool = "dissolve"): never {
+  const support = operationSupport("gis.dissolve", "browser-wasm");
+  throw new Error(`${tool} 暂不可用：${support.reason} 为避免返回看似正确的错误 GeoJSON，本次未写入任何图层。降级方案：${support.degrade ?? "改用桌面 Python 引擎。"}`);
+}
 export function recordLog(kind: string, summary: string, detail: unknown, level = "info") {
   const entry: BrowserLog = { id: crypto.randomUUID(), ts: Date.now(), source: "Engine", kind, level, summary, detail };
   void writeRecord(`log:${entry.ts}:${entry.id}`, entry);
@@ -413,6 +420,8 @@ const WASM_OUTPUT_KIND_OVERRIDES: Record<string, Record<string, string>> = {
   histogram_equalization: { output: "raster" },
   laplacian_filter: { output: "raster" },
   laplacian_of_gaussians_filter: { output: "raster" },
+  plan_curvature: { output: "raster" },
+  profile_curvature: { output: "raster" },
   lee_filter: { output: "raster" },
   majority_filter: { output: "raster" },
   mean_filter: { output: "raster" },
@@ -437,6 +446,7 @@ function outputKind(id: string, param: { name: string; data_kind: string }): str
   return WASM_OUTPUT_KIND_OVERRIDES[id]?.[param.name] ?? param.data_kind;
 }
 async function runNative(id: string, args: Record<string, any>, signal?: AbortSignal) {
+  if (id === "dissolve") rejectBrowserDissolve("wasm_dissolve");
   const manifest = (await loadWasmManifests()).find(t => t.id === id);
   if (!manifest) throw new Error("未知 WASM 工具。");
   const defaults: Record<string, unknown> = { ...(manifest.defaults ?? {}), ...(id === "build_network_topology" ? { snap_tolerance: 0.000001 } : {}) };
@@ -576,6 +586,7 @@ async function spatialJoin(record: LayerRecord, other: LayerRecord, args: Record
 }
 async function execute(name: string, args: Record<string, any>, signal?: AbortSignal): Promise<Record<string, any>> {
   if (name.startsWith("wasm_")) return runNative(name.slice(5), args, signal);
+  if (name === "dissolve") rejectBrowserDissolve();
   if (name === "run_plan") return runBrowserPlan(args, signal);
   if (name === "remove_layer") return removeLayer(args.layer);
   if (pluginToolNames.has(name)) return runPluginTool(name, args, {
@@ -791,7 +802,7 @@ async function execute(name: string, args: Record<string, any>, signal?: AbortSi
     const target = Number(String(plan.args.target_crs).split(":")[1]);
     return adopt(await project(record, target, signal), "fgb", outputName, signal);
   } else if (name === "convex_hull") { tool = "minimum_convex_hull"; params.individual_feature_hulls = false; }
-  else if (name === "dissolve") { tool = "dissolve"; if (args.by_field) { if (!fields(record).includes(args.by_field)) throw new Error("找不到融合字段。"); params.dissolve_field = args.by_field; } }
+  else if (name === "dissolve") rejectBrowserDissolve();
   else if (name === "calculate_geometry") {
     // Geodesic mode measures WGS84 input directly. Reprojecting the measured
     // FlatGeobuf back trips an upstream FlatGeobuf reader panic in 1.7.1.

@@ -12,6 +12,7 @@ TIPHYS uses or adapts the following third-party works. Original notices for adap
 | `buffer` tool parameter shape (input/distance/units/dissolve/output name, 5000 km limit) | RustGIS — `crates/analysis/src/tools.rs` | Apache-2.0 | `engine/geo_ops.py`, MCP `buffer` schema |
 | Unit vocabulary meters/kilometers/miles | GeoLibre — `packages/processing/src/vector-tools.ts` | MIT, Copyright (c) 2026 Qiusheng Wu | `engine/geo_ops.py` |
 | Geometry-type filters for polygon fill, line/outline and point rendering | GeoLibre — `packages/map/src/map-controller.ts`, `syncHighlight` | MIT, Copyright (c) 2026 Qiusheng Wu | `src/lib/dataLayers.ts` (adapted) |
+| Print-layout preference shape: defaults plus normalization of partial/hand-edited saved values (idea only, no copied code) | GeoLibre — `packages/core/src/print-layout-config.ts` | MIT, Copyright (c) 2026 Qiusheng Wu | `src/lib/map-export.ts`, `src/components/MapLayoutDialog.tsx` |
 
 ## Libraries (dependencies, used unmodified)
 

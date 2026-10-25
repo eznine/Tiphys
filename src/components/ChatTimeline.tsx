@@ -6,7 +6,7 @@ import { PipelineResultDetails, pipelineResult } from "./ToolResultDetails";
 import { TaskCards, type TaskCardEvent } from "./TaskCards";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Layers3, Network, Waves, Route, Scissors, Sparkles, History, Mountain, Shapes, CircleDot, Hexagon, ChartScatter, Expand, Boxes, SlidersHorizontal, RefreshCw, Square, FileOutput } from "lucide-react";
+import { Layers3, Network, Waves, Route, Scissors, Sparkles, History, Mountain, Shapes, CircleDot, Hexagon, ChartScatter, Expand, Boxes, SlidersHorizontal, RefreshCw, Square, FileOutput, ListChecks, Triangle } from "lucide-react";
 
 /** Chat timeline shared by the desktop ChatDock and the mobile chat sheet. */
 export const SUGGESTIONS = ["加载样例点，做 500 米缓冲", "查看当前图层信息"];
@@ -53,6 +53,9 @@ const RECIPES = [
   { title: "主成分分析", detail: "多波段栅格栈降维，输出前几个主成分", tool: "wasm_principal_component_analysis", Icon: Layers3 },
   { title: "各向异性扩散", detail: "去噪同时保留边缘，打开表单", tool: "wasm_anisotropic_diffusion_filter", Icon: SlidersHorizontal },
   { title: "多尺度粗糙度", detail: "DEM 多尺度粗糙度与尺度栅格，打开表单", tool: "wasm_multiscale_roughness", Icon: Mountain },
+  { title: "地形曲率", detail: "平面/剖面曲率与开阔度，打开具体工具表单", tool: "wasm_plan_curvature", Icon: Mountain },
+  { title: "拓扑检查", detail: "逐要素检查拓扑问题并生成 CSV 报告", tool: "wasm_topology_validation_report", Icon: ListChecks },
+  { title: "TIN 插值", detail: "点采样三角网插值，打开参数表单", tool: "wasm_tin_interpolation", Icon: Triangle },
   { title: "最小成本路径", detail: "连接源与目的地，保留真实路径结果", tool: "least_cost_path_pipeline", Icon: Route },
   { title: "按 AOI 裁剪", detail: "先在地图绘制 AOI，再插入提示词", prompt: "用当前 AOI 范围裁剪所选图层。", Icon: Scissors },
 ] as const;
@@ -68,9 +71,10 @@ type Props = {
   onApprove: (toolCallId: string, ok: boolean) => void;
   onCancelJob: (jobId: string) => void;
   onTask?: (event: TaskCardEvent) => void;
+  allowRecipeExport?: boolean;
 };
 
-export function ChatTimeline({ items, layers, recovery, busy, selectedLayerId, onOpenTool, onInsertPrompt, onApprove, onCancelJob, onTask }: Props) {
+export function ChatTimeline({ items, layers, recovery, busy, selectedLayerId, onOpenTool, onInsertPrompt, onApprove, onCancelJob, onTask, allowRecipeExport = false }: Props) {
   const endRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => { if (items.length) endRef.current?.scrollIntoView({ block: "end" }); }, [items]);
   return (
@@ -87,7 +91,7 @@ export function ChatTimeline({ items, layers, recovery, busy, selectedLayerId, o
         </div>
       </div>}
       {!items.length && <div className="agent-welcome"><span className="agent-welcome-kicker">本机 GIS Agent</span><h2>从一个空间问题开始</h2><p className="agent-welcome-lead">{layers.length ? "图层已就绪。描述目标，我会选择工具、执行分析并显示结果。" : "添加本地数据，或让我加载样例，然后描述分析目标。"}</p><p className="agent-welcome-note">也可以打开工具箱逐项运行；右键图层可查看属性与符号。</p>
-        <TaskCards layers={layers} selectedLayerId={selectedLayerId} busy={busy} onTask={onTask} />
+        <TaskCards layers={layers} selectedLayerId={selectedLayerId} busy={busy} onTask={onTask} allowRecipeExport={allowRecipeExport} />
         <section className="workflow-recipes" aria-label="推荐工作流">
           <div className="workflow-heading"><span><Sparkles size={13} />推荐工作流</span><small>只打开表单或插入提示词，不自动执行</small></div>
           <div className="workflow-grid">

@@ -57,6 +57,55 @@ export type TaskCardPreset = {
   build: (draft: CardDraft, layers: CardLayerFacts[]) => CardReady | CardBlocked;
 };
 
+export const TASK_RECIPE_SCHEMA = "tiphys.task-recipe";
+export const TASK_RECIPE_VERSION = 1;
+
+export type TaskRecipeExport = {
+  schema: typeof TASK_RECIPE_SCHEMA;
+  version: typeof TASK_RECIPE_VERSION;
+  exportedAt: string;
+  execution: { autoRun: false; note: string };
+  card: { id: string; title: string; detail: string };
+  goal: string;
+  inputs: { slot: string; label: string; layerId: string; layerName: string | null }[];
+  numeric?: number;
+  field?: string;
+  plan: Plan;
+};
+
+/** Serializes the visible task-card form and its real plan without executing it. */
+export function buildTaskRecipe(card: TaskCardPreset, draft: CardDraft, layers: CardLayerFacts[], plan: Plan, now = new Date()): TaskRecipeExport {
+  const recipe: TaskRecipeExport = {
+    schema: TASK_RECIPE_SCHEMA,
+    version: TASK_RECIPE_VERSION,
+    exportedAt: now.toISOString(),
+    execution: {
+      autoRun: false,
+      note: "仅导出方案预览，不会自动执行。图层 ID 只在当前本机工作区有效，重新运行前需核对并重新映射输入。",
+    },
+    card: { id: card.id, title: card.title, detail: card.detail },
+    goal: plan.goal || draft.goal,
+    inputs: card.slots.map(slot => {
+      const layerId = draft.inputs[slot.key] ?? "";
+      return { slot: slot.key, label: slot.label, layerId, layerName: layers.find(layer => layer.id === layerId)?.name ?? null };
+    }),
+    plan,
+  };
+  if (draft.numeric !== undefined && Number.isFinite(draft.numeric)) recipe.numeric = draft.numeric;
+  if (draft.field) recipe.field = draft.field;
+  return recipe;
+}
+
+export function taskRecipeJson(recipe: TaskRecipeExport): string {
+  return JSON.stringify(recipe, null, 2);
+}
+
+export function taskRecipeFilename(cardId: string, now = new Date()): string {
+  const stamp = now.toISOString().replace(/[:.]/g, "-").replace("T", "_").slice(0, 19);
+  const stem = cardId.trim().replace(/[^a-z0-9_-]+/gi, "_").slice(0, 60) || "task";
+  return `tiphys-recipe-${stem}-${stamp}.json`;
+}
+
 const byId = (layers: CardLayerFacts[], id: string | undefined) => layers.find(layer => layer.id === id);const vectorOf = (layers: CardLayerFacts[], id: string | undefined, geometry?: "point" | "polygon") => {
   const layer = byId(layers, id);
   if (!layer || layer.kind !== "vector") return undefined;

@@ -17,7 +17,7 @@ import { compactBrowserMessages, estimateBrowserTokens, readBrowserContextRecord
 import { buildBrowserSystemPrompt } from "../src/lib/browser/prompt.ts";
 import { parseKmlPlacemarks } from "../src/lib/browser/kml.ts";
 import { requestedExport } from "../src/lib/browser/delivery.ts";
-import { mapExportFilename, mapPngDataUrl } from "../src/lib/map-export.ts";
+import { DEFAULT_MAP_LAYOUT_PREFERENCES, drawMapLayout, mapExportFilename, mapLayoutFilename, mapLayoutGeometry, mapLayoutPreferences, mapPngDataUrl, normalizeMapLayoutPreferences, parseMapLayoutPreferences, type MapLayoutContext } from "../src/lib/map-export.ts";
 import { geeExecutionAllowed } from "../src/lib/gee.ts";
 import { defaultLayerStyle, layerColor, PALETTE, symbologyMode, withSymbologyMode, type DataLayer, type LayerStyle } from "../src/lib/dataLayers.ts";
 import { buildGraduatedBreaks, equalIntervalRanges, quantileRanges } from "../src/lib/graduatedSymbology.ts";
@@ -455,9 +455,15 @@ ${timeline}`.matchAll(/tool: "(wasm_[^"]+)"/g)].map(match => match[1]);
     "wasm_change_vector_analysis", "wasm_near", "wasm_extend_vector_lines",
     "wasm_central_feature", "wasm_directional_distribution", "wasm_frost_filter", "wasm_cut_fill",
     "wasm_balance_contrast_enhancement", "wasm_contours_from_points", "wasm_total_curvature",
-    "wasm_principal_component_analysis", "wasm_anisotropic_diffusion_filter", "wasm_multiscale_roughness"]) {
+    "wasm_principal_component_analysis", "wasm_anisotropic_diffusion_filter", "wasm_multiscale_roughness",
+    "wasm_plan_curvature", "wasm_topology_validation_report", "wasm_tin_interpolation"]) {
     assert.ok(recipeTools.includes(name), `${name} should be available as an agent recipe`);
     assert.ok(browserCatalog.some(tool => tool.name === name), `${name} recipe must resolve to a catalog tool`);
+  }
+  for (const name of ["wasm_plan_curvature", "wasm_profile_curvature", "wasm_openness",
+    "wasm_feature_preserving_smoothing", "wasm_lee_filter", "wasm_tin_interpolation",
+    "wasm_topology_validation_report", "wasm_repair_geometry"]) {
+    assert.ok(names.includes(name), `${name} should be a curated ribbon action`);
   }
 });
 
@@ -776,6 +782,14 @@ test("vector QA, statistics, Lee filter and downslope forms expose honest contra
   assert.equal(integrate.snap_to_edges.default, true, "integrate snaps T-junctions by default");
   assert.equal(props("wasm_median_center").weight_field.type, "string");
 
+  const topology = props("wasm_topology_validation_report");
+  assert.equal(topology.input["x-layer-kind"], "vector");
+  assert.ok(!("output" in topology), "topology report output path must stay internal");
+  const repair = props("wasm_repair_geometry");
+  assert.equal(repair.input["x-layer-kind"], "vector");
+  assert.equal(repair.check_only.type, "boolean");
+  assert.ok(!("output" in repair), "repair geometry output path must stay internal");
+
   const lee = props("wasm_lee_filter");
   assert.equal(lee.input["x-layer-kind"], "raster");
   assert.equal(lee.filter_size_x.type, "integer");
@@ -792,6 +806,37 @@ test("vector QA, statistics, Lee filter and downslope forms expose honest contra
   assert.equal(backLink.source["x-layer-kind"], "any", "back-link source must accept a raster or vector layer");
   assert.equal(backLink.cost["x-layer-kind"], "raster");
   assert.ok(!("output" in backLink) && !("out_distance" in backLink), "back-link outputs must stay internal");
+});
+
+test("curvature, openness, smoothing and TIN forms expose honest contracts", async () => {
+  await ensureBrowserCatalog();
+  const props = (name: string) => browserCatalog.find(tool => tool.name === name)!.parameters.properties as any;
+
+  for (const name of ["wasm_plan_curvature", "wasm_profile_curvature"]) {
+    const form = props(name);
+    assert.equal(form.input["x-layer-kind"], "raster", `${name} input must be raster`);
+    assert.equal(form.z_factor.type, "number");
+    assert.equal(form.log_transform.type, "boolean");
+    assert.ok(!("output" in form), `${name} output path must stay internal`);
+  }
+
+  const openness = props("wasm_openness");
+  assert.equal(openness.input["x-layer-kind"], "raster");
+  assert.equal(openness.dist.type, "integer");
+  assert.ok(!("neg_output" in openness) && !("pos_output" in openness), "openness outputs must stay internal");
+
+  const smoothing = props("wasm_feature_preserving_smoothing");
+  assert.equal(smoothing.input["x-layer-kind"], "raster");
+  assert.equal(smoothing.filter_size.type, "integer");
+  assert.equal(smoothing.iterations.type, "integer");
+  assert.equal(smoothing.normal_diff_threshold.type, "number");
+  assert.ok(!("output" in smoothing), "feature-preserving smoothing output path must stay internal");
+
+  const tin = props("wasm_tin_interpolation");
+  assert.equal(tin.points["x-layer-kind"], "vector");
+  assert.equal(tin.cell_size.type, "number");
+  assert.equal(tin.max_triangle_edge_length.type, "number");
+  assert.ok(!("output" in tin), "TIN output path must stay internal");
 });
 
 test("batch20 statistics, corridor, filter and interpolation forms expose honest contracts", async () => {
@@ -942,6 +987,11 @@ test("Chinese GIS aliases rank conversion, interpolation and service-area tools"
     ["六边形网格", "wasm_hexagonal_grid_from_vector_base"]]) {
     assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
   }
+  for (const [query, expected] of [["平面曲率", "wasm_plan_curvature"], ["剖面曲率", "wasm_profile_curvature"],
+    ["地形开阔度", "wasm_openness"], ["保边平滑", "wasm_feature_preserving_smoothing"],
+    ["拓扑检查", "wasm_topology_validation_report"], ["几何修复", "wasm_repair_geometry"]]) {
+    assert.equal(searchBrowserTools(browserCatalog, query, { limit: 1 })[0]?.name, expected, `${query} should rank ${expected} first`);
+  }
   const streamOrders = searchBrowserTools(browserCatalog, "河网分级", { limit: 4 }).map(tool => tool.name);
   assert.ok(streamOrders.includes("wasm_strahler_stream_order") && streamOrders.includes("wasm_hack_stream_order"),
     "河网分级 should surface both Strahler and Hack stream ordering");
@@ -1061,6 +1111,63 @@ test("vector QA and median-center ribbon tools publish real layers", async () =>
   const medianLayer = median.layer ?? median.layers?.[0]?.layer;
   assert.equal(medianLayer.feature_count, 1);
   assert.deepEqual(medianLayer.geometry_types, ["Point"]);
+});
+
+test("browser dissolve and wasm_dissolve fail loudly without creating a result layer", async () => {
+  const zones = (await importBrowserFile(new Blob([fs.readFileSync(new URL("../tests/fixtures/district_zones.geojson", import.meta.url))]), "dissolve_zones.geojson")).layer;
+  const before = (await browserLayers()).length;
+  for (const name of ["dissolve", "wasm_dissolve"]) {
+    const args = name === "dissolve" ? { layer: zones.id, output_name: `wrong_${name}` } : { input: zones.id, output_name: `wrong_${name}` };
+    await assert.rejects(finished(name, args),
+      /暂不可用|未写入任何图层|静默丢弃/, `${name} must fail before adopting a result`);
+    assert.equal((await browserLayers()).length, before, `${name} must not publish a partial or empty result layer`);
+  }
+});
+
+test("new densify ribbon actions publish real terrain, QA and interpolation layers", async () => {
+  const dem = (await importBrowserFile(new Blob([fs.readFileSync(new URL("../tests/fixtures/dem_hills.tif", import.meta.url))]), "dem_hills.tif")).layer;
+  for (const [name, args] of [
+    ["wasm_plan_curvature", { input: dem.id, z_factor: 1, log_transform: false, output_name: "densify_plan_curvature" }],
+    ["wasm_profile_curvature", { input: dem.id, z_factor: 1, log_transform: false, output_name: "densify_profile_curvature" }],
+    ["wasm_feature_preserving_smoothing", { input: dem.id, filter_size: 3, iterations: 1, max_elevation_diff: 100,
+      normal_diff_threshold: 8, z_factor: 1, output_name: "densify_feature_smoothing" }],
+  ] as const) {
+    const result = await finished(name, args);
+    const layer = result.layer ?? result.layers?.[0]?.layer;
+    assert.equal(layer.kind, "raster", `${name} must publish a displayed raster`);
+    assert.ok(layer.raster?.width > 1 && layer.raster?.height > 1, `${name} raster must be readable`);
+    assert.equal(result.attachments, undefined);
+  }
+
+  const openness = await finished("wasm_openness", { input: dem.id, dist: 20, output_name: "densify_openness" });
+  assert.equal(openness.layers?.length, 2, "openness must publish positive and negative rasters");
+  for (const item of openness.layers) {
+    assert.equal(item.layer.kind, "raster");
+    assert.ok(item.layer.raster?.width > 1 && item.layer.raster?.height > 1);
+  }
+
+  const crs = { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32650" } };
+  const tinPoints = (await importBrowserFile(new Blob([JSON.stringify({ type: "FeatureCollection", crs, features: [
+    [500000, 4400000, 110], [500500, 4400000, 120], [500000, 4400500, 130],
+    [500500, 4400500, 140], [500250, 4400250, 125],
+  ].map(([x, y, z], index) => ({ type: "Feature", properties: { id: index + 1, z },
+    geometry: { type: "Point", coordinates: [x, y] } })) })]), "densify_tin_points.geojson")).layer;
+  const tin = await finished("wasm_tin_interpolation", {
+    points: tinPoints.id, field_name: "z", cell_size: 100, output_name: "densify_tin_surface",
+  });
+  const tinLayer = tin.layer ?? tin.layers?.[0]?.layer;
+  assert.equal(tinLayer.kind, "raster");
+  assert.ok(tinLayer.raster?.width > 1 && tinLayer.raster?.height > 1);
+
+  const bowtie = (await importBrowserFile(new Blob([fs.readFileSync(new URL("../tests/fixtures/bowtie.geojson", import.meta.url))]), "densify_bowtie.geojson")).layer;
+  const report = await finished("wasm_topology_validation_report", { input: bowtie.id, output_name: "densify_topology_report" });
+  const reportLayer = report.layer ?? report.layers?.[0]?.layer;
+  assert.equal(reportLayer.kind, "table", "topology validation must publish its CSV report");
+
+  const repaired = await finished("wasm_repair_geometry", { input: bowtie.id, check_only: false, output_name: "densify_repaired_geometry" });
+  const repairedLayer = repaired.layer ?? repaired.layers?.[0]?.layer;
+  assert.deepEqual(repairedLayer.geometry_types, ["Polygon"]);
+  assert.equal(repairedLayer.feature_count, 1);
 });
 
 test("Lee, downslope and cost-back-link raster tools publish real result layers", async () => {
@@ -2357,6 +2464,52 @@ test("map export produces a PNG data URL and timestamped filename", () => {
   assert.equal(requestedType, "image/png");
   assert.equal(mapExportFilename(new Date("2026-10-24T02:40:10.500Z")), "tiphys-map-2026-10-24_02-40-10.png");
   assert.throws(() => mapPngDataUrl({ toDataURL: () => "data:," }), /画布为空/);
+});
+
+test("map layout fits the real view into an honest PNG page", () => {
+  const geometry = mapLayoutGeometry("a4-landscape", 1600, 900);
+  assert.equal(geometry.pageWidth, 1754);
+  assert.equal(geometry.pageHeight, 1240);
+  assert.ok(geometry.image.width <= geometry.mapFrame.width);
+  assert.ok(geometry.image.height <= geometry.mapFrame.height);
+  assert.ok(Math.abs(geometry.image.width / geometry.image.height - 1600 / 900) < 0.01);
+  assert.ok(geometry.image.x >= geometry.mapFrame.x);
+  assert.ok(geometry.image.y >= geometry.mapFrame.y);
+  assert.equal(mapLayoutFilename("a4-landscape", new Date("2026-10-24T02:40:10.500Z")), "tiphys-layout-a4-landscape-2026-10-24_02-40-10.png");
+  assert.throws(() => mapLayoutGeometry("square", 0, 900), /画布尺寸无效/);
+
+  const images: unknown[][] = [];
+  const labels: string[] = [];
+  const ctx: MapLayoutContext = {
+    fillStyle: "", font: "", textAlign: "left", textBaseline: "alphabetic",
+    fillRect: () => {},
+    drawImage: (image, ...args) => images.push([image, ...args]),
+    fillText: text => labels.push(String(text)),
+    measureText: text => ({ width: text.length * 10 }),
+  };
+  const source = {} as CanvasImageSource;
+  const drawn = drawMapLayout(ctx, source, 1600, 900, {
+    preset: "square", title: "示例布局", subtitle: "真实地图画面", includeDate: true,
+  }, new Date("2026-10-24T02:40:10.500Z"));
+  assert.equal(images.length, 1);
+  assert.equal(images[0][0], source);
+  assert.deepEqual(images[0].slice(1), [drawn.image.x, drawn.image.y, drawn.image.width, drawn.image.height]);
+  assert.ok(labels.some(text => text.includes("示例布局")));
+  assert.ok(labels.some(text => text.includes("PNG 布局（非 PDF）")));
+  assert.ok(labels.some(text => text.includes("2026")));
+});
+
+test("saved map layout preferences fill defaults without trusting malformed fields", () => {
+  const normalized = normalizeMapLayoutPreferences({
+    preset: "a4-portrait", title: "  场地分析  ", subtitle: "真实地图视图", includeDate: true,
+  });
+  assert.deepEqual(normalized, { preset: "a4-portrait", title: "场地分析", subtitle: "真实地图视图", includeDate: true });
+  const fallback = { ...DEFAULT_MAP_LAYOUT_PREFERENCES, subtitle: "当前地图视图" };
+  assert.deepEqual(normalizeMapLayoutPreferences({ preset: "unknown", title: "   ", subtitle: 4, includeDate: "yes" }, fallback), fallback);
+  assert.deepEqual(parseMapLayoutPreferences("not json", fallback), fallback);
+  assert.deepEqual(parseMapLayoutPreferences(null, fallback), fallback);
+  assert.deepEqual(mapLayoutPreferences({ preset: "square", title: "布局", subtitle: undefined, includeDate: true, theme: "dark" }),
+    { preset: "square", title: "布局", subtitle: "", includeDate: true });
 });
 
 test("rename_layer updates the display name in place and reorder_layers sets the draw order", async () => {

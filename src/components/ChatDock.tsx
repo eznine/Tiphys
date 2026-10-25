@@ -67,7 +67,7 @@ export function ChatDock({ items, busy, connected, provider, layers, recovery, o
         <>
       <ChatTimeline items={items} layers={layers} recovery={recovery} busy={busy} selectedLayerId={selectedLayer?.id}
         onOpenTool={onOpenTool} onInsertPrompt={insertPrompt}
-        onApprove={onApprove} onCancelJob={onCancelJob} />
+        onApprove={onApprove} onCancelJob={onCancelJob} allowRecipeExport />
       <div className="chat-suggestions">
         {SUGGESTIONS.map((s) => (
           <button key={s} type="button" className="chat-chip" disabled={busy || !connected} onClick={() => void onSend(s)}>

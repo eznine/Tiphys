@@ -17,11 +17,12 @@ import {
 } from "../lib/basemaps";
 import { DataLayer, LayerSelection, syncDataLayers } from "../lib/dataLayers";
 import { engineHeaders } from "../lib/service";
-import { downloadMapPng, mapExportFilename } from "../lib/map-export";
+import { downloadMapLayoutPng, downloadMapPng, mapExportFilename, type MapLayoutOptions } from "../lib/map-export";
 import { scheduleIdle } from "../lib/idle";
 import { copyText } from "../lib/clipboard";
 import { identifyPropertiesTsv, identifyValueText, type IdentifyTableFilter } from "../lib/identify";
 import { Layers2, LocateFixed, Maximize2, Ruler, SquareDashed } from "lucide-react";
+import { MapLayoutDialog } from "./MapLayoutDialog";
 
 type Props = {
   theme: "light" | "dark";
@@ -207,6 +208,7 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   const [drawingAoi, setDrawingAoi] = useState(false);
   const [draftAoi, setDraftAoi] = useState<number[] | null>(null);
   const [exportStatus, setExportStatus] = useState("");
+  const [layoutOpen, setLayoutOpen] = useState(false);
   const exportStatusTimer = useRef<number | undefined>(undefined);
   const draftAoiRef = useRef<number[] | null>(null);
   drawingAoiRef.current = drawingAoi;
@@ -823,33 +825,60 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
     map.fitBounds([[a, b], [c, d]], { padding: 80, duration: 1800, maxZoom: 14 });
   }, [focusBounds]);
 
+  async function waitForMapExport(map: Map) {
+    await new Promise<void>(resolve => {
+      let settled = false;
+      let timer: number | undefined;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        if (timer !== undefined) window.clearTimeout(timer);
+        map.off("idle", finish);
+        resolve();
+      };
+      timer = window.setTimeout(finish, 900);
+      map.once("idle", finish);
+      map.triggerRepaint();
+    });
+  }
+
+  function armExportStatusClear() {
+    if (exportStatusTimer.current !== undefined) window.clearTimeout(exportStatusTimer.current);
+    exportStatusTimer.current = window.setTimeout(() => setExportStatus(""), 1800);
+  }
+
   async function exportMapImage() {
     const map = mapRef.current;
     if (!map || exportStatus === "导出中…") return;
     if (exportStatusTimer.current !== undefined) window.clearTimeout(exportStatusTimer.current);
     setExportStatus("导出中…");
     try {
-      await new Promise<void>(resolve => {
-        let settled = false;
-        let timer: number | undefined;
-        const finish = () => {
-          if (settled) return;
-          settled = true;
-          if (timer !== undefined) window.clearTimeout(timer);
-          map.off("idle", finish);
-          resolve();
-        };
-        timer = window.setTimeout(finish, 900);
-        map.once("idle", finish);
-        map.triggerRepaint();
-      });
+      await waitForMapExport(map);
       downloadMapPng(map.getCanvas(), mapExportFilename());
       setExportStatus("已导出");
     } catch (error) {
       console.error("Map export failed", error);
       setExportStatus("导出失败");
     }
-    exportStatusTimer.current = window.setTimeout(() => setExportStatus(""), 1800);
+    armExportStatusClear();
+  }
+
+  async function exportMapLayout(options: MapLayoutOptions) {
+    const map = mapRef.current;
+    if (!map) throw new Error("地图尚未就绪，请等待地图加载完成后重试。");
+    if (exportStatus === "导出中…") throw new Error("已有地图导出正在进行，请稍后重试。");
+    if (exportStatusTimer.current !== undefined) window.clearTimeout(exportStatusTimer.current);
+    setExportStatus("导出中…");
+    try {
+      await waitForMapExport(map);
+      downloadMapLayoutPng(map.getCanvas(), options);
+      setExportStatus("已导出");
+      armExportStatusClear();
+    } catch (error) {
+      setExportStatus("导出失败");
+      armExportStatusClear();
+      throw error;
+    }
   }
 
   const current = getBasemap(basemapId);
@@ -911,6 +940,15 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
             title="将当前地图视图下载为 PNG"
           >
             PNG
+          </button>
+          <button
+            type="button"
+            className="map-ctrl-btn"
+            onClick={() => setLayoutOpen(true)}
+            disabled={exportStatus === "导出中…"}
+            title="将当前地图视图排版为 PNG 布局（非 PDF）"
+          >
+            布局
           </button>
           {exportStatus && <span className="map-ctrl-status" role="status">{exportStatus}</span>}
         </div>
@@ -986,6 +1024,10 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
           )}
         </div>
       </div>}
+
+      {!mobile && layoutOpen && <MapLayoutDialog theme={theme}
+        defaultSubtitle={`${dataLayers.length} 个图层 · 当前地图视图`}
+        onExport={exportMapLayout} onClose={() => setLayoutOpen(false)} />}
 
       {mobile && <>
         <div className="map-touch-controls" aria-label="地图控件">

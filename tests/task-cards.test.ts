@@ -5,7 +5,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MOBILE_MAX_PIXELS, TASK_CARDS, cardById, suggestDraft, slotMatches, type CardLayerFacts } from "../src/lib/taskCards.ts";
+import { MOBILE_MAX_PIXELS, TASK_CARDS, TASK_RECIPE_SCHEMA, TASK_RECIPE_VERSION, buildTaskRecipe, cardById, suggestDraft, slotMatches, taskRecipeFilename, taskRecipeJson, type CardLayerFacts } from "../src/lib/taskCards.ts";
 import { validatePlan, type PlanAdapter } from "../shared/plans.ts";
 
 const layer = (over: Partial<CardLayerFacts> & { id: string; name: string }): CardLayerFacts => ({
@@ -89,6 +89,28 @@ test("two-layer presets get distinct suggested inputs", () => {
     const values = Object.values(draft.inputs);
     assert.equal(new Set(values).size, values.length, `${id} slots must not collide`);
   }
+});
+
+test("task recipe export keeps the visible form and real plan, never auto-runs", () => {
+  const { preset, draft } = draftFor("buffer-points");
+  const built = preset.build(draft, FACTS);
+  assert.ok(built.ok, built.ok ? "" : built.reason);
+  if (!built.ok) return;
+  const now = new Date("2026-10-24T02:40:10.500Z");
+  const recipe = buildTaskRecipe(preset, draft, FACTS, built.plan, now);
+  assert.equal(recipe.schema, TASK_RECIPE_SCHEMA);
+  assert.equal(recipe.version, TASK_RECIPE_VERSION);
+  assert.equal(recipe.execution.autoRun, false);
+  assert.match(recipe.execution.note, /不会自动执行/);
+  assert.match(recipe.execution.note, /当前本机工作区/);
+  assert.equal(recipe.goal, built.plan.goal);
+  assert.deepEqual(recipe.plan, built.plan);
+  assert.deepEqual(recipe.inputs, [{ slot: "points", label: "点图层", layerId: "pts", layerName: "beijing_points" }]);
+  assert.equal(recipe.numeric, draft.numeric);
+  assert.equal(taskRecipeFilename("buffer-points", now), "tiphys-recipe-buffer-points-2026-10-24_02-40-10.json");
+  const parsed = JSON.parse(taskRecipeJson(recipe));
+  assert.equal(parsed.schema, TASK_RECIPE_SCHEMA);
+  assert.equal(parsed.execution.autoRun, false);
 });
 
 test("same-layer clip/intersect is blocked with a reason, not silently run", () => {

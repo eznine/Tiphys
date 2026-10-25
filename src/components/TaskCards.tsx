@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { DataLayer } from "../lib/dataLayers";
 import { browserEngineRequest } from "../lib/browser/engine";
-import { TASK_CARDS, cardById, suggestDraft, slotMatches, type CardDraft, type CardLayerFacts, type CardReady } from "../lib/taskCards";
-import { CircleCheck, CircleAlert, Play, X, Download, ListChecks } from "lucide-react";
+import { TASK_CARDS, buildTaskRecipe, cardById, suggestDraft, slotMatches, taskRecipeFilename, taskRecipeJson, type CardDraft, type CardLayerFacts, type CardReady } from "../lib/taskCards";
+import { CircleCheck, CircleAlert, Play, X, Download, FileJson, ListChecks } from "lucide-react";
 
 /**
  * Preset task cards (stage 4): one tap from a natural-language sentence to an
@@ -42,7 +42,9 @@ async function runEngineTool(name: string, args: Record<string, unknown>) {
   throw new Error("任务超出观察预算");
 }
 
-export function TaskCards({ layers, selectedLayerId, busy, onTask }: { layers: DataLayer[]; selectedLayerId?: string | null; busy?: boolean; onTask?: (event: TaskCardEvent) => void }) {
+export function TaskCards({ layers, selectedLayerId, busy, onTask, allowRecipeExport = false }: {
+  layers: DataLayer[]; selectedLayerId?: string | null; busy?: boolean; onTask?: (event: TaskCardEvent) => void; allowRecipeExport?: boolean;
+}) {
   const facts = useMemo(() => toFacts(layers), [layers]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, CardDraft>>({});
@@ -52,10 +54,11 @@ export function TaskCards({ layers, selectedLayerId, busy, onTask }: { layers: D
   const [result, setResult] = useState<{ cardId: string; summary: RunSummary } | null>(null);
   const [exportState, setExportState] = useState<{ url: string; name: string } | null>(null);
   const [exportError, setExportError] = useState("");
+  const [recipeNotice, setRecipeNotice] = useState("");
 
   const open = openId ? cardById(openId) : null;
   const draft = open ? drafts[open.id] ?? suggestDraft(open, facts, selectedLayerId) : null;
-  useEffect(() => { setResult(null); setRunError(""); setExportState(null); setExportError(""); }, [openId]);
+  useEffect(() => { setResult(null); setRunError(""); setExportState(null); setExportError(""); setRecipeNotice(""); }, [openId]);
 
   // Field list for presets that need a numeric field (field statistics).
   useEffect(() => {
@@ -89,6 +92,7 @@ export function TaskCards({ layers, selectedLayerId, busy, onTask }: { layers: D
     const next = { ...draft, ...patch };
     if (!patch.goal) next.goal = open.defaultGoal(next, facts);
     setDrafts(current => ({ ...current, [open.id]: next }));
+    setRecipeNotice("");
   };
 
   const run = async () => {
@@ -105,6 +109,26 @@ export function TaskCards({ layers, selectedLayerId, busy, onTask }: { layers: D
       setRunError(message);
       onTask?.({ type: "finish", taskId, cardId: open.id, error: message });
     } finally { setRunning(null); }
+  };
+
+  const exportRecipe = () => {
+    if (!open || !draft || !built?.ok) return;
+    try {
+      const recipe = buildTaskRecipe(open, draft, facts, built.plan);
+      const filename = taskRecipeFilename(open.id);
+      const blob = new Blob([taskRecipeJson(recipe)], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 500);
+      setRecipeNotice(`已导出方案 JSON「${filename}」，未执行任何工具。`);
+    } catch (error) {
+      setRecipeNotice(`方案导出失败：${error instanceof Error ? error.message : String(error)}`);
+    }
   };
 
   const exportResult = async (layerId: string, name: string) => {
@@ -190,11 +214,17 @@ export function TaskCards({ layers, selectedLayerId, busy, onTask }: { layers: D
           )}
 
           <div className="task-card-actions">
+            {allowRecipeExport && <button type="button" className="icon-btn" disabled={!built?.ok}
+              aria-label="导出任务方案 JSON，不执行" title="导出当前表单与计划预览；不会自动执行" onClick={exportRecipe}>
+              <FileJson size={12} /> 导出方案
+            </button>}
             <button type="button" className="primary-btn" disabled={!built?.ok || running !== null || busy} onClick={() => void run()}>
               {running === open.id ? "执行中…" : <><Play size={12} /> 本地执行</>}
             </button>
             <button type="button" className="icon-btn" aria-label="收起任务卡" onClick={() => setOpenId(null)}><X size={12} /></button>
           </div>
+
+          {recipeNotice && <p className="task-card-recipe-notice" role="status">{recipeNotice}</p>}
 
           {runError && <p className="task-card-error" role="alert">{runError}</p>}
           {result && result.cardId === open.id && (
