@@ -99,15 +99,19 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
     agentProviderLabel, recoveryNote, agentSession,
   } = props;
 
-  const [tab, setTab] = useState<MobileTab>("map");
+  const [tab, setTabState] = useState<MobileTab>("map");
   const [tabDir, setTabDir] = useState<"forward" | "back">("forward");
   const prevTabRef = useRef<MobileTab>("map");
-  useEffect(() => {
+  /** Set tab + slide direction in the same render so both directions animate. */
+  const setTab = (next: MobileTab) => {
     const from = MOBILE_TAB_ORDER.indexOf(prevTabRef.current);
-    const to = MOBILE_TAB_ORDER.indexOf(tab);
-    if (to !== from) setTabDir(to > from ? "forward" : "back");
-    prevTabRef.current = tab;
-  }, [tab]);
+    const to = MOBILE_TAB_ORDER.indexOf(next);
+    if (to !== from && to >= 0 && from >= 0) {
+      setTabDir(to > from ? "forward" : "back");
+    }
+    prevTabRef.current = next;
+    setTabState(next);
+  };
   const [layersOpen, setLayersOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [toolboxOpen, setToolboxOpen] = useState(false);

@@ -516,3 +516,10 @@
   - Commit `d95da89` pushed origin/main; `npm run deploy:xyz` OK (tiphys.xyz). Agent overnight pause can lift.
 
 - 2026-10-25 11:23 Asia/Shanghai — Mobile chat hotfix `d95da89` live; Agent pause lifted; restarting batch43+.
+
+- 2026-10-25 11:24 Asia/Shanghai — User: stop overnight; tab slide too stiff. Builder paused.
+
+- 2026-10-25 11:31 Asia/Shanghai — Mobile tab motion + composer keyboard fix (box only; builder/Agent stay paused):
+  - Root causes: (1) `data-tab-dir` set in `useEffect` after mount → left/back hard-cut; (2) slide keyframes used opacity 0.78 + broken `.app-shell.mobile[data-tab]` map-stage hide (attr is on `.m-shell`) → map flashed between pages; (3) dock remounts across embedded/fixed hosts reset `--dock-index` with no transition on skip jumps; (4) map chrome overrode capsule enter with horizontal slide; (5) Send first-tap eaten: input blur restored dock layout before click landed; IME dismiss left `data-input-focused` stuck on OPPO WebView.
+  - Fixes: sync `setTab` sets dir; soft `--m-ease` + `--m-tab-ms: 420ms` opaque slides both ways; module-level `lastDockIndex` FLIP so bubble interpolates any gap; map chrome `m-map-chrome-in` (translateY+scale) only; map-stage instant hide via `.m-shell:not([data-tab=map])`; Send `pointerdown` preventDefault + `requestSubmit` + ghost-click swallow; viewport recover + shrink-gated poll clears typing.
+  - Verify: `npx tsc --noEmit` OK; `npm run build` OK. Deploy tiphys.xyz. Do NOT start Agent overnight.

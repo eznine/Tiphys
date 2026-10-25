@@ -27,6 +27,11 @@ function viewportLooksClosed(vv: VisualViewport) {
   return vv.height >= window.innerHeight - 8;
 }
 
+function isComposerSendTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  return !!target.closest(".m-askbar-send, .mobile-composer-send");
+}
+
 /**
  * The composer and the four-entry dock are one floating card. While the user is
  * typing, the status line and dock fold away so the keyboard only keeps the
@@ -37,6 +42,17 @@ export function MobileBottomCard({ active, onChange, running, pending, status, c
   const [typing, setTyping] = useState(false);
   const typingRef = useRef(false);
   typingRef.current = typing;
+  const cardRef = useRef<HTMLDivElement>(null);
+  const sawShrinkRef = useRef(false);
+
+  const releaseComposer = () => {
+    setTyping(false);
+    sawShrinkRef.current = false;
+    const activeEl = document.activeElement;
+    if (activeEl instanceof HTMLElement && isTextControl(activeEl) && activeEl.closest(".m-bottom-card")) {
+      activeEl.blur();
+    }
+  };
 
   const focus = (event: FocusEvent<HTMLDivElement>) => {
     if (isTextControl(event.target)) setTyping(true);
@@ -46,31 +62,21 @@ export function MobileBottomCard({ active, onChange, running, pending, status, c
       if (isTextControl(event.relatedTarget)) return;
     }
     setTyping(false);
+    sawShrinkRef.current = false;
   };
 
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    let sawShrink = false;
-
-    const clearTyping = () => {
-      if (!typingRef.current) return;
-      setTyping(false);
-      const activeEl = document.activeElement;
-      if (activeEl instanceof HTMLElement && isTextControl(activeEl) && activeEl.closest(".m-bottom-card")) {
-        activeEl.blur();
-      }
-    };
 
     const onViewport = () => {
       if (!viewportLooksClosed(vv)) {
-        sawShrink = true;
+        sawShrinkRef.current = true;
         return;
       }
-      // Only restore after a shrink→recover cycle (keyboard open then closed).
-      if (!sawShrink) return;
-      sawShrink = false;
-      clearTyping();
+      if (!sawShrinkRef.current) return;
+      sawShrinkRef.current = false;
+      if (typingRef.current) releaseComposer();
     };
 
     vv.addEventListener("resize", onViewport);
@@ -86,22 +92,69 @@ export function MobileBottomCard({ active, onChange, running, pending, status, c
   useEffect(() => {
     const onFocusOut = () => {
       window.setTimeout(() => {
+        if (!typingRef.current) return;
         const activeEl = document.activeElement;
+        const vv = window.visualViewport;
         if (isTextControl(activeEl) && activeEl instanceof HTMLElement && activeEl.closest(".m-bottom-card")) {
-          const vv = window.visualViewport;
-          // Still focused inside the card and keyboard appears open — keep typing.
-          if (vv && !viewportLooksClosed(vv)) return;
+          // Focus stuck after IME dismiss (viewport recovered).
+          if (vv && viewportLooksClosed(vv) && sawShrinkRef.current) {
+            releaseComposer();
+          }
+          return;
         }
-        if (!(activeEl instanceof HTMLElement) || !isTextControl(activeEl) || !activeEl.closest(".m-bottom-card")) {
-          setTyping(false);
-        }
+        setTyping(false);
+        sawShrinkRef.current = false;
       }, 100);
     };
     document.addEventListener("focusout", onFocusOut);
     return () => document.removeEventListener("focusout", onFocusOut);
   }, []);
 
-  return <div className="m-bottom-card" data-input-focused={typing} onFocus={focus} onBlur={blur}>
+  // Fallback for WebViews that skip visualViewport resize on IME dismiss.
+  useEffect(() => {
+    if (!typing) return;
+    const timer = window.setInterval(() => {
+      if (!typingRef.current || !sawShrinkRef.current) return;
+      const vv = window.visualViewport;
+      if (!vv || !viewportLooksClosed(vv)) return;
+      releaseComposer();
+    }, 320);
+    return () => window.clearInterval(timer);
+  }, [typing]);
+
+  // Send/stop: prevent blur-before-click from eating the first tap. preventDefault can
+  // suppress the subsequent click on mobile, so submit/click immediately and swallow the ghost.
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!isComposerSendTarget(event.target)) return;
+      if (event.button != null && event.button !== 0) return;
+      event.preventDefault();
+      setTyping(false);
+      sawShrinkRef.current = false;
+      const btn = (event.target as HTMLElement).closest("button") as HTMLButtonElement | null;
+      if (!btn || btn.disabled) return;
+      if (btn.type === "submit") {
+        btn.closest("form")?.requestSubmit(btn);
+      } else {
+        btn.click();
+      }
+      const swallow = (e: Event) => { e.preventDefault(); e.stopPropagation(); };
+      btn.addEventListener("click", swallow, { capture: true, once: true });
+    };
+    card.addEventListener("pointerdown", onPointerDown);
+    return () => card.removeEventListener("pointerdown", onPointerDown);
+  }, []);
+
+  const onInput = () => {
+    const activeEl = document.activeElement;
+    if (isTextControl(activeEl) && activeEl instanceof HTMLElement && activeEl.closest(".m-bottom-card")) {
+      setTyping(true);
+    }
+  };
+
+  return <div ref={cardRef} className="m-bottom-card" data-input-focused={typing} onFocus={focus} onBlur={blur} onInput={onInput}>
     {status && <div className="m-bottom-status-slot">{status}</div>}
     <div className="m-bottom-composer">{children}</div>
     <MobileDock embedded active={active} onChange={onChange} running={running} pending={pending} />

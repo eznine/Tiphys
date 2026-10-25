@@ -30,7 +30,9 @@
   --m-danger-soft: #fceeee;
   --m-shadow: 0 18px 42px -26px rgba(23, 43, 70, 0.42), 0 2px 10px rgba(23, 43, 70, 0.06);
   --m-shadow-soft: 0 10px 26px -20px rgba(23, 43, 70, 0.3);
-  --m-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --m-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --m-ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --m-tab-ms: 420ms;
   --m-dock-height: 64px;
   --m-dock-space: calc(var(--m-dock-height) + env(safe-area-inset-bottom) + 18px);
   --m-bottom-card-h: 146px;
@@ -98,12 +100,12 @@
   visibility: visible;
   transition: opacity 280ms var(--m-ease), visibility 280ms var(--m-ease);
 }
-.app-shell.mobile[data-tab="chat"] .m-map-stage,
-.app-shell.mobile[data-tab="tasks"] .m-map-stage,
-.app-shell.mobile[data-tab="project"] .m-map-stage {
+/* data-tab is on .m-shell — hide map instantly so tab swaps never flash it */
+.app-shell.mobile .m-shell:not([data-tab="map"]) .m-map-stage {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
+  transition: none;
 }
 .app-shell.mobile .m-map-stage .map-canvas-wrap,
 .app-shell.mobile .m-map-stage .maplibre-map { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -622,7 +624,7 @@
   background: color-mix(in srgb, var(--m-accent) 14%, transparent);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
   transform: translate3d(calc(var(--dock-index, 0) * 100%), 0, 0);
-  transition: transform 320ms var(--m-ease);
+  transition: transform var(--m-tab-ms, 420ms) var(--m-ease);
   pointer-events: none;
 }
 .app-shell.mobile .m-dock-item {
@@ -2191,20 +2193,25 @@ button.m-bottom-status { cursor: pointer; }
   from { opacity: 0; transform: translate3d(0, 14px, 0); }
   to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
+/* Opaque slide — no see-through to map (avoids intermediate flash) */
 @keyframes m-slide-in-end {
-  from { opacity: 0.78; transform: translate3d(14%, 0, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
+  from { transform: translate3d(16%, 0, 0); }
+  to { transform: translate3d(0, 0, 0); }
 }
 @keyframes m-slide-in-start {
-  from { opacity: 0.78; transform: translate3d(-14%, 0, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
+  from { transform: translate3d(-16%, 0, 0); }
+  to { transform: translate3d(0, 0, 0); }
 }
 @keyframes m-sheet-up {
   from { opacity: 0.72; transform: translate3d(0, 18px, 0); }
   to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 @keyframes m-capsule-in {
-  from { opacity: 0; transform: translate3d(0, -6px, 0) scale(0.96); }
+  from { opacity: 0; transform: translate3d(0, -10px, 0) scale(0.92); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes m-map-chrome-in {
+  from { opacity: 0; transform: translate3d(0, -14px, 0) scale(0.88); }
   to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 @keyframes m-scale-in {
@@ -2213,21 +2220,17 @@ button.m-bottom-status { cursor: pointer; }
 }
 
 .app-shell.mobile .m-shell[data-tab-dir="forward"] .m-page {
-  animation: m-slide-in-end 320ms var(--m-ease) both;
+  animation: m-slide-in-end var(--m-tab-ms, 420ms) var(--m-ease) both;
 }
 .app-shell.mobile .m-shell[data-tab-dir="back"] .m-page {
-  animation: m-slide-in-start 320ms var(--m-ease) both;
+  animation: m-slide-in-start var(--m-tab-ms, 420ms) var(--m-ease) both;
 }
-/* Map chrome: soft horizontal enter when landing on map (not bottom-card — avoid fighting keyboard focus transforms) */
-.app-shell.mobile .m-shell[data-tab="map"][data-tab-dir="forward"] .m-map-chrome {
-  animation: m-slide-in-end 300ms var(--m-ease) both;
+/* Map chrome: top-down scale-in only — never ride the horizontal page slide */
+.app-shell.mobile .m-top-chrome {
+  animation: m-capsule-in 400ms var(--m-ease) both;
 }
-.app-shell.mobile .m-shell[data-tab="map"][data-tab-dir="back"] .m-map-chrome {
-  animation: m-slide-in-start 300ms var(--m-ease) both;
-}
-.app-shell.mobile .m-top-chrome,
 .app-shell.mobile .m-map-chrome {
-  animation: m-capsule-in 340ms var(--m-ease) both;
+  animation: m-map-chrome-in 440ms var(--m-ease) both;
 }
 .app-shell.mobile .m-top-capsule,
 .app-shell.mobile .m-glass-round {

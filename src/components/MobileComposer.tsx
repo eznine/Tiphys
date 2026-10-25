@@ -20,6 +20,8 @@ export function MobileComposer({ value, onChange, busy, connected, unconfigured,
     e.preventDefault();
     const text = value.trim();
     if (!text || busy || !connected || unconfigured) return;
+    // Dismiss IME after send (bottom-card send pointerdown prevents pre-click blur).
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     if (await onSend(text)) onChange("");
   };
   return (

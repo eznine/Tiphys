@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import { FolderKanban, ListChecks, Map, MessageSquareText } from "lucide-react";
 
 export type MobileTab = "chat" | "map" | "tasks" | "project";
@@ -11,6 +12,9 @@ const TABS: { id: MobileTab; label: string; Icon: typeof Map }[] = [
   { id: "project", label: "工程", Icon: FolderKanban },
 ];
 
+/** Survives dock remounts (map/chat embedded vs tasks/project fixed) so skip jumps still animate. */
+let lastDockIndex: number | null = null;
+
 type Props = {
   active: MobileTab;
   onChange: (tab: MobileTab) => void;
@@ -23,11 +27,31 @@ type Props = {
 /** Four-entry dock. Badges show real counts, not decoration. */
 export function MobileDock({ active, onChange, running, pending, embedded = false }: Props) {
   const index = Math.max(0, MOBILE_TAB_ORDER.indexOf(active));
+  const navRef = useRef<HTMLElement>(null);
+
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const bubble = nav.querySelector(".m-dock-bubble") as HTMLElement | null;
+    const from = lastDockIndex;
+    lastDockIndex = index;
+    if (from == null || from === index || !bubble) {
+      nav.style.setProperty("--dock-index", String(index));
+      return;
+    }
+    // Mount (or jump) at previous index with transition off, then animate to target.
+    bubble.style.transition = "none";
+    nav.style.setProperty("--dock-index", String(from));
+    void bubble.offsetWidth;
+    bubble.style.transition = "";
+    nav.style.setProperty("--dock-index", String(index));
+  }, [index]);
+
   return (
     <nav
+      ref={navRef}
       className={"m-dock" + (embedded ? " m-dock-embedded" : "")}
       aria-label="主要导航"
-      style={{ ["--dock-index" as string]: String(index) }}
       data-dock-index={index}
     >
       <span className="m-dock-bubble" aria-hidden="true" />

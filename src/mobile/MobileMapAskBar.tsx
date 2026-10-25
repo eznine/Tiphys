@@ -17,6 +17,8 @@ export function MobileMapAskBar({ value, onChange, busy, connected, unconfigured
     event.preventDefault();
     const text = value.trim();
     if (!text || busy) return;
+    // Dismiss IME after send (pointerdown preventDefault keeps focus until submit).
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     const ok = await onSend(text);
     if (ok) onChange("");
   };
