@@ -700,3 +700,10 @@
   - **桌面**：`npx tauri icon public/brand/logo-badge.svg` 生成 Windows/macOS 全套图标（icns/ico/Store logos）；`desktop:build` NSIS 83.50 MiB，`portable:zip` 119,773,329 B；新版解压到 `C:\Users\alex\Desktop\TIPHYS`，旧版备份至 `.trash/TIPHYS_desktop_20261025_202655`；已核对 exe 关联图标。
   - **Android**：launcher/round/adaptive foreground、11 张 splash、自适应背景改为海军蓝渐变；仅更新资源，**APK 0.1.3 未重建**，安装包图标仍是旧版。
   - **验证**：3 个品牌 SVG XML 可解析；`npx tsc --noEmit`、`npm run build` 通过；Playwright 浅色/深色截图确认顶栏与对话 dock 显示正常；未启动桌面 GUI 实机点击验收。
+
+- 2026-10-25 22:35 Asia/Shanghai — 补打品牌版 APK 0.1.3（versionCode 4，未升版本）：
+  - 本机无 Android SDK，临时在 `F:/tooling/android` 安装 Amazon Corretto 17.0.21、Android platform 34 / build-tools 34 / platform-tools；`CAPACITOR=1 npm run build` + `npx cap sync android` + Gradle `assembleDebug` 成功（3m16s）。Gradle 8.2.1 从腾讯镜像下载，Maven 仅在本次临时使用阿里云镜像，`android/build.gradle` 已恢复原样；工具链未进 git。
+  - **产物**：`dist-apk/tiphys-debug.apk` 18,214,123 B（17.4 MiB），SHA-256 `827ea9e213bb3c15d4c084b65d2aa3aec6f5d7057810fe51350a30c83ea788fc`；`aapt dump badging` 确认 versionCode 4 / versionName 0.1.3；APK 内已核对新 launcher/round/adaptive foreground、11 张 splash 和内置 `brand/logo-badge.svg`。
+  - **签名变更**：新包使用本机 debug keystore（证书 SHA-256 `efd833d2…`），旧 Linux 包为 `aca4105b…`；覆盖安装会被 Android 拒绝，**升级前必须卸载旧 0.1.3**。
+  - **发布**：`/apk/tiphys-0.1.3-brand.apk`（并覆盖 `tiphys-0.1.3.apk`、`tiphys.apk`）；`public/version.json` 的 `apkUrl` 指向 brand 文件；线上下载 SHA-256 与本地一致。Web 仍部署 `assets/index-CMwH0Jsa.js`。
+  - **未做**：未在真机/模拟器安装启动；versionCode 保持 4，应用内更新检查仍会显示“已是最新”。

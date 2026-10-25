@@ -1,21 +1,22 @@
 # TIPHYS Android Debug APK (P2 rough shell)
 
-Status: **rough offline-capable debug prototype**, built and statically verified on the Linux box on 2026-10-25. It is not a Play Store build and has not yet been launched on a physical Android device or emulator.
+Status: **rough offline-capable debug prototype**, rebuilt with the new brand assets on Windows on 2026-10-25 and statically verified. It is not a Play Store build and has not yet been launched on a physical Android device or emulator.
 
 ## What ships
 
 - Capacitor 6.2.2 Android shell (`android/`) around the existing Vite/React/MapLibre app.
 - App id `xyz.tiphys.app`, display label `TIPHYS`, version `0.1.3` (versionCode 4).
 - `minSdkVersion 22`, `targetSdkVersion 34`, `compileSdkVersion 34`.
-- Debug APK: `dist-apk/tiphys-debug.apk` (about 17.2 MiB).
-- SHA-256: `4a316bfd9f566cc134afe2ef3753d0eaf15a6fe9eb27f2f7e5f21005a5e0d952`.
+- Debug APK: `dist-apk/tiphys-debug.apk` (18,214,123 B, about 17.4 MiB); published as `https://tiphys.xyz/apk/tiphys-0.1.3-brand.apk`.
+- SHA-256: `827ea9e213bb3c15d4c084b65d2aa3aec6f5d7057810fe51350a30c83ea788fc`.
+- **Signature:** this rebuild uses the Windows machine's debug keystore, so its certificate differs from the earlier Linux-built 0.1.3. Users updating from an installed 0.1.3 must uninstall the old package first; an in-place update will be rejected.
 - Build helper: `npm run android:build` (`scripts/build-android.mjs`). It runs the Vite build with `CAPACITOR=1`, runs `npx cap sync android`, runs Gradle `assembleDebug`, and copies the APK to `dist-apk/`.
 
 The generated Android project is source. Gradle output, copied web assets, `local.properties`, and SDK/JDK files are ignored and must not be committed.
 
 ## Clean-box prerequisites
 
-The build was verified with Node.js 20.19.2, npm 11.21.1, Eclipse Temurin OpenJDK 17.0.21, Android platform 34, and build-tools 34.0.0. The repository README recommends Node 24+ for the full development stack; the Android build itself succeeded on Node 20.
+The build was verified with Node.js 20.19.2, npm 11.21.1, Eclipse Temurin OpenJDK 17.0.21, Android platform 34, and build-tools 34.0.0. The repository README recommends Node 24+ for the full development stack; the Android build itself succeeded on Node 20. The branded 0.1.3 rebuild (2026-10-25) also succeeded on Windows 11 with Node 24.14.0, npm 11.9.0, Amazon Corretto 17.0.21, and the same Android 34 platform/build-tools.
 
 On Ubuntu/Debian, OpenJDK 17 can be installed with `sudo apt-get install -y openjdk-17-jdk`. A portable Temurin JDK unpacked outside the repository is also fine. Keep the JDK and Android SDK outside the TIPHYS git tree.
 

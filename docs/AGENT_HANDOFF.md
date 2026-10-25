@@ -69,7 +69,7 @@ tf-codex -C /workspace/tiphys   # 优先 tierflow_pro
 
 | 项 | 值 |
 |---|---|
-| APK | **0.1.3** / versionCode **4** → https://tiphys.xyz/apk/tiphys-0.1.3.apk |
+| APK | **0.1.3** / versionCode **4** → https://tiphys.xyz/apk/tiphys-0.1.3-brand.apk（新 Logo；Windows debug 签名，旧包需卸载后再装） |
 | 代码时代 | `2ca7d9e`（APK 0.1.3）+ A0/A1 修复至 `a74d7a0`；最新 main 以 `git log` 为准 |
 | Web | https://tiphys.xyz 已 live（`assets/index-CMwH0Jsa.js`，新品牌 Logo） |
 | Windows 桌面 | portable 重建于 2026-10-25 20:05 → `C:\Users\alex\Desktop\TIPHYS`；NSIS 83.50 MiB；新 Logo 图标；GUI 未实机点击验收 |
