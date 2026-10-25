@@ -543,3 +543,5 @@
   - Deploy scripts protect `/srv/tiphys-web/apk/` from `--delete`. Docs in `docs/ANDROID_APK.md` for bumping version.json + uploading APK.
   - APK URL `https://tiphys.xyz/apk/tiphys.apk` — upload existing `dist-apk/tiphys-debug.apk` if/when available on server (placeholder path until then).
   - Verify: `npx tsc --noEmit` OK; `npm run build` OK. Deploy tiphys.xyz. Do NOT start Agent overnight.
+
+- 2026-10-25 11:42 Asia/Shanghai — Uploaded current `dist-apk/tiphys-debug.apk` (18 MiB) to `https://tiphys.xyz/apk/tiphys.apk` (octet-stream 200). version.json already live. Agent/builder still paused.
