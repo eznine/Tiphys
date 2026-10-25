@@ -503,3 +503,5 @@
 - 2026-10-25 11:09 Asia/Shanghai — Overnight watch: builder dead mid-batch42 final verify (log last 11:08:49; no tf-codex/npm children; progress had just recorded batch42). Re-verified `npx tsc --noEmit`, `npm run test:search` 8/8, agent wasm suite 7/7. Committed+pushed batch42 as `02942ba`. Direction OK (blue `#2563eb`, light default, logo system, honest catalog, Agent-first; no ecology/densify-only drift). Box-only. Restarting tf-codex for batch43 = continue Agent reliability. Log: `.tooling/overnight/batch43-agent-core.log`. User ping: restarted after dead builder.
 
 - 2026-10-25 11:10 Asia/Shanghai — Supervisor: overnight watch shipped batch42 (`02942ba`) and started batch43; paused batch43 immediately because user mobile UX fixes are in flight (drawer scroll / delete / map-send / settings / hide coords). Resume Agent-first after mobile UX ships.
+
+- 2026-10-25 11:15 Asia/Shanghai — Mobile UX batch shipped `4947ca1` + tiphys.xyz deploy (drawer scroll, delete style, map-send no jump, settings mobile, hide coords, liquid-glass project capsule, chat blue gradient, motion). Mobile UX pause lifted; resume Agent-first overnight from batch43+.
