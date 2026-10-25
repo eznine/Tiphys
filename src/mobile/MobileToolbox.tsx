@@ -10,7 +10,8 @@ import { ChevronRight, Search, Star, Wrench } from "lucide-react";
 type CatalogItem = { name: string; label?: string; description?: string; category?: string; subcategory?: string };
 
 const SKIP = new Set(["ping", "list_layers", "job_status", "job_cancel"]);
-const LIMIT = 80;
+/** Soft page size for the unfiltered list; search/categories always use the full catalog. */
+const LIST_PAGE = 120;
 
 type Props = {
   open: boolean;
@@ -21,6 +22,10 @@ type Props = {
   onResult: (result: Record<string, any>) => void;
   onTask: (event: ToolTaskEvent) => void;
   onOpenTask: (taskId: string) => void;
+  /** Called when drill-down tool form opens/closes so the back stack can mirror levels. */
+  onToolLevel?: (toolName: string | null) => void;
+  /** Increment to force leaving the tool form (system Back). */
+  toolBackToken?: number;
 };
 
 function titleOf(tool: CatalogItem) {
@@ -30,9 +35,14 @@ function descOf(tool: CatalogItem) {
   return toolDesc(tool);
 }
 
-/** Mobile toolbox: search, recent, favourites, categories, then the real schema form. */
-export function MobileToolbox({ open, onClose, layers, selectedLayer, initialTool = null, onResult, onTask, onOpenTask }: Props) {
+/**
+ * Mobile toolbox: always ends on the real full catalog (shell ~38 first, then
+ * hydrated WASM ~900+). hydrate=0 alone used to stick at ~39 whenever nothing
+ * else had mutated browserCatalog yet — that race is gone.
+ */
+export function MobileToolbox({ open, onClose, layers, selectedLayer, initialTool = null, onResult, onTask, onOpenTask, onToolLevel, toolBackToken = 0 }: Props) {
   const [catalog, setCatalog] = useState<CatalogItem[] | null>(null);
+  const [hydrated, setHydrated] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("全部");
@@ -41,6 +51,7 @@ export function MobileToolbox({ open, onClose, layers, selectedLayer, initialToo
   const [favourites, setFavourites] = useState<string[]>(favouriteTools);
   const [recent, setRecent] = useState<string[]>(recentTools);
   const [lastTaskId, setLastTaskId] = useState<string | null>(null);
+  const [listLimit, setListLimit] = useState(LIST_PAGE);
 
   useEffect(() => {
     if (!open) return;
@@ -51,7 +62,17 @@ export function MobileToolbox({ open, onClose, layers, selectedLayer, initialToo
     setRequestId(value => value + 1);
     setRecent(recentTools());
     setFavourites(favouriteTools());
+    setListLimit(LIST_PAGE);
   }, [open, initialTool]);
+
+  useEffect(() => {
+    onToolLevel?.(selectedTool);
+  }, [selectedTool, onToolLevel]);
+
+  useEffect(() => {
+    if (!toolBackToken) return;
+    setSelectedTool(null);
+  }, [toolBackToken]);
 
   useEffect(() => {
     if (!open) return;
@@ -59,11 +80,26 @@ export function MobileToolbox({ open, onClose, layers, selectedLayer, initialToo
     setLoadError("");
     void (async () => {
       try {
-        const response = await engineRequest("/tools/catalog?hydrate=0", { signal: controller.signal });
-        const data = await response.json();
+        // Shell first for snappy open, then always hydrate to the full set.
+        const shell = await (await engineRequest("/tools/catalog?hydrate=0", { signal: controller.signal })).json();
         if (controller.signal.aborted) return;
-        const tools: CatalogItem[] = Array.isArray(data.tools) ? data.tools.filter((tool: CatalogItem) => !SKIP.has(tool.name)) : [];
-        setCatalog(tools);
+        const shellTools: CatalogItem[] = Array.isArray(shell.tools)
+          ? shell.tools.filter((tool: CatalogItem) => !SKIP.has(tool.name))
+          : [];
+        setCatalog(shellTools);
+        const already = Boolean(shell.catalog?.hydrated);
+        setHydrated(already);
+        if (!already) {
+          await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+          if (controller.signal.aborted) return;
+          const full = await (await engineRequest("/tools/catalog", { signal: controller.signal })).json();
+          if (controller.signal.aborted) return;
+          const tools: CatalogItem[] = Array.isArray(full.tools)
+            ? full.tools.filter((tool: CatalogItem) => !SKIP.has(tool.name))
+            : [];
+          setCatalog(tools);
+          setHydrated(full.catalog?.hydrated !== false);
+        }
       } catch (error) {
         if (!controller.signal.aborted) setLoadError(String(error));
       }
@@ -94,6 +130,8 @@ export function MobileToolbox({ open, onClose, layers, selectedLayer, initialToo
     });
   }, [catalog, category, search]);
 
+  useEffect(() => { setListLimit(LIST_PAGE); }, [search, category]);
+
   const byName = (name: string) => catalog?.find(tool => tool.name === name);
   const recentToolsList = recent.map(byName).filter((tool): tool is CatalogItem => !!tool);
   const favouriteToolsList = favourites.map(byName).filter((tool): tool is CatalogItem => !!tool);
@@ -107,7 +145,10 @@ export function MobileToolbox({ open, onClose, layers, selectedLayer, initialToo
   };
 
   const selectedItem = selectedTool ? byName(selectedTool) : undefined;
-  const subtitle = selectedItem ? zhCategory(selectedItem) : catalog ? `${catalog.length} 个工具 · 本地执行` : "正在加载工具目录…";
+  const countLabel = catalog
+    ? (hydrated ? `${catalog.length} 个工具 · 本地执行` : `${catalog.length} 个工具 · 正在加载完整目录…`)
+    : "正在加载工具目录…";
+  const subtitle = selectedItem ? zhCategory(selectedItem) : countLabel;
 
   const toggleFav = (name: string) => {
     toggleFavourite(name);
@@ -128,6 +169,8 @@ export function MobileToolbox({ open, onClose, layers, selectedLayer, initialToo
     <ChevronRight size={16} className="m-tool-chevron" />
   </div>;
 
+  const visible = search.trim() || category !== "全部" ? filtered : filtered.slice(0, listLimit);
+
   return (
     <MobileSheet open={open} onClose={onClose} onBack={selectedTool ? () => setSelectedTool(null) : undefined}
       title={selectedItem ? titleOf(selectedItem) : "工具箱"} subtitle={subtitle}
@@ -146,6 +189,7 @@ export function MobileToolbox({ open, onClose, layers, selectedLayer, initialToo
 
         {loadError && <div className="m-inline-notice" role="alert"><span>工具目录加载失败：{loadError}</span></div>}
         {!catalog && !loadError && <div className="m-loading" role="status">正在加载工具目录…</div>}
+        {catalog && !hydrated && !loadError && <div className="m-loading" role="status">正在加载完整工具目录（约 900+）…</div>}
 
         {!search && category === "全部" && recentToolsList.length > 0 && <section className="m-tool-section">
           <h3>最近使用</h3>
@@ -158,9 +202,13 @@ export function MobileToolbox({ open, onClose, layers, selectedLayer, initialToo
         </section>}
 
         {catalog && <section className="m-tool-section">
-          <h3>{search ? `搜索结果 · ${filtered.length}` : category === "全部" ? "全部工具" : category}</h3>
-          {filtered.slice(0, LIMIT).map(toolRow)}
-          {filtered.length > LIMIT && <p className="m-tool-more">已显示前 {LIMIT} 个，共 {filtered.length} 个。输入关键词可继续缩小范围。</p>}
+          <h3>{search ? `搜索结果 · ${filtered.length}` : category === "全部" ? `全部工具 · ${filtered.length}` : `${category} · ${filtered.length}`}</h3>
+          {visible.map(toolRow)}
+          {!search && category === "全部" && filtered.length > listLimit && (
+            <button type="button" className="m-tool-more" onClick={() => setListLimit(value => value + LIST_PAGE)}>
+              已显示 {listLimit} / {filtered.length} · 点击加载更多（或输入关键词缩小范围）
+            </button>
+          )}
           {!filtered.length && <div className="m-empty-inline"><Wrench size={18} /><strong>没有匹配的工具</strong><span>试试“缓冲”“裁剪”“坡度”或工具名称。</span></div>}
         </section>}
       </>}

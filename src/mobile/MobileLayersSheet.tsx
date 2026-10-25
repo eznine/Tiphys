@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { DataLayer } from "../lib/dataLayers";
 import { defaultLayerStyle } from "../lib/dataLayers";
 import { layerExportUnavailableReason, layerReloadUnavailableReason, layerSourcePath } from "../lib/layer-actions";
@@ -28,6 +28,9 @@ type Props = {
   onReload: (layer: DataLayer) => void;
   onExport: (layer: DataLayer) => void;
   onOpenTool: (tool: string, layerId?: string) => void;
+  onActionLevel?: (open: boolean) => void;
+  /** Increment to close the nested layer-actions sheet (system Back). */
+  actionBackToken?: number;
 };
 
 const KIND_LABEL: Record<string, string> = { vector: "矢量", raster: "栅格", table: "表格" };
@@ -41,7 +44,7 @@ function layerSummary(layer: DataLayer) {
 
 export function MobileLayersSheet(props: Props) {
   const { open, onClose, layers, selectedId, onSelect, onToggle, onAdd, importing, importNotice, onDismissNotice,
-    onZoom, onTable, onProperties, onRename, onReorder, onRemove, onReload, onExport, onOpenTool } = props;
+    onZoom, onTable, onProperties, onRename, onReorder, onRemove, onReload, onExport, onOpenTool, onActionLevel, actionBackToken = 0 } = props;
   const [search, setSearch] = useState("");
   const [actionId, setActionId] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
@@ -56,6 +59,15 @@ export function MobileLayersSheet(props: Props) {
   const reloadReason = actionLayer ? layerReloadUnavailableReason(actionLayer, true) : "";
   const exportReason = actionLayer ? layerExportUnavailableReason(actionLayer, true) : "";
   const selected = layers.find(layer => layer.id === selectedId) ?? layers[0] ?? null;
+
+  useEffect(() => { onActionLevel?.(!!actionId); }, [actionId, onActionLevel]);
+
+  useEffect(() => {
+    if (!actionBackToken) return;
+    setActionId(null);
+    setRenaming(false);
+    setConfirmRemove(false);
+  }, [actionBackToken]);
   const filtered = layers.filter(layer => layer.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
 
   const openActions = (layer: DataLayer) => {
@@ -186,7 +198,8 @@ export function MobileLayersSheet(props: Props) {
 
     <MobileSheet open={!!actionLayer} title={actionLayer?.name ?? "图层操作"}
       subtitle={actionLayer ? layerSummary(actionLayer) : undefined}
-      initialSnap={0} snapPoints={[0.58, 0.92]} level={1} onClose={closeActions}>
+      initialSnap={0} snapPoints={[0.58, 0.92]} level={1}
+      onBack={closeActions} onClose={closeActions}>
       {actionLayer && <div className="m-action-list">
         {actionLayer.kind !== "table" && <button type="button" disabled={!actionLayer.bounds} onClick={() => act(layer => onZoom(layer))}><Maximize2 size={18} /><span>缩放至图层</span><small>定位到真实范围</small></button>}
         {actionLayer.kind !== "raster" && <button type="button" onClick={() => act(layer => onTable(layer.id))}><Table2 size={18} /><span>打开属性表</span><small>查看与选择要素</small></button>}

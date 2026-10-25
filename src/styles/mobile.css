@@ -707,8 +707,8 @@ button.m-bottom-status { cursor: pointer; }
 }
 .app-shell.mobile .m-bottom-status > svg { flex-shrink: 0; color: var(--m-accent); }
 .app-shell.mobile .m-bottom-composer { min-width: 0; }
-.app-shell.mobile .m-bottom-card[data-input-focused="true"] .m-bottom-status-slot,
-.app-shell.mobile .m-bottom-card[data-input-focused="true"] .m-dock { display: none; }
+/* Fold UX removed: never hide dock/status while composer focused
+   (OPPO/Chrome side-swipe left input focused + dock gone). */
 
 .app-shell.mobile .m-bottom-card .m-askbar,
 .app-shell.mobile .m-bottom-card .mobile-composer {
@@ -1860,7 +1860,7 @@ button.m-bottom-status { cursor: pointer; }
 }
 .app-shell.mobile .m-tool-star[data-active="true"] { color: var(--m-warning); }
 .app-shell.mobile .m-tool-chevron { margin-right: 8px; color: var(--m-ink-3); }
-.app-shell.mobile .m-tool-more { font-size: 10px; color: var(--m-ink-3); padding: 4px 2px; }
+.app-shell.mobile .m-tool-more { font-size: 10px; color: var(--m-ink-3); padding: 8px 2px; width: 100%; border: 0; background: none; text-align: left; cursor: pointer; }
 .app-shell.mobile .m-loading { padding: 20px; text-align: center; font-size: 11.5px; color: var(--m-ink-2); }
 .app-shell.mobile .m-task-linkbar {
   display: flex;
@@ -1925,6 +1925,56 @@ button.m-bottom-status { cursor: pointer; }
 .app-shell.mobile .m-tool-form .toolbox-tool { min-height: 48px; }
 
 /* ---------------------------------------------------- full-screen panels ---- */
+
+
+/* Attribute table as bottom sheet (mobile) — reuse sheet body scroll. */
+.app-shell.mobile .m-sheet .attribute-table {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  background: transparent;
+  color: var(--m-ink);
+  height: auto;
+  max-height: none;
+}
+.app-shell.mobile .m-sheet .attribute-table.attribute-table-embedded .attribute-header {
+  display: none;
+}
+.app-shell.mobile .m-sheet .attribute-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0 8px;
+}
+.app-shell.mobile .m-sheet .attribute-toolbar input[type="search"] {
+  flex: 1 1 100%;
+  height: 40px;
+  border-radius: 12px;
+  font-size: 16px;
+}
+.app-shell.mobile .m-sheet .attribute-scroll {
+  flex: 1;
+  min-height: 160px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.app-shell.mobile .m-sheet .attribute-scroll table { font-size: 11px; }
+.app-shell.mobile .m-sheet .attribute-scroll th,
+.app-shell.mobile .m-sheet .attribute-scroll td { white-space: nowrap; padding: 7px 8px; }
+.app-shell.mobile .m-sheet .attribute-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+}
+.app-shell.mobile .m-sheet .attribute-query-bar,
+.app-shell.mobile .m-sheet .attribute-rename-bar {
+  flex-wrap: wrap;
+  gap: 6px;
+}
 
 .app-shell.mobile .m-fullscreen-panel {
   position: fixed;
@@ -2222,11 +2272,23 @@ button.m-bottom-status { cursor: pointer; }
   to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 
-.app-shell.mobile .m-shell[data-tab-dir="forward"] .m-page {
+/* Tab pages slide — exclude chat page shell so its fixed bottom card/dock
+   does not inherit a transform containing block and re-slide from the side. */
+.app-shell.mobile .m-shell[data-tab-dir="forward"] .m-page:not(.m-chat-page) {
   animation: m-slide-in-end var(--m-tab-ms, 560ms) var(--m-ease-soft) both;
 }
-.app-shell.mobile .m-shell[data-tab-dir="back"] .m-page {
+.app-shell.mobile .m-shell[data-tab-dir="back"] .m-page:not(.m-chat-page) {
   animation: m-slide-in-start var(--m-tab-ms, 560ms) var(--m-ease-soft) both;
+}
+/* Chat: only page content transitions; dock/composer stay viewport-fixed. */
+.app-shell.mobile .m-shell[data-tab-dir="forward"] .m-chat-page > :not(.m-bottom-card) {
+  animation: m-slide-in-end var(--m-tab-ms, 560ms) var(--m-ease-soft) both;
+}
+.app-shell.mobile .m-shell[data-tab-dir="back"] .m-chat-page > :not(.m-bottom-card) {
+  animation: m-slide-in-start var(--m-tab-ms, 560ms) var(--m-ease-soft) both;
+}
+.app-shell.mobile .m-chat-page > .m-bottom-card {
+  animation: none;
 }
 /* Entering map: same bidirectional horizontal slide as other tabs (stage stays mounted) */
 .app-shell.mobile .m-shell[data-tab="map"][data-tab-dir="forward"] .m-map-stage {

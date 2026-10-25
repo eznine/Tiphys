@@ -77,6 +77,11 @@ export function subscribeImeDismiss(onDismiss: () => void): () => void {
     window.removeEventListener("resize", onViewport);
   });
 
+  // History / side-swipe back: blur path when visualViewport never moved.
+  const onPopState = () => onDismiss();
+  window.addEventListener("popstate", onPopState);
+  cleanups.push(() => window.removeEventListener("popstate", onPopState));
+
   return () => {
     cancelled = true;
     for (const c of cleanups.splice(0)) c();

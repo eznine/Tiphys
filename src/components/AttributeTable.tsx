@@ -12,10 +12,12 @@ import {
 type Row = { id: number; attributes: Record<string, unknown>; bounds: number[] | null };
 type Page = { fields: { name: string; type: string }[]; rows: Row[]; total: number };
 
-export function AttributeTable({ layer, selectedIds, initialFilter = null, resetToken = 0, onSelectionChange, onClearSelection, onClose, onZoom }: {
+export function AttributeTable({ layer, selectedIds, initialFilter = null, resetToken = 0, onSelectionChange, onClearSelection, onClose, onZoom, embedded = false }: {
   layer: DataLayer; selectedIds: number[]; onSelectionChange: (ids: number[], additive: boolean) => void;
   initialFilter?: IdentifyTableFilter | null; resetToken?: number;
   onClearSelection: () => void; onClose: () => void; onZoom: (bounds: number[]) => void;
+  /** Hide the built-in header when hosted inside MobileSheet. */
+  embedded?: boolean;
 }) {
   const [page, setPage] = useState<Page | null>(null);
   const [offset, setOffset] = useState(0);
@@ -203,12 +205,15 @@ export function AttributeTable({ layer, selectedIds, initialFilter = null, reset
       setRenameError(err instanceof Error ? err.message : String(err));
     } finally { setRenameSaving(false); }
   };
-  return <section className="attribute-table" aria-label={`${layer.name} 属性表`}>
-    <header className="attribute-header"><strong>{layer.name} · 属性表</strong>
+  return <section className={"attribute-table" + (embedded ? " attribute-table-embedded" : "")} aria-label={`${layer.name} 属性表`}>
+    {!embedded && <header className="attribute-header"><strong>{layer.name} · 属性表</strong>
       <div className="attribute-header-actions">
         {(layer.kind ?? "vector") === "vector" && <button type="button" className="attribute-link-btn" aria-expanded={renameOpen} onClick={toggleRename}>重命名字段</button>}
         <button type="button" className="icon-btn" onClick={onClose} aria-label="关闭属性表">×</button>
-      </div></header>
+      </div></header>}
+    {embedded && (layer.kind ?? "vector") === "vector" && <div className="attribute-toolbar" style={{ paddingTop: 0 }}>
+      <button type="button" className="icon-btn" aria-expanded={renameOpen} onClick={toggleRename}>重命名字段</button>
+    </div>}
     {renameOpen && (layer.kind ?? "vector") === "vector" && <div className="attribute-rename-bar" role="group" aria-label="重命名字段">
       <span>字段</span>
       <select aria-label="要重命名的字段" value={renameField} onChange={event => { setRenameField(event.target.value); setRenameError(""); }}>

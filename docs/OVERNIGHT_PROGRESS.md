@@ -568,3 +568,12 @@
     4. Uploaded versioned https://tiphys.xyz/apk/tiphys-0.1.1.apk (+ mirrored tiphys.apk on origin); version.json apkUrl uses versioned name for CDN bust (CF still HIT on old tiphys.apk URL).
     5. npm run build + npm run deploy:xyz OK (live asset matches).
   - Confirm: live version.json 0.1.1 / code 2; tiphys-0.1.1.apk content-length 17987653 (was 18654959). Agent overnight remains paused.
+
+- 2026-10-25 12:05 Asia/Shanghai — Mobile UX batch (IME stuck / back stack / toolbox 39vs900 / attribute drawer / chat dock slide; box only; **Agent overnight stays paused**):
+  1. **IME / dock fold removed (last resort):** stop hiding dock/status on `data-input-focused`. Composer focus no longer collapses layout. Blur+clear on IME dismiss, outside tap, `popstate`/pageshow/orientation/visibility. Root cause of OPPO side-swipe stuck input-only mode was fold UX + focus without keyboard.
+  2. **Back stack:** new `src/mobile/mobileBack.ts` — `history.pushState` levels for layers / layer-action / toolbox / toolbox-tool / actions / table / properties / settings / task-detail / tabs. Capacitor `App.backButton` consumes one level then previous tab, exits only at map root. Web browser Back matches. Drill-down returns one level up (tool detail → list → closed).
+  3. **Toolbox 39 vs 900+:** MobileToolbox used `/tools/catalog?hydrate=0` only; `browserCatalog` is mutated in place after hydration, so count was shell ~38 until something else hydrated — race. Now shell-first then always full hydrate (958/900+), with loading hint + load-more; search/categories use full set.
+  4. **Attribute table:** mobile opens as `MobileSheet` bottom drawer (slide-up), `AttributeTable embedded`; Back closes drawer.
+  5. **Chat tab slide:** `.m-chat-page` no longer gets whole-page slide (that re-slid fixed bottom card/dock). Only chat content children animate; dock/composer stay put.
+  - Verify: `npx tsc --noEmit` OK; `npm run build` OK. Deploy tiphys.xyz.
+  - **APK:** web assets changed for back stack + fold removal. Recommend **0.1.2 rebuild** so Capacitor `backButton` + bundled web match; does **not** block web deploy (tiphys.xyz Chrome gets fixes immediately). Agent/builder remain paused.

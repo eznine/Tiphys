@@ -22,6 +22,7 @@ import { MobilePage } from "./MobilePage";
 import { MobileProjectPage } from "./MobileProjectPage";
 import { MobileSheet } from "./MobileSheet";
 import { subscribeImeDismiss } from "./imeRestore";
+import { createMobileBackStack } from "./mobileBack";
 import type { TaskCardEvent } from "../components/TaskCards";
 import type { ToolTaskEvent } from "../components/ToolPanel";
 import {
@@ -68,6 +69,8 @@ export type MobileWorkspaceProps = {
   onExportLayer: (layer: DataLayer) => void;
   onClipAoi: () => void;
   onOpenSettings: () => void;
+  settingsOpen?: boolean;
+  onCloseSettings?: () => void;
   onTable: (id: string, featureId?: number) => void;
   tableLayer?: DataLayer;
   onTableClose: () => void;
@@ -94,7 +97,7 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
   const {
     theme, agent, layers, activeLayer, onSelectLayer, selection, onSelection, onClearSelection, aoi, onAoi,
     focus, onFocusAll, onZoomBounds, onZoomLayer, onAddData, importing, importNotice, onDismissNotice, sourceCrs, onSourceCrs,
-    onRenameLayer, onReorderLayers, onRemoveLayer, onReloadLayer, onExportLayer, onClipAoi, onOpenSettings, onTable, tableLayer, onTableClose, tableFilter, tableResetToken,
+    onRenameLayer, onReorderLayers, onRemoveLayer, onReloadLayer, onExportLayer, onClipAoi, onOpenSettings, settingsOpen = false, onCloseSettings, onTable, tableLayer, onTableClose, tableFilter, tableResetToken,
     onFilterTable, onExportIdentifyFeature, onTableSelection,
     properties, propertyLayer, onPropertiesChange, onLayerStyle, onMapStatus, engineState, agentUnconfigured,
     agentProviderLabel, recoveryNote, agentSession,
@@ -117,6 +120,8 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
   const [actionsOpen, setActionsOpen] = useState(false);
   const [toolboxOpen, setToolboxOpen] = useState(false);
   const [toolboxTool, setToolboxTool] = useState<string | null>(null);
+  const [toolBackToken, setToolBackToken] = useState(0);
+  const [actionBackToken, setActionBackToken] = useState(0);
   const [draft, setDraft] = useState("");
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null);
   const [mapView, setMapView] = useState<TiphysMapView | null>(null);
@@ -187,6 +192,107 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
     }, 300);
     return () => window.clearInterval(id);
   }, [formFocused]);
+
+  const backStackRef = useRef(createMobileBackStack());
+  const tabRef = useRef(tab); tabRef.current = tab;
+  const detailTaskIdRef = useRef(detailTaskId); detailTaskIdRef.current = detailTaskId;
+  const layersOpenRef = useRef(layersOpen); layersOpenRef.current = layersOpen;
+  const actionsOpenRef = useRef(actionsOpen); actionsOpenRef.current = actionsOpen;
+  const toolboxToolRef = useRef<string | null>(null);
+  const tableOpenRef = useRef(!!tableLayer); tableOpenRef.current = !!tableLayer;
+  const propertiesRef = useRef(properties); propertiesRef.current = properties;
+  const settingsOpenRef = useRef(settingsOpen); settingsOpenRef.current = settingsOpen;
+  const onTableCloseRef = useRef(onTableClose); onTableCloseRef.current = onTableClose;
+  const onCloseSettingsRef = useRef(onCloseSettings); onCloseSettingsRef.current = onCloseSettings;
+  const onPropertiesChangeRef = useRef(onPropertiesChange); onPropertiesChangeRef.current = onPropertiesChange;
+
+  const navigateTab = (next: MobileTab) => {
+    const prev = tabRef.current;
+    if (next === prev) return;
+    setTab(next);
+    if (next !== "map") setLayersOpen(false);
+    // Push tab level so system/browser Back returns one tab at a time.
+    if (next !== "map") {
+      const from = prev;
+      backStackRef.current.push(`tab:${next}`, () => {
+        setTab(from === next ? "map" : from);
+      });
+    } else {
+      // Close overlays first so tab frames become trailing, then drain tab history.
+      setLayersOpen(false);
+      setActionsOpen(false);
+      setToolboxOpen(false);
+      setToolboxTool(null);
+      setDetailTaskId(null);
+      if (tableOpenRef.current) onTableCloseRef.current();
+      if (propertiesRef.current) onPropertiesChangeRef.current(null);
+      window.setTimeout(() => backStackRef.current.clearPrefix("tab:"), 0);
+    }
+  };
+
+  // Sync overlay open → history levels (one level each).
+  useEffect(() => {
+    const stack = backStackRef.current;
+    if (layersOpen) stack.push("layers", () => setLayersOpen(false));
+    else stack.dismiss("layers");
+  }, [layersOpen]);
+
+  useEffect(() => {
+    const stack = backStackRef.current;
+    if (actionsOpen) stack.push("actions", () => setActionsOpen(false));
+    else stack.dismiss("actions");
+  }, [actionsOpen]);
+
+  useEffect(() => {
+    const stack = backStackRef.current;
+    if (toolboxOpen) stack.push("toolbox", () => { setToolboxOpen(false); setToolboxTool(null); });
+    else {
+      stack.dismiss("toolbox-tool");
+      stack.dismiss("toolbox");
+    }
+  }, [toolboxOpen]);
+
+  useEffect(() => {
+    const stack = backStackRef.current;
+    if (detailTaskId) stack.push("task-detail", () => setDetailTaskId(null));
+    else stack.dismiss("task-detail");
+  }, [detailTaskId]);
+
+  useEffect(() => {
+    const stack = backStackRef.current;
+    if (tableLayer) stack.push("table", () => onTableCloseRef.current());
+    else stack.dismiss("table");
+  }, [tableLayer]);
+
+  useEffect(() => {
+    const stack = backStackRef.current;
+    if (properties) {
+      stack.push("properties", () => {
+        onPropertiesChangeRef.current(null);
+        setLayersOpen(true);
+      });
+    } else stack.dismiss("properties");
+  }, [properties]);
+
+  useEffect(() => {
+    const stack = backStackRef.current;
+    if (settingsOpen) stack.push("settings", () => onCloseSettingsRef.current?.());
+    else stack.dismiss("settings");
+  }, [settingsOpen]);
+
+  useEffect(() => {
+    const stack = backStackRef.current;
+    return stack.subscribe(() => {
+      // Root back: leave non-map tabs one step toward map.
+      const current = tabRef.current;
+      if (current !== "map") {
+        setTab("map");
+        return true;
+      }
+      // At map root with nothing open — web stays; native exits via Cap listener.
+      return false;
+    });
+  }, []);
 
   const [storesReady, setStoresReady] = useState(false);
   const tasks = useTasks();
@@ -609,7 +715,7 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
   /* ------------------------------------------------------------------ actions */
 
   const send = async (text: string, context: ChatSendContext) => {
-    if (!agent.state.connected) { setTab("chat"); return false; }
+    if (!agent.state.connected) { navigateTab("chat"); return false; }
     const workspace: AgentWorkspaceContext = {
       aoi: context.includeAoi ? aoi : null,
       selectedLayerId: context.includeLayer ? activeLayer?.id ?? null : null,
@@ -671,7 +777,7 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
       preLayerIds: layersRef.current.map(layer => layer.id), retry,
     });
     setDetailTaskId(taskId);
-    setTab("tasks");
+    navigateTab("tasks");
     try {
       const response = await engineRequest("/tools/run", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -712,7 +818,7 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
 
     {tab === "map" && <>
       <MobileMapChrome projectName={projectName} engineState={engineState} layerCount={layers.length}
-        onProject={() => setTab("project")} onLayers={() => setLayersOpen(true)} onTools={() => openToolbox(null)} />
+        onProject={() => navigateTab("project")} onLayers={() => setLayersOpen(true)} onTools={() => openToolbox(null)} />
 
       {(selection?.featureIds.length || aoi) && <div className="m-map-hud">
         {selection?.featureIds.length ? <span className="m-hud-chip"><strong>{selection.featureIds.length}</strong> 个要素已选
@@ -726,8 +832,8 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
         <button type="button" className="m-icon-btn" aria-label="关闭提示" onClick={onDismissNotice}>×</button>
       </div>}
 
-      <MobileBottomCard active={tab} onChange={next => { setTab(next); if (next !== "map") setLayersOpen(false); }} running={runningCount} pending={pendingCount}
-        status={<button type="button" className="m-bottom-status" onClick={() => setTab("chat")}>
+      <MobileBottomCard active={tab} onChange={navigateTab} running={runningCount} pending={pendingCount}
+        status={<button type="button" className="m-bottom-status" onClick={() => navigateTab("chat")}>
           <span className="status-dot" data-state={agent.state.busy ? "pending" : agent.state.connected ? "ok" : "error"} />
           <span className="m-bottom-status-text">
             {agent.state.busy ? "TIPHYS 正在处理…" : lastAgentMessage ? lastAgentMessage.slice(0, 64) : agent.state.items.length ? `对话 · ${agent.state.items.length} 条` : "对话与任务卡"}
@@ -762,19 +868,19 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
       onApprove={agent.approve}
       onCancelJob={agent.cancelJob}
       onTask={handleTaskCardEvent}
-      onOpenTask={id => { setDetailTaskId(id); setTab("tasks"); }}
-      onOpenTasks={() => setTab("tasks")}
+      onOpenTask={id => { setDetailTaskId(id); navigateTab("tasks"); }}
+      onOpenTasks={() => navigateTab("tasks")}
       onOpenSettings={onOpenSettings}
       onOpenActions={openActions}
-      onTab={next => { setTab(next); if (next !== "map") setLayersOpen(false); }}
+      onTab={navigateTab}
       running={runningCount}
       pending={pendingCount}
     />}
 
     {tab === "tasks" && <MobileTasksPage
       tasks={tasks} projects={projects} currentProjectId={currentProject?.id ?? null}
-      onOpenTask={id => { if (id) { setDetailTaskId(id); setTab("tasks"); } }}
-      onOpenChat={() => { setDetailTaskId(null); setTab("chat"); }}
+      onOpenTask={id => { if (id) { setDetailTaskId(id); navigateTab("tasks"); } }}
+      onOpenChat={() => { setDetailTaskId(null); navigateTab("chat"); }}
       onOpenToolbox={() => openToolbox(null)} />}
 
     {detailTask && <MobilePage open title="任务详情" subtitle={TASK_SOURCE_LABEL[detailTask.source]} overlay onBack={() => setDetailTaskId(null)}>
@@ -782,7 +888,7 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
         projectName={projects.find(project => project.id === detailTask.projectId)?.name ?? "未归属工程"}
         onApprove={approveTask} onCancel={cancelTask} onRetry={task => void retryTask(task)}
         onLocate={locateLayer} onTable={openTable}
-        onOpenChat={() => { setDetailTaskId(null); setTab("chat"); }} />
+        onOpenChat={() => { setDetailTaskId(null); navigateTab("chat"); }} />
     </MobilePage>}
 
     {tab === "project" && <MobileProjectPage
@@ -824,7 +930,7 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
         agent.setLayerVisibility(id, false);
       }}
       onLocate={layer => locateLayer(layer.id)} onTable={openTable}
-      onOpenTask={id => { setDetailTaskId(id); setTab("tasks"); }} />}
+      onOpenTask={id => { setDetailTaskId(id); navigateTab("tasks"); }} />}
 
     <MobileLayersSheet open={layersOpen} onClose={() => setLayersOpen(false)} layers={layers} selectedId={activeLayer?.id}
       onSelect={onSelectLayer} onToggle={agent.toggleLayer} onAdd={onAddData} importing={importing}
@@ -832,36 +938,55 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
       onZoom={onZoomLayer} onTable={openTable} onProperties={(id, tab) => { setLayersOpen(false); onPropertiesChange({ id, tab }); }}
       onRename={onRenameLayer} onReorder={onReorderLayers} onRemove={onRemoveLayer}
       onReload={onReloadLayer} onExport={onExportLayer}
-      onOpenTool={(tool, layerId) => openToolbox(tool || null, layerId)} />
+      onOpenTool={(tool, layerId) => openToolbox(tool || null, layerId)}
+      actionBackToken={actionBackToken}
+      onActionLevel={open => {
+        const stack = backStackRef.current;
+        if (open) stack.push("layers-action", () => setActionBackToken(value => value + 1));
+        else stack.dismiss("layers-action");
+      }} />
 
     <MobileToolbox open={toolboxOpen} onClose={() => setToolboxOpen(false)} layers={layers} selectedLayer={activeLayer}
       initialTool={toolboxTool} onResult={agent.mergeToolResult} onTask={handleToolTask}
-      onOpenTask={id => { setToolboxOpen(false); setDetailTaskId(id); setTab("tasks"); }} />
+      onOpenTask={id => { setToolboxOpen(false); setDetailTaskId(id); navigateTab("tasks"); }}
+      toolBackToken={toolBackToken}
+      onToolLevel={toolName => {
+        const stack = backStackRef.current;
+        if (toolName) {
+          stack.push("toolbox-tool", () => setToolBackToken(value => value + 1));
+        } else {
+          stack.dismiss("toolbox-tool");
+        }
+        toolboxToolRef.current = toolName;
+      }} />
 
     <MobileSheet open={actionsOpen} title="快捷操作" initialSnap={0} snapPoints={[0.58, 0.9]} onClose={() => setActionsOpen(false)}>
       <div className="m-action-grid">
         <button type="button" onClick={() => { setActionsOpen(false); onAddData(); }}><Plus size={20} /><span>添加数据</span></button>
-        <button type="button" onClick={() => { setActionsOpen(false); setTab("map"); setLayersOpen(true); }}><Layers size={20} /><span>图层</span></button>
+        <button type="button" onClick={() => { setActionsOpen(false); navigateTab("map"); setLayersOpen(true); }}><Layers size={20} /><span>图层</span></button>
         <button type="button" onClick={() => { setActionsOpen(false); openToolbox(null); }}><Wrench size={20} /><span>工具箱</span></button>
-        <button type="button" onClick={() => { setActionsOpen(false); setTab("tasks"); }}><ListChecks size={20} /><span>任务中心</span></button>
-        <button type="button" onClick={() => { setActionsOpen(false); setTab("project"); }}><FolderKanban size={20} /><span>工程</span></button>
+        <button type="button" onClick={() => { setActionsOpen(false); navigateTab("tasks"); }}><ListChecks size={20} /><span>任务中心</span></button>
+        <button type="button" onClick={() => { setActionsOpen(false); navigateTab("project"); }}><FolderKanban size={20} /><span>工程</span></button>
         {activeLayer && <button type="button" onClick={() => openTable(activeLayer.id)}><Table2 size={20} /><span>属性表</span></button>}
         {activeLayer && <button type="button" onClick={() => { setActionsOpen(false); onPropertiesChange({ id: activeLayer.id, tab: "style" }); }}><Palette size={20} /><span>符号化</span></button>}
         {activeLayer && <button type="button" onClick={() => { setActionsOpen(false); onPropertiesChange({ id: activeLayer.id, tab: "labels" }); }}><Tags size={20} /><span>标注</span></button>}
         {aoi && activeLayer && <button type="button" onClick={() => { setActionsOpen(false); onClipAoi(); }}><Scissors size={20} /><span>AOI 裁剪</span></button>}
         <button type="button" onClick={() => { setActionsOpen(false); onOpenSettings(); }}><Settings2 size={20} /><span>设置</span></button>
-        <button type="button" onClick={() => { setActionsOpen(false); setTab("map"); onFocusAll(); }}><MapPin size={20} /><span>全图</span></button>
-        <button type="button" onClick={() => { setActionsOpen(false); if (activeLayer) { setTab("map"); onZoomLayer(activeLayer); } }} disabled={!activeLayer}><Shapes size={20} /><span>缩放图层</span></button>
+        <button type="button" onClick={() => { setActionsOpen(false); navigateTab("map"); onFocusAll(); }}><MapPin size={20} /><span>全图</span></button>
+        <button type="button" onClick={() => { setActionsOpen(false); if (activeLayer) { navigateTab("map"); onZoomLayer(activeLayer); } }} disabled={!activeLayer}><Shapes size={20} /><span>缩放图层</span></button>
       </div>
     </MobileSheet>
 
-    {tableLayer && <div className="m-fullscreen-panel" role="dialog" aria-modal="true" aria-label={`${tableLayer.name} 属性表`}>
-      <AttributeTable key={tableLayer.id} layer={tableLayer}
+    {tableLayer && <MobileSheet open title={`${tableLayer.name} · 属性表`}
+      subtitle="上滑查看更多 · 返回关闭抽屉"
+      initialSnap={1} snapPoints={[0.55, 0.93]}
+      onClose={onTableClose}>
+      <AttributeTable key={tableLayer.id} embedded layer={tableLayer}
         selectedIds={selection?.layerId === tableLayer.id ? selection.featureIds : []}
         initialFilter={tableFilter?.layerId === tableLayer.id ? tableFilter : null}
         resetToken={tableResetToken}
         onSelectionChange={onTableSelection} onClearSelection={onClearSelection} onClose={onTableClose} onZoom={onZoomBounds} />
-    </div>}
+    </MobileSheet>}
 
     {propertyLayer && properties && <MobileSheet open title={propertyLayer.name}
       subtitle={`${propertyTab === "style" ? "符号化" : propertyTab === "labels" ? "标注" : "属性"} · 拖动调整高度，关闭返回图层`}
@@ -873,7 +998,7 @@ export function MobileWorkspace(props: MobileWorkspaceProps) {
         onClose={() => { onPropertiesChange(null); setLayersOpen(true); }} />
     </MobileSheet>}
 
-    {(tab === "tasks" || tab === "project") && <MobileDock active={tab} onChange={next => { setTab(next); if (next !== "map") setLayersOpen(false); }} running={runningCount} pending={pendingCount} />}
+    {(tab === "tasks" || tab === "project") && <MobileDock active={tab} onChange={navigateTab} running={runningCount} pending={pendingCount} />}
     <span className="sr-only" aria-live="polite">{TAB_LABEL[tab]}</span>
   </div>;
 }

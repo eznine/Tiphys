@@ -411,6 +411,8 @@ export default function App() {
           onExportLayer={handleExportLayer}
           onClipAoi={() => void clipToAoi()}
           onOpenSettings={() => setSettingsOpen(true)}
+          settingsOpen={settingsOpen}
+          onCloseSettings={() => setSettingsOpen(false)}
           onTable={openTable}
           tableLayer={tableLayer}
           onTableClose={closeTable}
