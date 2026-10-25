@@ -514,6 +514,37 @@
     "annotations": {}
   },
   {
+    "name": "drop_empty_geometries",
+    "description": "Remove features whose geometry is null or empty, keeping all valid features and their original properties. Use when the user asks to drop unusable/null/empty geometry rows before export. Records the real dropped_count metadata for GeoJSON export.\n\nArgs:\n    layer: Layer id or name.\n    output_name: Optional output layer name.\n",
+    "parameters": {
+      "properties": {
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        },
+        "output_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Name"
+        }
+      },
+      "required": [
+        "layer"
+      ],
+      "title": "drop_empty_geometriesArguments",
+      "type": "object"
+    },
+    "category": "查询与选择",
+    "annotations": {}
+  },
+  {
     "name": "select_by_location",
     "description": "Select features spatially related to a filter layer into a new layer.\n\nPredicates: intersects, within, contains, crosses, touches, overlaps.\n\nArgs:\n    layer: Layer id or name to select from.\n    filter_layer: Layer providing the filter geometries.\n    predicate: Spatial predicate from the list above (default intersects).\n    output_name: Optional output layer name.\n",
     "parameters": {

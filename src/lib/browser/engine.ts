@@ -14,6 +14,7 @@ import { assertShapefileParts, groupShapefileParts, SHAPEFILE_EXTENSIONS } from 
 import { fieldRenameError, isNumericField, matchesDefinitionQuery, normalizeDefinitionOperator } from "../attribute-query";
 import { mergeKmlProperties, parseKmlPlacemarks } from "./kml";
 import { centroidOfGeometry } from "./centroid";
+import { assertBrowserVectorBudget } from "./vector-budget";
 
 type LayerRecord = {
   info: Omit<DataLayer, "url">;
@@ -623,6 +624,55 @@ function dropGeometryZ(geometry: Record<string, any>): Record<string, any> {
   }
   return geometry.coordinates ? { ...geometry, coordinates: dropZPosition(geometry.coordinates) } : geometry;
 }
+function geometryIsEmpty(geometry: Record<string, any> | null | undefined): boolean {
+  if (!geometry) return true;
+  switch (geometry.type) {
+    case "GeometryCollection":
+      return !Array.isArray(geometry.geometries) || geometry.geometries.length === 0 || geometry.geometries.every(geometryIsEmpty);
+    case "Point":
+      return !Array.isArray(geometry.coordinates) || geometry.coordinates.length < 2;
+    case "MultiPoint":
+    case "LineString":
+      return !Array.isArray(geometry.coordinates) || geometry.coordinates.length === 0;
+    case "MultiLineString":
+    case "Polygon":
+      return !Array.isArray(geometry.coordinates) || geometry.coordinates.length === 0
+        || geometry.coordinates.every((ring: unknown) => !Array.isArray(ring) || ring.length === 0);
+    case "MultiPolygon":
+      return !Array.isArray(geometry.coordinates) || geometry.coordinates.length === 0
+        || geometry.coordinates.every((polygon: unknown) => !Array.isArray(polygon) || polygon.length === 0);
+    default:
+      return false;
+  }
+}
+/**
+ * Drop null/empty geometries as a real data-cleaning operation. Attribute nulls
+ * are a separate condition; callers must not treat a notnull attribute filter as
+ * a geometry validity check.
+ */
+async function dropEmptyGeometries(record: LayerRecord, outputName: string, signal?: AbortSignal) {
+  if ((record.info.kind ?? "vector") !== "vector") throw new Error("空几何过滤仅适用于矢量图层。");
+  const display = record.geojson;
+  const source = display ?? await originalGeojson(record.bytes, record.extension, signal) as FeatureCollection;
+  if (source?.type !== "FeatureCollection" || !Array.isArray(source.features)) throw new Error("源数据无法读回为有效的矢量要素集合。");
+  const kept = source.features.filter(feature => feature?.geometry && !geometryIsEmpty(feature.geometry));
+  const dropped = source.features.length - kept.length;
+  const sourceEpsg = Number(String(record.info.crs ?? "").match(/^EPSG:(\d+)$/i)?.[1]);
+  const collection = {
+    type: "FeatureCollection",
+    crs: { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::4326" } },
+    features: kept,
+  } as FeatureCollection;
+  const filteredBytes = encoder.encode(JSON.stringify(collection));
+  const reproject = Boolean(display && Number.isInteger(sourceEpsg) && sourceEpsg !== 4326);
+  // Filtering is CRS-independent; the display copy is WGS84. Return the
+  // filtered data in the layer's original analysis CRS when it is projected.
+  const bytes = reproject ? await projectBytes(filteredBytes, "geojson", sourceEpsg, signal) : filteredBytes;
+  const extension = reproject ? "fgb" : "geojson";
+  const metadata = dropped > 0 ? { dropped_count: dropped } : undefined;
+  const output = await adopt(bytes, extension, outputName, signal, metadata);
+  return { ...output, feature_count: kept.length, dropped_count: dropped, metadata: metadata ?? {}, crs: record.info.crs ?? null };
+}
 /**
  * True planar centroid per feature, in the layer's own CRS. This intentionally
  * does not use the catalog's `centroid_vector`, whose "mean coordinate" centre
@@ -654,6 +704,10 @@ async function execute(name: string, args: Record<string, any>, signal?: AbortSi
   if (name === "centroid") {
     const record = await resolve(args.layer);
     return centroidLayer(record, String(args.output_name || `${record.info.name}_质心`), signal);
+  }
+  if (name === "drop_empty_geometries") {
+    const record = await resolve(args.layer);
+    return dropEmptyGeometries(record, String(args.output_name || `${record.info.name}_有效`), signal);
   }
   if (name === "remove_layer") return removeLayer(args.layer);
   if (pluginToolNames.has(name)) return runPluginTool(name, args, {
@@ -788,6 +842,8 @@ async function execute(name: string, args: Record<string, any>, signal?: AbortSi
   if (name === "spatial_join") {
     const other = await resolve(args.join_layer);
     if ((other.info.kind ?? "vector") !== "vector") throw new Error("连接图层必须是矢量图层。");
+    assertBrowserVectorBudget(record, "空间连接");
+    assertBrowserVectorBudget(other, "空间连接");
     return spatialJoin(record, other, args, signal);
   }
   if (name === "select_by_attributes") {
@@ -874,6 +930,7 @@ async function execute(name: string, args: Record<string, any>, signal?: AbortSi
   let tool = name, params: Record<string, string | number | boolean> = {};
   const inputs: Record<string, Uint8Array> = {};
   if (["buffer", "simplify"].includes(name)) {
+    assertBrowserVectorBudget(record, name === "buffer" ? "缓冲" : "简化");
     if (name === "buffer") {
       // Single command semantics with the desktop engine: units, distance and
       // dissolve rules come from the shared contract, not from this file.
@@ -901,9 +958,13 @@ async function execute(name: string, args: Record<string, any>, signal?: AbortSi
     }
     const target = Number(String(plan.args.target_crs).split(":")[1]);
     return adopt(await project(record, target, signal), "fgb", outputName, signal);
-  } else if (name === "convex_hull") { tool = "minimum_convex_hull"; params.individual_feature_hulls = false; }
+  } else if (name === "convex_hull") {
+    assertBrowserVectorBudget(record, "凸包");
+    tool = "minimum_convex_hull"; params.individual_feature_hulls = false;
+  }
   else if (name === "dissolve") rejectBrowserDissolve();
   else if (name === "calculate_geometry") {
+    assertBrowserVectorBudget(record, "面积/长度量算");
     // Geodesic mode measures WGS84 input directly. Reprojecting the measured
     // FlatGeobuf back trips an upstream FlatGeobuf reader panic in 1.7.1.
     const first = await wasmTool("add_geometry_attributes", { [`input.${record.extension}`]: record.bytes }, { input: `/work/input.${record.extension}`, measurement_mode: "geodesic", centroid: false, output: "/work/measured_out.fgb" }, signal);
@@ -922,6 +983,8 @@ async function execute(name: string, args: Record<string, any>, signal?: AbortSi
   }
   else if (name === "union_layers") {
     const other = await resolve(args.other_layer);
+    assertBrowserVectorBudget(record, "图层联合");
+    assertBrowserVectorBudget(other, "图层联合");
     const epsg = Number(record.info.crs?.split(":")[1]);
     if (!Number.isInteger(epsg)) throw new Error("图层坐标系必须为 EPSG 编号。");
     if (![...record.info.geometry_types, ...other.info.geometry_types].every(t => ["Polygon", "MultiPolygon"].includes(t))) throw new Error("联合工具当前要求两个输入都是面图层。");
@@ -934,6 +997,8 @@ async function execute(name: string, args: Record<string, any>, signal?: AbortSi
   }
   else if (["clip", "intersection", "erase", "select_by_location"].includes(name)) {
     const other = await resolve(args.mask_layer ?? args.other_layer ?? args.filter_layer);
+    assertBrowserVectorBudget(record, name === "intersection" ? "图层求交" : "图层叠加");
+    assertBrowserVectorBudget(other, name === "intersection" ? "图层求交" : "图层叠加");
     const epsg = Number(record.info.crs?.split(":")[1]);
     inputs["overlay.fgb"] = await project(other, epsg, signal);
     const pointClip = name === "clip" && record.info.geometry_types.every(t => t === "Point");

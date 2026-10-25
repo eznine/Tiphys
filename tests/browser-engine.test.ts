@@ -195,6 +195,25 @@ test("KML ExtendedData survives the managed work copy and GeoJSON export", async
   assert.deepEqual(json.features.map((feature: any) => feature.properties.verified_date).sort(), ["2026-01-02", "2026-02-03"]);
 });
 
+test("drop_empty_geometries removes null and empty geometries and records dropped_count", async () => {
+  const source = {
+    type: "FeatureCollection",
+    features: [
+      { type: "Feature", properties: { feature_id: 1 }, geometry: { type: "LineString", coordinates: [[0, 0], [1, 1]] } },
+      { type: "Feature", properties: { feature_id: 2 }, geometry: null },
+      { type: "Feature", properties: { feature_id: 3 }, geometry: { type: "LineString", coordinates: [] } },
+      { type: "Feature", properties: { feature_id: 4 }, geometry: { type: "Point", coordinates: [0, 0] } },
+    ],
+  };
+  const input = (await importBrowserFile(new Blob([JSON.stringify(source)]), "empty_geometries.geojson")).layer;
+  const result = await finished("drop_empty_geometries", { layer: input.id, output_name: "valid_geometries" });
+  assert.equal(result.layer.feature_count, 2);
+  assert.equal(result.dropped_count, 2);
+  assert.deepEqual(result.metadata, { dropped_count: 2 });
+  const stored: any = await readRecord(`layer:${result.layer.id}`);
+  assert.deepEqual(stored.geojson.features.map((feature: any) => feature.properties.feature_id).sort(), [1, 4]);
+});
+
 test("GeoJSON export normalizes projected layers to 4326", async () => {
   const source = {
     type: "FeatureCollection",
@@ -2734,10 +2753,10 @@ test("field_statistics reports numeric moments or top values with null counts", 
 
 test("catalog union, dedupe, L1 folders and every WASM L2 translation", async () => {
   await ensureBrowserCatalog();
-  assert.equal(browserCatalog.length, 1002, "39 shell/common tools (stage 3: +run_plan/plan_list/plan_get; native centroid) + 958 WASM schemas + 5 plugin tools");
+  assert.equal(browserCatalog.length, 1003, "40 shell/common tools (stage 3: +run_plan/plan_list/plan_get; native centroid and empty-geometry filter) + 958 WASM schemas + 5 plugin tools");
   assert.equal(new Set(browserCatalog.map(t => t.name)).size, browserCatalog.length);
   const desktop = desktopToolCatalog([{ name: "buffer", category: "邻近分析", parameters: { properties: {} } }]);
-  assert.equal(desktop.length, 1002, "desktop Python + WASM + shell-only stubs");
+  assert.equal(desktop.length, 1003, "desktop Python + WASM + shell-only stubs");
   assert.equal(new Set(desktop.map(t => t.name)).size, desktop.length);
   assert.ok(desktop.some(t => t.name === "gee_search_collection"));
   const l1 = new Set(browserCatalog.map(zhToolL1));
@@ -2881,7 +2900,7 @@ test("catalog shell is immediately usable and async hydration reaches the honest
   assert.ok(shellToolCatalog.some(tool => tool.name === "gee_auth_status"));
   assert.ok(!shellToolCatalog.some(tool => tool.name.startsWith("wasm_")));
   assert.equal(state.wasm, 958);
-  assert.equal(state.total, 1002);
+  assert.equal(state.total, 1003);
   assert.equal(state.hydrated, true);
 });
 

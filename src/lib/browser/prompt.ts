@@ -28,7 +28,8 @@ const BROWSER_SEARCH_DISCIPLINE = `
 ## 检索与参数纪律
 - 已知输入数据类型时，给 search_browser_tools 传 input_kind（raster/vector/table），缩小候选并避免选中输入不匹配的工具。
 - 用户说“转成面/面图层/栅格面化”时，优先使用 raster_to_vector_polygons；找到带参数卡的匹配工具后立即运行，不要继续换关键词反复搜索。
-- 参数名只认搜索返回的参数卡；使用 d8_pntr 等精确 wire name，不要用近义词猜参数。`;
+- 参数名只认搜索返回的参数卡；使用 d8_pntr 等精确 wire name，不要用近义词猜参数。
+- 用户要求删除“不可用/空几何”要素时，用 drop_empty_geometries；属性为空与几何为空是两件事，不要只做属性 notnull。`;
 
 /** Build the browser-agent system prompt without touching Vite-only raw imports. */
 export function buildBrowserSystemPrompt(

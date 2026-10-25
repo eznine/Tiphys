@@ -39,6 +39,7 @@ const TOOL_ALIASES: Record<string, string[]> = {
   concave_hull: ["凹包", "凹壳", "concave hull", "贴合边界"],
   densify_features: ["要素加密", "几何加密", "折点加密", "densify"],
   difference: ["差集", "矢量差集", "面差集", "叠加擦除", "difference"],
+  drop_empty_geometries: ["空几何", "无效几何", "空要素", "丢弃空几何", "empty geometry", "null geometry", "drop empty"],
   directional_distribution: ["方向分布", "标准差椭圆", "标准距离", "方向分布分析"],
   edge_preserving_mean_filter: ["保边均值", "边缘保持均值", "保边均值滤波", "边缘保持滤波"],
   euclidean_allocation: ["欧氏分配", "欧几里得分配", "最近源分配", "欧氏分配栅格"],
