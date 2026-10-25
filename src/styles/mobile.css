@@ -34,9 +34,14 @@
   --m-ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
   --m-tab-ms: 560ms;
   --m-dock-height: 64px;
-  --m-dock-space: calc(var(--m-dock-height) + env(safe-area-inset-bottom) + 18px);
+  --m-dock-space: calc(var(--m-dock-height) + env(safe-area-inset-bottom, 0px) + 18px);
   --m-bottom-card-h: 146px;
-  --m-bottom-card-space: calc(var(--m-bottom-card-h) + env(safe-area-inset-bottom) + 8px);
+  --m-bottom-card-space: calc(var(--m-bottom-card-h) + env(safe-area-inset-bottom, 0px) + 8px);
+  /* Immersive top: backgrounds edge-to-edge; chrome pads with --safe-top */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
 
   position: relative;
   display: block;
@@ -89,6 +94,15 @@
   outline-offset: 2px;
 }
 
+/* Full-bleed workspace under status bar / cutout */
+.app-shell.mobile .m-shell {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
 /* ------------------------------------------------------------------ map ---- */
 
 .app-shell.mobile .m-map-stage {
@@ -114,7 +128,7 @@
 .app-shell.mobile .m-map-stage .maplibre-map { position: absolute; inset: 0; width: 100%; height: 100%; }
 .app-shell.mobile .m-map-stage .maplibregl-map { font-family: inherit; }
 .app-shell.mobile .maplibregl-ctrl-bottom-right {
-  top: calc(env(safe-area-inset-top) + 76px);
+  top: calc(var(--safe-top) + 76px);
   right: 62px;
   bottom: auto;
 }
@@ -156,7 +170,7 @@
   grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
   gap: 10px;
-  padding: calc(env(safe-area-inset-top) + 8px) 14px 8px;
+  padding: calc(var(--safe-top) + 8px) 14px 8px;
   pointer-events: none;
   background: transparent;
 }
@@ -265,7 +279,7 @@
   position: absolute;
   z-index: 55;
   right: 10px;
-  top: calc(env(safe-area-inset-top) + 70px);
+  top: calc(var(--safe-top) + 70px);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -351,7 +365,7 @@
   box-shadow: var(--m-shadow);
   white-space: nowrap;
 }
-.app-shell.mobile .map-mode-hint { top: calc(env(safe-area-inset-top) + 70px); display: flex; align-items: center; gap: 10px; }
+.app-shell.mobile .map-mode-hint { top: calc(var(--safe-top) + 70px); display: flex; align-items: center; gap: 10px; }
 .app-shell.mobile .map-mode-hint button {
   border: 0;
   border-radius: 999px;
@@ -361,12 +375,12 @@
   font-size: 11px;
   cursor: pointer;
 }
-.app-shell.mobile .map-locate-status { top: calc(env(safe-area-inset-top) + 118px); }
+.app-shell.mobile .map-locate-status { top: calc(var(--safe-top) + 118px); }
 .app-shell.mobile .map-basemap-notice {
   position: absolute;
   z-index: 58;
   left: 50%;
-  top: calc(env(safe-area-inset-top) + 118px);
+  top: calc(var(--safe-top) + 118px);
   transform: translateX(-50%);
   padding: 7px 13px;
   border-radius: 999px;
@@ -460,7 +474,7 @@
 .app-shell.mobile .m-map-hud {
   position: absolute;
   z-index: 56;
-  top: calc(env(safe-area-inset-top) + 68px);
+  top: calc(var(--safe-top) + 68px);
   left: 12px;
   right: 64px;
   display: flex;
@@ -501,7 +515,7 @@
   z-index: 62;
   left: 12px;
   right: 12px;
-  top: calc(env(safe-area-inset-top) + 68px);
+  top: calc(var(--safe-top) + 68px);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -780,7 +794,7 @@ button.m-bottom-status { cursor: pointer; }
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding-top: env(safe-area-inset-top);
+  padding-top: 0; /* full-bleed under status bar; head/chrome use --safe-top */
   padding-bottom: var(--m-dock-space);
   background:
     radial-gradient(120% 55% at 50% 0%, #eef5fe 0%, transparent 58%),
@@ -796,7 +810,7 @@ button.m-bottom-status { cursor: pointer; }
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 14px 16px 8px;
+  padding: calc(var(--safe-top) + 14px) 16px 8px;
 }
 .app-shell.mobile .m-page-heading { flex: 1; min-width: 0; }
 .app-shell.mobile .m-page-heading h1,
@@ -1037,7 +1051,7 @@ button.m-bottom-status { cursor: pointer; }
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   /* leave room for absolute liquid-glass capsule; bubbles scroll under it */
-  padding: calc(env(safe-area-inset-top) + 56px) 14px 4px;
+  padding: calc(var(--safe-top) + 56px) 14px 4px;
 }
 .app-shell.mobile .m-banner {
   display: flex;
@@ -2069,7 +2083,7 @@ button.m-bottom-status { cursor: pointer; }
   inset: 0;
   z-index: 95;
   display: flex;
-  padding-top: env(safe-area-inset-top);
+  padding-top: var(--safe-top);
   background: var(--m-bg);
 }
 .app-shell.mobile .m-fullscreen-panel .attribute-table,
@@ -2275,7 +2289,7 @@ button.m-bottom-status { cursor: pointer; }
   }
   .app-shell.mobile .m-sheet-backdrop { background: rgba(10, 22, 38, 0.24); }
   .app-shell.mobile .m-sheet-grab { cursor: default; }
-  .app-shell.mobile .map-touch-controls { top: calc(env(safe-area-inset-top) + 64px); }
+  .app-shell.mobile .map-touch-controls { top: calc(var(--safe-top) + 64px); }
   .app-shell.mobile .map-touch-readout { display: none; }
 }
 
@@ -2501,7 +2515,7 @@ button.m-bottom-status { cursor: pointer; }
 .app-shell.mobile .settings-header {
   height: auto;
   min-height: 56px;
-  padding: calc(10px + env(safe-area-inset-top)) 16px 12px;
+  padding: calc(10px + var(--safe-top)) 16px 12px;
   gap: 8px;
 }
 .app-shell.mobile .settings-header > div {

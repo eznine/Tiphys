@@ -604,3 +604,10 @@
   - Uploaded https://tiphys.xyz/apk/tiphys-0.1.2.apk (+ mirrored tiphys.apk on origin). version.json apkUrl → versioned URL (CDN bust).
   - `npm run build` + `npm run deploy:xyz` OK (live asset matches; live version.json 0.1.2 / code 3).
   - **Do NOT start Agent overnight.** Builder/Agent remain paused.
+
+- 2026-10-25 12:25 Asia/Shanghai — Immersive top fill + APK check-update CORS (box only; **Agent overnight stays paused**):
+  - **Immersive top:** map/chat backgrounds edge-to-edge under status bar; chrome/capsule pad with `--safe-top` / `env(safe-area-inset-top)`. `viewport-fit=cover` kept; html/body/#root `100dvh`. Capacitor `@capacitor/status-bar` overlays WebView + transparent; Android `styles.xml` transparent status/nav bars. Chat gradient full-bleed; bubbles start below safe area.
+  - **Check-update:** `appUpdate.fetchRemoteVersion` uses `CapacitorHttp` on native (bypasses WebView CORS). Clearer Chinese network error. nginx snippet `deploy/nginx-tiphys-apk.conf` → `/etc/nginx/snippets/tiphys-apk.conf` with CORS + short cache for `/version.json` and `/apk/`; deploy script installs snippet without touching Certbot SSL. `CapacitorHttp.enabled` in capacitor.config.
+  - Verify: `npx tsc --noEmit` OK; `npm run build` OK; `npx cap sync android` (status-bar plugin). Deploy tiphys.xyz + nginx snippet.
+  - **APK:** StatusBar overlay + CapacitorHttp need **rebuild** (recommend 0.1.3). Do **not** fight parallel 0.1.2 upload; web tiphys.xyz gets immersive CSS immediately. Agent/builder remain paused.
+

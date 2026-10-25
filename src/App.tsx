@@ -25,6 +25,7 @@ import { warmWasmToolRunner } from "./lib/browser/wasm-tool-runner";
 import { scheduleIdle } from "./lib/idle";
 import { isShapefilePart } from "./lib/shapefile";
 import { buildAgentSessionStub, buildWorkspaceSnapshot, loadWorkspaceSnapshot, saveWorkspaceSnapshot, type WorkspaceRecovery } from "./lib/workspace";
+import { syncNativeStatusBar } from "./lib/nativeShell";
 import beijingPointsSample from "../samples/beijing_points.geojson?raw";
 import "./styles/app.css";
 import "./styles/mobile.css";
@@ -309,6 +310,7 @@ export default function App() {
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("tiphys-theme", themeMode);
+    void syncNativeStatusBar(theme);
   }, [theme, themeMode]);
   useEffect(() => {
     const escape = (event: KeyboardEvent) => {

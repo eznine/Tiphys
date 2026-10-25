@@ -68,6 +68,17 @@ echo "→ sudo install → ${REMOTE_WEB}"
 sshpass -e ssh "${SSH_OPTS[@]}" "${USER}@${HOST}" \
   "printf '%s\n' $(printf '%q' "$PASSWORD") | sudo -S rsync -a --delete --filter='P apk/' --filter='P apk/**' '${REMOTE_TMP}/' '${REMOTE_WEB}/'"
 
+
+
+
+echo "→ install nginx APK/CORS snippet (preserves Certbot SSL site)"
+sshpass -e scp "${SSH_OPTS[@]}" \
+  "deploy/nginx-tiphys-apk.conf" "scripts/install-nginx-apk-snippet.sh" \
+  "${USER}@${HOST}:/tmp/"
+sshpass -e ssh "${SSH_OPTS[@]}" "${USER}@${HOST}" \
+  "chmod +x /tmp/install-nginx-apk-snippet.sh && printf '%s\n' $(printf '%q' "$PASSWORD") | bash /tmp/install-nginx-apk-snippet.sh /tmp/nginx-tiphys-apk.conf"
+
+
 LOCAL_JS="$(grep -oE 'assets/index-[^\"[:space:]]+\.js' dist/index.html | head -1 || true)"
 REMOTE_JS="$(curl -fsS "https://tiphys.xyz/?v=$(date +%s)" | grep -oE 'assets/index-[^\"[:space:]]+\.js' | head -1 || true)"
 echo "local: ${LOCAL_JS:-unknown}"

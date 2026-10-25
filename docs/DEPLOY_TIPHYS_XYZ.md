@@ -92,7 +92,7 @@ dist/
 
 - 站点必须挂在域名根路径 `/`。
 - 不要改 `assets/` 里带 hash 的文件名。MapLibre worker 必须是 **`.js` + JavaScript MIME**；若被当成 `application/octet-stream` 或仍用上游 `.mjs`，地图会飞过去但一片空白。
-- nginx 参考：`deploy/nginx-tiphys.conf`（`index.html` no-cache，hashed assets 长缓存，`.wasm` → `application/wasm`）。
+- nginx 参考：`deploy/nginx-tiphys.conf`（`index.html` no-cache，hashed assets 长缓存，`.wasm` → `application/wasm`，`/version.json` + `/apk/` 短缓存与 CORS）。`npm run deploy:xyz` 会尝试安装该配置并 `nginx -t && reload`。
 
 ---
 

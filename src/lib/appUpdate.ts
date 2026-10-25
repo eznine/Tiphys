@@ -1,4 +1,4 @@
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, CapacitorHttp } from "@capacitor/core";
 
 /** Published on tiphys.xyz; APK builds compare against this (manual check only). */
 export const VERSION_JSON_URL = "https://tiphys.xyz/version.json";
@@ -75,11 +75,7 @@ export async function getLocalAppInfo(): Promise<LocalAppInfo> {
   return { version: BUNDLED_APP_VERSION, versionCode: BUNDLED_VERSION_CODE, native: isCapacitorNative() };
 }
 
-export async function fetchRemoteVersion(signal?: AbortSignal): Promise<RemoteVersionInfo> {
-  const url = `${VERSION_JSON_URL}?t=${Date.now()}`;
-  const response = await fetch(url, { signal, cache: "no-store" });
-  if (!response.ok) throw new Error(`无法获取版本信息（HTTP ${response.status}）`);
-  const data = (await response.json()) as Partial<RemoteVersionInfo>;
+function parseRemotePayload(data: Partial<RemoteVersionInfo>): RemoteVersionInfo {
   const version = typeof data.version === "string" ? data.version.trim() : "";
   const apkUrl = typeof data.apkUrl === "string" ? data.apkUrl.trim() : "";
   const versionCode = parseVersionCode(data.versionCode, 0);
@@ -88,6 +84,44 @@ export async function fetchRemoteVersion(signal?: AbortSignal): Promise<RemoteVe
   }
   const notes = typeof data.notes === "string" ? data.notes.trim() : undefined;
   return { version, versionCode, apkUrl, notes: notes || undefined };
+}
+
+/**
+ * Fetch version.json. On native Capacitor use CapacitorHttp (bypasses WebView CORS
+ * for https://localhost → tiphys.xyz). On web use fetch.
+ */
+export async function fetchRemoteVersion(signal?: AbortSignal): Promise<RemoteVersionInfo> {
+  const url = `${VERSION_JSON_URL}?t=${Date.now()}`;
+  try {
+    if (isCapacitorNative()) {
+      const response = await CapacitorHttp.get({
+        url,
+        headers: { Accept: "application/json" },
+        connectTimeout: 15000,
+        readTimeout: 15000,
+        responseType: "json",
+      });
+      if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+      if (response.status < 200 || response.status >= 300) {
+        throw new Error(`无法获取版本信息（HTTP ${response.status}）`);
+      }
+      const data = (typeof response.data === "string"
+        ? JSON.parse(response.data)
+        : response.data) as Partial<RemoteVersionInfo>;
+      return parseRemotePayload(data);
+    }
+
+    const response = await fetch(url, { signal, cache: "no-store" });
+    if (!response.ok) throw new Error(`无法获取版本信息（HTTP ${response.status}）`);
+    return parseRemotePayload((await response.json()) as Partial<RemoteVersionInfo>);
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") throw err;
+    if (err instanceof Error && /version\.json 格式无效|无法获取版本信息/.test(err.message)) throw err;
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `检查更新失败：无法连接 tiphys.xyz（网络或跨域）。请确认手机可访问互联网后重试。${detail ? `（${detail}）` : ""}`,
+    );
+  }
 }
 
 /**

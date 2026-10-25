@@ -53,6 +53,7 @@
     "@capacitor/browser": "^6.0.6",
     "@capacitor/core": "^6.2.2",
     "@capacitor/keyboard": "^6.0.4",
+    "@capacitor/status-bar": "^6.0.3",
     "@tauri-apps/api": "2.11.1",
     "@tauri-apps/plugin-opener": "^2.5.5",
     "ai": "^6.0.312",
