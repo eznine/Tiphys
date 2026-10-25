@@ -677,3 +677,10 @@
   - 交付：旧 `C:\Users\alex\Desktop\TIPHYS` 已移动到工作区 `.trash/TIPHYS_desktop_20261025` 备份；新版 portable 目录复制到 `C:\Users\alex\Desktop\TIPHYS`（`tiphys.exe` 13,948,416 B，`runtime/` 含 Node/Python sidecar）。
   - 包含本轮 A0 修复：真质心、KML 字段、RFC 7946 GeoJSON、空几何过滤、矢量预算守卫、inspect 显示/分析 CRS 语义。**未启动桌面 GUI 做实机点击验收**；APK 仍未重建。
   - 验证：`npx tsc --noEmit`、`npm run build` 通过；桌面构建与 portable 打包 exit 0。
+
+- 2026-10-25 17:20 Asia/Shanghai — A1 真 XLSX 导出 + 桌面/网页再交付：
+  - 新增 `src/lib/xlsx.ts`（基于已有 fflate 的极简 OOXML 单 sheet writer：inline string、数字/布尔、加粗表头、冻结首行、XML 转义、公式注入前缀）；属性表新增“导出本页 Excel”，与 CSV 一样只导出当前可见页，不含几何。
+  - 验证：`npm run test:xlsx` 2/2（ZIP 必需部件、中文、数字/布尔、公式前缀、记录 ID、文件名）；并用 `engine/.venv` 的 openpyxl 实际回读生成文件（表头/中文/数字/布尔/冻结首行均正常）。`npx tsc --noEmit`、`npm run build` 通过。
+  - 上线：web 部署 `assets/index-Bcx4Lw_p.js`，线上与本机 `dist/index.html` 一致；桌面 `desktop:build` + `portable:zip` 重建（NSIS 83.27 MiB），新版 portable 复制到 `C:\Users\alex\Desktop\TIPHYS`（`tiphys.exe` 13,953,024 B），上一版 17:00 构建移入 `.trash/TIPHYS_desktop_20261025_1715` 备份。
+  - 提交：`a74d7a0`（真 XLSX 导出）；文档/PROGRESS 随后提交。
+  - 边界：XLSX 仍只导当前页，不是全表；未启动桌面 GUI 做实机点击验收；APK 未重建；overnight 保持 PAUSED。

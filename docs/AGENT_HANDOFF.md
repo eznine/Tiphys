@@ -71,8 +71,8 @@ tf-codex -C /workspace/tiphys   # 优先 tierflow_pro
 |---|---|
 | APK | **0.1.3** / versionCode **4** → https://tiphys.xyz/apk/tiphys-0.1.3.apk |
 | 代码时代 | `2ca7d9e`（APK 0.1.3）+ A0 修复至 `fd19723`；最新 main 以 `git log` 为准 |
-| Web | https://tiphys.xyz 已 live（`assets/index-Ch4OIXyB.js`） |
-| Windows 桌面 | portable 重建于 2026-10-25 17:00 → `C:\Users\alex\Desktop\TIPHYS`；NSIS 83.29 MiB；GUI 未实机点击验收 |
+| Web | https://tiphys.xyz 已 live（`assets/index-Bcx4Lw_p.js`） |
+| Windows 桌面 | portable 重建于 2026-10-25 17:20 → `C:\Users\alex\Desktop\TIPHYS`；NSIS 83.27 MiB；GUI 未实机点击验收 |
 | Overnight | **PAUSED**（builder + tiphys-overnight-watch） |
 | 优先级 | **Agent-first**（browser Agent 可靠性 + desktop WASM bridge）；生态模型延后 |
 
@@ -114,10 +114,14 @@ tf-codex -C /workspace/tiphys   # 优先 tierflow_pro
 - **检查更新：** 原生端用 `CapacitorHttp` 拉 `version.json`，绕过 WebView CORS；错误文案更清晰。
 - nginx 片段保护 `/version.json` + `/apk/` CORS/短缓存（部署脚本不改 Certbot SSL）。
 
-### Windows 桌面 portable（2026-10-25 17:00）
-- `desktop:build` + `portable:zip` 成功；NSIS 83.29 MiB，portable zip 119.55 MiB，解压 290 MB。
-- 新版已复制到 `C:\Users\alex\Desktop\TIPHYS`；旧版备份在工作区 `.trash/TIPHYS_desktop_20261025`。
-- 包含 A0 修复（真质心、KML、RFC 7946、空几何、矢量预算、inspect CRS 语义）。**未启动 GUI 做实机点击验收**。
+### 属性表真 XLSX（2026-10-25 17:20）
+- 属性表新增“导出本页 Excel”；`src/lib/xlsx.ts` 用已有 fflate 生成单 sheet OOXML（表头加粗、冻结首行、数字/布尔/中文、公式注入前缀）。
+- 只导当前可见页，不含几何；`test:xlsx` 2/2，并用 openpyxl 实际回读验证。CSV 导出保留。
+
+### Windows 桌面 portable（2026-10-25 17:20）
+- `desktop:build` + `portable:zip` 成功；NSIS 83.27 MiB（87,318,993 B），portable zip 119,559,227 B，解压 290 MB。
+- 新版已复制到 `C:\Users\alex\Desktop\TIPHYS`；上一版 17:00 构建备份在工作区 `.trash/TIPHYS_desktop_20261025_1715`。
+- 包含 A0 修复（真质心、KML、RFC 7946、空几何、矢量预算、inspect CRS 语义）与属性表真 XLSX。**未启动 GUI 做实机点击验收**。
 
 ### A0.1 全量 30 任务基线（2026-10-25 16:42）
 - **30/30 PASS，0 FAIL / 0 ERROR**；P50 30 s / P95 146 s / 最长 226 s；输入 428,028 tokens / 输出 14,352；预期工具命中 27/30；计划 11 次，`auditRuns` 0 违规；H08 48.7 s 为 warn。
