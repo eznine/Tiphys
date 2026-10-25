@@ -611,3 +611,12 @@
   - Verify: `npx tsc --noEmit` OK; `npm run build` OK; `npx cap sync android` (status-bar plugin). Deploy tiphys.xyz + nginx snippet.
   - **APK:** StatusBar overlay + CapacitorHttp need **rebuild** (recommend 0.1.3). Do **not** fight parallel 0.1.2 upload; web tiphys.xyz gets immersive CSS immediately. Agent/builder remain paused.
 
+- 2026-10-25 12:19 Asia/Shanghai — Ship Android APK **0.1.3** / versionCode **4** (box only; **Agent overnight stays paused**):
+  - Includes immersive StatusBar + CapacitorHttp check-update `e6d1500`, plus prior 0.1.2 fold dock / identify sheet / back stack.
+  - Bump: android/app/build.gradle, package.json, BUNDLED_* + DEFAULT_APK_URL in src/lib/appUpdate.ts, public/version.json notes.
+  - `npx cap sync android` → plugins: app, browser, keyboard, **status-bar@6.0.3**; CapacitorHttp.enabled + StatusBar overlaysWebView in capacitor.config.
+  - `npm run android:build` → dist-apk/tiphys-debug.apk **17.2 MiB** (17994932 B), aapt versionCode 4 / 0.1.3, sha256 `4a316bfd9f566cc134afe2ef3753d0eaf15a6fe9eb27f2f7e5f21005a5e0d952`.
+  - Uploaded https://tiphys.xyz/apk/tiphys-0.1.3.apk (+ mirrored tiphys.apk on origin). version.json apkUrl → versioned URL (CDN bust; tiphys.apk may still CF-HIT old until TTL).
+  - `npm run build` + `npm run deploy:xyz` OK (live asset matches; live version.json 0.1.3 / code 4; APK content-length 17994932).
+  - **Do NOT start Agent overnight.** Builder/Agent remain paused.
+
