@@ -1,74 +1,85 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="TIPHYS">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="tip-title">
+  <title id="tip-title">TIPHYS</title>
   <defs>
-    <linearGradient id="bar-white" x1="395" y1="0" x2="1038" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFFFFF"/>
-      <stop offset=".62" stop-color="#F6F9FE"/>
-      <stop offset="1" stop-color="#C9D8EC"/>
+    <linearGradient id="plate-fill" x1="70" y1="18" x2="452" y2="506" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0B1B2E"/>
+      <stop offset=".46" stop-color="#0D2A4A"/>
+      <stop offset=".78" stop-color="#103A60"/>
+      <stop offset="1" stop-color="#155085"/>
     </linearGradient>
-    <linearGradient id="bar-blue" x1="395" y1="0" x2="836" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#16D2FF"/>
-      <stop offset=".42" stop-color="#0A9BFE"/>
-      <stop offset="1" stop-color="#0B4FE0"/>
-    </linearGradient>
-    <linearGradient id="badge-bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#0A0F1C"/>
-      <stop offset=".58" stop-color="#081A36"/>
-      <stop offset="1" stop-color="#0B2A55"/>
-    </linearGradient>
-    <radialGradient id="badge-glow" cx="0" cy="0" r="1" gradientTransform="translate(316 250) rotate(90) scale(158 196)" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#0A6BFF" stop-opacity=".38"/>
-      <stop offset="1" stop-color="#0A6BFF" stop-opacity="0"/>
+    <radialGradient id="plate-glow" cx="0" cy="0" r="1" gradientTransform="translate(348 300) rotate(90) scale(200 186)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2E86FF" stop-opacity=".36"/>
+      <stop offset=".55" stop-color="#1C6BFF" stop-opacity=".12"/>
+      <stop offset="1" stop-color="#1C6BFF" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="fold-navy" x1="660" y1="150" x2="836" y2="203" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#0A2A8C"/>
-      <stop offset="1" stop-color="#06123D"/>
+    <linearGradient id="plate-sheen" x1="256" y1="2" x2="256" y2="160" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".10"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
     </linearGradient>
-    <linearGradient id="leg-base" x1="515" y1="203" x2="814" y2="600" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#0A6BFF"/>
-      <stop offset=".5" stop-color="#14B8F0"/>
-      <stop offset="1" stop-color="#06C8FA"/>
+
+    <linearGradient id="tip-blue-cyan" gradientUnits="userSpaceOnUse" x1="320" y1="300" x2="425" y2="535">
+      <stop stop-color="#0738c9"/>
+      <stop offset=".30" stop-color="#0050e8"/>
+      <stop offset=".50" stop-color="#008bfa"/>
+      <stop offset=".63" stop-color="#00c4ef"/>
+      <stop offset=".84" stop-color="#00e4ed"/>
+      <stop offset="1" stop-color="#00e5ed"/>
     </linearGradient>
-    <linearGradient id="fade-white" x1="0" y1="0" x2="425" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
-      <stop offset=".55" stop-color="#FFFFFF" stop-opacity=".55"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".95"/>
+    <linearGradient id="tip-streak-highlight" gradientUnits="userSpaceOnUse" x1="120" y1="0" x2="240" y2="0">
+      <stop stop-color="#dcefff" stop-opacity=".9"/>
+      <stop offset=".35" stop-color="#bfddff" stop-opacity=".7"/>
+      <stop offset="1" stop-color="#83baff" stop-opacity="0"/>
     </linearGradient>
-    <linearGradient id="fade-ice" x1="0" y1="0" x2="415" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#BFE2FF" stop-opacity="0"/>
-      <stop offset="1" stop-color="#E8F6FF" stop-opacity=".95"/>
+    <linearGradient id="tip-streak-opacity" gradientUnits="userSpaceOnUse" x1="112" y1="0" x2="210" y2="0">
+      <stop stop-color="white" stop-opacity="0"/>
+      <stop offset=".7" stop-color="white" stop-opacity=".9"/>
+      <stop offset="1" stop-color="white"/>
     </linearGradient>
-    <linearGradient id="fade-cyan" x1="100" y1="0" x2="400" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#12C9FF" stop-opacity="0"/>
-      <stop offset=".5" stop-color="#12C9FF" stop-opacity=".65"/>
-      <stop offset="1" stop-color="#0A8BFF" stop-opacity="1"/>
-    </linearGradient>
-    <linearGradient id="fade-blue" x1="85" y1="0" x2="435" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#0A6BFF" stop-opacity="0"/>
-      <stop offset=".45" stop-color="#0B8DFF" stop-opacity=".8"/>
-      <stop offset="1" stop-color="#0A5FE8" stop-opacity="1"/>
-    </linearGradient>
-    <linearGradient id="fade-deep" x1="350" y1="0" x2="490" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#0A2C8C" stop-opacity="0"/>
-      <stop offset="1" stop-color="#0A2C8C" stop-opacity="1"/>
-    </linearGradient>
-    <clipPath id="leg-clip"><path d="M 606 203 L 790 203 Q 786 280 778 340 Q 766 420 748 470 Q 730 520 690 548 L 583 585 L 518 585 Z"/></clipPath>
+    <mask id="tip-streak-fade" maskUnits="userSpaceOnUse" x="110" y="350" width="180" height="135">
+      <rect x="110" y="350" width="180" height="135" fill="url(#streak-opacity)"/>
+    </mask>
+    <clipPath id="tip-upper-panel"><path d="M394 293L381 343L288 406H268L280 364H290Z"/></clipPath>
+    <clipPath id="tip-lower-panel"><path d="M376 360L345 488L274 558L242 499L245 487L270 526L269 519L246 477L253 469L280 506L278 499L255 460L264 428L282 427Z"/></clipPath>
+    <mask id="tip-head-slots" maskUnits="userSpaceOnUse" x="110" y="213" width="423" height="347">
+      <rect x="110" y="213" width="423" height="347" fill="white"/>
+      <path d="M110 251.5H309Q315 251.5 312 255.5Q311 258 308 258H110Z
+               M110 267H268Q273 267 270 271.5Q269 273.5 266 273.5H110Z" fill="black"/>
+    </mask>
+
+
   </defs>
-  <rect width="512" height="512" rx="116" fill="url(#badge-bg)"/>
-  <rect x="1.5" y="1.5" width="509" height="509" rx="115" fill="none" stroke="#FFFFFF" stroke-opacity=".09"/>
-  <ellipse cx="316" cy="250" rx="196" ry="158" fill="url(#badge-glow)"/>
-  <g transform="translate(-190 62) scale(0.622)">
-    <path d="M 395 40 L 1038 24 L 910 182 L 836 150 L 395 150 Z" fill="url(#bar-white)"/>
-    <path d="M 395 150 L 836 150 L 814 203 L 395 203 Z" fill="url(#bar-blue)"/>
-    <path d="M 735 150 L 836 150 L 814 203 L 660 203 Z" fill="url(#fold-navy)"/>
-    <g clip-path="url(#leg-clip)">
-      <path d="M 606 203 L 790 203 Q 786 280 778 340 Q 766 420 748 470 Q 730 520 690 548 L 583 585 L 518 585 Z" fill="url(#leg-base)"/>
-      <g opacity=".55">
-        <path d="M 515 337 L 814 337" stroke="#F4FDFF" stroke-width="3"/>
-        <path d="M 515 470 L 814 470" stroke="#F4FDFF" stroke-width="3"/>
-        <path d="M 590 203 L 558 600" stroke="#F4FDFF" stroke-width="3"/>
-        <path d="M 740 203 L 645 600" stroke="#F4FDFF" stroke-width="3"/>
+  <rect width="512" height="512" rx="116" fill="url(#plate-fill)"/>
+  <ellipse cx="348" cy="300" rx="200" ry="186" fill="url(#plate-glow)"/>
+  <rect width="512" height="512" rx="116" fill="url(#plate-sheen)" opacity=".55"/>
+  <rect x="1.5" y="1.5" width="509" height="509" rx="114.5" fill="none" stroke="#FFFFFF" stroke-opacity=".08"/>
+  <g transform="translate(-63.10 -127.61) scale(0.99253)">
+    <g id="speed-lines" mask="url(#tip-streak-fade)">
+        <path d="M148 376L282 374V379Z" fill="url(#tip-blue-cyan)"/><path d="M148 376L282 374V379Z" fill="url(#tip-streak-highlight)"/><path d="M145 392L277 390L276 395Z" fill="url(#tip-blue-cyan)"/><path d="M145 392L277 390L276 395Z" fill="url(#tip-streak-highlight)"/><path d="M141 441L265 438L264 444Z" fill="url(#tip-blue-cyan)"/><path d="M141 441L265 438L264 444Z" fill="url(#tip-streak-highlight)"/><path d="M122 457L258 455L257 460Z" fill="url(#tip-blue-cyan)"/><path d="M122 457L258 455L257 460Z" fill="url(#tip-streak-highlight)"/><path d="M138 474L251 472L250 477Z" fill="url(#tip-blue-cyan)"/><path d="M138 474L251 472L250 477Z" fill="url(#tip-streak-highlight)"/>
       </g>
-    </g>
-    <path d="M 606 203 L 790 203 Q 786 280 778 340 Q 766 420 748 470 Q 730 520 690 548 L 583 585 L 518 585 Z" fill="none" stroke="#F4FDFF" stroke-opacity=".55" stroke-width="2.5"/>
+      <!-- Main panels: all structural edges are straight line segments. -->
+      <g id="blue-body" fill="url(#tip-blue-cyan)">
+        <path d="M394 293L381 343L288 406H268L280 364H290Z"/>
+        <path d="M376 360L345 488L274 558L242 499L245 487L270 526L269 519L246 477L253 469L280 506L278 499L255 460L264 428L282 427Z"/>
+      </g>
+      <!-- Each panel has one continuous, evenly spaced vector grid. -->
+      <g id="grid" fill="none" stroke="#b7f2ff" stroke-width=".72" stroke-opacity=".24">
+        <path clip-path="url(#tip-upper-panel)" d="M220 237.00H410M220 256.00H410M220 275.00H410M220 294.00H410M220 313.00H410M220 332.00H410M220 351.00H410M220 370.00H410M220 389.00H410M220 408.00H410M220 427.00H410M220 446.00H410M220 465.00H410M220 484.00H410M220 503.00H410M220 522.00H410M220 541.00H410M220 560.00H410M220 579.00H410M220 598.00H410M149.60 285L82.40 565M169.60 285L102.40 565M189.60 285L122.40 565M209.60 285L142.40 565M229.60 285L162.40 565M249.60 285L182.40 565M269.60 285L202.40 565M289.60 285L222.40 565M309.60 285L242.40 565M329.60 285L262.40 565M349.60 285L282.40 565M369.60 285L302.40 565M389.60 285L322.40 565M409.60 285L342.40 565M429.60 285L362.40 565"/>
+        <path clip-path="url(#tip-lower-panel)" d="M220 308.00H410M220 326.80H410M220 345.60H410M220 364.40H410M220 383.20H410M220 402.00H410M220 420.80H410M220 439.60H410M220 458.40H410M220 477.20H410M220 496.00H410M220 514.80H410M220 533.60H410M220 552.40H410M220 571.20H410M220 590.00H410M220 608.80H410M220 627.60H410M220 646.40H410M220 665.20H410M170.00 285L102.80 565M190.40 285L123.20 565M210.80 285L143.60 565M231.20 285L164.00 565M251.60 285L184.40 565M272.00 285L204.80 565M292.40 285L225.20 565M312.80 285L245.60 565M333.20 285L266.00 565M353.60 285L286.40 565M374.00 285L306.80 565M394.40 285L327.20 565M414.80 285L347.60 565M435.20 285L368.00 565M455.60 285L388.40 565"/>
+      </g>
+      <!-- White diagonal ribbons terminate in exact polygonal points. -->
+      <g id="white-ribbons" fill="#fff">
+        <path d="M160 409L286 407L381 341L380 347L289 412Z"/>
+        <path d="M124 425L279 422L377 352L375 359L282 427Z"/>
+      </g>
+      <path id="inner-edge" d="M246 499L275 548L344 487"
+            clip-path="url(#tip-lower-panel)" fill="none" stroke="#dcffff"
+            stroke-width="2.3" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10"/>
+      <!-- Only the intentional crown and horizontal slot endings are rounded. -->
+      <g id="white-crown" fill="#fff" mask="url(#tip-head-slots)">
+        <path d="M234 215H525Q533 215 528 222L497 262Q490 271 480 271H402Q398 271 394 274L353 301L350 314L397 282H480L471 289Q467 293 460 293H394L298 361Q295 364 287 364H234L176 361L286 359L317 339L320 327L283 350L299 293H178L225 222Q228 215 234 215Z"/>
+        <path d="M156 250L211 249L210 253Z
+                 M140 265L202 263.8L200 267.3Z
+                 M112 279L193 276.5L191 280.3Z"/>
+      </g>
   </g>
 </svg>

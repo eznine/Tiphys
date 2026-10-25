@@ -693,3 +693,10 @@
   - `CLIENT_PARITY.md` / `CLIENT_RUNTIME.md`：999/995 工具；属性表 CSV/XLSX、定义查询、分级设色、栅格显示、MapLayout PNG；后续顺序重排。
   - `SEARCH_QUALITY.md`：目录 999，标注检索分数是加入原生工具前的实测，未重算；`STAGE2_REPORT` 方法卡 11 张；`STAGE5A` 说明 M11 已过但流域未进纵向；`STAGE5B` XLSX 标为已补；`BASELINE_STAGE0` / `GEOLIBRE_TOOLS` / `RELIABILITY_STATUS` 加当前状态指针，避免把历史快照当现状。
   - 未改代码；overnight 仍 PAUSED；下次开工按 `AGENT_HANDOFF` 第 0 节与 `MASTER_ROADMAP` 快照执行。
+
+- 2026-10-25 20:28 Asia/Shanghai — 新品牌 Logo 全端替换（web + 桌面；APK 未重打）：
+  - **品牌资产**：以用户提供的 `tiphys-symbol.svg` 替换旧 T 标；`public/brand/logo-badge.svg` 改为深海军蓝圆角底板（#0B1B2E→#0D2A4A→#103A60→#155085，蓝色辉光，非纯黑），`logo-icon.svg` 为透明图形，`logo-mark.svg` 为透明大图；TIPHYS 文字 wordmark 保留。顶栏 Logo 30→32px、聊天 dock 22→24px，CSS 圆角改为与底板一致的 22.6%。
+  - **Web**：favicon 指向新 badge，新增 180px `apple-touch-icon.png`；`npm run deploy:xyz` 上线 `assets/index-CMwH0Jsa.js`；`curl --noproxy '*'` 复核线上 badge/apple-touch 均 200，index 与本地 dist 一致。
+  - **桌面**：`npx tauri icon public/brand/logo-badge.svg` 生成 Windows/macOS 全套图标（icns/ico/Store logos）；`desktop:build` NSIS 83.50 MiB，`portable:zip` 119,773,329 B；新版解压到 `C:\Users\alex\Desktop\TIPHYS`，旧版备份至 `.trash/TIPHYS_desktop_20261025_202655`；已核对 exe 关联图标。
+  - **Android**：launcher/round/adaptive foreground、11 张 splash、自适应背景改为海军蓝渐变；仅更新资源，**APK 0.1.3 未重建**，安装包图标仍是旧版。
+  - **验证**：3 个品牌 SVG XML 可解析；`npx tsc --noEmit`、`npm run build` 通过；Playwright 浅色/深色截图确认顶栏与对话 dock 显示正常；未启动桌面 GUI 实机点击验收。
