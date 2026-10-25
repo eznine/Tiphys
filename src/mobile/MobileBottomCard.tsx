@@ -1,4 +1,14 @@
-import { useEffect, useRef, useState, type FocusEvent, type ReactNode } from "react";
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useRef,
+  useState,
+  type FocusEvent,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { MobileDock, type MobileTab } from "./MobileDock";
 
 type Props = {
@@ -9,6 +19,10 @@ type Props = {
   /** Optional status line inside the card (agent preview / model state). */
   status?: ReactNode;
   children: ReactNode;
+};
+
+type ComposerIdleChildProps = {
+  onComposerIdle?: () => void;
 };
 
 function isTextControl(target: EventTarget | null) {
@@ -22,14 +36,21 @@ function isTextControl(target: EventTarget | null) {
 }
 
 function viewportLooksClosed(vv: VisualViewport) {
-  // Android WebView often leaves focus stuck after IME dismiss; treat a recovered
-  // visual viewport (~window.innerHeight) as keyboard-closed.
+  // Secondary fallback only — OPPO/ColorOS WebView often never shrinks.
   return vv.height >= window.innerHeight - 8;
 }
 
-function isComposerSendTarget(target: EventTarget | null) {
+function isComposerChromeButton(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false;
-  return !!target.closest(".m-askbar-send, .mobile-composer-send");
+  return !!target.closest(
+    ".m-askbar-send, .mobile-composer-send, .m-askbar-add, .mobile-composer-add",
+  );
+}
+
+function isCardTextInput(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  if (!isTextControl(target)) return false;
+  return !!target.closest(".m-bottom-card");
 }
 
 /**
@@ -37,6 +58,10 @@ function isComposerSendTarget(target: EventTarget | null) {
  * typing, the status line and dock fold away so the keyboard only keeps the
  * input visible; the shell hides the whole card when another form field is
  * focused.
+ *
+ * OPPO/ColorOS WebView often never fires visualViewport shrink on IME open, so
+ * restore cannot depend on viewport gates. Primary restore: any pointer outside
+ * the text input blurs + clears typing (send/stop/add handle themselves first).
  */
 export function MobileBottomCard({ active, onChange, running, pending, status, children }: Props) {
   const [typing, setTyping] = useState(false);
@@ -65,6 +90,26 @@ export function MobileBottomCard({ active, onChange, running, pending, status, c
     sawShrinkRef.current = false;
   };
 
+  // Primary: any tap outside the text input restores dock (OPPO-safe; no viewport needed).
+  useEffect(() => {
+    const onOutsidePointer = (event: Event) => {
+      if (!typingRef.current) return;
+      const target = event.target;
+      if (isCardTextInput(target)) return;
+      // Send/stop/add must run their own handlers first (direct send / open sheet).
+      if (isComposerChromeButton(target)) return;
+      releaseComposer();
+    };
+    // capture so we beat scroll/focus quirks; both pointer + touch for older WebViews
+    document.addEventListener("pointerdown", onOutsidePointer, true);
+    document.addEventListener("touchstart", onOutsidePointer, true);
+    return () => {
+      document.removeEventListener("pointerdown", onOutsidePointer, true);
+      document.removeEventListener("touchstart", onOutsidePointer, true);
+    };
+  }, []);
+
+  // Secondary fallback when a WebView does report viewport shrink→recover.
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
@@ -94,12 +139,7 @@ export function MobileBottomCard({ active, onChange, running, pending, status, c
       window.setTimeout(() => {
         if (!typingRef.current) return;
         const activeEl = document.activeElement;
-        const vv = window.visualViewport;
         if (isTextControl(activeEl) && activeEl instanceof HTMLElement && activeEl.closest(".m-bottom-card")) {
-          // Focus stuck after IME dismiss (viewport recovered).
-          if (vv && viewportLooksClosed(vv) && sawShrinkRef.current) {
-            releaseComposer();
-          }
           return;
         }
         setTyping(false);
@@ -110,41 +150,22 @@ export function MobileBottomCard({ active, onChange, running, pending, status, c
     return () => document.removeEventListener("focusout", onFocusOut);
   }, []);
 
-  // Fallback for WebViews that skip visualViewport resize on IME dismiss.
+  // Clear stuck input-only mode across app resume / rotate (IME often gone).
   useEffect(() => {
-    if (!typing) return;
-    const timer = window.setInterval(() => {
-      if (!typingRef.current || !sawShrinkRef.current) return;
-      const vv = window.visualViewport;
-      if (!vv || !viewportLooksClosed(vv)) return;
-      releaseComposer();
-    }, 320);
-    return () => window.clearInterval(timer);
-  }, [typing]);
-
-  // Send/stop: prevent blur-before-click from eating the first tap. preventDefault can
-  // suppress the subsequent click on mobile, so submit/click immediately and swallow the ghost.
-  useEffect(() => {
-    const card = cardRef.current;
-    if (!card) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (!isComposerSendTarget(event.target)) return;
-      if (event.button != null && event.button !== 0) return;
-      event.preventDefault();
-      setTyping(false);
-      sawShrinkRef.current = false;
-      const btn = (event.target as HTMLElement).closest("button") as HTMLButtonElement | null;
-      if (!btn || btn.disabled) return;
-      if (btn.type === "submit") {
-        btn.closest("form")?.requestSubmit(btn);
-      } else {
-        btn.click();
-      }
-      const swallow = (e: Event) => { e.preventDefault(); e.stopPropagation(); };
-      btn.addEventListener("click", swallow, { capture: true, once: true });
+    const releaseIfTyping = () => {
+      if (typingRef.current) releaseComposer();
     };
-    card.addEventListener("pointerdown", onPointerDown);
-    return () => card.removeEventListener("pointerdown", onPointerDown);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") releaseIfTyping();
+    };
+    window.addEventListener("pageshow", releaseIfTyping);
+    window.addEventListener("orientationchange", releaseIfTyping);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pageshow", releaseIfTyping);
+      window.removeEventListener("orientationchange", releaseIfTyping);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   const onInput = () => {
@@ -154,9 +175,16 @@ export function MobileBottomCard({ active, onChange, running, pending, status, c
     }
   };
 
+  const composerChildren = Children.map(children, child => {
+    if (!isValidElement(child)) return child;
+    return cloneElement(child as ReactElement<ComposerIdleChildProps>, {
+      onComposerIdle: releaseComposer,
+    });
+  });
+
   return <div ref={cardRef} className="m-bottom-card" data-input-focused={typing} onFocus={focus} onBlur={blur} onInput={onInput}>
     {status && <div className="m-bottom-status-slot">{status}</div>}
-    <div className="m-bottom-composer">{children}</div>
+    <div className="m-bottom-composer">{composerChildren}</div>
     <MobileDock embedded active={active} onChange={onChange} running={running} pending={pending} />
   </div>;
 }

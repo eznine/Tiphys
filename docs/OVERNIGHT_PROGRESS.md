@@ -529,3 +529,9 @@
   - Tab slide slower: `--m-tab-ms: 560ms` + `--m-ease-soft` (cubic-bezier(0.22, 1, 0.36, 1)) for `.m-page`, dock bubble, and map enter.
   - Map hard-cut root cause: `.m-map-stage` stays mounted and was shown/hidden with instant opacity/visibility (and `transition: none` off-tab) so any →map skipped `m-tab-slide`. Fix: when `data-tab=map`, apply the same bidirectional `m-slide-in-end/start` on `.m-map-stage`; chrome keeps separate top-down `m-map-chrome-in`. Map→other still slides via destination `.m-page`.
   - Verify: `npx tsc --noEmit` OK; `npm run build` OK. Deploy tiphys.xyz. Do NOT start Agent overnight.
+
+- 2026-10-25 11:40 Asia/Shanghai — Mobile composer IME hotfix (OPPO still broken after `8ecef76`/`fbaadb4`; box only; Agent/builder stay paused):
+  - Root cause remaining bugs: (1) restore still gated on `visualViewport` shrink (`sawShrinkRef`); OPPO/ColorOS WebView often never shrinks/resizes on IME open, so dismiss left `data-input-focused=true` and dock hidden until Map tab tap. (2) Send used card-level `pointerdown` `preventDefault` + `requestSubmit` + ghost-click swallow; first tap cleared typing (UI restore) but submit could no-op, second tap sent.
+  - Fix: document capture `pointerdown`/`touchstart` — any tap outside the text input blurs + clears typing (send/stop/add excepted). `MobileComposer`/`MobileMapAskBar` send use button `onPointerDown`, read value from input ref, call `onSend` directly, blur + `onComposerIdle` (injected by `MobileBottomCard` via cloneElement). Also clear typing on `visibilitychange`/`pageshow`/`orientationchange`. Viewport shrink path kept as secondary only. Fold UX (`data-input-focused` dock hide) retained.
+  - Note: user approved adding manual APK check-update later — NOT implemented in this batch.
+  - Verify: `npx tsc --noEmit` OK; `npm run build` OK. Deploy tiphys.xyz. Do NOT start Agent overnight.
