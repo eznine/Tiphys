@@ -625,3 +625,8 @@
   - Light tip on `docs/OVERNIGHT_BRIEF.md` top: overnight **PAUSED**, point to AGENT_HANDOFF.
   - Git was clean @ `2ca7d9e` before this docs commit; APK 0.1.3 still live at tiphys.xyz; **do not resume** overnight builder / tiphys-overnight-watch.
   - Windows sync pending PC online (DESKTOP-4O0NU9A may be disconnected); pull ready once connected.
+
+- 2026-10-25 12:50 Asia/Shanghai — Speed playbook 置顶交接（box docs only; **overnight still paused**）:
+  - `docs/AGENT_HANDOFF.md` 最开头加醒目「怎么做得快 / Speed playbook」+「读这个再动手 / READ THIS FIRST」：工作在哪（box 默认热环境 / Windows 仅用户要求）、治理文档顺序、窄任务形状、关键脚本、overnight 配方（PAUSED）、当前 ship（APK 0.1.3 / `2ca7d9e`）、速度技巧与禁止项。
+  - `docs/OVERNIGHT_BRIEF.md` 顶 banner 改为必读 HANDOFF 开头「怎么做得快」。
+  - 未恢复 overnight、未重建 APK、未重部署 tiphys.xyz。Windows `F:\tiphys` 随后 `git pull --ff-only`。

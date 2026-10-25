@@ -1,7 +1,7 @@
-# TIPHYS Overnight Build Brief (updated 2026-10-25 ~12:42 Asia/Shanghai)
+# TIPHYS Overnight Build Brief (updated 2026-10-25 ~12:50 Asia/Shanghai)
 
 > **STATUS: OVERNIGHT PAUSED** (2026-10-25). Do **not** start `tf-codex` / tiphys-overnight-watch unless the user explicitly asks to resume.
-> Cross-Agent takeover: read **`docs/AGENT_HANDOFF.md` first**, then this brief + `docs/OVERNIGHT_PROGRESS.md`.
+> **必读 `docs/AGENT_HANDOFF.md` 开头「怎么做得快 / Speed playbook」** — READ THAT FIRST, then this brief + `docs/OVERNIGHT_PROGRESS.md`.
 
 Work **continuously** on **/workspace/tiphys** (Linux box). Prefer `tf-codex` with tierflow_pro; rotate keys on quota. Fallbacks: plain `codex` → `tf-chat` / grok. **Do not stop.** Watcher restarts every ~30m if dead.
 

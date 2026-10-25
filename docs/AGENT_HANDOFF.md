@@ -1,11 +1,95 @@
 # TIPHYS Agent 交接文档 / Agent Handoff
 
-**更新日期：** 2026-10-25 ~12:42 Asia/Shanghai  
-**当前 HEAD：** `2ca7d9e` — `release(android): 0.1.3 APK (immersive StatusBar + CapacitorHttp)`  
-**分支：** `main` · remote `https://github.com/eznine/Tiphys.git`  
-**工作树：** `/workspace/tiphys`（Linux box）· 干净（本交接文档提交后会前进一 commit）
+> # 读这个再动手 / READ THIS FIRST
+>
+> **「怎么做得快 / Speed playbook」在下方第一节。** 任何接手的 Agent（Local Codex / 其他医生）先完整读完这一节，再碰代码或脚本。不要跳过 HANDOFF 直接开改。
 
-> **给下一位 Agent：** 先读本文件，再读「治理文档」列表。Overnight builder **已暂停**，除非用户明确要求，否则不要恢复。
+**更新日期：** 2026-10-25 ~12:50 Asia/Shanghai  
+**当前 HEAD（代码时代）：** `2ca7d9e` — `release(android): 0.1.3 APK (immersive StatusBar + CapacitorHttp)`（其后多为 docs handoff）  
+**分支：** `main` · remote `https://github.com/eznine/Tiphys.git`  
+**工作树：** `/workspace/tiphys`（Linux box，默认热环境）· Windows `F:\tiphys` 用 `git pull` 同步
+
+---
+
+## 0. 怎么做得快 / Speed playbook（必读）
+
+这一节说明：**Tiphys 在 Linux box 上为什么能把移动端 / APK 修得快**，以及下一位 Agent 怎么同样快。不要发明新流程。
+
+### 工作跑在哪 / Where work runs
+
+| 环境 | 路径 | 何时用 |
+|---|---|---|
+| **默认（热）** | Linux box `/workspace/tiphys` | 日常改代码、类型检查、构建、部署 tiphys.xyz、打 APK。Node / Android SDK / deploy SSH 已暖好。 |
+| Windows 本机 | `F:\tiphys`（DESKTOP-4O0NU9A） | **仅当用户要求**交给 Local Codex / 本机 Agent 时。先 `git pull --ff-only origin main`，再动手。 |
+
+同步：box 上 commit + push → Windows `git pull`。不要两边同时脏树抢改。
+
+### 治理文档顺序 / Governing docs（按此读，勿跳过）
+
+1. **`docs/AGENT_HANDOFF.md`（本文件）— 先读本节「怎么做得快」** ← 不要略过
+2. `docs/OVERNIGHT_BRIEF.md`（顶部写明 PAUSED + 指向本 playbook）
+3. `docs/OVERNIGHT_PROGRESS.md`（**只追加**；先看尾部，避免重做已上船的活）
+4. 需要时再读：`docs/ANDROID_APK.md`、`docs/DEPLOY_TIPHYS_XYZ.md`
+5. 路线图等：`docs/MASTER_ROADMAP.md`（非紧急）
+
+**不要**只扫 BRIEF / PROGRESS 就开大改。HANDOFF 速度节是效率的入口。
+
+### 任务形状 / Task shape（快的核心）
+
+- **一批一个窄结果**：例如「只恢复 IME / dock fold」「只 bump APK 0.1.x」「只修检查更新 CORS」。
+- 每批：改 → 验证（`npx tsc --noEmit`，相关 build）→ **追加** PROGRESS → commit + push → **停住**或开下一批窄任务。
+- **禁止**无范围巨型重写、一次改半个产品、跳过验证就 push。
+
+### 关键脚本 / Key scripts（复用，别重造）
+
+```bash
+cd /workspace/tiphys
+npx tsc --noEmit          # 改代码后必跑
+npm run build             # Vite 生产构建
+npm run deploy:xyz        # 部署 tiphys.xyz（保护 /srv/tiphys-web/apk/）
+npm run android:build     # Capacitor + Gradle → dist-apk/tiphys-debug.apk
+npx cap sync android      # 插件/配置变更后
+```
+
+部署 / APK 流程以现有脚本与 `ANDROID_APK.md` / `DEPLOY_TIPHYS_XYZ.md` 为准，**不要重新发明 deploy**。
+
+### Overnight builder 配方（仅用户要求恢复时）
+
+**当前：PAUSED。除非用户明确说恢复，否则不要启动。**
+
+```bash
+tf-codex -C /workspace/tiphys   # 优先 tierflow_pro
+```
+
+- 历史 prompt：`.tooling/overnight/batch*-prompt*`
+- Watcher：`tiphys-overnight-watch` ~30m — **已暂停**；勿自行 resume
+- 每批绿了才追加 PROGRESS + commit + push
+
+### 当前上船状态 / Current ship state
+
+| 项 | 值 |
+|---|---|
+| APK | **0.1.3** / versionCode **4** → https://tiphys.xyz/apk/tiphys-0.1.3.apk |
+| 代码时代 | `2ca7d9e` + 其后 docs handoff commits |
+| Web | https://tiphys.xyz 已 live |
+| Overnight | **PAUSED**（builder + tiphys-overnight-watch） |
+| 优先级 | **Agent-first**（browser Agent 可靠性 + desktop WASM bridge）；生态模型延后 |
+
+### 速度技巧 / Speed tips
+
+1. **环境已热**：优先在 box 做 APK / deploy；Windows 只做用户点名的本机交接。
+2. **切小**：窄 outcome → 验证 → PROGRESS → push；不要攒一大堆。
+3. **复用脚本**：`build` / `deploy:xyz` / `android:build` / `cap sync` / `tsc`。
+4. **先看 PROGRESS 尾**：已 ship 的（0.1.1–0.1.3、IME、fold、identify sheet、沉浸顶栏…）不要重做。
+5. **部署别伤 APK 目录**：保护 `/srv/tiphys-web/apk/`。
+
+### 禁止 / Forbidden
+
+- 密钥、token、`.env`、service-account JSON **进 git**
+- **force-push** `main`
+- **未经用户要求**恢复 overnight / tiphys-overnight-watch
+- 部署时 **清空** `/srv/tiphys-web/apk/`
+- 未经用户要求重建 APK 或全站重部署（纯文档交接除外）
 
 ---
 
@@ -13,12 +97,12 @@
 
 | 项 | 值 |
 |---|---|
-| Commit | `2ca7d9eb1dbcafe1fc330e6642fc3be178efda13`（短：`2ca7d9e`） |
+| Commit（APK 代码） | `2ca7d9eb1dbcafe1fc330e6642fc3be178efda13`（短：`2ca7d9e`） |
 | 日期 | 2026-10-25 12:20 Asia/Shanghai（APK 0.1.3 发布） |
 | Live Web | https://tiphys.xyz |
 | Live APK | https://tiphys.xyz/apk/tiphys-0.1.3.apk · versionCode **4** · package `0.1.3` |
 | Overnight builder | **PAUSED**（tf-codex / tiphys-overnight-watch 均勿恢复） |
-| Windows 同步 | `F:\tiphys` on DESKTOP-4O0NU9A — 交接时可能离线；box 已 push，PC 上线后 `git pull` |
+| Windows 同步 | `F:\tiphys` on DESKTOP-4O0NU9A — box push 后 PC `git pull` |
 
 ---
 
@@ -29,7 +113,7 @@
 - **检查更新：** 原生端用 `CapacitorHttp` 拉 `version.json`，绕过 WebView CORS；错误文案更清晰。
 - nginx 片段保护 `/version.json` + `/apk/` CORS/短缓存（部署脚本不改 Certbot SSL）。
 
-### 此前移动端修复（Tiphys bot 在 Linux box 执行，**不是** overnight tf-codex）
+### 此前移动端修复（在 Linux box 执行，**不是** overnight tf-codex）
 | 版本 | 要点 |
 |---|---|
 | 0.1.1 | IME 收起恢复、Settings 下载按钮、APK 检查更新入口 |
@@ -56,7 +140,7 @@ Densify / 工具目录加厚只在 A0 有进展之后。
 
 ## 4. 如何继续 / How to continue
 
-### 在 Linux box（`/workspace/tiphys`）
+### 在 Linux box（`/workspace/tiphys`）— 默认
 ```bash
 cd /workspace/tiphys
 git pull origin main
@@ -68,24 +152,22 @@ npm run android:build     # 仅用户要求重建 APK 时
 npx cap sync android      # Capacitor 插件/配置变更后
 ```
 
-### 在 Windows 家用机（同步后交接给本机 Agent）
+### 在 Windows 家用机（用户要求本机交接时）
 路径：`F:\tiphys` · machineId `30ebd88b-abb8-449b-a4fa-e347be4f4933`（DESKTOP-4O0NU9A）
 
-```bat
-cd /d F:\tiphys
-git pull origin main
-git log -1 --oneline
+```powershell
+git -C "F:\tiphys" pull --ff-only origin main
+git -C "F:\tiphys" log -1 --oneline
 ```
 
-确认 HEAD 含本交接 commit（或至少 ≥ `2ca7d9e`）。然后把本文件路径交给本机 Agent：`docs/AGENT_HANDOFF.md`。
+确认 HEAD ≥ 含本节 playbook 的 docs commit（或至少 ≥ `2ca7d9e`）。然后把路径交给本机 Agent：`docs/AGENT_HANDOFF.md`（**先读第 0 节**）。
 
-### 治理文档（按此顺序读）
-1. `docs/AGENT_HANDOFF.md` ← **本文件**
-2. `docs/MASTER_ROADMAP.md`
-3. `docs/OVERNIGHT_BRIEF.md`（顶部写明 PAUSED）
-4. `docs/OVERNIGHT_PROGRESS.md`（追加式进度日志）
-5. `docs/ANDROID_APK.md`
-6. `docs/DEPLOY_TIPHYS_XYZ.md`
+### 治理文档（再次强调顺序）
+1. `docs/AGENT_HANDOFF.md` ← **本文件，先读「怎么做得快」**
+2. `docs/OVERNIGHT_BRIEF.md`（PAUSED）
+3. `docs/OVERNIGHT_PROGRESS.md`（追加式；先看尾）
+4. `docs/ANDROID_APK.md` / `docs/DEPLOY_TIPHYS_XYZ.md`（按需）
+5. `docs/MASTER_ROADMAP.md`
 
 ---
 
@@ -152,4 +234,4 @@ tf-codex -C /workspace/tiphys   # 优先 tierflow_pro；配额不足再轮换
 
 ## 10. 给父 Agent / 用户的一句话
 
-仓库已在 `main` 上干净发布 APK **0.1.3**；overnight **暂停**；交接文档在 `docs/AGENT_HANDOFF.md`。Windows `F:\tiphys` 上线后 `git pull` 即可把同一状态交给本机 Agent。
+仓库已在 `main` 上干净发布 APK **0.1.3**；overnight **暂停**；**速度 playbook 在 `docs/AGENT_HANDOFF.md` 最开头**。Windows `F:\tiphys` 上线后 `git pull`，交给本机 Agent 时先让他读第 0 节。
