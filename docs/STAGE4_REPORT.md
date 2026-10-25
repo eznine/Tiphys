@@ -138,3 +138,18 @@ iPhone 12 仿真（390×844，touch，deviceScaleFactor 3）× 真实 WASM 引�
 解读：几何/CRS 类任务满分，失分集中在**schema 保真、元数据约定、导出纪律**——与自有基线的结论互补（那边败在检索/参数，这边败在交付格式细节）。这两个方向就是下一步产品化的靶子。
 
 **Batch 33 产品跟进（2026-10-25，未重评分）**：KML 导入现在补读并持久化 `ExtendedData` / `SchemaData` 属性；属性过滤产生的 `dropped_count` 会随 GeoJSON 导出写到顶层，GPKG/FGB/CSV 明确返回 NOT_SUPPORTED；显式文件名交付有真实导出守卫；GeoAgentBench 驱动器已改为把 `.shp/.shx/.dbf` 作为一次多文件选择导入。确定性浏览器回归覆盖上述路径。由于本机缺少 GeoAgentBench 浅克隆且网络不可用，本轮 **agent re-score deferred**，上表计数仍为 2026-10-24 单次运行结果，不把产品测试冒充新基准分数。细节见 `docs/GEOAGENT_SCHEMA_EXPORT.md`。
+
+### 2026-10-25 重评分（tierflow_pro，单次运行）
+
+本轮在 Windows `F:\tiphys` 用已存在的 `reference/gis/GeoAgentBench` 重跑同一 6 任务子集，结果 **4/6 全过、加权平均 0.764**；报告 `docs/baselines/stage4/geoagentbench.{json,md}` 已按本轮结果重写，旧表保留为历史。
+
+| 任务 | 本轮结果 | 变化 |
+|---|---|---|
+| crs-l1-paris-lambert93 | **PASS 11/11** | 稳定 |
+| geo-l1-cairo-multipoint-hull | **PASS 10/10** | 稳定 |
+| geo-l1-capetown-building-centroids | **PASS 9/9** | ERROR → PASS；驱动器补齐 Shapefile sidecar；新增原生真质心工具（面积加权 + 大坐标局部原点稳定化） |
+| fio-l1-paris-kml-pois | **PASS 10/10** | FAIL → PASS；KML 描述键值展开为字段；GeoJSON 导出按 RFC 7946 转 4326 并去 Z |
+| dc-l1-capetown-waterway-nulls | FAIL 8/12 | PASS → FAIL；模型只过滤了空 `waterway_type`，没有去掉 5 个 null + 5 个 empty 几何（产品缺少“空几何”过滤器） |
+| geo-l2-bangkok-landuse-intersect | FAIL（无产物） | 13 MB GeoParquet 上 `clip`/`intersection` 均触发 WASM `unreachable`；属于浏览器大矢量资源边界，不是超时 |
+
+另修了评测器自身的三个问题：Shapefile 任务只喂 `.shp` 未带同名 sidecar；Windows grader 默认 GBK 读 JSON 触发 `UnicodeDecodeError`；失败任务缺少工具链/错误诊断。Capetown 与 KML 的单任务定跑分别为 9/9、10/10，完整 6 任务仍以上表为准。后续靶子：空几何过滤（waterway）与大矢量分块/降级（Bangkok）。

@@ -16,6 +16,7 @@
 | `dissolve-group` | 融合与分组汇总 | 融合、按类型合并、去掉内部边界 | `gis.dissolve` | `dissolve` |
 | `zonal-stats` | 分区统计 | 分区统计、平均高程、每个面内像元 | `gis.zonal_statistics`（桌面 Python 已实现；浏览器仍拒绝） | `zonal_statistics` |
 | `area-length-measure` | 面积与长度量算 | 面积、周长、平方公里 | — | `calculate_geometry` |
+| `centroid-metric` | 质心与中心点 | 质心、centroid、中心点 | — | `centroid` |
 | `spatial-join` | 空间连接与最近匹配 | 空间连接、最近站点、落在哪个区 | — | `spatial_join` |
 | `dem-hydrology` | DEM 水文分析 | 汇流、流域、填洼、河网提取 | — | `wasm_d8_flow_accum` |
 | `slope-aspect` | 坡度与坡向 | 坡度、坡向、地形起伏 | — | `wasm_slope` |

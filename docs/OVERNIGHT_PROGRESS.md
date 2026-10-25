@@ -641,3 +641,12 @@
   - **部署**：`npm run deploy:xyz` 完成；`https://tiphys.xyz` 实际返回 `assets/index-4tgg2VZX.js`，与本地 `dist/index.html` 一致（用 `curl --noproxy '*'` 复核；部署脚本自带的 live 检查被本机 `HTTPS_PROXY=127.0.0.1:8668` 干扰）。`/apk/tiphys-0.1.3.apk` 仍在线（17,994,932 B），`version.json` 仍为 0.1.3 / versionCode 4。
   - **提交**：`5b12b9d`（lock 版本同步）、`c9ef12f`（基线归因）、`cffd8a2`（计划回收/schema/水文链）；本 PROGRESS 与 bridge 文档随后提交。
   - **未做**：未重跑完整 30 任务模型在环基线；未重建 APK；桌面侧尚无 plan adapter，故 `discardLayer` 目前只有浏览器实现；overnight 保持 PAUSED。
+
+- 2026-10-25 15:42 Asia/Shanghai — A0.4 GeoAgentBench 重评分 + 质心/KML 交付修复（Windows `F:\tiphys`；overnight 仍 PAUSED；web 部署随后）：
+  - **正式重评分**：同一 6 任务兼容子集 **4/6 全过，加权 0.764**（2026-10-24 为 2/6）。Paris 重投影 11/11、Cairo 凸包 10/10、Capetown 质心 9/9、Paris KML 10/10；waterway 8/12（只过滤空 `waterway_type`，未去 5 个 null + 5 个 empty 几何）；Bangkok 无产物（13 MB GeoParquet 上 `clip`/`intersection` 触发 WASM `unreachable`，是浏览器大矢量资源边界，不是超时）。报告 `docs/baselines/stage4/geoagentbench.{json,md}` 已重写。
+  - **原生真质心**：新增 `src/lib/browser/centroid.ts` 与原生 `centroid` 工具（面面积加权、洞减面积、线长加权中点、点原样），UTM 大坐标先平移到局部原点再算，避免 shoelace 双精度抵消；Capetown 参考对比从 76/122 在 1 m 内提升到 122/122。新增 `centroid-metric` 方法卡（11 张）与检索别名/意图；`wasm_centroid_vector` 的“平均坐标”语义不再被当作真质心。
+  - **KML/GeoJSON 交付**：KML `<description>` 的“键：值”展开为真实属性（Catégorie / Dernière vérification 等）；GeoJSON 导出按 RFC 7946 统一 EPSG:4326、去 Z、把 4979 的 `crs` 重标为 4326，其他格式保留原生 CRS；导出结果显式返回 `source_crs` / `export_crs`。
+  - **评测器**：Shapefile 任务自动收集同名 `.shx/.dbf/.prj/.cpg`；Windows grader 强制 `PYTHONUTF8=1`（此前 GBK 读 JSON 崩溃）；失败任务记录工具链/工具错误/最后回答并保留 submission 目录；Bangkok 单任务 600 s 预算。
+  - **验证**：`npx tsc --noEmit` 通过；`npm run build` 通过；`test:plans` 31/31；`test:methods` 9/9；`test:search` 8/8；`test:contracts` 12/12；`test:centroid` 7/7；`test:baseline-eval` 6/6；`browser-engine` 88/88。
+  - **提交**：`ee93d7e`（真质心/KML/RFC 7946）、`573f3c9`（GeoAgentBench harness + 4/6 报告）；文档与 PROGRESS 随后提交。
+  - **未做/后续**：waterway 空几何过滤器与大矢量分块/降级；未重跑完整 30 任务自有基线；未重建 APK；overnight 保持 PAUSED。

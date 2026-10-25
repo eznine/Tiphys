@@ -15,8 +15,8 @@
 
 ## 目录合并
 
-- 浏览器：首屏先显示 39 个公共/扩展工具壳层；动态加载 958 个 GeoLibre WASM schema 后，合并目录为 997 个。工具箱隐藏 `ping`、`list_layers`、`job_status`、`job_cancel` 四个引擎控制项，因此正常可见 993 个。
-- Tauri：`/tools/catalog` 先读取 Python MCP 工具，再合并同一批 WASM schema、公共工具和扩展；当前联合目录同样是 997 个，工具箱可见 993 个。
+- 浏览器：首屏先显示 39 个公共/扩展工具壳层；动态加载 958 个 GeoLibre WASM schema 后，合并目录为 998 个。工具箱隐藏 `ping`、`list_layers`、`job_status`、`job_cancel` 四个引擎控制项，因此正常可见 994 个。
+- Tauri：`/tools/catalog` 先读取 Python MCP 工具，再合并同一批 WASM schema、公共工具和扩展；当前联合目录同样是 998 个，工具箱可见 994 个。
 - 两端的搜索都按工具名、中文名、类别/子类和说明排序；分类和子类命中会加权，避免只靠英文描述命中。常用短语（等值线、成本距离、点提取、色彩合成）另设工具别名，可直接命中对应 WASM 工具。
 
 ## 首屏与 Worker 预热
