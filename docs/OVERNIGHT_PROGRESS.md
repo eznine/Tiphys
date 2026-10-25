@@ -620,3 +620,8 @@
   - `npm run build` + `npm run deploy:xyz` OK (live asset matches; live version.json 0.1.3 / code 4; APK content-length 17994932).
   - **Do NOT start Agent overnight.** Builder/Agent remain paused.
 
+- 2026-10-25 12:42 Asia/Shanghai — Agent handoff for cross-Agent takeover (box only; **overnight still paused**):
+  - Wrote `docs/AGENT_HANDOFF.md`: HEAD `2ca7d9e`, APK 0.1.3 live, priority lock Agent-first, how to continue on box vs Windows (`git pull` on `F:\tiphys`), governing docs, key scripts, overnight recipe (paused), what NOT to do, OPPO verify checklist, next Agent-core line.
+  - Light tip on `docs/OVERNIGHT_BRIEF.md` top: overnight **PAUSED**, point to AGENT_HANDOFF.
+  - Git was clean @ `2ca7d9e` before this docs commit; APK 0.1.3 still live at tiphys.xyz; **do not resume** overnight builder / tiphys-overnight-watch.
+  - Windows sync pending PC online (DESKTOP-4O0NU9A may be disconnected); pull ready once connected.
