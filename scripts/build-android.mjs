@@ -15,6 +15,8 @@ function run(command, args, options = {}) {
     cwd: options.cwd ?? root,
     env: options.env ?? process.env,
     stdio: "inherit",
+    // Node 24 on Windows: spawnSync of *.cmd needs shell, else EINVAL.
+    shell: process.platform === "win32",
   });
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status ?? 1);
