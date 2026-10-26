@@ -54,6 +54,10 @@ if ! command -v sshpass >/dev/null 2>&1; then
   exit 3
 fi
 
+# Refuse non-canonical signing cert before any network upload.
+echo "→ verify APK signing cert (canonical efd833d2…)"
+node "$ROOT/scripts/verify-apk-cert.mjs" "$APK_PATH"
+
 APK_NAME="$(basename "$APK_PATH")"
 # Prefer versioned name from version.json apkUrl if set
 APK_URL_NAME="$(python3 -c "import json; u=json.load(open('$VERSION_JSON')).get('apkUrl',''); print(u.rsplit('/',1)[-1] if u else '')")"

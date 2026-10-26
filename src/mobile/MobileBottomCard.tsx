@@ -12,11 +12,8 @@ import {
 import { MobileDock, type MobileTab } from "./MobileDock";
 import {
   deferComposerIdle,
-  imeDebug,
-  imeDismissArmed,
   isComposerTextFocused,
   isTextControl,
-  noteComposerFocus,
   subscribeImeDismiss,
 } from "./imeRestore";
 import { getActiveMobileBackStack } from "./mobileBack";
@@ -86,13 +83,7 @@ export function MobileBottomCard({ active, onChange, running, pending, status, c
     setTyping(false);
   };
 
-  const releaseComposer = (force = false) => {
-    // Grace: while the IME is still opening, keep focus if the input has it
-    // (stray blur/keyboard-hide/re-render must not kill the IME).
-    if (!force && !imeDismissArmed() && isComposerTextFocused()) {
-      imeDebug("release ignored (grace, input still focused)");
-      return;
-    }
+  const releaseComposer = () => {
     typingRef.current = false;
     setTyping(false);
     const activeEl = document.activeElement;
@@ -142,7 +133,7 @@ export function MobileBottomCard({ active, onChange, running, pending, status, c
     const onOutsidePointer = (event: Event) => {
       if (!typingRef.current) return;
       if (isComposerChrome(event.target)) return;
-      releaseComposer(true);
+      releaseComposer();
     };
     document.addEventListener("pointerdown", onOutsidePointer, true);
     document.addEventListener("touchstart", onOutsidePointer, true);
@@ -172,7 +163,6 @@ export function MobileBottomCard({ active, onChange, running, pending, status, c
       const target = event.target;
       if (isCardTextInput(target)) {
         clearFocusOutTimer();
-        if (!typingRef.current) noteComposerFocus();
         setTyping(true);
         return;
       }
@@ -248,7 +238,7 @@ export function MobileBottomCard({ active, onChange, running, pending, status, c
   const composerChildren = Children.map(children, child => {
     if (!isValidElement(child)) return child;
     return cloneElement(child as ReactElement<ComposerIdleChildProps>, {
-      onComposerIdle: () => releaseComposer(true),
+      onComposerIdle: releaseComposer,
     });
   });
 

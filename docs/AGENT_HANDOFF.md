@@ -4,8 +4,8 @@
 >
 > **「怎么做得快 / Speed playbook」在下方第一节。** 任何接手的 Agent（Local Codex / 其他医生）先完整读完这一节，再碰代码或脚本。不要跳过 HANDOFF 直接开改。
 
-**更新日期：** 2026-10-26 ~10:45 Asia/Shanghai
-**当前 HEAD（代码时代）：** see `git log -1` on `main` (0.1.4 IME + /tiphys/ site layout deploy)
+**更新日期：** 2026-10-26 ~12:15 Asia/Shanghai
+**当前 HEAD（代码时代）：** see `git log -1` on `main` (0.1.5 IME root-cause + canonical signing)
 **分支：** `main` · remote `https://github.com/eznine/Tiphys.git`  
 **工作树：** `/workspace/tiphys`（Linux box，默认热环境）· Windows `F:\tiphys` 用 `git pull` 同步
 
@@ -33,6 +33,25 @@
 | `https://tiphys.xyz/apk/…` | APK；`version.json` 在 **根** 与 `/tiphys/` 各一份 |
 
 Deploy：`npm run deploy:xyz` **只** rsync 到 `/srv/tiphys-web/tiphys/`；APK：`npm run upload:apk`。凭证：box `~/.config/tiphys/deploy-pass.txt`（+ 可选 key）；Windows `F:\server\eznine_deploy_b` + `tiphys-deploy-pass.txt`。详见 `DEPLOY_TIPHYS_XYZ.md`。
+
+
+### 签名冲突 / 已安装签名冲突（必读）
+
+安装提示「已安装签名冲突」= 手机上已有 `xyz.tiphys.app`，但证书与新 APK 不同。
+
+| | |
+|---|---|
+| **规范证书 SHA-256** | `efd833d24fa5151dc24ba5be200d0c48fb09a91271cdeaf583a6ff09e1fec6db`（Windows debug 密钥复用） |
+| **Windows 存放** | `F:\tooling\signing\tiphys-canonical.keystore` + `keystore.properties`（及可选 `F:\tiphys\.signing\`） |
+| **Linux box** | `~/.config/tiphys/signing/`（可选；CopyToBox **不能**传密钥；无密钥则 Gradle 失败，**禁止**用箱 `~/.android/debug.keystore` 发版） |
+| **规则** | 每个发版 APK 必须用该密钥；`scripts/verify-apk-cert.mjs` 在 `android:build` / `upload:apk` 校验，不符拒传 |
+| **用户一次性** | 若已装箱签名旧包（0.1.0–0.1.3）：先卸载再装 0.1.5（清空 App 本地数据）。已是 0.1.3-品牌/0.1.4 Windows 签名则可直接覆盖 |
+
+发版构建机：**Windows**。详见 `docs/ANDROID_APK.md`。
+
+### IME 根因（0.1.5）
+
+APK 点输入框闪一下、键盘不起：原生 WebView/`resizeOnFullScreen` 改高度时，旧逻辑把 visualViewport「等高」误判为键盘收起并 `blur()`；`keyboardWillShow` 会立刻武装 dismiss，700ms grace 无效。修复：native 只用 Capacitor Keyboard 的 **先 show 再 hide**；web 仍用 viewport/VK。回归：`node --test tests/mobile-ime.test.mjs`（10/10）。UX 不变：输入藏底栏，收起/返回/外点/发送立即恢复。
 
 ### Overnight builder
 

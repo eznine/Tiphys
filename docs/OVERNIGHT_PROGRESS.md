@@ -724,3 +724,11 @@
 - Web live: `https://tiphys.xyz/tiphys/` → `assets/index-CuyKueSg.js` (base `/tiphys/`). Landing `/srv/tiphys-web/index.html` disk sha256 `33e94e0c…` unchanged (CDN HTML hash flaky — deploy scripts now check origin disk).
 - APK: Windows JDK17 debug build, versionCode 5 / 0.1.4, cert `efd833d2…c6db`, 18,214,546 B, sha256 `41f49df891a58ac77a9073150f2f532eacb2330d4ad8cfbb7a5b028e10c1054c` → `https://tiphys.xyz/apk/tiphys-0.1.4.apk` (+ tiphys.apk mirror). Both version.json = 0.1.4/5.
 - Commits: `f11af32` layout/deploy/docs; `9c81588` Windows sudo/npm.cmd; follow-up APK + landing-disk guard.
+
+## 2026-10-26 ~12:15 Asia/Shanghai — 0.1.5 IME root-cause + canonical signing
+
+- **IME (Codex gpt-6.1-sol high):** Root cause = native WebView resize during keyboard open made visualViewport≈layout height; old `imeRestore` treated that as dismiss and `blur()`’d the composer (grace armed by `keyboardWillShow`). Fix: native-only Capacitor Keyboard show→hide; web heuristics gated off native. Files: `src/mobile/imeRestore.ts`, `MobileBottomCard.tsx`, `tests/mobile-ime.test.mjs` (10/10). No OPPO/emulator IME log confirmation (TCG CDP timed out); code-level harness proof.
+- **Signing (Grok Bot):** Canonical cert `efd833d2…c6db` at `F:\tooling\signing\`; gradle `signingConfigs.tiphys`; `scripts/verify-apk-cert.mjs` in build+upload; box fails without keystore. Docs: ANDROID_APK + HANDOFF §0 「签名冲突」. User with box-signed install must uninstall once.
+- **Ship:** version 0.1.5 / versionCode 6; Windows build + upload; web deploy `/tiphys/` only.
+- Overnight builder: still **PAUSED**.
+

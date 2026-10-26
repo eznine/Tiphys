@@ -12,60 +12,44 @@ import { Capacitor, type PluginListenerHandle } from "@capacitor/core";
  * visualViewport is shrink→recover only (secondary). Ungated "full height"
  * checks are unsafe on OPPO: height often never shrinks while IME is open.
  */
-/**
- * Grace window after composer focus. Native WebView (OPPO APK) shows the IME
- * asynchronously; Capacitor Keyboard can emit willHide/didHide (and layout /
- * viewport churn from the dock fold) BEFORE the IME is up. Treating those as
- * dismissal blurred the input → fold/unfold flash, no keyboard (0.1.3 bug).
- * Dismiss signals are ignored until keyboardDidShow/WillShow or GRACE_MS.
- */
-export const IME_GRACE_MS = 700;
-let focusAt = 0;
-let keyboardShown = false;
-
 export function imeDebug(...args: unknown[]): void {
   try {
     if (localStorage.getItem("tiphys:imeDebug") === "1") console.log("[ime]", ...args);
   } catch { /* ignore */ }
 }
 
-/** Call when a composer text control gains focus (starts the grace window). */
-export function noteComposerFocus(): void {
-  focusAt = Date.now();
-  keyboardShown = false;
-  imeDebug("focus");
-}
-
-/** True once the IME has really been shown, or the grace window elapsed. */
-export function imeDismissArmed(): boolean {
-  return keyboardShown || Date.now() - focusAt >= IME_GRACE_MS;
-}
-
 export function subscribeImeDismiss(rawDismiss: () => void): () => void {
   const onDismiss = (source = "?") => {
-    if (!imeDismissArmed()) {
-      imeDebug("ignored dismiss (grace)", source);
-      return;
-    }
     imeDebug("dismiss", source);
     rawDismiss();
   };
-  const onShown = () => { keyboardShown = true; imeDebug("keyboard shown"); };
   const cleanups: Array<() => void> = [];
   let cancelled = false;
   let sawShrink = false;
+  let nativeShown = false;
+  let useNativeKeyboard = Capacitor.isNativePlatform() && Capacitor.isPluginAvailable("Keyboard");
 
-  // Prefer native Capacitor Keyboard when present (APK WebView).
-  if (Capacitor.isNativePlatform()) {
+  // Native IME events are authoritative. resizeOnFullScreen changes innerHeight
+  // while WebView independently changes visualViewport: their heights can become
+  // equal DURING show. Running the web shrink→recover heuristic here blurs the
+  // input and cancels the keyboard that just started opening.
+  if (useNativeKeyboard) {
     void (async () => {
       try {
-        if (!Capacitor.isPluginAvailable("Keyboard")) return;
         const { Keyboard } = await import("@capacitor/keyboard");
+        const onShown = () => { nativeShown = true; imeDebug("keyboard shown"); };
+        const onHidden = () => {
+          // Capacitor 6 also reports hide for non-IME insets animations. An
+          // initial hidden state is not a dismissal, regardless of elapsed time.
+          if (!nativeShown) return;
+          nativeShown = false;
+          onDismiss("native");
+        };
         const handles: PluginListenerHandle[] = [];
         handles.push(await Keyboard.addListener("keyboardWillShow", onShown));
         handles.push(await Keyboard.addListener("keyboardDidShow", onShown));
-        handles.push(await Keyboard.addListener("keyboardWillHide", () => onDismiss("willHide")));
-        handles.push(await Keyboard.addListener("keyboardDidHide", () => onDismiss("didHide")));
+        handles.push(await Keyboard.addListener("keyboardWillHide", onHidden));
+        handles.push(await Keyboard.addListener("keyboardDidHide", onHidden));
         if (cancelled) {
           for (const h of handles) void h.remove();
           return;
@@ -75,6 +59,7 @@ export function subscribeImeDismiss(rawDismiss: () => void): () => void {
         });
       } catch {
         // Plugin missing or web stub — other fallbacks still apply.
+        useNativeKeyboard = false;
       }
     })();
   }
@@ -89,10 +74,15 @@ export function subscribeImeDismiss(rawDismiss: () => void): () => void {
     };
   }).virtualKeyboard;
   if (vk) {
+    let vkShown = false;
     const onGeometry = () => {
+      if (useNativeKeyboard) return;
       try {
-        if ((vk.boundingRect?.height ?? 0) === 0) onDismiss("vk");
-        else onShown();
+        if ((vk.boundingRect?.height ?? 0) > 0) vkShown = true;
+        else if (vkShown) {
+          vkShown = false;
+          onDismiss("vk");
+        }
       } catch { /* ignore */ }
     };
     vk.addEventListener("geometrychange", onGeometry);
@@ -100,11 +90,11 @@ export function subscribeImeDismiss(rawDismiss: () => void): () => void {
   }
 
   const onViewport = () => {
+    if (useNativeKeyboard) return;
     const vv = window.visualViewport;
     if (!vv) return;
     if (vv.height < window.innerHeight - 8) {
       sawShrink = true;
-      onShown();
       return;
     }
     if (!sawShrink) return;
@@ -131,10 +121,12 @@ export function subscribeImeDismiss(rawDismiss: () => void): () => void {
   };
 }
 
-/** Defer idle so Send pointerdown can run before blur clears fold state. */
+/** Defer blur cleanup for Send, and discard it if a composer regained focus. */
 export function deferComposerIdle(fn: () => void): void {
   window.requestAnimationFrame(() => {
-    window.setTimeout(fn, 0);
+    window.setTimeout(() => {
+      if (!isComposerTextFocused()) fn();
+    }, 0);
   });
 }
 

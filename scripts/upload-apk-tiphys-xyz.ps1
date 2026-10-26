@@ -27,6 +27,11 @@ if (-not $ApkPath) {
 }
 if (-not $ApkPath -or -not (Test-Path $ApkPath)) { throw "APK not found. Pass path or place dist-apk\tiphys-<ver>.apk" }
 
+Write-Host "→ verify APK signing cert (canonical efd833d2…)"
+node "$Root\scripts\verify-apk-cert.mjs" $ApkPath
+if ($LASTEXITCODE -ne 0) { throw "APK cert verification failed — refuse upload" }
+
+
 $remoteName = if ($verObj.apkUrl) { Split-Path -Leaf $verObj.apkUrl } else { Split-Path -Leaf $ApkPath }
 $sshTarget = "${UserName}@${HostName}"
 $sshArgs = @("-i", $Key, "-o", "StrictHostKeyChecking=no", "-o", "IdentitiesOnly=yes", $sshTarget)

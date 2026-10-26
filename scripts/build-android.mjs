@@ -41,3 +41,11 @@ const target = path.join(targetDir, "tiphys-debug.apk");
 mkdirSync(targetDir, { recursive: true });
 copyFileSync(source, target);
 console.log(`\nAPK: ${target} (${(statSync(target).size / 1024 / 1024).toFixed(1)} MiB)`);
+const { assertCanonicalCert } = await import("./verify-apk-cert.mjs");
+try {
+  const fp = assertCanonicalCert(target);
+  console.log(`Cert SHA-256 OK: ${fp}`);
+} catch (e) {
+  console.error(String(e.message || e));
+  process.exit(1);
+}

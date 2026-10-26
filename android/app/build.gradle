@@ -7,8 +7,8 @@ android {
         applicationId "xyz.tiphys.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 5
-        versionName "0.1.4"
+        versionCode 6
+        versionName "0.1.5"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +16,54 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+
+    // TIPHYS canonical signing (NOT the per-machine ~/.android/debug.keystore).
+    // Look up keystore.properties next to the keystore. Missing → fail loudly.
+    def tiphysProps = new Properties()
+    def tiphysPropsFile = null
+    def tiphysCandidates = [
+        rootProject.file("../.signing/keystore.properties"),
+        System.getenv("TIPHYS_KEYSTORE_PROPS") ? new File(System.getenv("TIPHYS_KEYSTORE_PROPS")) : null,
+        new File(System.getProperty("user.home"), ".config/tiphys/signing/keystore.properties"),
+        new File("F:/tooling/signing/keystore.properties"),
+    ]
+    for (f in tiphysCandidates) {
+        if (f != null && f.path && f.isFile()) { tiphysPropsFile = f; break }
+    }
+    if (tiphysPropsFile == null) {
+        throw new GradleException(
+            "TIPHYS signing keystore.properties not found.\n" +
+            "Ship APKs must use the canonical cert (SHA-256 efd833d2…c6db).\n" +
+            "On Windows: F:\\tooling\\signing\\keystore.properties\n" +
+            "On Linux box: ~/.config/tiphys/signing/keystore.properties\n" +
+            "Or repo-local .signing/keystore.properties (gitignored).\n" +
+            "CopyToBox cannot transfer keystores — Windows is the canonical APK builder."
+        )
+    }
+    tiphysPropsFile.withInputStream { tiphysProps.load(it) }
+    def tiphysStoreFile = tiphysProps['storeFile']
+    def tiphysStore = new File(tiphysStoreFile)
+    if (!tiphysStore.isAbsolute()) tiphysStore = new File(tiphysPropsFile.parentFile, tiphysStoreFile)
+    if (!tiphysStore.isFile()) {
+        throw new GradleException("TIPHYS keystore file missing: ${tiphysStore}. See docs/ANDROID_APK.md signing section.")
+    }
+    signingConfigs {
+        tiphys {
+            storeFile tiphysStore
+            storePassword tiphysProps['storePassword']
+            keyAlias tiphysProps['keyAlias']
+            keyPassword tiphysProps['keyPassword']
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig signingConfigs.tiphys
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.tiphys
         }
     }
 }

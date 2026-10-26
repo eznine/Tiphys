@@ -75,3 +75,10 @@ target/
 .config/tiphys/
 deploy.env
 *deploy-pass*
+
+# TIPHYS APK signing (never commit keystore or passwords)
+.signing/
+**/keystore.properties
+*.keystore
+*.jks
+!android/app/src/**/*.xml
