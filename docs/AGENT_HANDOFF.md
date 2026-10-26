@@ -49,6 +49,15 @@ Deploy：`npm run deploy:xyz` **只** rsync 到 `/srv/tiphys-web/tiphys/`；APK�
 
 发版构建机：**Windows**。详见 `docs/ANDROID_APK.md`。
 
+### 上手与数据生态（0.1.6，2026-10-26 夜）
+
+- 计划与格式表：`docs/ONBOARDING_ECOSYSTEM_PLAN.md`（P0 已上线，P1/P2 待做）。
+- 代码：`src/lib/ecosystem/`（arcgisRest / arcgisProject / openData / gdal / view）+ `src/components/GetStartedSheet.tsx`；所有“添加数据”入口打开「开始的方式」，首启自动弹出（localStorage `tiphys-onboarded`）。
+- Agent 工具（仅浏览器/APK 引擎）：list_data_sources、load_sample_data、fetch_osm_data、fetch_admin_boundary、import_from_url、set_online_basemap。`?tiphys-debug` 暴露 `window.__tiphysRunTool` 供无头验收。
+- GDAL 走 jsDelivr CDN（gdal3.js 2.8.1，~40 MB 按需）；7z-wasm 打包。Overpass 超时→自动用底图矢量切片提取。
+- 验收：`npm run test:ecosystem`；`APP=https://tiphys.xyz/tiphys/ node scripts/onboarding-verify.mjs`（10/10）。
+- ⚠ Windows `upload:apk` 本次 sudo 安装步骤静默失败却打印 OK（文件停在远端 /tmp）；已由 box 用 deploy-pass 完成安装。发版后务必 `curl -I` 校验 APK 200 与两份 version.json。
+
 ### IME 根因（0.1.5）
 
 APK 点输入框闪一下、键盘不起：原生 WebView/`resizeOnFullScreen` 改高度时，旧逻辑把 visualViewport「等高」误判为键盘收起并 `blur()`；`keyboardWillShow` 会立刻武装 dismiss，700ms grace 无效。修复：native 只用 Capacitor Keyboard 的 **先 show 再 hide**；web 仍用 viewport/VK。回归：`node --test tests/mobile-ime.test.mjs`（10/10）。UX 不变：输入藏底栏，收起/返回/外点/发送立即恢复。
@@ -102,7 +111,7 @@ tf-codex -C /workspace/tiphys   # 优先 tierflow_pro
 
 | 项 | 值 |
 |---|---|
-| APK | **0.1.5** / versionCode **6** → https://tiphys.xyz/apk/tiphys-0.1.5.apk（规范证书 efd833d2…；箱签名旧包需先卸载） |
+| APK | **0.1.6** / versionCode **7** → https://tiphys.xyz/apk/tiphys-0.1.6.apk（规范证书 efd833d2…；可覆盖 0.1.4/0.1.5） |
 | 代码时代 | `2ca7d9e`（APK 0.1.3）+ A0/A1 修复至 `a74d7a0`；最新 main 以 `git log` 为准 |
 | Web | App：https://tiphys.xyz/tiphys/ ；落地页 https://tiphys.xyz/ 勿动 |
 | Windows 桌面 | portable 重建于 2026-10-25 20:05 → `C:\Users\alex\Desktop\TIPHYS`；NSIS 83.50 MiB；新 Logo 图标；GUI 未实机点击验收 |

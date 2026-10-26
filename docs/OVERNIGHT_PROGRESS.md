@@ -732,3 +732,10 @@
 - **Ship:** version 0.1.5 / versionCode 6; Windows build + upload; web deploy `/tiphys/` only.
 - Overnight builder: still **PAUSED**.
 
+
+## 2026-10-26 23:55 Asia/Shanghai — 上手与数据生态 P0 + APK 0.1.6（box 手工，非 overnight）
+- 「开始的方式」hub（手机底部抽屉/桌面弹窗，首启自动弹出）：示例工程、定位+附近 OSM/边界、导入文件、粘贴链接；OSM 7 类当前视图；行政边界搜索；免费底图/影像。
+- 导入：.aprx/.mapx/.lyrx（图层/数据源/颜色/服务下载）、.mxd 路径扫描、.mpkx/.ppkx（7z-wasm）、.gdb.zip / DXF / MIF / TAB（gdal3.js CDN）、ArcGIS REST / Online 条目与 Web 地图、WMS/WMTS/XYZ。
+- Agent 6 个数据工具；prompt 引导无数据时主动取数。
+- 验证：tsc；test:ecosystem 6/6、contracts 12/12、plans 31/31、search 8/8、browser-engine 89/89（计数改 1009）、mobile-ime 10/10；map-render 2 个像素用例为改动前即失败（box swiftshader）。onboarding-verify 本地与线上均 10/10。
+- 上线：web https://tiphys.xyz/tiphys/；APK 0.1.6/vc7 https://tiphys.xyz/apk/tiphys-0.1.6.apk（证书 efd833d2…c6db），两份 version.json = 7。
