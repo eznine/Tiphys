@@ -36,7 +36,8 @@ function Invoke-Remote([string]$Cmd) {
   if ($LASTEXITCODE -ne 0) { throw "ssh failed: $Cmd" }
 }
 function Invoke-SudoRemote([string]$Cmd) {
-  $Password | & ssh @sshArgs "sudo -S -p '' bash -lc $(ConvertTo-Json $Cmd)"
+  $b64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($Cmd))
+  $Password | & ssh @sshArgs "sudo -S -p '' bash -lc `"echo $b64 | base64 -d | bash`""
   if ($LASTEXITCODE -ne 0) { throw "sudo remote failed: $Cmd" }
 }
 

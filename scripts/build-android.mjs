@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const android = path.join(root, "android");
+const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 const npx = process.platform === "win32" ? "npx.cmd" : "npx";
 
 function run(command, args, options = {}) {
@@ -23,7 +24,7 @@ if (!existsSync(android)) {
   throw new Error("android/ is missing. Run npx cap add android once, then retry.");
 }
 
-run("npm", ["run", "build"], { env: { ...process.env, CAPACITOR: "1" } });
+run(npm, ["run", "build"], { env: { ...process.env, CAPACITOR: "1" } });
 run(npx, ["cap", "sync", "android"]);
 
 const gradle = process.platform === "win32" ? "gradlew.bat" : "./gradlew";

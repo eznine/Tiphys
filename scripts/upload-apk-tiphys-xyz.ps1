@@ -48,7 +48,8 @@ install -m 644 /tmp/tiphys-apk-upload/version.json '$RemoteApp/version.json' &&
 chown eznine:eznine '$RemoteWeb/version.json' '$RemoteApp/version.json' '$RemoteApk/$remoteName' '$RemoteApk/tiphys.apk' 2>/dev/null || true &&
 rm -rf /tmp/tiphys-apk-upload
 "@
-$Password | & ssh @sshArgs "sudo -S -p '' bash -lc $(ConvertTo-Json $install)"
+$b64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($install))
+$Password | & ssh @sshArgs "sudo -S -p '' bash -lc `"echo $b64 | base64 -d | bash`""
 if ($LASTEXITCODE -ne 0) { throw "sudo install failed" }
 
 $size = (Get-Item $ApkPath).Length
