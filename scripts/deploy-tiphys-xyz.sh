@@ -86,7 +86,10 @@ echo "   landing disk sha256: ${LANDING_BEFORE}"
 
 echo "→ backup remote app dir ${REMOTE_APP}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
-sudo_remote "if [[ -d '${REMOTE_APP}' ]]; then cp -a '${REMOTE_APP}' '${REMOTE_APP}.bak-${STAMP}'; fi; mkdir -p '${REMOTE_APP}' '${REMOTE_TMP}'"
+sudo_remote "if [[ -d '${REMOTE_APP}' ]]; then cp -a '${REMOTE_APP}' '${REMOTE_APP}.bak-${STAMP}'; fi; mkdir -p '${REMOTE_APP}'"
+# Staging dir must be user-owned (do not sudo-mkdir it — that blocks later rm).
+ssh_cmd "rm -rf '${REMOTE_TMP}' 2>/dev/null; mkdir -p '${REMOTE_TMP}' || true"
+sudo_remote "rm -rf '${REMOTE_TMP}'; mkdir -p '${REMOTE_TMP}'; chown ${USER}:${USER} '${REMOTE_TMP}'"
 
 echo "→ upload dist/ → ${USER}@${HOST}:${REMOTE_TMP}"
 ssh_cmd "rm -rf '${REMOTE_TMP}' && mkdir -p '${REMOTE_TMP}'"
