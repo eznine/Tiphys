@@ -12,7 +12,45 @@ import { Capacitor, type PluginListenerHandle } from "@capacitor/core";
  * visualViewport is shrink→recover only (secondary). Ungated "full height"
  * checks are unsafe on OPPO: height often never shrinks while IME is open.
  */
-export function subscribeImeDismiss(onDismiss: () => void): () => void {
+/**
+ * Grace window after composer focus. Native WebView (OPPO APK) shows the IME
+ * asynchronously; Capacitor Keyboard can emit willHide/didHide (and layout /
+ * viewport churn from the dock fold) BEFORE the IME is up. Treating those as
+ * dismissal blurred the input → fold/unfold flash, no keyboard (0.1.3 bug).
+ * Dismiss signals are ignored until keyboardDidShow/WillShow or GRACE_MS.
+ */
+export const IME_GRACE_MS = 700;
+let focusAt = 0;
+let keyboardShown = false;
+
+export function imeDebug(...args: unknown[]): void {
+  try {
+    if (localStorage.getItem("tiphys:imeDebug") === "1") console.log("[ime]", ...args);
+  } catch { /* ignore */ }
+}
+
+/** Call when a composer text control gains focus (starts the grace window). */
+export function noteComposerFocus(): void {
+  focusAt = Date.now();
+  keyboardShown = false;
+  imeDebug("focus");
+}
+
+/** True once the IME has really been shown, or the grace window elapsed. */
+export function imeDismissArmed(): boolean {
+  return keyboardShown || Date.now() - focusAt >= IME_GRACE_MS;
+}
+
+export function subscribeImeDismiss(rawDismiss: () => void): () => void {
+  const onDismiss = (source = "?") => {
+    if (!imeDismissArmed()) {
+      imeDebug("ignored dismiss (grace)", source);
+      return;
+    }
+    imeDebug("dismiss", source);
+    rawDismiss();
+  };
+  const onShown = () => { keyboardShown = true; imeDebug("keyboard shown"); };
   const cleanups: Array<() => void> = [];
   let cancelled = false;
   let sawShrink = false;
@@ -24,8 +62,10 @@ export function subscribeImeDismiss(onDismiss: () => void): () => void {
         if (!Capacitor.isPluginAvailable("Keyboard")) return;
         const { Keyboard } = await import("@capacitor/keyboard");
         const handles: PluginListenerHandle[] = [];
-        handles.push(await Keyboard.addListener("keyboardWillHide", onDismiss));
-        handles.push(await Keyboard.addListener("keyboardDidHide", onDismiss));
+        handles.push(await Keyboard.addListener("keyboardWillShow", onShown));
+        handles.push(await Keyboard.addListener("keyboardDidShow", onShown));
+        handles.push(await Keyboard.addListener("keyboardWillHide", () => onDismiss("willHide")));
+        handles.push(await Keyboard.addListener("keyboardDidHide", () => onDismiss("didHide")));
         if (cancelled) {
           for (const h of handles) void h.remove();
           return;
@@ -51,7 +91,8 @@ export function subscribeImeDismiss(onDismiss: () => void): () => void {
   if (vk) {
     const onGeometry = () => {
       try {
-        if ((vk.boundingRect?.height ?? 0) === 0) onDismiss();
+        if ((vk.boundingRect?.height ?? 0) === 0) onDismiss("vk");
+        else onShown();
       } catch { /* ignore */ }
     };
     vk.addEventListener("geometrychange", onGeometry);
@@ -63,11 +104,12 @@ export function subscribeImeDismiss(onDismiss: () => void): () => void {
     if (!vv) return;
     if (vv.height < window.innerHeight - 8) {
       sawShrink = true;
+      onShown();
       return;
     }
     if (!sawShrink) return;
     sawShrink = false;
-    onDismiss();
+    onDismiss("viewport");
   };
   window.visualViewport?.addEventListener("resize", onViewport);
   window.visualViewport?.addEventListener("scroll", onViewport);
@@ -79,7 +121,7 @@ export function subscribeImeDismiss(onDismiss: () => void): () => void {
   });
 
   // History / side-swipe back: blur path when visualViewport never moved.
-  const onPopState = () => onDismiss();
+  const onPopState = () => onDismiss("popstate");
   window.addEventListener("popstate", onPopState);
   cleanups.push(() => window.removeEventListener("popstate", onPopState));
 
