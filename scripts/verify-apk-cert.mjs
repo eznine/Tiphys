@@ -39,9 +39,13 @@ export function readApkCertSha256(apkPath) {
   const r = spawnSync(apksigner, ["verify", "--print-certs", apkPath], {
     encoding: "utf8",
     env: process.env,
+    shell: process.platform === "win32",
   });
   const out = `${r.stdout || ""}\n${r.stderr || ""}`;
-  if (r.status !== 0) throw new Error(`apksigner failed:\n${out}`);
+  // apksigner may print META-INF warnings to stderr; accept if we got a digest.
+  const mPreview = out.match(/SHA-256 digest:\s*([0-9a-fA-F:]+)/);
+  if (r.error) throw new Error(`apksigner spawn failed: ${r.error.message}`);
+  if (!mPreview && r.status !== 0) throw new Error(`apksigner failed:\n${out}`);
   const m = out.match(/SHA-256 digest:\s*([0-9a-fA-F:]+)/);
   if (!m) throw new Error(`Could not parse cert SHA-256 from apksigner output`);
   return m[1].replace(/:/g, "").toLowerCase();
