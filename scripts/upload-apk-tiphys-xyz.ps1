@@ -18,7 +18,7 @@ if (-not (Test-Path $PassFile)) { throw "Password file not found: $PassFile" }
 if (-not (Test-Path $VersionJson)) { throw "version.json not found: $VersionJson" }
 $Password = (Get-Content -Raw $PassFile).Trim()
 
-$verObj = Get-Content -Raw $VersionJson | ConvertFrom-Json
+$verObj = [System.IO.File]::ReadAllText((Resolve-Path $VersionJson), [System.Text.UTF8Encoding]::new($false)) | ConvertFrom-Json
 $ApkPath = $args[0]
 if (-not $ApkPath) {
   foreach ($cand in @("dist-apk\tiphys-$($verObj.version).apk", "dist-apk\tiphys-debug.apk", "android\app\build\outputs\apk\debug\app-debug.apk")) {
