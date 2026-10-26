@@ -707,3 +707,8 @@
   - **签名变更**：新包使用本机 debug keystore（证书 SHA-256 `efd833d2…`），旧 Linux 包为 `aca4105b…`；覆盖安装会被 Android 拒绝，**升级前必须卸载旧 0.1.3**。
   - **发布**：`/apk/tiphys-0.1.3-brand.apk`（并覆盖 `tiphys-0.1.3.apk`、`tiphys.apk`）；`public/version.json` 的 `apkUrl` 指向 brand 文件；线上下载 SHA-256 与本地一致。Web 仍部署 `assets/index-CMwH0Jsa.js`。
   - **未做**：未在真机/模拟器安装启动；versionCode 保持 4，应用内更新检查仍会显示“已是最新”。
+
+## 2026-10-26 ~10:20 Asia/Shanghai — 0.1.4 IME fix (APK composer flash / no keyboard)
+- Root cause: in the native WebView the IME opens asynchronously after focus; dismiss signals (Capacitor Keyboard willHide/didHide, VirtualKeyboard/viewport churn from the dock fold, popstate) arrived before the keyboard was up and `releaseComposer()` blurred the input → fold/unfold flash, no IME.
+- Fix: `src/mobile/imeRestore.ts` grace window (`IME_GRACE_MS=700`, armed early by keyboardWillShow/DidShow); `MobileBottomCard.releaseComposer` ignores non-user dismissals during grace while the input still has focus; outside taps / Send force-release. Fold UX kept; input not remounted (CSS display:none only). Debug: `localStorage['tiphys:imeDebug']='1'`.
+- Bumped 0.1.4 / versionCode 5. Box APK built (Linux debug key; differs from Windows-signed 0.1.3-brand → would need uninstall). NOT uploaded/deployed: site moved to /tiphys/, deploy target pending; box has no deploy SSH key.
