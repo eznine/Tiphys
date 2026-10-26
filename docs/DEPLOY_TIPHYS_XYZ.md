@@ -47,7 +47,7 @@ npm run deploy:xyz     # → scripts/deploy-tiphys-xyz.sh|.ps1 via run-deploy-xy
 
 What the script does:
 
-1. Snapshot landing page SHA-256 (`https://tiphys.xyz/`).
+1. Snapshot **origin disk** SHA-256 of `/srv/tiphys-web/index.html` (CDN HTML bytes can vary; do not use curl of the URL as the guard).
 2. Backup remote app dir: `cp -a /srv/tiphys-web/tiphys → tiphys.bak-<stamp>`.
 3. Upload `dist/` to `/tmp/tiphys-dist`.
 4. `sudo rsync -a --delete` **only** into `/srv/tiphys-web/tiphys/` (nested `apk/` protected if present). **Never** rsync the web root.

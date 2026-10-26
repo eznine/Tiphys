@@ -80,9 +80,9 @@ sudo_remote() {
   ssh_cmd "printf '%s\n' ${PW_Q} | sudo -S -p '' bash -lc $(printf '%q' "$remote_cmd")"
 }
 
-echo "→ snapshot landing hash (must be unchanged after deploy)"
-LANDING_BEFORE="$(curl -fsS "${LANDING_URL}?v=$(date +%s)" | sha256sum | awk '{print $1}')"
-echo "   landing sha256: ${LANDING_BEFORE}"
+echo "→ snapshot landing file on origin disk (CDN HTML hash is flaky)"
+LANDING_BEFORE="$(sshpass -e ssh "${SSH_OPTS[@]}" "${USER}@${HOST}" "sha256sum '${REMOTE_WEB}/index.html'" | awk '{print $1}')"
+echo "   landing disk sha256: ${LANDING_BEFORE}"
 
 echo "→ backup remote app dir ${REMOTE_APP}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
@@ -100,13 +100,13 @@ echo "→ sudo install → ${REMOTE_APP}/ ONLY (never web root / landing /apk)"
 # Scoped --delete to app dir. Protect nested apk/ if present. Do NOT touch REMOTE_WEB root.
 sudo_remote "rsync -a --delete --filter='P apk/' --filter='P apk/**' '${REMOTE_TMP}/' '${REMOTE_APP}/' && if [[ -f '${REMOTE_APP}/version.json' ]]; then cp -f '${REMOTE_APP}/version.json' '${REMOTE_WEB}/version.json'; chown eznine:eznine '${REMOTE_WEB}/version.json' 2>/dev/null || true; fi && rm -rf '${REMOTE_TMP}'"
 
-echo "→ verify landing unchanged + app live"
-LANDING_AFTER="$(curl -fsS "${LANDING_URL}?v=$(date +%s)" | sha256sum | awk '{print $1}')"
+echo "→ verify landing disk unchanged + app live"
+LANDING_AFTER="$(sshpass -e ssh "${SSH_OPTS[@]}" "${USER}@${HOST}" "sha256sum '${REMOTE_WEB}/index.html'" | awk '{print $1}')"
 if [[ "$LANDING_BEFORE" != "$LANDING_AFTER" ]]; then
-  echo "FATAL: landing page hash changed (${LANDING_BEFORE} → ${LANDING_AFTER}). Investigate immediately." >&2
+  echo "FATAL: landing file on disk changed (${LANDING_BEFORE} → ${LANDING_AFTER}). Investigate immediately." >&2
   exit 4
 fi
-echo "   landing OK (unchanged)"
+echo "   landing OK (disk unchanged)"
 
 LOCAL_JS="$(grep -oE 'assets/index-[^\"[:space:]]+\.js' dist/index.html | head -1 || true)"
 REMOTE_JS="$(curl -fsS "${APP_PUBLIC_URL}?v=$(date +%s)" | grep -oE 'assets/index-[^\"[:space:]]+\.js' | head -1 || true)"

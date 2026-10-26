@@ -719,3 +719,8 @@
 - Deploy scripts scoped to `/srv/tiphys-web/tiphys/` only (backup app dir, landing hash guard, sync both version.json). New `npm run upload:apk` for both OSes.
 - Docs: `DEPLOY_TIPHYS_XYZ.md` rewritten; `ANDROID_APK.md` signing = Windows cert `efd833d2…` for over-install; HANDOFF §0 + this entry. Overnight still **PAUSED**.
 - Ship APK 0.1.4 built on Windows (JDK 17), uploaded as `/apk/tiphys-0.1.4.apk`; box may hold matching `dist-apk/tiphys-debug.apk` after copy.
+
+## 2026-10-26 ~10:50 Asia/Shanghai — shipped 0.1.4 under /tiphys/
+- Web live: `https://tiphys.xyz/tiphys/` → `assets/index-CuyKueSg.js` (base `/tiphys/`). Landing `/srv/tiphys-web/index.html` disk sha256 `33e94e0c…` unchanged (CDN HTML hash flaky — deploy scripts now check origin disk).
+- APK: Windows JDK17 debug build, versionCode 5 / 0.1.4, cert `efd833d2…c6db`, 18,214,546 B, sha256 `41f49df891a58ac77a9073150f2f532eacb2330d4ad8cfbb7a5b028e10c1054c` → `https://tiphys.xyz/apk/tiphys-0.1.4.apk` (+ tiphys.apk mirror). Both version.json = 0.1.4/5.
+- Commits: `f11af32` layout/deploy/docs; `9c81588` Windows sudo/npm.cmd; follow-up APK + landing-disk guard.

@@ -41,13 +41,9 @@ function Invoke-SudoRemote([string]$Cmd) {
   if ($LASTEXITCODE -ne 0) { throw "sudo remote failed: $Cmd" }
 }
 
-Write-Host "→ snapshot landing hash"
-$landingBefore = [System.BitConverter]::ToString(
-  [System.Security.Cryptography.SHA256]::Create().ComputeHash(
-    [System.Text.Encoding]::UTF8.GetBytes((Invoke-WebRequest -Uri ("{0}?v={1}" -f $LandingUrl, [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()) -UseBasicParsing).Content)
-  )
-).Replace("-", "").ToLowerInvariant()
-Write-Host "   landing sha256: $landingBefore"
+Write-Host "→ snapshot landing file on origin disk (CDN HTML hash is flaky)"
+$landingBefore = (& ssh @sshArgs "sha256sum '$RemoteWeb/index.html'").Split()[0]
+Write-Host "   landing disk sha256: $landingBefore"
 
 $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
 Write-Host "→ backup remote app dir $RemoteApp"
@@ -64,16 +60,12 @@ if ($LASTEXITCODE -ne 0) { throw "upload failed" }
 Write-Host "→ sudo install $RemoteApp/ ONLY (never landing /apk)"
 Invoke-SudoRemote "rsync -a --delete --filter='P apk/' --filter='P apk/**' '$RemoteTmp/' '$RemoteApp/' && if [[ -f '$RemoteApp/version.json' ]]; then cp -f '$RemoteApp/version.json' '$RemoteWeb/version.json'; chown eznine:eznine '$RemoteWeb/version.json' 2>/dev/null || true; fi && rm -rf '$RemoteTmp'"
 
-Write-Host "→ verify landing unchanged + app live"
-$landingAfter = [System.BitConverter]::ToString(
-  [System.Security.Cryptography.SHA256]::Create().ComputeHash(
-    [System.Text.Encoding]::UTF8.GetBytes((Invoke-WebRequest -Uri ("{0}?v={1}" -f $LandingUrl, [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()) -UseBasicParsing).Content)
-  )
-).Replace("-", "").ToLowerInvariant()
+Write-Host "→ verify landing disk unchanged + app live"
+$landingAfter = (& ssh @sshArgs "sha256sum '$RemoteWeb/index.html'").Split()[0]
 if ($landingBefore -ne $landingAfter) {
-  throw "FATAL: landing page hash changed ($landingBefore → $landingAfter). Investigate immediately."
+  throw "FATAL: landing file on disk changed ($landingBefore → $landingAfter). Investigate immediately."
 }
-Write-Host "   landing OK (unchanged)"
+Write-Host "   landing OK (disk unchanged)"
 
 $local = ([regex]::Match((Get-Content -Raw dist\index.html), 'assets/index-[^"\s]+\.js')).Value
 try {
