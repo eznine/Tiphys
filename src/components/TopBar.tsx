@@ -12,7 +12,7 @@ export function TopBar({ theme, onToggleTheme, engineLabel, engineState, onLogs,
   return (
     <header className="topbar">
       <div className="topbar-brand">
-        <img className="topbar-logo" src="/brand/logo-badge.svg" alt="" aria-hidden="true" />
+        <img className="topbar-logo" src={`${import.meta.env.BASE_URL}brand/logo-badge.svg`} alt="" aria-hidden="true" />
         <div>
           <div className="topbar-title"><span className="brand-wordmark" role="img" aria-label="TIPHYS" /></div>
           <div className="topbar-subtitle">地理空间智能工作区</div>

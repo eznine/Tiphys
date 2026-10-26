@@ -712,3 +712,10 @@
 - Root cause: in the native WebView the IME opens asynchronously after focus; dismiss signals (Capacitor Keyboard willHide/didHide, VirtualKeyboard/viewport churn from the dock fold, popstate) arrived before the keyboard was up and `releaseComposer()` blurred the input → fold/unfold flash, no IME.
 - Fix: `src/mobile/imeRestore.ts` grace window (`IME_GRACE_MS=700`, armed early by keyboardWillShow/DidShow); `MobileBottomCard.releaseComposer` ignores non-user dismissals during grace while the input still has focus; outside taps / Send force-release. Fold UX kept; input not remounted (CSS display:none only). Debug: `localStorage['tiphys:imeDebug']='1'`.
 - Bumped 0.1.4 / versionCode 5. Box APK built (Linux debug key; differs from Windows-signed 0.1.3-brand → would need uninstall). NOT uploaded/deployed: site moved to /tiphys/, deploy target pending; box has no deploy SSH key.
+
+## 2026-10-26 ~10:45 Asia/Shanghai — /tiphys/ site layout + 0.1.4 ship path
+- User moved landing to `https://tiphys.xyz/` (ArcGIS Pro page; never overwrite). App at `/tiphys/`; APKs at `/apk/`; both `/version.json` and `/tiphys/version.json`.
+- Vite web `base: '/tiphys/'` (capacitor/desktop stay `./`); brand img/CSS/paths fixed; `appUpdate` root URL + `/tiphys/` fallback.
+- Deploy scripts scoped to `/srv/tiphys-web/tiphys/` only (backup app dir, landing hash guard, sync both version.json). New `npm run upload:apk` for both OSes.
+- Docs: `DEPLOY_TIPHYS_XYZ.md` rewritten; `ANDROID_APK.md` signing = Windows cert `efd833d2…` for over-install; HANDOFF §0 + this entry. Overnight still **PAUSED**.
+- Ship APK 0.1.4 built on Windows (JDK 17), uploaded as `/apk/tiphys-0.1.4.apk`; box may hold matching `dist-apk/tiphys-debug.apk` after copy.

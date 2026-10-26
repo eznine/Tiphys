@@ -1,6 +1,6 @@
 {
-  "version": "0.1.3",
-  "versionCode": 4,
-  "apkUrl": "https://tiphys.xyz/apk/tiphys-0.1.3-brand.apk",
-  "notes": "0.1.3（品牌补包）：新 TIPHYS 图形 Logo、启动图与应用图标；功能与 0.1.3 相同。debug 签名已更换，安装前请卸载旧版。"
+  "version": "0.1.4",
+  "versionCode": 5,
+  "apkUrl": "https://tiphys.xyz/apk/tiphys-0.1.4.apk",
+  "notes": "0.1.4：修复 App 内点击对话框会闪一下、无法调起输入法的问题（键盘弹出前的误判收起加入宽限期）；保留输入时隐藏底栏、收起键盘后立即恢复。签名与 0.1.3 品牌补包相同，可直接覆盖安装。"
 }

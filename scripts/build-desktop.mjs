@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 const localCargo = path.resolve(".tooling/cargo");
-const env = { ...process.env };
+const env = { ...process.env, TIPHYS_DESKTOP: "1" };
 // Windows commonly exposes `Path`; a spread object no longer resolves it as `PATH`.
 const pathKey = Object.keys(env).find(key => key.toLowerCase() === "path") || "PATH";
 if (fs.existsSync(path.join(localCargo, "bin", process.platform === "win32" ? "cargo.exe" : "cargo"))) {

@@ -2,6 +2,8 @@ import { Capacitor, CapacitorHttp } from "@capacitor/core";
 
 /** Published on tiphys.xyz; APK builds compare against this (manual check only). */
 export const VERSION_JSON_URL = "https://tiphys.xyz/version.json";
+/** Mirror kept identical by the deploy scripts (app dir copy). Tried if the root copy fails. */
+export const VERSION_JSON_FALLBACK_URL = "https://tiphys.xyz/tiphys/version.json";
 
 /** Bundled fallback when Capacitor App plugin is unavailable (web / pre-sync APK). */
 export const BUNDLED_APP_VERSION = "0.1.4";
@@ -91,7 +93,20 @@ function parseRemotePayload(data: Partial<RemoteVersionInfo>): RemoteVersionInfo
  * for https://localhost → tiphys.xyz). On web use fetch.
  */
 export async function fetchRemoteVersion(signal?: AbortSignal): Promise<RemoteVersionInfo> {
-  const url = `${VERSION_JSON_URL}?t=${Date.now()}`;
+  try {
+    return await fetchRemoteVersionFrom(VERSION_JSON_URL, signal);
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") throw err;
+    try {
+      return await fetchRemoteVersionFrom(VERSION_JSON_FALLBACK_URL, signal);
+    } catch {
+      throw err;
+    }
+  }
+}
+
+async function fetchRemoteVersionFrom(baseUrl: string, signal?: AbortSignal): Promise<RemoteVersionInfo> {
+  const url = `${baseUrl}?t=${Date.now()}`;
   try {
     if (isCapacitorNative()) {
       const response = await CapacitorHttp.get({

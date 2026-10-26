@@ -6,10 +6,14 @@ const host = process.env.TAURI_DEV_HOST;
 // Capacitor serves the bundled SPA from its local WebView origin. Relative
 // asset URLs keep workers and the WASM payload independent of that origin.
 const capacitor = process.env.CAPACITOR === "1";
+// Tauri desktop also loads from its own custom-protocol origin → relative base.
+const desktop = Boolean(process.env.TAURI_ENV_PLATFORM) || process.env.TIPHYS_DESKTOP === "1";
+// Web build is served at https://tiphys.xyz/tiphys/ (root "/" is the separate landing page).
+const webBase = process.env.TIPHYS_WEB_BASE || "/tiphys/";
 
 // https://vite.dev/config/
-export default defineConfig(() => ({
-  base: capacitor ? "./" : "/",
+export default defineConfig(({ command }) => ({
+  base: capacitor || desktop ? "./" : command === "serve" ? "/" : webBase,
   plugins: [react()],
   build: { license: { fileName: "licenses/frontend.md" } },
   // maplibre-gl v6 loads its module worker relative to its own file; pre-bundling breaks that URL.

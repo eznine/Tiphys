@@ -4,8 +4,8 @@
 >
 > **「怎么做得快 / Speed playbook」在下方第一节。** 任何接手的 Agent（Local Codex / 其他医生）先完整读完这一节，再碰代码或脚本。不要跳过 HANDOFF 直接开改。
 
-**更新日期：** 2026-10-25 ~12:50 Asia/Shanghai  
-**当前 HEAD（代码时代）：** `2ca7d9e` — `release(android): 0.1.3 APK (immersive StatusBar + CapacitorHttp)`（其后多为 docs handoff）  
+**更新日期：** 2026-10-26 ~10:45 Asia/Shanghai
+**当前 HEAD（代码时代）：** see `git log -1` on `main` (0.1.4 IME + /tiphys/ site layout deploy)
 **分支：** `main` · remote `https://github.com/eznine/Tiphys.git`  
 **工作树：** `/workspace/tiphys`（Linux box，默认热环境）· Windows `F:\tiphys` 用 `git pull` 同步
 
@@ -19,10 +19,24 @@
 
 | 环境 | 路径 | 何时用 |
 |---|---|---|
-| **默认（热）** | Linux box `/workspace/tiphys` | 日常改代码、类型检查、构建、部署 tiphys.xyz、打 APK。Node / Android SDK / deploy SSH 已暖好。 |
-| Windows 本机 | `F:\tiphys`（DESKTOP-4O0NU9A） | **仅当用户要求**交给 Local Codex / 本机 Agent 时。先 `git pull --ff-only origin main`，再动手。 |
+| **默认（热）** | Linux box `/workspace/tiphys` | 日常改代码、类型检查、web 构建、部署 tiphys.xyz（密码 SSH）。Node / Android SDK 已暖。 |
+| Windows 本机 | `F:\tiphys`（DESKTOP-4O0NU9A） | **Ship APK**（debug 签名与已装 0.1.3-brand 相同 `efd833d2…`）；也可 deploy。先 `git pull --ff-only origin main`。 |
 
-同步：box 上 commit + push → Windows `git pull`。不要两边同时脏树抢改。
+同步：一边 commit + push → 另一边 `git pull`。不要两边同时脏树抢改。
+
+### 站点布局（2026-10-26，必守）
+
+| URL | 内容 |
+|---|---|
+| `https://tiphys.xyz/` | **落地页**「TIPHYS for ArcGIS Pro」— **永远不要覆盖/删除** |
+| `https://tiphys.xyz/tiphys/` | Web App（Vite `base: '/tiphys/'`） |
+| `https://tiphys.xyz/apk/…` | APK；`version.json` 在 **根** 与 `/tiphys/` 各一份 |
+
+Deploy：`npm run deploy:xyz` **只** rsync 到 `/srv/tiphys-web/tiphys/`；APK：`npm run upload:apk`。凭证：box `~/.config/tiphys/deploy-pass.txt`（+ 可选 key）；Windows `F:\server\eznine_deploy_b` + `tiphys-deploy-pass.txt`。详见 `DEPLOY_TIPHYS_XYZ.md`。
+
+### Overnight builder
+
+**PAUSED。除非用户明确说恢复，否则不要启动 / resume。**
 
 ### 治理文档顺序 / Governing docs（按此读，勿跳过）
 
@@ -69,9 +83,9 @@ tf-codex -C /workspace/tiphys   # 优先 tierflow_pro
 
 | 项 | 值 |
 |---|---|
-| APK | **0.1.3** / versionCode **4** → https://tiphys.xyz/apk/tiphys-0.1.3-brand.apk（新 Logo；Windows debug 签名，旧包需卸载后再装） |
+| APK | **0.1.4** / versionCode **5** → https://tiphys.xyz/apk/tiphys-0.1.4.apk（Windows debug 签名，可覆盖 0.1.3-brand） |
 | 代码时代 | `2ca7d9e`（APK 0.1.3）+ A0/A1 修复至 `a74d7a0`；最新 main 以 `git log` 为准 |
-| Web | https://tiphys.xyz 已 live（`assets/index-CMwH0Jsa.js`，新品牌 Logo） |
+| Web | App：https://tiphys.xyz/tiphys/ ；落地页 https://tiphys.xyz/ 勿动 |
 | Windows 桌面 | portable 重建于 2026-10-25 20:05 → `C:\Users\alex\Desktop\TIPHYS`；NSIS 83.50 MiB；新 Logo 图标；GUI 未实机点击验收 |
 | Overnight | **PAUSED**（builder + tiphys-overnight-watch） |
 | 优先级 | **Agent-first**（browser Agent 可靠性 + desktop WASM bridge）；生态模型延后 |

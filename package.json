@@ -48,7 +48,8 @@
     "eval:search": "node --import ./agent/node_modules/tsx/dist/loader.mjs scripts/search-eval.ts",
     "fixtures": "engine/.venv/Scripts/python.exe scripts/make-test-fixtures.py",
     "catalog:engine": "engine/.venv/Scripts/python.exe scripts/export_engine_catalog.py",
-    "deploy:xyz": "node scripts/run-deploy-xyz.mjs"
+    "deploy:xyz": "node scripts/run-deploy-xyz.mjs",
+    "upload:apk": "node scripts/run-upload-apk.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.87",
