@@ -2731,7 +2731,8 @@ test("GEE slice, ArcGIS adapters and explanatory plugin return honest structured
   const formats = await runBrowserTool("list_supported_formats", {});
   assert.ok(formats.vector.some((item: string) => item.includes("GeoPackage")));
   const arcgis = await runBrowserTool("import_arcgis_project", { path: "project.aprx" });
-  assert.equal(arcgis.supported, false);
+  assert.equal(arcgis.supported, true);
+  assert.equal(arcgis.browser_cannot_read_paths, true);
   assert.ok(arcgis.alternatives.length > 0);
 
   const whitebox = browserCatalog.find(tool => tool.name === "whitebox_extra");
@@ -2753,10 +2754,10 @@ test("field_statistics reports numeric moments or top values with null counts", 
 
 test("catalog union, dedupe, L1 folders and every WASM L2 translation", async () => {
   await ensureBrowserCatalog();
-  assert.equal(browserCatalog.length, 1003, "40 shell/common tools (stage 3: +run_plan/plan_list/plan_get; native centroid and empty-geometry filter) + 958 WASM schemas + 5 plugin tools");
+  assert.equal(browserCatalog.length, 1009, "46 shell/common tools (+6 data-ecosystem tools) (stage 3: +run_plan/plan_list/plan_get; native centroid and empty-geometry filter) + 958 WASM schemas + 5 plugin tools");
   assert.equal(new Set(browserCatalog.map(t => t.name)).size, browserCatalog.length);
   const desktop = desktopToolCatalog([{ name: "buffer", category: "邻近分析", parameters: { properties: {} } }]);
-  assert.equal(desktop.length, 1003, "desktop Python + WASM + shell-only stubs");
+  assert.equal(desktop.length, 1009, "desktop Python + WASM + shell-only stubs");
   assert.equal(new Set(desktop.map(t => t.name)).size, desktop.length);
   assert.ok(desktop.some(t => t.name === "gee_search_collection"));
   const l1 = new Set(browserCatalog.map(zhToolL1));
@@ -2901,7 +2902,7 @@ test("catalog shell is immediately usable and async hydration reaches the honest
   assert.ok(shellToolCatalog.some(tool => tool.name === "gee_auth_status"));
   assert.ok(!shellToolCatalog.some(tool => tool.name.startsWith("wasm_")));
   assert.equal(state.wasm, 958);
-  assert.equal(state.total, 1003);
+  assert.equal(state.total, 1009);
   assert.equal(state.hydrated, true);
 });
 

@@ -989,7 +989,12 @@
         },
         "predicate": {
           "type": "string",
-          "enum": ["intersects", "contains", "within", "nearest"],
+          "enum": [
+            "intersects",
+            "contains",
+            "within",
+            "nearest"
+          ],
           "default": "intersects",
           "description": "空间关系：相交、包含、位于或最近邻"
         },
@@ -1003,7 +1008,10 @@
           "description": "结果图层名称"
         }
       },
-      "required": ["layer", "join_layer"],
+      "required": [
+        "layer",
+        "join_layer"
+      ],
       "additionalProperties": false
     },
     "annotations": {}
@@ -1014,152 +1022,315 @@
     "category": "数据管理",
     "subcategory": "ArcGIS 兼容",
     "description": "列出 TIPHYS 可直接读取或导入的开放格式，并说明 ArcGIS 工程和文件地理数据库的限制。",
-    "parameters": { "type": "object", "properties": {}, "required": [], "additionalProperties": false },
-    "annotations": { "readOnlyHint": true }
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true
+    }
   },
   {
     "name": "import_arcgis_project",
-    "label": "导入 ArcGIS 工程",
+    "label": "ArcGIS 工程导入说明",
     "category": "数据管理",
     "subcategory": "ArcGIS 兼容",
-    "description": "检查 MXD/APRX/GDB 导入限制。当前版本不解析 ArcGIS 专有工程，建议先导出为 GeoPackage、GeoJSON、Shapefile ZIP、KML 或 GeoTIFF。",
+    "description": "Explain how ArcGIS projects get into TIPHYS. Browser can parse .aprx/.mapx/.lyrx (layer list, data sources, single-symbol colours, service URLs are fetched), scan .mxd for data paths, open .mpkx/.ppkx packages and zipped .gdb via GDAL WASM. The files themselves must be picked by the user (添加数据 → 导入文件); this tool only diagnoses a path and returns the steps.",
     "parameters": {
       "type": "object",
       "properties": {
-        "path": { "type": "string", "description": "MXD、APRX 或 .gdb 路径（仅用于诊断，不会上传）" }
+        "path": {
+          "type": "string",
+          "description": "MXD、APRX 或 .gdb 路径（仅用于诊断，不会上传）"
+        }
       },
-      "required": ["path"],
+      "required": [
+        "path"
+      ],
       "additionalProperties": false
     },
-    "annotations": { "readOnlyHint": true }
+    "annotations": {
+      "readOnlyHint": true
+    }
   },
-{
-  "name": "gee_auth_status",
-  "label": "GEE 认证状态",
-  "category": "GEE",
-  "subcategory": "认证与状态",
-  "description": "检查 Google Earth Engine 授权状态。当前版本返回结构化未连接说明；演示模式仅用于验证表单流程。",
-  "parameters": {
-    "type": "object",
-    "properties": {},
-    "required": [],
-    "additionalProperties": false
-  },
-  "annotations": {
-    "readOnlyHint": true
-  }
-},
-{
-  "name": "gee_search_collection",
-  "label": "搜索 GEE 影像集合",
-  "category": "GEE",
-  "subcategory": "数据检索",
-  "description": "按集合、日期和范围检索 GEE 影像。未连接时返回空列表和连接提示，不代表集合不存在。",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "collection": {
-        "type": "string",
-        "default": "COPERNICUS/S2_SR_HARMONIZED",
-        "description": "Earth Engine 影像集合 ID"
-      },
-      "start_date": {
-        "type": "string",
-        "description": "开始日期，例如 2026-01-01"
-      },
-      "end_date": {
-        "type": "string",
-        "description": "结束日期，例如 2026-03-31"
-      },
-      "max_cloud": {
-        "type": "integer",
-        "default": 20,
-        "description": "最大云量百分比"
-      },
-      "bbox": {
-        "type": "string",
-        "description": "可选范围，格式 minLon,minLat,maxLon,maxLat"
-      }
+  {
+    "name": "list_data_sources",
+    "label": "数据来源目录",
+    "category": "数据获取",
+    "subcategory": "在线与示例数据",
+    "description": "List every data source TIPHYS can load without the user having files: bundled sample datasets, OpenStreetMap categories (Overpass), admin boundary search (Nominatim), free online basemaps/imagery, public ArcGIS example services, supported URL kinds, and the current map view bbox. Call this first when the user has no data or asks what data is available.",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
     },
-    "required": [
-      "collection"
-    ],
-    "additionalProperties": false
+    "annotations": {
+      "readOnlyHint": true
+    }
   },
-  "annotations": {
-    "readOnlyHint": true
-  }
-},
-{
-  "name": "gee_export_raster",
-  "label": "导出 GEE 栅格",
-  "category": "GEE",
-  "subcategory": "导出",
-  "description": "将 GEE 影像波段导出为本地栅格。未连接时不下载真实影像；设置 TIPHYS_GEE_DEMO=1 可返回演示任务结果。",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "collection": {
-        "type": "string",
-        "default": "COPERNICUS/S2_SR_HARMONIZED",
-        "description": "Earth Engine 影像集合 ID"
+  {
+    "name": "load_sample_data",
+    "label": "加载示例数据",
+    "category": "数据获取",
+    "subcategory": "在线与示例数据",
+    "description": "Load a bundled sample dataset as a layer. dataset: beijing_points | world_countries | world_cities | world_rivers, or 'project' to load the whole sample project.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "dataset": {
+          "type": "string",
+          "description": "示例数据 id，或 project 加载整个示例工程"
+        }
       },
-      "band": {
-        "type": "string",
-        "default": "B4",
-        "description": "要导出的波段名"
-      },
-      "start_date": {
-        "type": "string",
-        "description": "开始日期"
-      },
-      "end_date": {
-        "type": "string",
-        "description": "结束日期"
-      },
-      "scale": {
-        "type": "number",
-        "default": 30,
-        "description": "导出像元大小（米）"
-      },
-      "path": {
-        "type": "string",
-        "description": "本地输出文件名"
-      }
+      "required": [
+        "dataset"
+      ],
+      "additionalProperties": false
     },
-    "required": [
-      "collection"
-    ],
-    "additionalProperties": false
+    "annotations": {}
   },
-  "annotations": {
-    "destructiveHint": true
-  }
-},
-{
-  "name": "gee_job_status",
-  "label": "GEE 任务状态",
-  "category": "GEE",
-  "subcategory": "任务",
-  "description": "查询 GEE 导出任务状态。未连接或任务不存在时返回结构化状态说明。",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "job_id": {
-        "type": "string",
-        "description": "GEE 任务 ID"
-      }
+  {
+    "name": "fetch_osm_data",
+    "label": "下载 OSM 数据",
+    "category": "数据获取",
+    "subcategory": "在线与示例数据",
+    "description": "Download OpenStreetMap features for an area into a new vector layer (WGS84) via Overpass. category: poi | roads | buildings | water | green | transit | landuse. Area resolution order: bbox, then place name (geocoded), then the current map view. Buildings need a small area (~3 km); refuse honestly if the area is too large.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": [
+            "poi",
+            "roads",
+            "buildings",
+            "water",
+            "green",
+            "transit",
+            "landuse"
+          ]
+        },
+        "place": {
+          "type": "string",
+          "description": "地名，例如“杭州西湖区”"
+        },
+        "bbox": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "description": "可选 WGS84 范围 [west,south,east,north]；省略则用 place 或当前地图视图"
+        }
+      },
+      "required": [
+        "category"
+      ],
+      "additionalProperties": false
     },
-    "required": [
-      "job_id"
-    ],
-    "additionalProperties": false
+    "annotations": {}
   },
-  "annotations": {
-    "readOnlyHint": true
-  }
-},
-{
+  {
+    "name": "fetch_admin_boundary",
+    "label": "获取行政边界",
+    "category": "数据获取",
+    "subcategory": "在线与示例数据",
+    "description": "Fetch an administrative boundary / place polygon from OpenStreetMap (Nominatim) as a polygon layer. Give place (e.g. '北京市海淀区'), or omit it to use the district containing the current map centre. Useful as AOI or clip layer.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "place": {
+          "type": "string",
+          "description": "行政区或地名；省略则取当前地图中心所在区县"
+        },
+        "level": {
+          "type": "string",
+          "enum": [
+            "city",
+            "district"
+          ],
+          "default": "district"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {}
+  },
+  {
+    "name": "import_from_url",
+    "label": "从链接导入",
+    "category": "数据获取",
+    "subcategory": "在线与示例数据",
+    "description": "Import data from a URL: ArcGIS REST FeatureServer/MapServer/ImageServer (layer or service root), ArcGIS Online/Portal item or web map link, WMS/WMTS/XYZ tile service (becomes the basemap), or any direct file link (GeoJSON, KML, GPX, Shapefile zip, GeoPackage, GeoTIFF, CSV, zipped .gdb). Set current_view_only to only fetch features in the current map view (recommended for big services).",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "current_view_only": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {}
+  },
+  {
+    "name": "set_online_basemap",
+    "label": "切换在线底图",
+    "category": "数据获取",
+    "subcategory": "在线与示例数据",
+    "description": "Switch the map basemap. id: liberty | positron | dark | bright | satellite | hillshade | opentopo | offline | esri-topo | esri-street | osm | s2cloudless | gebco; or pass a tile URL template ({z}/{x}/{y}) / WMS URL in url.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {}
+  },
+  {
+    "name": "gee_auth_status",
+    "label": "GEE 认证状态",
+    "category": "GEE",
+    "subcategory": "认证与状态",
+    "description": "检查 Google Earth Engine 授权状态。当前版本返回结构化未连接说明；演示模式仅用于验证表单流程。",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true
+    }
+  },
+  {
+    "name": "gee_search_collection",
+    "label": "搜索 GEE 影像集合",
+    "category": "GEE",
+    "subcategory": "数据检索",
+    "description": "按集合、日期和范围检索 GEE 影像。未连接时返回空列表和连接提示，不代表集合不存在。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "collection": {
+          "type": "string",
+          "default": "COPERNICUS/S2_SR_HARMONIZED",
+          "description": "Earth Engine 影像集合 ID"
+        },
+        "start_date": {
+          "type": "string",
+          "description": "开始日期，例如 2026-01-01"
+        },
+        "end_date": {
+          "type": "string",
+          "description": "结束日期，例如 2026-03-31"
+        },
+        "max_cloud": {
+          "type": "integer",
+          "default": 20,
+          "description": "最大云量百分比"
+        },
+        "bbox": {
+          "type": "string",
+          "description": "可选范围，格式 minLon,minLat,maxLon,maxLat"
+        }
+      },
+      "required": [
+        "collection"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true
+    }
+  },
+  {
+    "name": "gee_export_raster",
+    "label": "导出 GEE 栅格",
+    "category": "GEE",
+    "subcategory": "导出",
+    "description": "将 GEE 影像波段导出为本地栅格。未连接时不下载真实影像；设置 TIPHYS_GEE_DEMO=1 可返回演示任务结果。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "collection": {
+          "type": "string",
+          "default": "COPERNICUS/S2_SR_HARMONIZED",
+          "description": "Earth Engine 影像集合 ID"
+        },
+        "band": {
+          "type": "string",
+          "default": "B4",
+          "description": "要导出的波段名"
+        },
+        "start_date": {
+          "type": "string",
+          "description": "开始日期"
+        },
+        "end_date": {
+          "type": "string",
+          "description": "结束日期"
+        },
+        "scale": {
+          "type": "number",
+          "default": 30,
+          "description": "导出像元大小（米）"
+        },
+        "path": {
+          "type": "string",
+          "description": "本地输出文件名"
+        }
+      },
+      "required": [
+        "collection"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "destructiveHint": true
+    }
+  },
+  {
+    "name": "gee_job_status",
+    "label": "GEE 任务状态",
+    "category": "GEE",
+    "subcategory": "任务",
+    "description": "查询 GEE 导出任务状态。未连接或任务不存在时返回结构化状态说明。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "job_id": {
+          "type": "string",
+          "description": "GEE 任务 ID"
+        }
+      },
+      "required": [
+        "job_id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true
+    }
+  },
+  {
     "name": "run_plan",
     "description": "按确定性计划执行多步 GIS 任务（阶段 3 调度器）。plan 含 goal 与 3-6 个步骤：每步是契约操作（gis.buffer/gis.reproject/gis.clip/gis.dissolve，参数见 OPERATION_SUPPORT）或浏览器工具调用，步骤之间用 \"@stepId\" 引用上游输出图层，可给每步声明验收断言（acceptance）。计划先整体校验：不支持的操作在执行前就被拒绝并给出降级方案。删除/导出类步骤必须先获得用户同意，把步骤 id 放进 plan.confirmations。返回逐步入账的运行记录（run_id、验收结果、可交付图层、失败节点与下一步建议）；用 plan_get 复查，用 resume_of 从断点恢复。",
     "category": "任务编排",
@@ -1170,9 +1341,25 @@
           "type": "object",
           "description": "计划对象。operation 步骤用 spec；tool 步骤用 tool + args。上游输出写成 \"@步骤id\"。",
           "properties": {
-            "goal": { "type": "string", "description": "一句话说明本次计划要达成的结果" },
-            "provider": { "type": "string", "enum": ["browser-wasm", "desktop-python"], "description": "可选；默认当前执行端" },
-            "confirmations": { "type": "array", "items": { "type": "string" }, "description": "用户已明确同意的删除/导出步骤 id" },
+            "goal": {
+              "type": "string",
+              "description": "一句话说明本次计划要达成的结果"
+            },
+            "provider": {
+              "type": "string",
+              "enum": [
+                "browser-wasm",
+                "desktop-python"
+              ],
+              "description": "可选；默认当前执行端"
+            },
+            "confirmations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "用户已明确同意的删除/导出步骤 id"
+            },
             "steps": {
               "type": "array",
               "minItems": 1,
@@ -1180,23 +1367,73 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "id": { "type": "string", "description": "本步骤唯一 id，供后续步骤用 @id 引用" },
-                  "title": { "type": "string" },
-                  "kind": { "type": "string", "enum": ["operation", "tool"], "description": "operation 用 spec；tool 用 tool + args" },
+                  "id": {
+                    "type": "string",
+                    "description": "本步骤唯一 id，供后续步骤用 @id 引用"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "operation",
+                      "tool"
+                    ],
+                    "description": "operation 用 spec；tool 用 tool + args"
+                  },
                   "spec": {
                     "type": "object",
                     "description": "kind=operation 时必填：{operation, version:1, input, params}",
                     "properties": {
-                      "operation": { "type": "string", "enum": ["gis.buffer", "gis.reproject", "gis.clip", "gis.dissolve", "gis.zonal_statistics"] },
-                      "version": { "type": "integer", "enum": [1] },
-                      "input": { "type": "string", "description": "输入图层 id/名称，或 \"@上游步骤id\"" },
-                      "params": { "type": "object", "additionalProperties": true, "description": "契约参数，例如 buffer 的 distance/units" }
+                      "operation": {
+                        "type": "string",
+                        "enum": [
+                          "gis.buffer",
+                          "gis.reproject",
+                          "gis.clip",
+                          "gis.dissolve",
+                          "gis.zonal_statistics"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "enum": [
+                          1
+                        ]
+                      },
+                      "input": {
+                        "type": "string",
+                        "description": "输入图层 id/名称，或 \"@上游步骤id\""
+                      },
+                      "params": {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "description": "契约参数，例如 buffer 的 distance/units"
+                      }
                     },
-                    "required": ["operation", "version", "input", "params"]
+                    "required": [
+                      "operation",
+                      "version",
+                      "input",
+                      "params"
+                    ]
                   },
-                  "tool": { "type": "string", "description": "kind=tool 时必填：目录中的精确工具 id，例如 wasm_basins" },
-                  "args": { "type": "object", "additionalProperties": true, "description": "kind=tool 时使用；参数名来自 search_browser_tools 参数卡，上游图层写 \"@步骤id\"" },
-                  "dependsOn": { "type": "array", "items": { "type": "string" } },
+                  "tool": {
+                    "type": "string",
+                    "description": "kind=tool 时必填：目录中的精确工具 id，例如 wasm_basins"
+                  },
+                  "args": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "kind=tool 时使用；参数名来自 search_browser_tools 参数卡，上游图层写 \"@步骤id\""
+                  },
+                  "dependsOn": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
                   "acceptance": {
                     "type": "array",
                     "items": {
@@ -1206,11 +1443,17 @@
                     }
                   }
                 },
-                "required": ["id", "kind"]
+                "required": [
+                  "id",
+                  "kind"
+                ]
               }
             }
           },
-          "required": ["goal", "steps"],
+          "required": [
+            "goal",
+            "steps"
+          ],
           "additionalProperties": true
         },
         "resume_of": {

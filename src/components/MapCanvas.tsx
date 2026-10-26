@@ -9,12 +9,14 @@ import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&ur
 maplibregl.setWorkerUrl(maplibreWorkerUrl);
 import {
   BASEMAPS,
+  customBasemap,
   BasemapId,
   blankStyle,
   getBasemap,
   rasterStyle,
   TERRAIN_DEM,
 } from "../lib/basemaps";
+import { setCurrentMapView, setTileExtractor } from "../lib/ecosystem/view";
 import { DataLayer, LayerSelection, syncDataLayers } from "../lib/dataLayers";
 import { engineHeaders } from "../lib/service";
 import { downloadMapLayoutPng, downloadMapPng, mapExportFilename, type MapLayoutOptions } from "../lib/map-export";
@@ -239,6 +241,8 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
   function reportView(map: Map) {
     const current = map.getCenter();
     const zoom = map.getZoom();
+    const b = map.getBounds();
+    setCurrentMapView([Math.max(-180, b.getWest()), Math.max(-85, b.getSouth()), Math.min(180, b.getEast()), Math.min(85, b.getNorth())], { lng: current.lng, lat: current.lat, zoom });
     onViewChangeRef.current?.({
       lng: current.lng, lat: current.lat, zoom,
       bearing: map.getBearing(), pitch: map.getPitch(),
@@ -590,6 +594,25 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
     });
 
     mapRef.current = map;
+    setTileExtractor(async (sourceLayers, focus) => {
+      if (mapRef.current !== map) return null;
+      if (focus) { focusRequestedRef.current = true; map.jumpTo({ center: [focus.lng, focus.lat], zoom: focus.zoom }); await new Promise(resolve => window.setTimeout(resolve, 60)); }
+      if (focus || !map.areTilesLoaded()) await new Promise<void>(resolve => { const t = window.setTimeout(resolve, 8000); map.once("idle", () => { window.clearTimeout(t); resolve(); }); });
+      const style = map.getStyle();
+      const source = Object.entries(style?.sources ?? {}).find(([, src]) => (src as { type?: string }).type === "vector")?.[0];
+      if (!source) return null;
+      const seen = new Set<string>();
+      const features: { type: "Feature"; properties: Record<string, any>; geometry: any }[] = [];
+      for (const sourceLayer of sourceLayers) {
+        for (const f of map.querySourceFeatures(source, { sourceLayer })) {
+          const geometry = f.geometry;
+          const key = `${sourceLayer}|${f.id ?? ""}|${JSON.stringify(geometry).slice(0, 80)}`;
+          if (seen.has(key)) continue; seen.add(key);
+          features.push({ type: "Feature", properties: { layer: sourceLayer, ...(f.properties ?? {}) }, geometry });
+        }
+      }
+      return { features, zoom: map.getZoom() };
+    });
     if (mobileRef.current) {
       // MapLibre opens the compact attribution by default and can re-create it
       // after a style load. Collapse it, then let the "i" button toggle our own
@@ -647,6 +670,30 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
     if (!map) return;
     applySky(map, theme);
   }, [theme]);
+
+  useEffect(() => {
+    const onBasemap = (event: Event) => {
+      const id = (event as CustomEvent<{ id: string }>).detail?.id as BasemapId;
+      if (!id) return;
+      if (id === "custom") {
+        const map = mapRef.current;
+        basemapRef.current = "custom";
+        setBasemapId("custom");
+        if (map) { loadBasemap(map, "custom"); reportView(map); }
+        setBasemapNotice("");
+      } else if (BASEMAPS.some(item => item.id === id)) setBasemapId(id);
+    };
+    const onFly = (event: Event) => {
+      const d = (event as CustomEvent<{ lng: number; lat: number; zoom?: number }>).detail;
+      const map = mapRef.current;
+      if (!map || !d || !Number.isFinite(d.lng) || !Number.isFinite(d.lat)) return;
+      focusRequestedRef.current = true;
+      map.flyTo({ center: [d.lng, d.lat], zoom: d.zoom ?? 14, speed: 1.6, essential: true });
+    };
+    window.addEventListener("tiphys:basemap", onBasemap);
+    window.addEventListener("tiphys:flyto", onFly);
+    return () => { window.removeEventListener("tiphys:basemap", onBasemap); window.removeEventListener("tiphys:flyto", onFly); };
+  }, []);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1014,7 +1061,7 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
           </button>
           {menuOpen && (
             <ul className="basemap-menu" role="listbox">
-              {BASEMAPS.map((b) => (
+              {[...BASEMAPS, ...(customBasemap() ? [customBasemap()!] : [])].map((b) => (
                 <li key={b.id}>
                   <button
                     type="button"
@@ -1051,7 +1098,7 @@ export function MapCanvas({ theme, dataLayers = [], focusBounds = null, onStatus
               <Layers2 size={18} strokeWidth={1.8} />
             </button>
             {mobileBasemapOpen && <div className="map-touch-basemap-menu" role="listbox" aria-label="底图">
-              {BASEMAPS.map(item => <button key={item.id} type="button" role="option" aria-selected={item.id === basemapId}
+              {[...BASEMAPS, ...(customBasemap() ? [customBasemap()!] : [])].map(item => <button key={item.id} type="button" role="option" aria-selected={item.id === basemapId}
                 data-active={item.id === basemapId}
                 onClick={() => { setBasemapId(item.id); setMobileBasemapOpen(false); }}>{item.label}</button>)}
             </div>}

@@ -1,3 +1,6 @@
+import * as eco from "../ecosystem";
+import { BASEMAPS } from "../basemaps";
+const BASEMAP_IDS = BASEMAPS.map(b => b.id);
 import { unzipSync } from "fflate";
 import type { FeatureCollection, Geometry } from "geojson";
 import type { DataLayer } from "../dataLayers";
@@ -735,23 +738,33 @@ async function execute(name: string, args: Record<string, any>, signal?: AbortSi
   if (name === "list_supported_formats") return {
     ok: true,
     runtime: "browser-wasm",
-    vector: ["GeoJSON (.geojson/.json)", "GeoPackage (.gpkg)", "Shapefile ZIP 或多文件 .shp + .shx/.dbf（可选 .prj/.cpg）", "FlatGeobuf (.fgb)", "KML/KMZ (.kml/.kmz)", "GPX (.gpx)", "GML (.gml)", "GeoParquet (.geoparquet)", "TopoJSON (.topojson)"],
+    vector: ["GeoJSON (.geojson/.json)", "GeoPackage (.gpkg)", "Shapefile ZIP 或多文件 .shp + .shx/.dbf（可选 .prj/.cpg）", "FlatGeobuf (.fgb)", "KML/KMZ (.kml/.kmz)", "GPX (.gpx)", "GML (.gml)", "GeoParquet (.geoparquet)", "TopoJSON (.topojson)", "File Geodatabase（.gdb 压缩为 .zip，GDAL WASM，首次联网下载组件）", "DXF / MapInfo TAB·MIF / SQLite（GDAL WASM）"],
     raster: ["GeoTIFF (.tif/.tiff)"],
     table: ["CSV (.csv，作为只读表格导入)"],
     arcgis: {
-      mxd: "不支持直接解析；请在 ArcGIS 中导出要素为 GeoPackage、Shapefile ZIP 或 GeoJSON。",
-      aprx: "不支持直接解析；APRX 工程内容请先导出为开放格式。",
-      file_gdb: "浏览器端不支持 ESRI File Geodatabase；请导出为 GeoPackage 或 Shapefile ZIP。",
+      aprx: "解析工程内地图与图层：名称、数据源（gdb/路径/服务 URL）、单一符号颜色；在线服务图层自动下载，本地数据需随 .gdb.zip 一并导入或改用 .ppkx/.mpkx。",
+      lyrx_mapx: "同 APRX，读取图层定义与符号颜色。",
+      mpkx_ppkx: "7-Zip 解包，自动读取其中 .gdb / Shapefile / GeoTIFF 及地图文档。",
+      mxd: "二进制 ArcMap 文档，仅能扫描出引用的数据路径与服务地址。",
+      file_gdb: "支持（需压缩为 .zip 导入；只读；栅格目录与拓扑不支持）。",
+      services: "ArcGIS REST FeatureServer/MapServer/ImageServer、ArcGIS Online/Portal 公开条目与 Web 地图（import_from_url）。",
     },
+    online: ["OpenStreetMap（fetch_osm_data）", "行政边界（fetch_admin_boundary）", "WMS/WMTS/XYZ 底图（import_from_url / set_online_basemap）", "示例数据（load_sample_data）"],
     preferred: ["GeoPackage", "GeoJSON", "FlatGeobuf", "Shapefile ZIP 或多文件", "GeoTIFF"],
   };
   if (name === "import_arcgis_project") {
     const path = String(args.path ?? "");
-    const ext = path.split(".").pop()?.toLowerCase() ?? "";
-    return { ok: false, supported: false, path, format: ext === "gdb" ? "ESRI File Geodatabase" : ext === "mxd" ? "ArcMap document" : ext === "aprx" ? "ArcGIS Pro project" : "unknown",
-      message: "当前版本不解析 ArcGIS 专有工程或文件地理数据库，未读取该文件。",
-      alternatives: ["GeoPackage (.gpkg)", "GeoJSON (.geojson)", "Shapefile ZIP (.zip)", "KML/KMZ", "GeoTIFF"],
-      hint: "在 ArcGIS 中使用“导出要素/转换地理数据库”，或运行“支持的格式”查看完整列表。" };
+    const ext = path.replace(/[\\/]+$/, "").split(".").pop()?.toLowerCase() ?? "";
+    const steps: Record<string, string> = {
+      aprx: "点击 添加数据 → 导入文件，选择 .aprx；如工程引用本地 .gdb，请把 .gdb 文件夹压缩为 zip 一起选择，或在 ArcGIS Pro 中 共享 → 工程包（.ppkx）后导入。",
+      mapx: "同 APRX：选择 .mapx（可附带 .gdb.zip）。", lyrx: "选择 .lyrx（可附带数据 .gdb.zip）；服务图层会自动下载。",
+      mxd: "MXD 只能恢复数据路径；建议在 ArcGIS Pro 导入 MXD 后打包为 .mpkx 再导入。",
+      gdb: "把 .gdb 文件夹压缩为 .zip（例如 city.gdb.zip），点击 添加数据 → 导入文件 选择它。",
+      mpkx: "直接选择 .mpkx 导入，会解包并读取其中的 .gdb。", ppkx: "直接选择 .ppkx 导入，会解包并读取其中的地图与 .gdb。",
+    };
+    return { ok: true, supported: ext in steps, path, format: ext, browser_cannot_read_paths: true,
+      message: steps[ext] ?? "支持 .aprx/.mapx/.lyrx/.mpkx/.ppkx/.gdb(zip)/.mxd(仅路径)。浏览器不能直接读取电脑路径，需用户在 添加数据 中选择文件。",
+      alternatives: ["ArcGIS Online / Portal 链接：import_from_url", "GeoPackage (.gpkg)", "Shapefile ZIP (.zip)"] };
   }
   if (name === "gee_auth_status") {
     return geeAuthStatus();
@@ -1108,10 +1121,71 @@ async function importShapefileZip(bytes: Uint8Array, filename: string, sourceCrs
 const QUICK_ENGINE_TOOLS = new Set([
   "ping", "list_layers", "job_status", "job_cancel", "describe_layer", "inspect_layers",
   "plan_list", "plan_get", "list_supported_formats", "import_arcgis_project",
+  "list_data_sources", "load_sample_data", "fetch_osm_data", "fetch_admin_boundary", "import_from_url", "set_online_basemap",
   "gee_auth_status", "gee_search_collection", "gee_job_status", "remove_layer",
   "rename_layer", "reorder_layers", "field_statistics",
   "zoom_to_layer", "open_attribute_table", "set_layer_symbology", "set_layer_labels",
 ]);
+const ECOSYSTEM_TOOLS = new Set(["list_data_sources", "load_sample_data", "fetch_osm_data", "fetch_admin_boundary", "import_from_url", "set_online_basemap"]);
+async function adoptExpanded(expanded: { files: File[]; tiles: { label: string; tiles: string[]; attribution: string }[]; notes: string[] }) {
+  const layers: Record<string, any>[] = [];
+  for (const file of expanded.files) {
+    try { const r: Record<string, any> = await importBrowserFile(file, file.name); if (Array.isArray(r.layers)) layers.push(...r.layers); else layers.push(r); }
+    catch (err) { expanded.notes.push(`${file.name} 导入失败：${err instanceof Error ? err.message : err}`); }
+  }
+  if (expanded.tiles.length) eco.useCustomBasemap(expanded.tiles[expanded.tiles.length - 1]);
+  const summary = layers.map(l => ({ id: l.layer?.id, name: l.layer?.name, feature_count: l.layer?.featureCount ?? l.layer?.feature_count }));
+  return { ok: layers.length > 0 || expanded.tiles.length > 0, ...(layers.length === 1 ? layers[0] : {}), layers, added: summary, basemap: expanded.tiles[expanded.tiles.length - 1]?.label ?? null, notes: expanded.notes };
+}
+async function placeBbox(place: string): Promise<eco.Bbox> {
+  const hit = await eco.geocode(place);
+  if (!hit) throw new Error(`找不到地点「${place}」。`);
+  if (hit.bbox && eco.bboxArea(hit.bbox) < 0.3 && eco.bboxArea(hit.bbox) > 0.0002) return hit.bbox;
+  return eco.bboxAround(hit.lng, hit.lat, 2);
+}
+async function runEcosystemTool(name: string, args: Record<string, any>): Promise<Record<string, any>> {
+  if (name === "list_data_sources") return {
+    ok: true, current_view_bbox: eco.getCurrentBounds(), samples: eco.SAMPLE_DATASETS.map(d => ({ id: d.id, label: d.label, hint: d.hint })),
+    sample_project: eco.SAMPLE_PROJECT, osm_categories: eco.OSM_CATEGORIES.map(c => ({ id: c.id, label: c.label, hint: c.hint, max_area_deg2: c.maxArea })),
+    basemaps: [...BASEMAP_IDS, ...eco.ONLINE_TILES.map(t => t.id)], arcgis_examples: eco.ARCGIS_EXAMPLES,
+    url_kinds: ["ArcGIS REST FeatureServer/MapServer/ImageServer", "ArcGIS Online/Portal 条目或 Web 地图", "WMS", "WMTS", "XYZ {z}/{x}/{y}", "GeoJSON/KML/GPX/Shapefile zip/GPKG/GeoTIFF/CSV 直链"],
+    note: "OSM 数据 © OpenStreetMap 贡献者（ODbL）；Natural Earth 为公有领域。",
+  };
+  if (name === "load_sample_data") {
+    const ids = String(args.dataset) === "project" ? eco.SAMPLE_PROJECT.datasets : [String(args.dataset)];
+    const files: File[] = []; for (const id of ids) files.push(await eco.loadSampleFile(id));
+    return adoptExpanded({ files, tiles: [], notes: [] });
+  }
+  if (name === "fetch_osm_data") {
+    const view = eco.getCurrentBounds();
+    let bbox: eco.Bbox | null = Array.isArray(args.bbox) && args.bbox.length === 4 ? args.bbox as eco.Bbox : args.place ? await placeBbox(String(args.place)) : view;
+    if (!bbox) throw new Error("没有可用范围：请给出 place 或 bbox，或先把地图移到目标区域。");
+    if (bbox === view) bbox = eco.fitViewBbox(args.category, bbox).bbox;
+    const r = await eco.fetchOsm(args.category, bbox);
+    if (!r.count) return { ok: false, message: `该范围内没有「${r.label}」OSM 要素。`, bbox };
+    const result = await adoptExpanded({ files: [r.file], tiles: [], notes: [`OSM「${r.label}」${r.count} 个要素${r.source === "tiles" ? "（Overpass 不可用，取自底图矢量切片，几何按切片裁切）" : ""} · © OpenStreetMap 贡献者`] });
+    return { ...result, bbox };
+  }
+  if (name === "fetch_admin_boundary") {
+    if (args.place) { const r = await eco.fetchBoundary(String(args.place)); return adoptExpanded({ files: [r.file], tiles: [], notes: [`边界「${r.name}」· © OpenStreetMap`] }); }
+    const c = eco.getCurrentCenter(); if (!c) throw new Error("地图尚未就绪，请给出 place。");
+    const r = await eco.fetchBoundaryAt(c.lng, c.lat, args.level === "city" ? "city" : "district");
+    return adoptExpanded({ files: [r.file], tiles: [], notes: [`边界「${r.name}」· © OpenStreetMap`] });
+  }
+  if (name === "import_from_url") {
+    const expanded = await eco.expandUrl(String(args.url), { bbox: args.current_view_only ? eco.getCurrentBounds() : null });
+    return adoptExpanded(expanded);
+  }
+  if (name === "set_online_basemap") {
+    if (args.url) { const expanded = await eco.expandUrl(String(args.url)); if (!expanded.tiles.length) throw new Error("该链接不是瓦片/WMS 服务。"); eco.useCustomBasemap(expanded.tiles[0]); return { ok: true, basemap: expanded.tiles[0].label }; }
+    const id = String(args.id ?? "");
+    const online = eco.ONLINE_TILES.find(t => t.id === id);
+    if (online) { eco.useCustomBasemap({ label: online.label, tiles: online.tiles, attribution: online.attribution }); return { ok: true, basemap: online.label }; }
+    if (!(BASEMAP_IDS as readonly string[]).includes(id)) throw new Error(`未知底图：${id}`);
+    eco.switchBasemap(id); return { ok: true, basemap: id };
+  }
+  throw new Error(`未知工具 ${name}`);
+}
 export async function runEngineStep(name: string, args: Record<string, any>, signal?: AbortSignal): Promise<Record<string, any>> {
   if (name.startsWith("wasm_")) await hydrateWasmCatalog();
   validate(name, args);
@@ -1134,6 +1208,7 @@ export async function runBrowserTool(name: string, args: Record<string, any> = {
     if (!run) throw new Error(`找不到计划运行记录：${args.run_id}`);
     return run as unknown as Record<string, any>;
   }
+  if (ECOSYSTEM_TOOLS.has(name)) return runEcosystemTool(name, args);
   if (["list_supported_formats", "import_arcgis_project", "gee_auth_status", "gee_search_collection", "gee_job_status"].includes(name))
     return execute(name, args);
   if (name === "remove_layer") return removeLayer(args.layer);
@@ -1387,3 +1462,5 @@ export async function browserEngineRequest(path: string, init: RequestInit = {})
   } else throw new Error(`浏览器暂不支持接口：${p}`);
   return Response.json(result);
 }
+/** Verification hook (?tiphys-debug): lets headless checks drive the same tool runner the Agent uses. */
+if (typeof window !== "undefined" && typeof location !== "undefined" && new URLSearchParams(location.search).has("tiphys-debug")) { (window as any).__tiphysRunTool = runBrowserTool; (window as any).__tiphysEco = eco; }

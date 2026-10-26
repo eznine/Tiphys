@@ -26,6 +26,9 @@ import { scheduleIdle } from "./lib/idle";
 import { isShapefilePart } from "./lib/shapefile";
 import { buildAgentSessionStub, buildWorkspaceSnapshot, loadWorkspaceSnapshot, saveWorkspaceSnapshot, type WorkspaceRecovery } from "./lib/workspace";
 import { syncNativeStatusBar } from "./lib/nativeShell";
+import { GetStartedSheet, shouldAutoOpenGetStarted } from "./components/GetStartedSheet";
+import { expandImports, needsEcosystem, ECOSYSTEM_ACCEPT, useCustomBasemap } from "./lib/ecosystem";
+import { Capacitor } from "@capacitor/core";
 import beijingPointsSample from "../samples/beijing_points.geojson?raw";
 import "./styles/app.css";
 import "./styles/mobile.css";
@@ -63,6 +66,8 @@ export default function App() {
   const [mapStatus, setMapStatus] = useState({ lng: 20, lat: 20, zoom: 1.6 });
   const [ping, setPing] = useState<PingResult>({ state: "pending" });
   const agent = useAgent("default");
+  const [hubOpen, setHubOpen] = useState(false);
+  const autoHubRef = useRef(false);
   const isMobile = useMediaQuery("(max-width: 860px)");
   const [styles, setStyles] = useState(loadLayerStyles);
   const [focus, setFocus] = useState<number[] | null>(null);
@@ -207,11 +212,23 @@ export default function App() {
       return ids.size ? { layerId: next.layerId, featureIds: [...ids].sort((a, b) => a - b) } : null;
     });
   }, []);
-  const importFiles = async (files: FileList | File[]) => {
+  const importFiles = async (files: FileList | File[], extra: { styles?: Record<string, string>; notes?: string[] } = {}): Promise<number> => {
     setImporting(true); setImportNotice("");
     let loaded = 0;
+    const notes: string[] = [...(extra.notes ?? [])];
+    const styles: Record<string, string> = { ...(extra.styles ?? {}) };
+    const styleLayer = (fileName: string, result: Record<string, any>) => {
+      const color = styles[fileName]; const id = result?.layer?.id;
+      if (color && id) agent.mergeToolResult({ view: { action: "style", layer_id: id, style: { color } } });
+    };
     try {
-      const selected = Array.from(files);
+      let selected = Array.from(files);
+      if (needsEcosystem(selected)) {
+        setImportNotice("正在解析工程 / 数据包…");
+        const expanded = await expandImports(selected);
+        selected = expanded.files; notes.push(...expanded.notes); Object.assign(styles, expanded.styles);
+        if (expanded.tiles.length) useCustomBasemap(expanded.tiles[expanded.tiles.length - 1]);
+      }
       const shapefileFiles = selected.filter(file => isShapefilePart(file.name));
       if (shapefileFiles.length) {
         const query = new URLSearchParams();
@@ -221,16 +238,23 @@ export default function App() {
         const result = await (await engineRequest(`/layers/import-shapefile?${query}`, { method: "POST", body: form })).json();
         agent.mergeToolResult(result);
         loaded += Array.isArray(result.layers) ? result.layers.length : 1;
+        for (const item of Array.isArray(result.layers) ? result.layers : [result]) styleLayer(`${item?.layer?.name}.shp`, item);
       }
       for (const file of selected.filter(file => !isShapefilePart(file.name))) {
-        const query = new URLSearchParams({ filename: file.name });
-        if (sourceCrs) query.set("source_crs", sourceCrs);
-        const result = await (await engineRequest(`/layers/import?${query}`, { method: "POST", body: file })).json();
-        agent.mergeToolResult(result); loaded++;
+        try {
+          const query = new URLSearchParams({ filename: file.name });
+          if (sourceCrs) query.set("source_crs", sourceCrs);
+          const response = await engineRequest(`/layers/import?${query}`, { method: "POST", body: file });
+          const result = await response.json();
+          if (!response.ok || result?.ok === false || result?.error) throw new Error(result?.error ?? result?.detail ?? `HTTP ${response.status}`);
+          agent.mergeToolResult(result); loaded++;
+          styleLayer(file.name, result);
+        } catch (err) { notes.push(`${file.name}：${err instanceof Error ? err.message : err}`); }
       }
-      setImportNotice(`已添加 ${loaded} 个图层，可在右侧直接描述分析任务。`);
+      setImportNotice([loaded ? `已添加 ${loaded} 个图层，可以直接让 Agent 分析。` : "没有添加图层。", ...notes].join(" · "));
     } catch (err) { setImportNotice(`已添加 ${loaded} 个图层；加载失败：${err}`); }
     finally { setImporting(false); if (fileRef.current) fileRef.current.value = ""; }
+    return loaded;
   };
   const runWorkspaceTool = async (name: string, args: Record<string, unknown>) => {
     const result = await (await engineRequest("/tools/run", { method: "POST", headers: { "Content-Type": "application/json" },
@@ -288,7 +312,8 @@ export default function App() {
       setImportNotice(`已导出「${layer.name}」：${target.label}。`);
     })().catch(err => setImportNotice(`导出失败：${err}`));
   };
-  const addData = async () => {
+  const addData = async () => { setHubOpen(true); };
+  const pickFiles = async () => {
     if (!isTauri()) { fileRef.current?.click(); return; }
     setImporting(true); setImportNotice("");
     let loaded = 0;
@@ -307,6 +332,16 @@ export default function App() {
     new File([beijingPointsSample], "beijing_points.geojson", { type: "application/geo+json" }),
   ]);
 
+  useEffect(() => {
+    if (autoHubRef.current || !agent.state.hydrated) return;
+    autoHubRef.current = true;
+    if (!agent.state.layers.length && shouldAutoOpenGetStarted()) setHubOpen(true);
+  }, [agent.state.hydrated, agent.state.layers.length]);
+  useEffect(() => {
+    const open = () => setHubOpen(true);
+    window.addEventListener("tiphys:open-hub", open);
+    return () => window.removeEventListener("tiphys:open-hub", open);
+  }, []);
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("tiphys-theme", themeMode);
@@ -383,7 +418,10 @@ export default function App() {
         onLogs={() => setLogsOpen(open => !open)}
         onSettings={() => setSettingsOpen(true)}
       />}
-      <input ref={fileRef} hidden type="file" multiple accept=".geojson,.json,.gpkg,.zip,.shp,.shx,.dbf,.prj,.cpg,.sbn,.sbx,.fgb,.kml,.kmz,.gpx,.gml,.geoparquet,.topojson,.tif,.tiff,.csv" onChange={e => { if (e.target.files?.length) void importFiles(e.target.files); }} />
+      <input ref={fileRef} hidden type="file" multiple accept={Capacitor.isNativePlatform() ? undefined : `.geojson,.json,.gpkg,.zip,.shp,.shx,.dbf,.prj,.cpg,.sbn,.sbx,.fgb,.kml,.kmz,.gpx,.gml,.geoparquet,.topojson,.tif,.tiff,.csv,${ECOSYSTEM_ACCEPT}`} onChange={e => { if (e.target.files?.length) void importFiles(e.target.files); }} />
+      <GetStartedSheet open={hubOpen} mobile={isMobile} onClose={() => setHubOpen(false)}
+        onPickFiles={() => void pickFiles()} onImport={(files, extra) => importFiles(files, extra)}
+        onAskAgent={isMobile ? undefined : text => { openDock("chat"); agent.send(text); }} />
       {isMobile ? (
         <MobileWorkspace
           theme={theme}
@@ -465,9 +503,9 @@ export default function App() {
           {!layers.length && <div className="map-empty-state" role="status">
             <span className="map-empty-icon"><Layers size={20} /></span>
             <strong>地图还没有图层</strong>
-            <span className="map-empty-copy">添加 GeoJSON、GeoPackage 或 GeoTIFF，开始本机空间分析。</span>
+            <span className="map-empty-copy">没有数据也能开始：试用示例工程、下载当前范围的 OSM 数据、粘贴 ArcGIS 链接，或导入 SHP / GDB / APRX。</span>
             <div className="map-empty-actions">
-              <button type="button" className="primary-btn" onClick={() => void addData()}>添加数据</button>
+              <button type="button" className="primary-btn" onClick={() => setHubOpen(true)}>开始的方式</button>
               <button type="button" className="secondary-btn" onClick={loadSamplePoints} disabled={importing}>加载示例点位</button>
             </div>
           </div>}

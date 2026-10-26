@@ -10,7 +10,8 @@ export type BasemapId =
   | "satellite"
   | "hillshade"
   | "opentopo"
-  | "offline";
+  | "offline"
+  | "custom";
 
 export type BasemapDef = {
   id: BasemapId;
@@ -145,7 +146,18 @@ export function blankStyle(id: string, bg: string): StyleSpecification {
   };
 }
 
+/** User-added online tile service (XYZ / WMS / ArcGIS tile), persisted in localStorage. */
+export function customBasemap(): BasemapDef | null {
+  try {
+    const raw = localStorage.getItem("tiphys-custom-basemap");
+    if (!raw) return null;
+    const src = JSON.parse(raw) as { label: string; tiles: string[]; attribution: string };
+    return { id: "custom", label: src.label || "自定义", kind: "raster", tiles: src.tiles, attribution: src.attribution || "", keyRequired: false };
+  } catch { return null; }
+}
+
 export function getBasemap(id: BasemapId): BasemapDef {
+  if (id === "custom") { const c = customBasemap(); if (c) return c; return BASEMAPS[0]; }
   const b = BASEMAPS.find((x) => x.id === id);
   if (!b) throw new Error(`unknown basemap ${id}`);
   return b;
